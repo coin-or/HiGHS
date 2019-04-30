@@ -29,6 +29,7 @@ void HPrimal::solvePhase2() {
   HighsSimplexInfo &simplex_info = workHMO.simplex_info_;
   HighsSimplexLpStatus &simplex_lp_status = workHMO.simplex_lp_status_;
   HighsTimer &timer = workHMO.timer_;
+  const bool require_binary_solution = false;
 
   solver_num_col = workHMO.simplex_lp_.numCol_;
   solver_num_row = workHMO.simplex_lp_.numRow_;
@@ -139,6 +140,13 @@ void HPrimal::solvePhase2() {
   if (simplex_lp_status.solution_status == SimplexSolutionStatus::OUT_OF_TIME ||
       simplex_lp_status.solution_status == SimplexSolutionStatus::REACHED_DUAL_OBJECTIVE_VALUE_UPPER_BOUND)
     return;
+
+  if (require_binary_solution) {
+    int num_binary_column_values = computeNumBinaryColumnValues(workHMO);
+    printf("Have [%d, %d] binary - non-binary column values\n", num_binary_column_values, solver_num_col-num_binary_column_values);
+    findBinarySolution();
+  }
+
 
   if (columnIn == -1) {
     HighsPrintMessage(ML_DETAILED, "primal-optimal\n");
@@ -634,7 +642,10 @@ void HPrimal::iterateRpPrObj(int iterate_log_level, bool header) {
   if (header) {
     HighsPrintMessage(iterate_log_level, "  PrimalObjective    ");
   } else {
-    HighsPrintMessage(iterate_log_level, " %20.10e", simplex_info.updatedPrimalObjectiveValue);
+    double primal_objective_value = simplex_info.updatedPrimalObjectiveValue;
+    compute_primal_objective_value(workHMO);
+    primal_objective_value = simplex_info.primalObjectiveValue;
+    HighsPrintMessage(iterate_log_level, " %20.10e", primal_objective_value);
   }
 }
 
@@ -690,3 +701,107 @@ void HPrimal::iterateRpInvert(int i_v) {
 #endif
 }
 
+void HPrimal::findBinarySolution() {
+  // Fix the nonbasic variables with nonzero duals
+  HighsTimer &timer = workHMO.timer_;
+  HighsSimplexInfo &simplex_info = workHMO.simplex_info_;
+  HighsSimplexLpStatus &simplex_lp_status = workHMO.simplex_lp_status_;
+  const int *jMove = &workHMO.simplex_basis_.nonbasicMove_[0];
+  const double *workDual = &workHMO.simplex_info_.workDual_[0];
+  const double dualTolerance = workHMO.simplex_info_.dual_feasibility_tolerance;
+  const double primalTolerance = workHMO.simplex_info_.primal_feasibility_tolerance;
+
+  workHMO.options_.messageLevel = ML_ALWAYS;
+  HighsSetMessagelevel(ML_ALWAYS);
+  num_tabu_col = 0;
+  for (int iCol = 0; iCol < solver_num_tot; iCol++) {
+    double signed_dual = jMove[iCol] * workDual[iCol];
+    bool col_is_tabu = true;
+    // Maybe > dualTolerance
+    if (signed_dual < -dualTolerance) {
+      printf("Strange: nonbasic column %6d has signed dual value %12g < %12g\n", iCol, signed_dual, dualTolerance);
+    } else if (signed_dual < dualTolerance) {
+      col_is_tabu = false;
+    }
+    if (col_is_tabu) {
+      tabu_col[iCol] = 0;
+      tabu_col_p[num_tabu_col] = iCol;
+      num_tabu_col++;
+    }
+    double value = simplex_info.workValue_[iCol];
+    double cost;
+    if (value > primalTolerance) {
+      if (value < 0.5) {
+	// Value in [tl, 0.5) so cost is +1
+	cost = -1.0;
+      } else if (value < 1-primalTolerance) {
+	// Value in [0.5, 1-Tl) so cost is +1
+	cost = 1.0;
+      } else {
+	cost = 0.0;
+      }
+    } else {
+      cost = 0.0;
+    }
+    simplex_info.workCost_[iCol] = cost;
+  }
+  for (int iRow = 0; iRow < solver_num_row; iRow++) {
+    double value = simplex_info.baseValue_[iRow];
+    int iCol = workHMO.simplex_basis_.basicIndex_[iRow];
+    double cost;
+    if (value > primalTolerance) {
+      if (value < 0.5) {
+	// Value in [tl, 0.5) so cost is +1
+	cost = -1.0;
+      } else if (value < 1-primalTolerance) {
+	// Value in [0.5, 1-Tl) so cost is +1
+	cost = 1.0;
+      } else {
+	cost = 0.0;
+      }
+    } else {
+      cost = 0.0;
+    }
+    simplex_info.workCost_[iCol] = cost;
+  }
+  printf("After assessing nonbasic variables, [%d, %d] are available - unavailable; \n", num_tabu_col, solver_num_col-num_tabu_col);
+
+  // Main solving structure
+  for (;;) {
+    timer.start(simplex_info.clock_[IteratePrimalRebuildClock]);
+    primalRebuild();
+    timer.stop(simplex_info.clock_[IteratePrimalRebuildClock]);
+
+    for (;;) {
+      primalChooseColumn();
+      if (columnIn == -1) {
+	invertHint = INVERT_HINT_POSSIBLY_OPTIMAL;
+	break;
+      }
+      primalChooseRow();
+      if (rowOut == -1) {
+        invertHint = INVERT_HINT_POSSIBLY_PRIMAL_UNBOUNDED;
+        break;
+      }
+      primalUpdate();
+      if (invertHint) {
+        break;
+      }
+    }
+    double currentRunHighsTime = timer.readRunHighsClock();
+    if (currentRunHighsTime > simplex_info.highs_run_time_limit) {
+      simplex_lp_status.solution_status = SimplexSolutionStatus::OUT_OF_TIME;
+      break;
+    }
+    if (simplex_lp_status.solution_status == SimplexSolutionStatus::REACHED_DUAL_OBJECTIVE_VALUE_UPPER_BOUND) break;
+    // If the data are fresh from rebuild(), break out of
+    // the outer loop to see what's ocurred
+    // Was:	if (simplex_info.update_count == 0) break;
+    if (simplex_lp_status.has_fresh_rebuild) break;
+  }
+  for (int iCol = 0; iCol < solver_num_col; iCol++) simplex_info.workCost_[iCol] = workHMO.simplex_lp_.colCost_[iCol];
+  for (int iCol = solver_num_col; iCol < solver_num_tot; iCol++) simplex_info.workCost_[iCol] = 0;
+  primalRebuild();
+  return;
+
+}

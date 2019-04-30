@@ -48,6 +48,8 @@ class HPrimal {
   void iterateRpIterDa(int iterate_log_level, bool header);
   void iterateRpInvert(int i_v);
 
+  void findBinarySolution();
+
   // Model pointer
   HighsModelObject &workHMO;
   
