@@ -20,6 +20,7 @@
 
 #include "HConfig.h"
 #include "io/HighsIO.h"
+#include "io/LoadProblem.h" // For loadLpFromFile
 #include "lp_data/HighsLp.h"
 #include "lp_data/HighsLpUtils.h"
 #include "lp_data/HighsStatus.h"
@@ -42,7 +43,15 @@ HighsStatus Highs::initializeLp(const HighsLp &lp) {
   return HighsStatus::OK;
 }
 
-// Checks the options calls presolve and postsolve if needed. Solvers are called
+HighsStatus Highs::loadModelFromFile(const char* filename) {
+  options_.filename = filename;
+  HighsLp lp;
+  HighsStatus return_status = loadLpFromFile(options_, lp);
+  if (return_status == HighsStatus::Error) return return_status;
+  return initializeLp(lp);
+}
+
+  // Checks the options calls presolve and postsolve if needed. Solvers are called
 // with runSolver(..)
 HighsStatus Highs::run() {
 

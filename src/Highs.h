@@ -43,6 +43,13 @@ public:
   }
 
   /**
+   * @brief Loads an LP into HiGHS from a file
+   */
+  HighsStatus loadModelFromFile(
+			     const char* filename //!< The LP/MPS/EMS flie name
+			     );
+
+  /**
    * @brief Clears the vector of HighsModelObjects (hmos), creates a
    * HighsModelObject for this LP and makes it the first of the vector
    * of HighsModelObjects
