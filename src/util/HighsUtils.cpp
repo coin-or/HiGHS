@@ -25,7 +25,6 @@ bool highs_isInfinity(double val) {
   return false;
 }
 
-#ifdef HiGHSDEV
 void util_analyseVectorValues(const char *message, int vecDim, const std::vector<double> &vec,
 			      bool analyseValueList) {
   if (vecDim == 0) return;
@@ -266,6 +265,3 @@ void util_analyseMatrixSparsity(const char *message, int numCol, int numRow, con
   printf("Max count is %d / %d\n", maxRowCount, numCol);
  
 }
-
-#endif
-

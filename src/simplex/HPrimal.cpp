@@ -64,11 +64,7 @@ void HPrimal::solvePhase2() {
       }
     }
   }
-  if (no_free_columns) {
-    printf("Model has no free columns\n");
-  } else {
-    printf("Model has free columns\n");
-  }
+  if (!no_free_columns) printf("Model has free columns\n");
 
   // Setup other buffers
 
@@ -89,7 +85,7 @@ void HPrimal::solvePhase2() {
 	}
 	primalChooseColumn();
 	if (columnIn == -1) {
-	  printf("Possibly optimal: num_tabu_col = %d\n", num_tabu_col);
+	  if (num_tabu_col) printf("Possibly optimal: num_tabu_col = %d\n", num_tabu_col);
 	  invertHint = INVERT_HINT_POSSIBLY_OPTIMAL;
 	  break;
 	}

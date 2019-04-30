@@ -37,17 +37,17 @@ public:
   HighsStatus setHighsOptionValue(const std::string& option,
                              const std::string& value) {
     OptionStatus status = setOptionValue(options_, option, value);
-    if (status != OptionStatus::OK)
+    if (status == OptionStatus::OK)
       return HighsStatus::OK;
     return HighsStatus::Error;
   }
 
   /**
-   * @brief Loads an LP into HiGHS from a file
+   * @brief Loads a model into HiGHS from a file
    */
   HighsStatus loadModelFromFile(
-			     const char* filename //!< The LP/MPS/EMS flie name
-			     );
+				const char* filename //!< The LP/MPS/EMS flie name
+				);
 
   /**
    * @brief Clears the vector of HighsModelObjects (hmos), creates a

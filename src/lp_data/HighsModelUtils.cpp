@@ -18,7 +18,6 @@
 #include "lp_data/HighsModelUtils.h"
 #include "util/HighsUtils.h"
 
-#ifdef HiGHSDEV
 void util_analyseModelBounds(const char *message,
 			     int numBd,
 			     const std::vector<double> &lower,
@@ -71,4 +70,3 @@ void util_analyseModelBounds(const char *message,
   printf("grep_CharMl,%d,%d,%d,%d,%d,%d\n", numBd, numFr, numLb, numUb, numBx,
          numFx);
 }
-#endif

@@ -24,7 +24,6 @@
 bool highs_isInfinity(
 		      double val //!< Value being tested against +Infinity
 		      );
-#ifdef HiGHSDEV
 /**
  * @brief Analyse the values of a vector, assessing how many are in
  * each power of ten, and possibly analyse the distribution of
@@ -42,7 +41,6 @@ bool highs_isInfinity(
 				  int numCol,                     //!< Number of columns
 				  int numRow,                     //!< Number of rows
 				  const std::vector<int>& Astart, //!< Matrix column starts
-				  const std::vector<int>& Aindex //!< Matrix row indices
+				  const std::vector<int>& Aindex  //!< Matrix row indices
 				  );
-#endif
 #endif // UTIL_HIGHSUTILS_H_

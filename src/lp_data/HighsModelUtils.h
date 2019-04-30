@@ -17,11 +17,9 @@
 #include "HConfig.h"
 #include "lp_data/HighsStatus.h"
 
-#ifdef HiGHSDEV
 // Analyse lower and upper bounds of a model
 void util_analyseModelBounds(const char* message,
 			     int numBd,
 			     const std::vector<double>& lower,
 			     const std::vector<double>& upper);
-#endif
 #endif

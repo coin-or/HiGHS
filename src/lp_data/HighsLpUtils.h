@@ -325,13 +325,22 @@ void reportLpColMatrix(
 		    const HighsLp &lp //!< LP whose data are to be reported
 		    );
 
+/**
+ * @brief Report the data of an LP
+ */
+void reportLpRowMatrix(
+		    const HighsLp &lp //!< LP whose data are to be reported
+		    );
+
 void reportMatrix(
 	       const char* message,
 	       const int num_col,
 	       const int num_nz,
 	       const int* start,
 	       const int* index,
-	       const double* value
+	       const double* value,
+	       const string* col_names = NULL,
+	       const string* row_names = NULL
 	       );
 
 // Get the costs for a contiguous set of columns
@@ -374,13 +383,11 @@ HighsStatus getLpMatrixCoefficient(
   HighsModelObject &highs_model //!< Model object whose LP solution is to be reported
   );
 */
-#ifdef HiGHSDEV
 // Analyse the data in an LP problem
 void util_analyseLp(
 		    const HighsLp &lp,
 		    const char* message
 		    );
-#endif
 
 HighsBasis_new getHighsBasis(const HighsLp& lp, const HighsBasis& basis);
 

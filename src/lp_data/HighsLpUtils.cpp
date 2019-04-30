@@ -1417,6 +1417,7 @@ void reportLp(const HighsLp &lp, const int report_level) {
     reportLpColVectors(lp);
     reportLpRowVectors(lp);
     if (report_level >= 2) reportLpColMatrix(lp);
+    if (report_level >= 2) reportLpRowMatrix(lp);
   }
 }
 
@@ -1435,7 +1436,7 @@ void reportLpDimensions(const HighsLp &lp) {
   if (lp.numInt_) {
     HighsPrintMessage(ML_MINIMAL, ", %d nonzeros and %d integer columns\n", lp_num_nz, lp.numInt_);
   } else {
-    HighsPrintMessage(ML_MINIMAL, "and %d nonzeros\n", lp_num_nz, lp.numInt_);
+    HighsPrintMessage(ML_MINIMAL, " and %d nonzeros\n", lp_num_nz, lp.numInt_);
   }
 }
 
@@ -1534,19 +1535,73 @@ void reportLpRowVectors(const HighsLp &lp) {
   }
 }
 
-// Report the LP column-wise matrix
+// Report the LP column-wise matrix column-wise
 void reportLpColMatrix(const HighsLp &lp) {
   if (lp.numCol_ <= 0) return;
-  reportMatrix("Column", lp.numCol_, lp.Astart_[lp.numCol_], &lp.Astart_[0], &lp.Aindex_[0], &lp.Avalue_[0]);
+  reportMatrix("Column", lp.numCol_, lp.Astart_[lp.numCol_], &lp.Astart_[0], &lp.Aindex_[0], &lp.Avalue_[0],
+	       &lp.col_names_[0], &lp.row_names_[0]);
 }
 
-void reportMatrix(const char* message, const int num_col, const int num_nz, const int* start, const int* index, const double* value) {
+// Report the LP column-wise matrix row-wise
+void reportLpRowMatrix(const HighsLp &lp) {
+  if (lp.numCol_ <= 0) return;
+  if (lp.numRow_ <= 0) return;
+  int num_nz = lp.Astart_[lp.numCol_];
+  vector<int> ARcount;
+  vector<int> ARstart;
+  vector<int> ARindex;
+  vector<double> ARvalue;
+  ARcount.resize(lp.numRow_, 0);
+  ARstart.resize(lp.numRow_+1);
+  ARindex.resize(num_nz);
+  ARvalue.resize(num_nz);
+  for (int el = 0; el < lp.Astart_[lp.numCol_]; el++) ARcount[lp.Aindex_[el]]++;
+  ARstart[0] = 0;
+  for (int row = 0; row < lp.numRow_; row++) ARstart[row+1] = ARstart[row] + ARcount[row];
+  for (int col = 0; col < lp.numCol_; col++) {
+    for (int el = lp.Astart_[col]; el < lp.Astart_[col+1]; el++) {
+      int row = lp.Aindex_[el];
+      ARindex[ARstart[row]] = col;
+      ARvalue[ARstart[row]] = lp.Avalue_[el];
+      ARstart[row]++;
+    }
+  }
+  ARstart[0] = 0;
+  for (int row = 0; row < lp.numRow_; row++) ARstart[row+1] = ARstart[row] + ARcount[row];
+  assert(ARstart[lp.numRow_]==num_nz);
+  reportMatrix("Row", lp.numRow_, ARstart[lp.numRow_], &ARstart[0], &ARindex[0], &ARvalue[0],
+	       &lp.row_names_[0], &lp.col_names_[0]);
+}
+
+void reportMatrix(const char* message, const int num_col, const int num_nz, const int* start, const int* index, const double* value,
+	       const string* col_names,
+	       const string* row_names) {
+  bool have_col_names = col_names != NULL;
+  bool have_row_names = row_names != NULL;
   if (num_col <= 0) return;
-  HighsPrintMessage(ML_VERBOSE, "%6s Index              Value\n", message);
+  HighsPrintMessage(ML_VERBOSE, "%6s Index              Value", message);
+  if (have_col_names) {
+    HighsPrintMessage(ML_VERBOSE, "    Name\n");
+  } else {
+    HighsPrintMessage(ML_VERBOSE, "\n");
+  }
   for (int col = 0; col < num_col; col++) {
-    HighsPrintMessage(ML_VERBOSE, "    %8d Start   %10d\n", col, start[col]);
+    HighsPrintMessage(ML_VERBOSE, "    %8d Start   %10d", col, start[col]);
+    if (have_col_names) {
+      HighsPrintMessage(ML_VERBOSE, "    %s\n", col_names[col].c_str());
+    } else {
+      HighsPrintMessage(ML_VERBOSE, "\n");
+    }
     int to_el = (col < num_col-1 ? start[col+1] : num_nz);
-    for (int el = start[col]; el < to_el; el++) HighsPrintMessage(ML_VERBOSE, "          %8d %12g\n", index[el], value[el]);
+    for (int el = start[col]; el < to_el; el++) {
+      int row = index[el];
+      HighsPrintMessage(ML_VERBOSE, "          %8d %12g", row, value[el]);
+      if (have_row_names) {
+	HighsPrintMessage(ML_VERBOSE, "    %s\n", row_names[row].c_str());
+      } else {
+	HighsPrintMessage(ML_VERBOSE, "\n");
+      }
+    }
   }
   HighsPrintMessage(ML_VERBOSE, "             Start   %10d\n", num_nz);
 }
@@ -1573,7 +1628,6 @@ void reportLpSolution(HighsModelObject &highs_model) {
 
 
 
-#ifdef HiGHSDEV
 void util_analyseLp(const HighsLp &lp, const char *message) {
   printf("\n%s model data: Analysis\n", message);
   util_analyseVectorValues("Column costs", lp.numCol_, lp.colCost_, false);
@@ -1586,7 +1640,6 @@ void util_analyseLp(const HighsLp &lp, const char *message) {
   util_analyseModelBounds("Column", lp.numCol_, lp.colLower_, lp.colUpper_);
   util_analyseModelBounds("Row", lp.numRow_, lp.rowLower_, lp.rowUpper_);
 }
-#endif
 
 HighsStatus convertBasis(const HighsLp& lp, const HighsBasis& basis,
                          HighsBasis_new& new_basis) {

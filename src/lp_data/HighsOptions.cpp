@@ -72,7 +72,7 @@ OptionStatus setOptionValue(HighsOptions& options, const std::string& option, co
    else if (option == dual_objective_value_upper_bound_string) 
     return setDualObjectiveValueUpperBoundValue(options, atof(value.c_str()));
 
-   else if (option == simplex_strategy_string) 
+   else if (option == simplex_strategy_string)
     return setSimplexStrategyValue(options, atoi(value.c_str()));
 
    else if (option == simplex_crash_strategy_string) 
