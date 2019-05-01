@@ -29,7 +29,7 @@ void HPrimal::solvePhase2() {
   HighsSimplexInfo &simplex_info = workHMO.simplex_info_;
   HighsSimplexLpStatus &simplex_lp_status = workHMO.simplex_lp_status_;
   HighsTimer &timer = workHMO.timer_;
-  const bool require_binary_solution = true;
+  const bool require_binary_solution = false;
 
   solver_num_col = workHMO.simplex_lp_.numCol_;
   solver_num_row = workHMO.simplex_lp_.numRow_;
