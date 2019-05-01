@@ -29,7 +29,7 @@ void HPrimal::solvePhase2() {
   HighsSimplexInfo &simplex_info = workHMO.simplex_info_;
   HighsSimplexLpStatus &simplex_lp_status = workHMO.simplex_lp_status_;
   HighsTimer &timer = workHMO.timer_;
-  const bool require_binary_solution = false;
+  const bool require_binary_solution = true;
 
   solver_num_col = workHMO.simplex_lp_.numCol_;
   solver_num_row = workHMO.simplex_lp_.numRow_;
@@ -142,6 +142,7 @@ void HPrimal::solvePhase2() {
     return;
 
   if (require_binary_solution) {
+    finding_binary_solution = true;
     int num_binary_column_values = computeNumBinaryColumnValues(workHMO);
     printf("Have [%d, %d] binary - non-binary column values\n", num_binary_column_values, solver_num_col-num_binary_column_values);
     findBinarySolution();
@@ -335,6 +336,26 @@ void HPrimal::primalChooseRow() {
   timer.stop(simplex_info.clock_[FtranClock]);
   columnDensity = 0.95 * columnDensity + 0.05 * column.count / solver_num_row;
 
+  const bool check_dual = false;
+  if (check_dual) {
+    const double *workCost = &workHMO.simplex_info_.workCost_[0];
+    const double *workDual = &workHMO.simplex_info_.workDual_[0];
+    const int *basicIndex = &workHMO.simplex_basis_.basicIndex_[0];
+    double check_dual_value = workCost[columnIn];
+    for (int i = 0; i < column.count; i++) {
+      int row = column.index[i];
+      int col = basicIndex[row];
+      double value = column.array[row];
+      double cost = workCost[col];
+      check_dual_value -= value * cost;
+      //    printf("Entry %2d: [%2d, %12g] Cost = %12g; check_dual_value = %12g\n", i, row, value, cost, check_dual_value);
+    }
+    thetaDual = workDual[columnIn];
+    double dual_error = abs(check_dual_value-thetaDual)/max(1.0, fabs(thetaDual));
+    if (dual_error>1e-8)
+      printf("Checking dual: updated = %12g; direct = %12g; error = %12g\n", thetaDual, check_dual_value, dual_error);
+  }
+    
   timer.start(simplex_info.clock_[Chuzr1Clock]);
   // Initialize
   rowOut = -1;
@@ -387,7 +408,7 @@ void HPrimal::primalChooseRow() {
       if (alpha > alphaTol) {
 	// Positive pivotal column entry
 	double tightSpace = baseValue[index] - baseLower[index];
-	if (tightSpace <= relaxTheta * alpha) {// NB JAJH Changed < to <= 
+	if (tightSpace < relaxTheta * alpha) {// NB JAJH Changed < to <= 
 	  numCandidate++;
 	  if (numPass == 2) {
 	    printf("CHUZR: %3d has tightSpace = %12g < %12g = %12g * %12g (relaxTheta * alpha)\n",
@@ -402,7 +423,7 @@ void HPrimal::primalChooseRow() {
       } else if (alpha < -alphaTol) {
 	// Negative pivotal column entry
 	double tightSpace = baseValue[index] - baseUpper[index];
-	if (tightSpace >= relaxTheta * alpha) {// NB JAJH Changed > to >= 
+	if (tightSpace > relaxTheta * alpha) {// NB JAJH Changed > to >= 
 	  numCandidate++;
 	  if (numPass == 2) {
 	    printf("CHUZR: %3d has tightSpace = %12g > %12g = %12g * %12g (relaxTheta * alpha)\n",
@@ -451,11 +472,9 @@ void HPrimal::primalUpdate() {
 
   // Compute thetaPrimal
   int moveIn = jMove[columnIn];
-  //  int
   columnOut = workHMO.simplex_basis_.basicIndex_[rowOut];
-  //  double
   alpha = column.array[rowOut];
-  //  double
+  thetaDual = workDual[columnIn] / alpha;
   thetaPrimal = 0;
   if (alpha * moveIn > 0) {
     // Lower bound
@@ -495,7 +514,9 @@ void HPrimal::primalUpdate() {
   }
   timer.stop(simplex_info.clock_[UpdatePrimalClock]);
 
-  simplex_info.updatedPrimalObjectiveValue += workDual[columnIn]*thetaPrimal;
+  if (!finding_binary_solution) {
+    simplex_info.updatedPrimalObjectiveValue += workDual[columnIn]*thetaPrimal;
+  }
 
   // If flipped, then no need touch the pivots
   if (flipped) {
@@ -538,26 +559,26 @@ void HPrimal::primalUpdate() {
   //  if (simplex_info.analyseSimplexIterations) iterateOpRecAf(AnIterOpTy_Btran, row_ep);
 #endif
   timer.stop(simplex_info.clock_[BtranClock]);
-
-  timer.start(simplex_info.clock_[PriceClock]);
-  workHMO.matrix_.price_by_row(row_ap, row_ep);
-  timer.stop(simplex_info.clock_[PriceClock]);
-  row_epDensity = 0.95 * row_epDensity + 0.05 * row_ep.count / solver_num_row;
-
-  timer.start(simplex_info.clock_[UpdateDualClock]);
-  //  double
-  thetaDual = workDual[columnIn] / alpha;
-  for (int i = 0; i < row_ap.count; i++) {
-    int iCol = row_ap.index[i];
-    workDual[iCol] -= thetaDual * row_ap.array[iCol];
+    
+  if (!finding_binary_solution) {
+    timer.start(simplex_info.clock_[PriceClock]);
+    workHMO.matrix_.price_by_row(row_ap, row_ep);
+    timer.stop(simplex_info.clock_[PriceClock]);
+    row_epDensity = 0.95 * row_epDensity + 0.05 * row_ep.count / solver_num_row;
+    
+    timer.start(simplex_info.clock_[UpdateDualClock]);
+    for (int i = 0; i < row_ap.count; i++) {
+      int iCol = row_ap.index[i];
+      workDual[iCol] -= thetaDual * row_ap.array[iCol];
+    }
+    for (int i = 0; i < row_ep.count; i++) {
+      int iGet = row_ep.index[i];
+      int iCol = iGet + solver_num_col;
+      workDual[iCol] -= thetaDual * row_ep.array[iGet];
+    }
+    timer.stop(simplex_info.clock_[UpdateDualClock]);
   }
-  for (int i = 0; i < row_ep.count; i++) {
-    int iGet = row_ep.index[i];
-    int iCol = iGet + solver_num_col;
-    workDual[iCol] -= thetaDual * row_ep.array[iGet];
-  }
-  timer.stop(simplex_info.clock_[UpdateDualClock]);
-
+    
   /*
   // updateVerify for primal
   double aCol = fabs(alpha);
@@ -588,6 +609,18 @@ void HPrimal::primalUpdate() {
   // Move this to Simplex class once it's created
   // simplex_method.record_pivots(columnIn, columnOut, alpha);
   simplex_info.iteration_count++;
+
+  if (finding_binary_solution) {
+    // Finding binary solution: compute the duals from scratch each time
+
+    double function;
+    findBinarySolutionFunctionCost(function, &simplex_info.workCost_[0]);
+    //    printf("findBinary objective = %12g\n", function);
+
+    timer.start(simplex_info.clock_[ComputeDualClock]);
+    compute_dual(workHMO);
+    timer.stop(simplex_info.clock_[ComputeDualClock]);
+  }
 
   // Report on the iteration
   iterateRp();
@@ -728,43 +761,12 @@ void HPrimal::findBinarySolution() {
       tabu_col_p[num_tabu_col] = iCol;
       num_tabu_col++;
     }
-    double value = simplex_info.workValue_[iCol];
-    double cost;
-    if (value > primalTolerance) {
-      if (value < 0.5) {
-	// Value in [tl, 0.5) so cost is +1
-	cost = -1.0;
-      } else if (value < 1-primalTolerance) {
-	// Value in [0.5, 1-Tl) so cost is +1
-	cost = 1.0;
-      } else {
-	cost = 0.0;
-      }
-    } else {
-      cost = 0.0;
-    }
-    simplex_info.workCost_[iCol] = cost;
-  }
-  for (int iRow = 0; iRow < solver_num_row; iRow++) {
-    double value = simplex_info.baseValue_[iRow];
-    int iCol = workHMO.simplex_basis_.basicIndex_[iRow];
-    double cost;
-    if (value > primalTolerance) {
-      if (value < 0.5) {
-	// Value in [tl, 0.5) so cost is +1
-	cost = -1.0;
-      } else if (value < 1-primalTolerance) {
-	// Value in [0.5, 1-Tl) so cost is +1
-	cost = 1.0;
-      } else {
-	cost = 0.0;
-      }
-    } else {
-      cost = 0.0;
-    }
-    simplex_info.workCost_[iCol] = cost;
   }
   printf("After assessing nonbasic variables, [%d, %d] are available - unavailable; \n", num_tabu_col, solver_num_col-num_tabu_col);
+
+  double function;
+  findBinarySolutionFunctionCost(function, &simplex_info.workCost_[0]);
+  printf("findBinary objective = %12g\n", function);
 
   // Main solving structure
   for (;;) {
@@ -778,7 +780,7 @@ void HPrimal::findBinarySolution() {
 	invertHint = INVERT_HINT_POSSIBLY_OPTIMAL;
 	break;
       }
-      primalChooseRow();
+      findBinarySolutionChooseRow();
       if (rowOut == -1) {
         invertHint = INVERT_HINT_POSSIBLY_PRIMAL_UNBOUNDED;
         break;
@@ -805,3 +807,177 @@ void HPrimal::findBinarySolution() {
   return;
 
 }
+
+void HPrimal::findBinarySolutionChooseRow() {
+  HighsSimplexInfo &simplex_info = workHMO.simplex_info_;
+  HighsTimer &timer = workHMO.timer_;
+  const double *baseLower = &workHMO.simplex_info_.baseLower_[0];
+  const double *baseUpper = &workHMO.simplex_info_.baseUpper_[0];
+  double *baseValue = &workHMO.simplex_info_.baseValue_[0];
+  const double primalTolerance = workHMO.simplex_info_.primal_feasibility_tolerance;
+  const bool allow_extra_pass = false;
+    
+  // Compute pivot column
+  timer.start(simplex_info.clock_[FtranClock]);
+  column.clear();
+  column.packFlag = true;
+  workHMO.matrix_.collect_aj(column, columnIn, 1);
+  workHMO.factor_.ftran(column, columnDensity);
+  timer.stop(simplex_info.clock_[FtranClock]);
+  columnDensity = 0.95 * columnDensity + 0.05 * column.count / solver_num_row;
+
+  const bool check_dual = true;
+  if (check_dual) {
+    const double *workCost = &workHMO.simplex_info_.workCost_[0];
+    const double *workDual = &workHMO.simplex_info_.workDual_[0];
+    const int *basicIndex = &workHMO.simplex_basis_.basicIndex_[0];
+    double check_dual_value = workCost[columnIn];
+    for (int i = 0; i < column.count; i++) {
+      int row = column.index[i];
+      int col = basicIndex[row];
+      double value = column.array[row];
+      double cost = workCost[col];
+      check_dual_value -= value * cost;
+      //      printf("Entry %2d: [%2d, %12g] Cost = %12g; check_dual_value = %12g\n", i, row, value, cost, check_dual_value);
+    }
+    thetaDual = workDual[columnIn];
+    double dual_error = abs(check_dual_value-thetaDual)/max(1.0, fabs(thetaDual));
+    if (dual_error>1e-8)
+      printf("Checking dual: updated = %12g; direct = %12g; error = %12g\n", thetaDual, check_dual_value, dual_error);
+  }
+    
+
+  timer.start(simplex_info.clock_[Chuzr1Clock]);
+  // Initialize
+  rowOut = -1;
+  int simplexIteration = simplex_info.iteration_count;
+
+  bool report = false;
+  // Choose row pass 1
+  double alphaTol = workHMO.simplex_info_.update_count < 10 ? 1e-9 : workHMO.simplex_info_.update_count < 20 ? 1e-8 : 1e-7;
+  const int *jMove = &workHMO.simplex_basis_.nonbasicMove_[0];
+  int moveIn = jMove[columnIn];
+  if (moveIn == 0) {
+    // If there's still free in the N
+    // We would report not-solved
+    // Need to handle free
+  }
+  int numPass = 1;
+  for (;;) {
+    report = numPass == 2;
+    double relaxTheta = 1e100;
+    double relaxSpace;
+    for (int i = 0; i < column.count; i++) {
+      int index = column.index[i];
+      alpha = column.array[index] * moveIn;
+      bool report_alpha = false;
+      if (alpha > alphaTol) {
+	report_alpha = abs(alpha-1.0) < primalTolerance;
+	relaxSpace = baseValue[index] - baseLower[index] + primalTolerance;
+	if (relaxSpace < relaxTheta * alpha) relaxTheta = relaxSpace / alpha;
+      } else if (alpha < -alphaTol) {
+	report_alpha = abs(alpha+1.0) < primalTolerance;
+	relaxSpace = baseValue[index] - baseUpper[index] - primalTolerance;
+	if (relaxSpace > relaxTheta * alpha) relaxTheta = relaxSpace / alpha;
+      }
+      double ratio = relaxSpace / alpha;
+      if (report && report_alpha && ratio < 10*relaxTheta)
+	printf("Row %6d: entry %12g: relaxSpace = %12g; ratio = %12g; minRatio = %12g\n", index, alpha, relaxSpace, ratio, relaxTheta);
+    }
+    if (numPass == 1) timer.stop(simplex_info.clock_[Chuzr1Clock]);
+    
+    if (numPass == 1) timer.start(simplex_info.clock_[Chuzr2Clock]);
+    // Choose row pass 2
+    double bestAlpha = 0;
+    int numCandidate = 0;
+    int unitPivotRowOut = -1;
+    for (int i = 0; i < column.count; i++) {
+      int index = column.index[i];
+      //    double
+      alpha = column.array[index] * moveIn;
+      if (alpha > alphaTol) {
+	// Positive pivotal column entry
+	double tightSpace = baseValue[index] - baseLower[index];
+	if (tightSpace <= relaxTheta * alpha) {// NB JAJH Changed < to <= 
+	  numCandidate++;
+	  if (numPass == 2) {
+	    printf("CHUZR: %3d has tightSpace = %12g < %12g = %12g * %12g (relaxTheta * alpha)\n",
+		   numCandidate, tightSpace, relaxTheta * alpha, relaxTheta, alpha);
+	  }
+	  if (alpha == 1.0) unitPivotRowOut = index;
+	  if (bestAlpha < alpha) {
+	    bestAlpha = alpha;
+	    rowOut = index;
+	  }
+	}
+      } else if (alpha < -alphaTol) {
+	// Negative pivotal column entry
+	double tightSpace = baseValue[index] - baseUpper[index];
+	if (tightSpace >= relaxTheta * alpha) {// NB JAJH Changed > to >= 
+	  numCandidate++;
+	  if (numPass == 2) {
+	    printf("CHUZR: %3d has tightSpace = %12g > %12g = %12g * %12g (relaxTheta * alpha)\n",
+		   numCandidate, tightSpace, relaxTheta * alpha, relaxTheta, alpha);
+	  }
+	  if (alpha == -1.0) unitPivotRowOut = index;
+	  if (bestAlpha < -alpha) {
+	    bestAlpha = -alpha;
+	    rowOut = index;
+	  }
+	}
+      }
+    }
+    alpha = column.array[rowOut];
+    if (numPass == 1) timer.stop(simplex_info.clock_[Chuzr2Clock]);
+    if (rowOut >= 0) break;
+    if (numPass > 1) break;
+    if (!allow_extra_pass) break;
+    numPass++;
+    printf("Iteration %6d: Cannot find unit pivot: relaxTheta = %12g\n", simplexIteration, relaxTheta);
+  }
+}
+
+void HPrimal::findBinarySolutionFunctionCost(double &function, double *cost) {
+  HighsSimplexInfo &simplex_info = workHMO.simplex_info_;
+  const double primalTolerance = workHMO.simplex_info_.primal_feasibility_tolerance;
+  double varFunction;
+  double varCost;
+  double value;
+  function = 0;
+  for (int iCol = 0; iCol < solver_num_tot; iCol++) {
+    value = simplex_info.workValue_[iCol];
+    findBinarySolutionFunctionCost(value, varFunction, varCost);
+    //    if (fabs(varCost)) printf("Nonbasic: iCol = %6d: value = %12g; cost = %12g\n", iCol, value, varCost);
+    function = function + varFunction;
+    if (cost != NULL) simplex_info.workCost_[iCol] = varCost;
+  }
+  for (int iRow = 0; iRow < solver_num_row; iRow++) {
+    value = simplex_info.baseValue_[iRow];
+    int iCol = workHMO.simplex_basis_.basicIndex_[iRow];
+    findBinarySolutionFunctionCost(value, varFunction, varCost);
+    //    if (fabs(varCost)) printf("Basic:    iCol = %6d: value = %12g; cost = %12g\n", iCol, value, varCost);
+    function = function + varFunction;
+    if (cost != NULL) simplex_info.workCost_[iCol] = varCost;
+  }
+}
+
+void HPrimal::findBinarySolutionFunctionCost(const double value, double &function, double &cost) {
+  const double primalTolerance = workHMO.simplex_info_.primal_feasibility_tolerance;
+  function = 0.0;
+  if (value > primalTolerance) {
+    if (value < 0.5) {
+      // Value in [tl, 0.5) so cost is +1
+      function = -1.0 - 2.0*(value-0.5);
+      cost = -2.0;
+    } else if (value < 1-primalTolerance) {
+      // Value in [0.5, 1-Tl) so cost is +1
+      function = -1.0 + 2.0*(value-0.5);
+      cost = 2.0;
+    } else {
+      cost = 0.0;
+    }
+  } else {
+    cost = 0.0;
+  }
+}
+

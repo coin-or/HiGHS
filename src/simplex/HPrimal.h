@@ -49,6 +49,9 @@ class HPrimal {
   void iterateRpInvert(int i_v);
 
   void findBinarySolution();
+  void findBinarySolutionFunctionCost(double &function, double *cost = NULL);
+  void findBinarySolutionFunctionCost(const double value, double &function, double &cost);
+  void findBinarySolutionChooseRow();
 
   // Model pointer
   HighsModelObject &workHMO;
@@ -81,6 +84,8 @@ class HPrimal {
 
   double row_epDensity;
   double columnDensity;
+
+  bool finding_binary_solution = false;
 };
 
 #endif /* SIMPLEX_HPRIMAL_H_ */
