@@ -29,7 +29,7 @@ void HPrimal::solvePhase2() {
   HighsSimplexInfo &simplex_info = workHMO.simplex_info_;
   HighsSimplexLpStatus &simplex_lp_status = workHMO.simplex_lp_status_;
   HighsTimer &timer = workHMO.timer_;
-  const bool require_binary_solution = false;
+  const bool require_binary_solution = true;
 
   solver_num_col = workHMO.simplex_lp_.numCol_;
   solver_num_row = workHMO.simplex_lp_.numRow_;
@@ -785,11 +785,13 @@ void HPrimal::findBinarySolution() {
         invertHint = INVERT_HINT_POSSIBLY_PRIMAL_UNBOUNDED;
         break;
       }
+      break;// Force 1 iteration only
       primalUpdate();
       if (invertHint) {
         break;
       }
     }
+      break;// Force 1 iteration only
     double currentRunHighsTime = timer.readRunHighsClock();
     if (currentRunHighsTime > simplex_info.highs_run_time_limit) {
       simplex_lp_status.solution_status = SimplexSolutionStatus::OUT_OF_TIME;
@@ -939,6 +941,7 @@ void HPrimal::findBinarySolutionChooseRow() {
 
 void HPrimal::findBinarySolutionFunctionCost(double &function, double *cost) {
   HighsSimplexInfo &simplex_info = workHMO.simplex_info_;
+  const bool report_values = true;
   const double primalTolerance = workHMO.simplex_info_.primal_feasibility_tolerance;
   double varFunction;
   double varCost;
@@ -947,7 +950,7 @@ void HPrimal::findBinarySolutionFunctionCost(double &function, double *cost) {
   for (int iCol = 0; iCol < solver_num_tot; iCol++) {
     value = simplex_info.workValue_[iCol];
     findBinarySolutionFunctionCost(value, varFunction, varCost);
-    //    if (fabs(varCost)) printf("Nonbasic: iCol = %6d: value = %12g; cost = %12g\n", iCol, value, varCost);
+    if (report_values && fabs(varCost)) printf("Nonbasic: iCol = %6d: value = %12g; cost = %12g\n", iCol, value, varCost);
     function = function + varFunction;
     if (cost != NULL) simplex_info.workCost_[iCol] = varCost;
   }
@@ -955,7 +958,7 @@ void HPrimal::findBinarySolutionFunctionCost(double &function, double *cost) {
     value = simplex_info.baseValue_[iRow];
     int iCol = workHMO.simplex_basis_.basicIndex_[iRow];
     findBinarySolutionFunctionCost(value, varFunction, varCost);
-    //    if (fabs(varCost)) printf("Basic:    iCol = %6d: value = %12g; cost = %12g\n", iCol, value, varCost);
+    if (report_values && fabs(varCost)) printf("Basic:    iCol = %6d: value = %12g; cost = %12g\n", iCol, value, varCost);
     function = function + varFunction;
     if (cost != NULL) simplex_info.workCost_[iCol] = varCost;
   }
