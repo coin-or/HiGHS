@@ -225,7 +225,13 @@ void HDual::solve(int num_threads) {
     if (solve_bailout) break;
   }
 
-  printf("grep_DSE_WtCk,%10.4g,%10.4g,%10.4g,%10.4g,%10.4g,%10.4g\n",
+  printf("grep_DSE_WtCk,%s,%s,%d,%d,%d,%d,%10.4g,%10.4g,%10.4g,%10.4g,%10.4g,%10.4g\n",
+	 workHMO.lp_.model_name_.c_str(),
+	 workHMO.lp_.lp_name_.c_str(),
+	 num_dual_steepest_edge_weight_check,
+	 num_dual_steepest_edge_weight_reject,
+	 num_wrong_low_dual_steepest_edge_weight,
+	 num_wrong_high_dual_steepest_edge_weight,
 	 max_average_frequency_low_dual_steepest_edge_weight,
 	 max_average_frequency_high_dual_steepest_edge_weight,
 	 max_sum_average_frequency_extreme_dual_steepest_edge_weight,
@@ -1305,7 +1311,7 @@ void HDual::chooseRow() {
 								 average_log_high_dual_steepest_edge_weight_error);
       max_sum_average_log_extreme_dual_steepest_edge_weight_error = max(max_sum_average_log_extreme_dual_steepest_edge_weight_error,
 									average_log_low_dual_steepest_edge_weight_error + average_log_high_dual_steepest_edge_weight_error);
-      if (weight_error > 0.5*weight_error_threshhold) {
+      if (weight_error >= weight_error_threshhold) {
 	printf("DSE Wt Ck |%8d| OK = %1d (%4d / %6d) (c %10.4g, u %10.4g, er %10.4g - %s): Low (Fq %10.4g, Er %10.4g); High (Fq%10.4g, Er%10.4g) | %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g\n",
 	       simplex_info.iteration_count,
 	       accept_weight, 
