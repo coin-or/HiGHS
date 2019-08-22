@@ -45,6 +45,14 @@ class HPrimal {
   void primalChooseRow();
   void primalUpdate();
 
+  void phase1ComputeDual();
+  void phase1ChooseColumn();
+  void phase1ChooseRow();
+  void phase1Update();
+
+  void devexReset();
+  void devexUpdate();
+
   void iterationReport();
   void iterationReportFull(bool header);
   void iterationReportIterationAndPhase(int iterate_log_level, bool header);
@@ -62,6 +70,8 @@ class HPrimal {
 
   bool no_free_columns;
 
+  int isPrimalPhase1;
+
   int solvePhase;
   int previous_iteration_report_header_iteration_count = -1;
   // Pivot related
@@ -69,12 +79,22 @@ class HPrimal {
   int columnIn;
   int rowOut;
   int columnOut;
+  int phase1OutBnd;
   double thetaDual;
   double thetaPrimal;
   double alpha;
   //  double alphaRow;
   double numericalTrouble;
   int num_flip_since_rebuild;
+
+  // Primal phase 1 tools
+  vector<pair<double, int> > ph1SorterR;
+  vector<pair<double, int> > ph1SorterT;
+
+  // Devex weight
+  int nBadDevexWeight;
+  vector<double> devexWeight;
+  vector<char> devexRefSet;
 
   // Solve buffer
   HVector row_ep;

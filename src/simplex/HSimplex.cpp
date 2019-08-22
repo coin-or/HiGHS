@@ -2996,6 +2996,15 @@ void logRebuild(HighsModelObject& highs_model_object, const bool primal,
         simplex_info.iteration_count, objective_value, simplex_variant.c_str(),
         solve_phase, simplex_info.num_primal_infeasibilities,
         simplex_info.sum_primal_infeasibilities);
+  } else if(primal && simplex_info.num_primal_infeasibilities) {
+    HighsLogMessage(HighsMessageType::INFO,
+                    "Iter %10d: %20.10e %sPh%1d Pr: %d(%g); Du: %d(%g)",
+                    simplex_info.iteration_count, objective_value,
+                    simplex_variant.c_str(), 1,
+                    simplex_info.num_primal_infeasibilities,
+                    simplex_info.sum_primal_infeasibilities,
+                    simplex_info.num_dual_infeasibilities,
+                    simplex_info.sum_dual_infeasibilities);
   } else {
     HighsLogMessage(HighsMessageType::INFO,
                     "Iter %10d: %20.10e %sPh%1d Pr: %d(%g); Du: %d(%g)",
