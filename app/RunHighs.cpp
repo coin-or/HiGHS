@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
   bool options_ok = loadOptions(argc, argv, options);
   if (!options_ok) return 0;
 
-  bool force_options_file = false;  // true;// 
+  bool force_options_file = true;// false;  // 
   if (force_options_file) {
     printf(
         "In main: set options.options_file = options_file so vscode can be "
@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
   HighsStatus read_status = loadLpFromFile(options, lp);
   if (read_status != HighsStatus::OK) {
     HighsPrintMessage(ML_ALWAYS, "Error loading file.\n");
-    return (int)HighsStatus::LpError;
+    return (int)HighsStatus::Error;
   } else {
     HighsPrintMessage(ML_MINIMAL, "LP       : %s\n", lp.model_name_.c_str());
     HighsPrintMessage(ML_MINIMAL,
@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
   HighsStatus init_status = highs.initializeLp(lp);
   if (init_status != HighsStatus::OK) {
     HighsPrintMessage(ML_ALWAYS, "Error setting HighsLp.\n");
-    return (int)HighsStatus::LpError;
+    return (int)HighsStatus::Error;
   }
   HighsStatus run_status;
   //  run_status = highs.writeToFile("write.mps"); if (run_status != HighsStatus::OK) printf("Error return from highs.writeToFile\n");
@@ -107,9 +107,9 @@ int main(int argc, char** argv) {
   highs.options_ = options;
   run_status = highs.run();
   std::string statusname = HighsStatusToString(run_status);
-  if (run_status != HighsStatus::OK && run_status != HighsStatus::Optimal)
+  if (run_status != HighsStatus::OK)
     HighsPrintMessage(ML_ALWAYS, "Highs status: %s\n", statusname.c_str());
   //    highs.reportSolution();
 
-  return 0;
+  return (int)run_status;
 }

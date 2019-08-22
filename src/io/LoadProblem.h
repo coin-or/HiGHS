@@ -27,7 +27,7 @@
 // Parses the file in options.filename using the parser specified in
 // options.parser
 HighsStatus loadLpFromFile(const HighsOptions& options, HighsLp& lp) {
-  if (options.filename.size() == 0) return HighsStatus::LpError;
+  if (options.filename.size() == 0) return HighsStatus::Error;
 
   // Make sure it is not a folder.
 
@@ -35,11 +35,11 @@ HighsStatus loadLpFromFile(const HighsOptions& options, HighsLp& lp) {
   const char* pathname = options.filename.c_str();
   if (stat(pathname, &info) != 0) {
     HighsPrintMessage(ML_ALWAYS, "Cannot access %s\n", pathname);
-    return HighsStatus::LpError;
+    return HighsStatus::Error;
   } else if (info.st_mode & S_IFDIR) {
     HighsPrintMessage(ML_ALWAYS, "%s is a directory. Please specify a file.\n",
                       pathname);
-    return HighsStatus::LpError;
+    return HighsStatus::Error;
   }
 
   Filereader* reader = Filereader::getFilereader(options.filename.c_str());
@@ -49,10 +49,10 @@ HighsStatus loadLpFromFile(const HighsOptions& options, HighsLp& lp) {
   switch (success) {
     case FilereaderRetcode::FILENOTFOUND:
       HighsPrintMessage(ML_ALWAYS, "File not found.\n");
-      return HighsStatus::LpError;
+      return HighsStatus::Error;
     case FilereaderRetcode::PARSERERROR:
       HighsPrintMessage(ML_ALWAYS, "Error when parsing file.\n");
-      return HighsStatus::LpError;
+      return HighsStatus::Error;
     default:
       break;
   }
@@ -95,8 +95,28 @@ bool loadOptionsFromFile(HighsOptions& options) {
       }
       option = line.substr(0, equals);
       value = line.substr(equals + 1, line.size() - equals);
-      if (setOptionValue(options, option, value) != OptionStatus::OK)
-        return false;
+      OptionStatus status;
+      HighsOptionType type;
+      status = getOptionType(option, type);
+      switch( type )
+	{
+	case HighsOptionType::BOOL:
+	  printf("ERROR: No method to set options of type bool\n");
+	  return false;
+	case HighsOptionType::INT:
+	  status = setOptionValue(options, option, atoi(value.c_str()));
+	  break;
+	case HighsOptionType::DOUBLE:
+	  status = setOptionValue(options, option, atof(value.c_str()));
+	  break;
+	case HighsOptionType::STRING:
+	  status = setOptionValue(options, option, value);
+	  break;
+	default:
+	  printf("ERROR: No method to set option %s of unknown type %d\n", option.c_str(), (int)type);
+	  return false;
+	}
+      if (status != OptionStatus::OK) return false;
     }
   } else {
     HighsLogMessage(HighsMessageType::ERROR, "Options file not found.");

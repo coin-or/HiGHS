@@ -22,6 +22,8 @@
 #include "mip/SolveMip.h"
 #include "util/HighsTimer.h"
 
+#include <sstream>
+
 /**
  * @brief Class to set parameters and run HiGHS
  */
@@ -31,12 +33,49 @@ class Highs {
   Highs();
   Highs(HighsOptions& options) { options_ = options; }
 
+  /**
+   * @brief Get the number of columns in the LP of the (first?)
+   * HighsModelObject
+   */
+  int getNumCols() { return lp_.numCol_; }
+
+  /**
+   * @brief Get the number of rows in the LP of the (first?)
+   * HighsModelObject
+   */
+  int getNumRows() { return lp_.numRow_; }
+
+  /**
+   * @brief Get the number of entries in the LP of the (first?)
+   * HighsModelObject
+   */
+  int getNumEntries() { if (lp_.numCol_) return lp_.Astart_[lp_.numCol_]; return 0; }
+
+  /**
+   * @brief Sets an option to the string/double/int value if it's
+   * legal and, for double/int of the correct type
+   */
   HighsStatus setHighsOptionValue(const std::string& option,
-                                  const std::string& value) {
-    OptionStatus status = setOptionValue(options_, option, value);
-    if (status == OptionStatus::OK) return HighsStatus::OK;
-    return HighsStatus::Error;
-  }
+                                  const std::string& value);
+
+  HighsStatus setHighsOptionValue(const std::string& option,
+                                  const double& value);
+
+  HighsStatus setHighsOptionValue(const std::string& option,
+                                  const int& value);
+
+  /**
+   * @brief Gets an option value as string/double/int and, for
+   * double/int, only if it's of the correct type.
+   */
+  HighsStatus getHighsOptionValue(const std::string& option,
+                                  std::string& value);
+  
+  HighsStatus getHighsOptionValue(const std::string& option,
+                                  double& value);
+
+  HighsStatus getHighsOptionValue(const std::string& option,
+                                  int& value);
 
   /**
    * @brief Clears the vector of HighsModelObjects (hmos), creates a
@@ -89,6 +128,11 @@ class Highs {
    * the (first?) HighsModelObject
    */
   double getObjectiveValue() const;
+
+  /**
+   * @brief Returns the current status of the (first?) HighsModelObject
+   */
+  HighsModelStatus getModelStatus() const;
 
   /**
    * @brief Returns the number of simplex iterations for the LP of the
@@ -284,6 +328,15 @@ class Highs {
   );
 
   /**
+   * @brief Change a matrix coefficient
+   */
+  bool changeCoeff(
+		   const int row,     //!< Row of coefficient to be changed
+		   const int col,     //!< Column of coefficient to be changed
+		   const double value //!< Coefficient
+		   );
+
+  /**
    * @brief Get multiple columns from the model given by an interval
    */
   bool getCols(const int from_col,  //!< The index of the first column to get
@@ -392,6 +445,15 @@ class Highs {
   );
 
   /**
+   * @brief Get a matrix coefficient
+   */
+  bool getCoeff(
+		const int row, //!< Row of coefficient to be changed
+		const int col, //!< Column of coefficient to be changed
+		double& value   //!< Coefficient
+		);
+
+  /**
    * @brief Delete multiple columns from the model given by an interval
    */
   bool deleteCols(const int from_col,  //!< The index of the first column to
@@ -436,10 +498,10 @@ class Highs {
   /**
    * @brief Delete multiple rows from the model given by a mask
    */
-  bool deleteRows(int* mask  //!< Full length array with 1 => delete; 0 => not
+  bool deleteRows(
+		  int* mask  //!< Full length array with 1 => delete; 0 => not
   );
 
-  // change coeff (int row, int col) | ...
   // ipx (not implemented)
 
   // todo: Set warm/hot start methods
@@ -459,7 +521,7 @@ class Highs {
 
   // Each HighsModelObject holds a const ref to its lp_. There are potentially
   // several hmos_ to allow for the solution of several different modified
-  // versions of the original LP for instance different levels of presolve.
+  // versions of the original LP. For instance different levels of presolve.
   std::vector<HighsModelObject> hmos_;
 
   bool simplex_has_run_;
