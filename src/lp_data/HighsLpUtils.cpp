@@ -86,7 +86,7 @@ HighsStatus checkLp(const HighsLp& lp) {
 
 HighsStatus assessLp(HighsLp& lp, const HighsOptions& options,
                      const bool normalise) {
-  HighsStatus return_status = HighsStatus::Error;
+  HighsStatus return_status = HighsStatus::OK;
   HighsStatus call_status;
   // Assess the LP dimensions and vector sizes, returning on error
   call_status = assessLpDimensions(lp);
@@ -787,7 +787,7 @@ HighsStatus appendLpCols(HighsLp& lp, const int num_new_col,
                          const bool valid_matrix) {
   if (num_new_col < 0) return HighsStatus::Error;
   if (num_new_col == 0) return HighsStatus::OK;
-  HighsStatus return_status = HighsStatus::Error;
+  HighsStatus return_status = HighsStatus::OK;
   int newNumCol = lp.numCol_ + num_new_col;
   // Assess the bounds and matrix indices, returning on error
   bool normalise = false;
@@ -902,7 +902,7 @@ HighsStatus appendLpRows(HighsLp& lp, const int num_new_row,
                          const HighsOptions& options, bool valid_matrix) {
   if (num_new_row < 0) return HighsStatus::Error;
   if (num_new_row == 0) return HighsStatus::OK;
-  HighsStatus return_status = HighsStatus::Error;
+  HighsStatus return_status = HighsStatus::OK;
   // int new_num_row = lp.numRow_ + num_new_row;
   // Assess the bounds and matrix indices, returning on error
   bool normalise = false;
