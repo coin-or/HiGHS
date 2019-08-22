@@ -137,7 +137,7 @@ HighsStatus assessLp(HighsLp& lp, const HighsOptions& options,
 }
 
 HighsStatus assessLpDimensions(const HighsLp& lp) {
-  HighsStatus return_status = HighsStatus::Error;
+  HighsStatus return_status = HighsStatus::OK;
 
   // Use error_found to track whether an error has been found in multiple tests
   bool error_found = false;
@@ -466,7 +466,7 @@ HighsStatus assessMatrix(const int vec_dim, const int from_ix, const int to_ix,
   if (num_nz > 0 && vec_dim <= 0) return HighsStatus::Error;
   if (num_nz <= 0) return HighsStatus::OK;
 
-  HighsStatus return_status = HighsStatus::Error;
+  HighsStatus return_status = HighsStatus::OK;
   bool error_found = false;
   bool warning_found = false;
 
@@ -787,7 +787,7 @@ HighsStatus appendLpCols(HighsLp& lp, const int num_new_col,
                          const bool valid_matrix) {
   if (num_new_col < 0) return HighsStatus::Error;
   if (num_new_col == 0) return HighsStatus::OK;
-  HighsStatus return_status = HighsStatus::Error;
+  HighsStatus return_status = HighsStatus::OK;
   int newNumCol = lp.numCol_ + num_new_col;
   // Assess the bounds and matrix indices, returning on error
   bool normalise = false;
@@ -902,7 +902,7 @@ HighsStatus appendLpRows(HighsLp& lp, const int num_new_row,
                          const HighsOptions& options, bool valid_matrix) {
   if (num_new_row < 0) return HighsStatus::Error;
   if (num_new_row == 0) return HighsStatus::OK;
-  HighsStatus return_status = HighsStatus::Error;
+  HighsStatus return_status = HighsStatus::OK;
   // int new_num_row = lp.numRow_ + num_new_row;
   // Assess the bounds and matrix indices, returning on error
   bool normalise = false;
@@ -1423,7 +1423,7 @@ HighsStatus changeLpCosts(HighsLp& lp, const bool interval, const int from_col,
   HighsStatus call_status = assessIntervalSetMask(
       lp.numCol_, interval, from_col, to_col, set, num_set_entries, col_set,
       mask, col_mask, from_k, to_k);
-  HighsStatus return_status = HighsStatus::Error;
+  HighsStatus return_status = HighsStatus::OK;
   if (call_status != HighsStatus::OK) {
     return_status = call_status;
     return return_status;
@@ -1494,7 +1494,7 @@ HighsStatus changeBounds(const char* type, double* lower, double* upper,
   HighsStatus call_status = assessIntervalSetMask(
       ix_dim, interval, from_ix, to_ix, set, num_set_entries, ix_set, mask,
       ix_mask, from_k, to_k);
-  HighsStatus return_status = HighsStatus::Error;
+  HighsStatus return_status = HighsStatus::OK;
   if (call_status != HighsStatus::OK) {
     return_status = call_status;
     return return_status;
