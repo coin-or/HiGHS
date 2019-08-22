@@ -208,6 +208,11 @@ void HPrimal::solvePhase2() {
   columnDensity = 0;
   row_epDensity = 0;
 
+  ph1SorterR.reserve(solver_num_row);
+  ph1SorterT.reserve(solver_num_row);
+
+  devexReset();
+
   no_free_columns = true;
   for (int iCol = 0; iCol < solver_num_tot; iCol++) {
     if (highs_isInfinity(-workHMO.simplex_info_.workLower_[iCol])) {
@@ -234,6 +239,39 @@ void HPrimal::solvePhase2() {
     timer.start(simplex_info.clock_[IteratePrimalRebuildClock]);
     primalRebuild();
     timer.stop(simplex_info.clock_[IteratePrimalRebuildClock]);
+
+    if (isPrimalPhase1) {
+      for (;;) {
+        /* Primal phase 1 choose column */
+        phase1ChooseColumn();
+        if (columnIn == -1) {
+          printf("==> Primal phase 1 choose column failed.\n");
+          invertHint = INVERT_HINT_CHOOSE_COLUMN_FAIL;
+          break;
+        }
+
+        /* Primal phsae 1 choose row */
+        phase1ChooseRow();
+        if (rowOut == -1) {
+          printf("Primal phase 1 choose row failed.\n");
+          exit(0);
+        }
+
+        /* Primal phase 1 update */
+        phase1Update();
+        if (invertHint) {
+          break;
+        }
+      }
+      /* Go to the next rebuild */
+      if (invertHint) {
+        /* Stop when the invert is new */
+        if (simplex_lp_status.has_fresh_rebuild) {
+          break;
+        }
+        continue;
+      }
+    }
 
     for (;;) {
       primalChooseColumn();
@@ -353,6 +391,13 @@ void HPrimal::primalRebuild() {
   computeDualInfeasible(workHMO);
   timer.stop(simplex_info.clock_[ComputeDuIfsClock]);
 
+  /* Whether to switch to primal phase 1 */
+  isPrimalPhase1 = 0;
+  if (simplex_info.num_primal_infeasibilities > 0) {
+    isPrimalPhase1 = 1;
+    phase1ComputeDual();
+  }
+
   timer.start(simplex_info.clock_[ReportRebuildClock]);
   iterationReportRebuild(sv_invertHint);
   timer.stop(simplex_info.clock_[ReportRebuildClock]);
@@ -403,8 +448,8 @@ void HPrimal::primalChooseColumn() {
       for (int iCol = fromCol; iCol < toCol; iCol++) {
         // Then look at dual infeasible
         if (jMove[iCol] * workDual[iCol] < -dualTolerance) {
-          if (bestInfeas < fabs(workDual[iCol])) {
-            bestInfeas = fabs(workDual[iCol]);
+          if (bestInfeas * devexWeight[iCol] < fabs(workDual[iCol])) {
+            bestInfeas = fabs(workDual[iCol]) / devexWeight[iCol];
             columnIn = iCol;
           }
         }
@@ -435,8 +480,8 @@ void HPrimal::primalChooseColumn() {
         }
         // Then look at dual infeasible
         if (jMove[iCol] * workDual[iCol] < -dualTolerance) {
-          if (bestInfeas < fabs(workDual[iCol])) {
-            bestInfeas = fabs(workDual[iCol]);
+          if (bestInfeas * devexWeight[iCol]  < fabs(workDual[iCol])) {
+            bestInfeas = fabs(workDual[iCol]) / devexWeight[iCol];
             columnIn = iCol;
           }
         }
@@ -678,6 +723,9 @@ void HPrimal::primalUpdate() {
   }
   timer.stop(simplex_info.clock_[UpdateDualClock]);
 
+  /* Update the devex weight */
+  devexUpdate();
+
   // After dual update in primal simplex the dual objective value is not known
   workHMO.simplex_lp_status_.has_dual_objective_value = false;
 
@@ -716,8 +764,392 @@ void HPrimal::primalUpdate() {
   // simplex_method.record_pivots(columnIn, columnOut, alpha);
   simplex_info.iteration_count++;
 
+  /* Reset the devex when there are too many errors */
+  if(nBadDevexWeight > 3) {
+    devexReset();
+  }
+
   // Report on the iteration
   iterationReport();
+}
+
+/* Compute the reduced cost for primal phase 1 with artificial cost. */
+void HPrimal::phase1ComputeDual() {
+  /* Alias to problem size, tolerance and work arrays */
+  const int nRow = workHMO.lp_.numRow_;
+  const int nCol = workHMO.lp_.numCol_;
+  const double dFeasTol = workHMO.simplex_info_.primal_feasibility_tolerance;
+  const double *baseLower = &workHMO.simplex_info_.baseLower_[0];
+  const double *baseUpper = &workHMO.simplex_info_.baseUpper_[0];
+  const double *baseValue = &workHMO.simplex_info_.baseValue_[0];
+
+  /* Setup artificial cost and compute pi with BTran */
+  HVector buffer;
+  buffer.setup(nRow);
+  buffer.clear();
+  for (int iRow = 0; iRow < nRow; iRow++) {
+    buffer.index[iRow] = iRow;
+    if (baseValue[iRow] <  baseLower[iRow] - dFeasTol) {
+      buffer.array[iRow] = -1.0;
+    } else if (baseValue[iRow] > baseUpper[iRow] + dFeasTol) {
+      buffer.array[iRow] = 1.0;
+    } else {
+      buffer.array[iRow] = 0.0;
+    }
+  }
+  workHMO.factor_.btran(buffer, 1);
+
+  /* The compute the phase 1 reduced cost for all variables by SpMV */
+  HVector bufferLong;
+  bufferLong.setup(nCol);
+  bufferLong.clear();
+  workHMO.matrix_.price_by_col(bufferLong, buffer);
+  const int* nbFlag = &workHMO.simplex_basis_.nonbasicFlag_[0];
+  double *workDual = &workHMO.simplex_info_.workDual_[0];
+  for (int iSeq = 0; iSeq < nCol + nRow; iSeq++) {
+    workDual[iSeq] = 0.0;
+  }
+  for (int iSeq = 0; iSeq < nCol; iSeq++) {
+    if (nbFlag[iSeq])
+      workDual[iSeq] = -bufferLong.array[iSeq];
+  }
+  for (int iRow = 0, iSeq = nCol; iRow < nRow; iRow++, iSeq++) {
+    if (nbFlag[iSeq])
+      workDual[iSeq] = -buffer.array[iRow];
+  }
+
+  /* Recompute number of dual infeasible variables with the phase 1 cost */
+  computeDualInfeasible(workHMO);
+}
+
+/* Choose a pivot column for the phase 1 primal simplex method */
+void HPrimal::phase1ChooseColumn() {
+  const int nSeq = workHMO.lp_.numCol_ + workHMO.lp_.numRow_;
+  const int* nbMove = &workHMO.simplex_basis_.nonbasicMove_[0];
+  const double* workDual = &workHMO.simplex_info_.workDual_[0];
+  const double dDualTol = workHMO.simplex_info_.dual_feasibility_tolerance;
+  double dBestScore = 0;
+  columnIn = -1;
+  for (int iSeq = 0; iSeq < nSeq; iSeq++) {
+    double dMyDual = nbMove[iSeq] * workDual[iSeq];
+    double dMyScore = dMyDual / devexWeight[iSeq];
+    if (dMyDual < -dDualTol && dMyScore < dBestScore) {
+      dBestScore = dMyScore;
+      columnIn = iSeq;
+    }
+  }
+}
+
+/* Choose a pivot row for the phase 1 primal simplex method */
+void HPrimal::phase1ChooseRow() {
+  /* Alias to work arrays */
+  const double dFeasTol = workHMO.simplex_info_.primal_feasibility_tolerance;
+  const double* baseLower = &workHMO.simplex_info_.baseLower_[0];
+  const double* baseUpper = &workHMO.simplex_info_.baseUpper_[0];
+  const double* baseValue = &workHMO.simplex_info_.baseValue_[0];
+
+  /* Compute the transformed pivot column and update its density */
+  column.clear();
+  column.packFlag = true;
+  workHMO.matrix_.collect_aj(column, columnIn, 1);
+  workHMO.factor_.ftran(column, columnDensity);
+  columnDensity = 0.95 * columnDensity + 0.05 * column.count / solver_num_row;
+
+  /* Compute the reducedc cost for the pivot column and compare it with the kept value */
+  double dCompDual = 0.0;
+  for (int i = 0; i < column.count; i++) {
+    int iRow = column.index[i];
+    if (baseValue[iRow] < baseLower[iRow] - dFeasTol) {
+      dCompDual -= column.array[iRow] * -1.0;
+    } else if (baseValue[iRow] > baseUpper[iRow] + dFeasTol) {
+      dCompDual -= column.array[iRow] * +1.0;
+    }
+  }
+  if (fabs(workHMO.simplex_info_.workDual_[columnIn] - dCompDual) > (fabs(dCompDual) + 1.0) * 1e-9) {
+    printf("==> Phase 1 reduced cost. Updated %g, Computed %g\n", workHMO.simplex_info_.workDual_[columnIn], dCompDual);
+  }
+
+  /* Collect phase 1 theta lists */
+  int nRow = workHMO.lp_.numRow_;
+  const int iMoveIn = workHMO.simplex_basis_.nonbasicMove_[columnIn];
+  const double dPivotTol = workHMO.simplex_info_.update_count < 10 ? 1e-9 :
+                           workHMO.simplex_info_.update_count < 20 ? 1e-8 : 1e-7;
+  ph1SorterR.clear();
+  ph1SorterT.clear();
+  for (int i = 0; i < column.count; i++) {
+    int iRow = column.index[i];
+    double dAlpha = column.array[iRow] * iMoveIn;
+
+    /* When the basic variable x[i] decrease */
+    if (dAlpha > +dPivotTol) {
+      /* Whether it can become feasible by going below its upper bound */
+      if (baseValue[iRow] > baseUpper[iRow] + dFeasTol) {
+        double dFeasTheta = (baseValue[iRow] - baseUpper[iRow] - dFeasTol) / dAlpha;
+        ph1SorterR.push_back(std::make_pair(dFeasTheta, iRow));
+        ph1SorterT.push_back(std::make_pair(dFeasTheta, iRow));
+      }
+      /* Whether it can become infeasible (again) by going below its lower bound */
+      if (baseValue[iRow] > baseLower[iRow] - dFeasTol && baseLower[iRow] > -HIGHS_CONST_INF) {
+        double dRelaxTheta = (baseValue[iRow] - baseLower[iRow] + dFeasTol) / dAlpha;
+        double dTightTheta = (baseValue[iRow] - baseLower[iRow]) / dAlpha;
+        ph1SorterR.push_back(std::make_pair(dRelaxTheta, iRow - nRow));
+        ph1SorterT.push_back(std::make_pair(dTightTheta, iRow - nRow));
+      }
+    }
+
+    /* When the basic variable x[i] increase */
+    if (dAlpha < -dPivotTol) {
+      /* Whether it can become feasible by going above its lower bound */
+      if (baseValue[iRow] < baseLower[iRow] - dFeasTol) {
+        double dFeasTheta = (baseValue[iRow] - baseLower[iRow] + dFeasTol) / dAlpha;
+        ph1SorterR.push_back(std::make_pair(dFeasTheta, iRow - nRow));
+        ph1SorterT.push_back(std::make_pair(dFeasTheta, iRow - nRow));
+      }
+
+      /* Whether it can become infeasible (again) by going above its upper bound */
+      if (baseValue[iRow] < baseUpper[iRow] + dFeasTol && baseUpper[iRow] < +HIGHS_CONST_INF) {
+        double dRelaxTheta = (baseValue[iRow] - baseUpper[iRow] - dFeasTol) / dAlpha;
+        double dTightTheta = (baseValue[iRow] - baseUpper[iRow]) / dAlpha;
+        ph1SorterR.push_back(std::make_pair(dRelaxTheta, iRow));
+        ph1SorterT.push_back(std::make_pair(dTightTheta, iRow));
+      }
+    }
+  }
+
+  /* When there is no candidates at all, we can leave it here */
+  if (ph1SorterR.empty()) {
+    rowOut = -1;
+    columnOut = -1;
+    return;
+  }
+
+  /*
+   * Now sort the relaxed theta to find the final break point.
+   * TODO: Consider partial sort.
+   *       Or heapify [O(n)] and then pop k points [kO(log(n))].
+   */
+  std::sort(ph1SorterR.begin(), ph1SorterR.end());
+  double dMaxTheta = ph1SorterR.at(0).first;
+  double dGradient = fabs(workHMO.simplex_info_.workDual_[columnIn]);
+  for (unsigned int i = 0; i < ph1SorterR.size(); i++) {
+    double dMyTheta = ph1SorterR.at(i).first;
+    int index = ph1SorterR.at(i).second;
+    int iRow = index >= 0 ? index : index + nRow;
+    dGradient -= fabs(column.array[iRow]);
+    /* Stop when the gradient start to decrease */
+    if (dGradient <= 0) {
+      break;
+    }
+    dMaxTheta = dMyTheta;
+  }
+
+  /* Find out the biggest possible alpha for pivot */
+  std::sort(ph1SorterT.begin(), ph1SorterT.end());
+  double dMaxAlpha = 0.0;
+  unsigned int iLast = ph1SorterT.size();
+  for (unsigned int i = 0; i < ph1SorterT.size(); i++) {
+    double dMyTheta = ph1SorterT.at(i).first;
+    int index = ph1SorterT.at(i).second;
+    int iRow = index >= 0 ? index : index + nRow;
+    double dAbsAlpha = fabs(column.array[iRow]);
+    /* Stop when the theta is too large */
+    if (dMyTheta > dMaxTheta) {
+      iLast = i;
+      break;
+    }
+    /* Update the maximal possible alpha */
+    if (dMaxAlpha < dAbsAlpha) {
+      dMaxAlpha = dAbsAlpha;
+    }
+  }
+
+  /* Finally choose a pivot with good enough alpha, backwardly */
+  rowOut = -1;
+  columnOut = -1;
+  phase1OutBnd = 0;
+  for (int i = iLast - 1; i >= 0; i--) {
+    int index = ph1SorterT.at(i).second;
+    int iRow = index >= 0 ? index : index + nRow;
+    double dAbsAlpha = fabs(column.array[iRow]);
+    if (dAbsAlpha > dMaxAlpha * 0.1) {
+      rowOut = iRow;
+      phase1OutBnd = index > 0 ? 1 : -1;
+      break;
+    }
+  }
+  if(rowOut != -1) {
+    columnOut = workHMO.simplex_basis_.basicIndex_[rowOut];
+  }
+}
+
+/* Update the primal and dual solutions for the primal phase 1 */
+void HPrimal::phase1Update() {
+  /* Alias to bounds arrays */
+  const double* workLower = &workHMO.simplex_info_.workLower_[0];
+  const double* workUpper = &workHMO.simplex_info_.workUpper_[0];
+  const double* baseLower = &workHMO.simplex_info_.baseLower_[0];
+  const double* baseUpper = &workHMO.simplex_info_.baseUpper_[0];
+  double* workValue = &workHMO.simplex_info_.workValue_[0];
+  double* baseValue = &workHMO.simplex_info_.baseValue_[0];
+  const int iMoveIn = workHMO.simplex_basis_.nonbasicMove_[columnIn];
+  const double dFeasTol = workHMO.simplex_info_.primal_feasibility_tolerance;
+
+  /* Compute the primal theta and see if we should have do bound flip instead */
+  alpha = column.array[rowOut];
+  thetaPrimal = 0.0;
+  if(phase1OutBnd == 1) {
+    thetaPrimal = (baseValue[rowOut] - baseUpper[rowOut]) / alpha;
+  } else {
+    thetaPrimal = (baseValue[rowOut] - baseLower[rowOut]) / alpha;
+  }
+
+  double lowerIn = workLower[columnIn];
+  double upperIn = workUpper[columnIn];
+  double valueIn = workValue[columnIn] + thetaPrimal;
+  int ifFlip = 0;
+  if (iMoveIn == +1 && valueIn > upperIn + dFeasTol) {
+    workValue[columnIn] = upperIn;
+    thetaPrimal = upperIn - lowerIn;
+    ifFlip = 1;
+    workHMO.simplex_basis_.nonbasicMove_[columnIn] = -1;
+  }
+  if (iMoveIn == -1 && valueIn < lowerIn - dFeasTol) {
+    workValue[columnIn] = lowerIn;
+    thetaPrimal = lowerIn - upperIn;
+    ifFlip = 1;
+    workHMO.simplex_basis_.nonbasicMove_[columnIn] = +1;
+  }
+
+  /* Update for the flip case */
+  if(ifFlip) {
+    /* Recompute things on flip */
+    if (invertHint == 0) {
+      compute_primal(workHMO);
+      computePrimalInfeasible(workHMO);
+      if (workHMO.simplex_info_.num_primal_infeasibilities > 0) {
+        isPrimalPhase1 = 1;
+        phase1ComputeDual();
+      } else {
+        invertHint = INVERT_HINT_UPDATE_LIMIT_REACHED;
+      }
+    }
+    return;
+  }
+
+  /* Compute BTran for update LU */
+  row_ep.clear();
+  row_ep.count = 1;
+  row_ep.index[0] = rowOut;
+  row_ep.array[rowOut] = 1;
+  row_ep.packFlag = true;
+  workHMO.factor_.btran(row_ep, row_epDensity);
+  row_epDensity = 0.95 * row_epDensity + 0.05 * row_ep.count / solver_num_row;
+
+  /* Compute the whole pivot row for updating the devex weight */
+  row_ap.clear();
+  workHMO.matrix_.price_by_row(row_ap, row_ep);
+
+
+  /* Update the devex weight */
+  devexUpdate();
+
+   /* Update other things */
+  update_pivots(workHMO, columnIn, rowOut, phase1OutBnd);
+  update_factor(workHMO, &column, &row_ep, &rowOut, &invertHint);
+  update_matrix(workHMO, columnIn, columnOut);
+  if (workHMO.simplex_info_.update_count >= workHMO.simplex_info_.update_limit) {
+    invertHint = INVERT_HINT_UPDATE_LIMIT_REACHED;
+  }
+
+
+  /* Recompute dual and primal */
+  if (invertHint == 0) {
+    compute_primal(workHMO);
+    computePrimalInfeasible(workHMO);
+    if (workHMO.simplex_info_.num_primal_infeasibilities > 0) {
+      isPrimalPhase1 = 1;
+      phase1ComputeDual();
+    } else {
+      invertHint = INVERT_HINT_UPDATE_LIMIT_REACHED;
+    }
+  }
+
+  /* Reset the devex framework when necessary */
+  if(nBadDevexWeight > 3) {
+    devexReset();
+  }
+
+
+  // Move this to Simplex class once it's created
+  // simplex_method.record_pivots(columnIn, columnOut, alpha);
+  workHMO.simplex_info_.iteration_count++;
+}
+
+/* Reset the devex weight */
+void HPrimal::devexReset() {
+  const int nSeq = workHMO.lp_.numCol_ + workHMO.lp_.numRow_;
+  devexWeight.assign(nSeq, 1.0);
+  devexRefSet.assign(nSeq, 0);
+  for (int iSeq = 0; iSeq < nSeq; iSeq++) {
+    if (workHMO.simplex_basis_.nonbasicFlag_[iSeq]) {
+      devexRefSet[iSeq] = 1;
+    }
+  }
+  nBadDevexWeight = 0;
+}
+
+void HPrimal::devexUpdate() {
+  /* Compute the pivot weight from the reference set */
+  double dPivotWeight = 0.0;
+  for (int i = 0; i < column.count; i++) {
+    int iRow = column.index[i];
+    int iSeq = workHMO.simplex_basis_.basicIndex_[iRow];
+    if (devexRefSet[iSeq]) {
+      double dAlpha = column.array[iRow];
+      dPivotWeight += dAlpha * dAlpha;
+    }
+  }
+  if (devexRefSet[columnIn]) {
+    dPivotWeight += 1.0;
+  }
+  dPivotWeight = sqrt(dPivotWeight);
+
+  /* Check if the saved weight is too large */
+  if (devexWeight[columnIn] > 3.0 * dPivotWeight) {
+    nBadDevexWeight++;
+  }
+
+  /* Update the devex weight for all */
+  double dPivot = column.array[rowOut];
+  dPivotWeight /= fabs(dPivot);
+
+  for (int i = 0; i < row_ap.count; i++) {
+    int iSeq = row_ap.index[i];
+    double alpha = row_ap.array[iSeq];
+    double devex = dPivotWeight * fabs(alpha);
+    if (devexRefSet[iSeq]) {
+      devex += 1.0;
+    }
+    if (devexWeight[iSeq] < devex) {
+      devexWeight[iSeq] = devex;
+    }
+  }
+  for (int i = 0; i < row_ep.count; i++) {
+    int iPtr = row_ep.index[i];
+    int iSeq = row_ep.index[i] + solver_num_col;
+    double alpha = row_ep.array[iPtr];
+    double devex = dPivotWeight * fabs(alpha);
+    if (devexRefSet[iSeq]) {
+      devex += 1.0;
+    }
+    if (devexWeight[iSeq] < devex) {
+      devexWeight[iSeq] = devex;
+    }
+  }
+
+  /* Update devex weight for the pivots */
+  devexWeight[columnOut] = max(1.0, dPivotWeight);
+  devexWeight[columnIn] = 1.0;
 }
 
 void HPrimal::iterationReport() {
