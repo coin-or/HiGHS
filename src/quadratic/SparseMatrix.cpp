@@ -23,13 +23,13 @@ void SparseMatrix::print(bool transpose) {
     HighsPrintMessage(ML_VERBOSE, "\n");
 
     HighsPrintMessage(ML_VERBOSE, "Tindex: \n");
-    for(int i=0; i<this->Tindex.size(); i++) {
+    for(size_t i=0; i<this->Tindex.size(); i++) {
       HighsPrintMessage(ML_VERBOSE, "%d ", this->Tindex[i]);
     }
     HighsPrintMessage(ML_VERBOSE, "\n");
 
     HighsPrintMessage(ML_VERBOSE, "Tvalue: \n");
-    for(int i=0; i<this->Tvalue.size(); i++) {
+    for(size_t i=0; i<this->Tvalue.size(); i++) {
       HighsPrintMessage(ML_VERBOSE, "%lf ", this->Tvalue[i]);
     }
     HighsPrintMessage(ML_VERBOSE, "\n");
@@ -41,13 +41,13 @@ void SparseMatrix::print(bool transpose) {
     HighsPrintMessage(ML_VERBOSE, "\n");
 
     HighsPrintMessage(ML_VERBOSE, "Aindex: \n");
-    for(int i=0; i<this->Aindex.size(); i++) {
+    for(size_t i=0; i<this->Aindex.size(); i++) {
       HighsPrintMessage(ML_VERBOSE, "%d ", this->Aindex[i]);
     }
     HighsPrintMessage(ML_VERBOSE, "\n");
 
     HighsPrintMessage(ML_VERBOSE, "Avalue: \n");
-    for(int i=0; i<this->Avalue.size(); i++) {
+    for(size_t i=0; i<this->Avalue.size(); i++) {
       HighsPrintMessage(ML_VERBOSE, "%lf ", this->Avalue[i]);
     }
     HighsPrintMessage(ML_VERBOSE, "\n");

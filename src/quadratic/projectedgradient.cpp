@@ -261,6 +261,7 @@ void ProjectedGradient::solveLpPenalty(HighsLp& lp, double mu, HVector& x) {
       for (int i = 0; i < lp.numCol_; i++) {
         x.array[i] = fmin(fmax(l.array[i], x.array[i]), u.array[i]);
       }
+      x.tight();
 
       double norm_gk = gradient.norm2();
       this->computeGradient(gradientConstant, mu, A, x, gradient);

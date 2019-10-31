@@ -131,6 +131,7 @@ include_directories(
     ${HIGHS_SOURCE_DIR}/src/io
     ${HIGHS_SOURCE_DIR}/src/lp_data
     ${HIGHS_SOURCE_DIR}/src/presolve
+    ${HIGHS_SOURCE_DIR}/src/quadratic
     ${HIGHS_SOURCE_DIR}/src/simplex
     ${HIGHS_SOURCE_DIR}/src/test
     ${HIGHS_SOURCE_DIR}/src/util)
