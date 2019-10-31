@@ -14,11 +14,18 @@
 #ifndef UTIL_HIGHSTIMER_H_
 #define UTIL_HIGHSTIMER_H_
 
-#include <sys/time.h>
 #include <cassert>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
+
+#ifdef _MSC_VER
+#include <intrin.h>
+#else
+#include <x86intrin.h>
+#endif
+
 /**
  * @brief Clock record structure
  */
@@ -37,7 +44,7 @@ struct HighsClockRecord {
 class HighsTimer {
  public:
   HighsTimer() {
-    start_time = getWallTime();
+    start_time = wall_clock::now();
     start_tick = getWallTick();
     num_clock = 0;
     int i_clock = clock_def("Run HiGHS", "RnH");
@@ -47,8 +54,6 @@ class HighsTimer {
     run_highs_clock_start_time = initial_clock_start;
 
     presolve_clock = clock_def("Presolve", "Pre");
-    scale_clock = clock_def("Scale", "Scl");
-    crash_clock = clock_def("Crash", "Csh");
     solve_clock = clock_def("Solve", "Slv");
     postsolve_clock = clock_def("Postsolve", "Pst");
   }
@@ -108,7 +113,7 @@ class HighsTimer {
       clock_time[i] = 0;
       clock_ticks[i] = 0;
     }
-    start_time = getWallTime();
+    start_time = wall_clock::now();
     start_tick = getWallTick();
   }
 
@@ -199,7 +204,7 @@ class HighsTimer {
     //    run_highs_clock_start_time); printf("startRunHighsClock() clock_ticks
     //    = %g; clock_start = %g, run_highs_clock_start_time = %g\n",
     //	   clock_ticks[run_highs_clock], clock_start[run_highs_clock],
-    //run_highs_clock_start_time);
+    // run_highs_clock_start_time);
   }
 
   /**
@@ -222,7 +227,7 @@ class HighsTimer {
     //    printf("stopRunHighsClock() clock_ticks = %g; clock_start = %g,
     //    run_highs_clock_start_time = %g\n",
     //	   clock_ticks[run_highs_clock], clock_start[run_highs_clock],
-    //run_highs_clock_start_time);
+    // run_highs_clock_start_time);
   }
 
   /**
@@ -244,7 +249,7 @@ class HighsTimer {
       if (current_run_clock_time > 1e-2) {
         double nw_tick2sec = current_run_clock_time / read_tick;
         //	printf("Updating tick2sec = %12g to %12g/%12g = %12g\n",
-        //tick2sec, current_run_clock_time, read_tick, nw_tick2sec);
+        // tick2sec, current_run_clock_time, read_tick, nw_tick2sec);
         tick2sec = nw_tick2sec;
       }
     } else {
@@ -255,7 +260,7 @@ class HighsTimer {
     //    printf("readRunHighsClock() clock_ticks = %g; clock_start = %g,
     //    run_highs_clock_start_time = %g\n",
     //	   clock_ticks[run_highs_clock], clock_start[run_highs_clock],
-    //run_highs_clock_start_time);
+    // run_highs_clock_start_time);
     return read_time;
   }
 
@@ -287,12 +292,12 @@ class HighsTimer {
 
     // Check validity of the clock list and check no clocks are still running
     for (int i = 0; i < num_clock_list_entries; i++) {
-      int i_clock = clock_list[i];
-      assert(i_clock >= 0);
-      assert(i_clock < num_clock);
+      assert(clock_list[i] >= 0);
+      assert(clock_list[i] < num_clock);
       // Check that the clock's not still running. It should be set to
       // getWallTick() >= 0 (or initialised to initial_clock_start > 0)
 #ifdef HiGHSDEV
+      int i_clock = clock_list[i];
       if (clock_start[i_clock] <= 0) {
         printf(
             "Clock %2d (%s) is still running: Start = %11.4g: Ticks = %11.4g: "
@@ -302,7 +307,7 @@ class HighsTimer {
         fflush(stdout);
       }
 #endif
-      assert(clock_start[i_clock] > 0);
+      assert(clock_start[clock_list[i]] > 0);
     }
 
     // Report in one line the per-mille contribution from each clock
@@ -411,8 +416,11 @@ class HighsTimer {
   /**
    * @brief Return the wall-clock time since the clocks were reset
    */
-  double getTime() { return getWallTime() - start_time; }
-
+  double getTime() {
+    using namespace std::chrono;
+    return duration_cast<duration<double>>(wall_clock::now() - start_time)
+        .count();
+  }
   /**
    * @brief Return the CPU ticks since the clocks were reset
    */
@@ -422,26 +430,22 @@ class HighsTimer {
    * @brief Return the current wall-clock time
    */
   double getWallTime() {
-    double walltime;
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    walltime = tv.tv_sec;
-    walltime += (double)tv.tv_usec / 1000000.0;
-    return walltime;
+    using namespace std::chrono;
+    return duration_cast<duration<double>>(wall_clock::now().time_since_epoch())
+        .count();
   }
 
   /**
    * @brief Return the current CPU ticks
    */
-  double getWallTick() {
-    unsigned a, d;
-    asm volatile("rdtsc" : "=a"(a), "=d"(d));
-    return ((unsigned long long)a) | (((unsigned long long)d) << 32);
-  }
+  double getWallTick() { return __rdtsc(); }
 
   // private:
-  double start_time;    //!< Elapsed time when the clocks were reset
-  double start_tick;    //!< CPU ticks when the clocks were reset
+  using wall_clock = std::chrono::high_resolution_clock;
+  using time_point = wall_clock::time_point;
+
+  time_point start_time;  //!< Elapsed time when the clocks were reset
+  double start_tick;      //!< CPU ticks when the clocks were reset
   int run_highs_clock;  //!< The index of the RunHighsClock - should always be 0
   double
       run_highs_clock_time;  //!< HiGHS run time - used to scale ticks to time
@@ -462,8 +466,6 @@ class HighsTimer {
 
   // Fundamental Highs clocks
   int presolve_clock;
-  int scale_clock;
-  int crash_clock;
   int solve_clock;
   int postsolve_clock;
 };

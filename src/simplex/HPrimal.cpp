@@ -28,7 +28,7 @@ using std::runtime_error;
 void HPrimal::solve() {
   HighsSimplexInfo& simplex_info = workHMO.simplex_info_;
   HighsSimplexLpStatus& simplex_lp_status = workHMO.simplex_lp_status_;
-  simplex_lp_status.solution_status = SimplexSolutionStatus::UNSET;
+  workHMO.model_status_ = HighsModelStatus::NOTSET;
   // Cannot solve box-constrained LPs
   if (workHMO.simplex_lp_.numRow_ == 0) return;
 
@@ -124,8 +124,8 @@ void HPrimal::solve() {
   //  iterationAnalysisInitialise();
 
   while (solvePhase) {
-    int it0 = simplex_info.iteration_count;
     /*
+    int it0 = simplex_info.iteration_count;
     switch (solvePhase) {
       case 1:
         timer.start(simplex_info.clock_[SimplexPrimalPhase1Clock]);
@@ -148,7 +148,7 @@ void HPrimal::solve() {
     */
   }
   solvePhase = 2;
-  if (simplex_lp_status.solution_status != SimplexSolutionStatus::OUT_OF_TIME) {
+  if (workHMO.model_status_ != HighsModelStatus::REACHED_TIME_LIMIT) {
     if (solvePhase == 2) {
       int it0 = simplex_info.iteration_count;
 
@@ -250,31 +250,13 @@ void HPrimal::solvePhase2() {
       if (invertHint) {
         break;
       }
-      double current_dual_objective_value =
-          simplex_info.updated_dual_objective_value;
-      // printf("HPrimal::solvePhase2: Iter = %d; Objective = %g\n",
-      // simplex_info.iteration_count, current_dual_objective_value);
-      if (current_dual_objective_value >
-          simplex_info.dual_objective_value_upper_bound) {
-#ifdef SCIP_DEV
-        printf("HPrimal::solvePhase2: %12g = Objective > ObjectiveUB\n",
-               current_dual_objective_value,
-               simplex_info.dual_objective_value_upper_bound);
-#endif
-        simplex_lp_status.solution_status =
-            SimplexSolutionStatus::REACHED_DUAL_OBJECTIVE_VALUE_UPPER_BOUND;
-        break;
-      }
     }
 
     double currentRunHighsTime = timer.readRunHighsClock();
-    if (currentRunHighsTime > simplex_info.highs_run_time_limit) {
-      simplex_lp_status.solution_status = SimplexSolutionStatus::OUT_OF_TIME;
+    if (currentRunHighsTime > workHMO.options_.time_limit) {
+      workHMO.model_status_ = HighsModelStatus::REACHED_TIME_LIMIT;
       break;
     }
-    if (simplex_lp_status.solution_status ==
-        SimplexSolutionStatus::REACHED_DUAL_OBJECTIVE_VALUE_UPPER_BOUND)
-      break;
     // If the data are fresh from rebuild(), break out of
     // the outer loop to see what's ocurred
     // Was:	if (simplex_info.update_count == 0) break;
@@ -288,18 +270,15 @@ void HPrimal::solvePhase2() {
     }
   }
 
-  if (simplex_lp_status.solution_status == SimplexSolutionStatus::OUT_OF_TIME ||
-      simplex_lp_status.solution_status ==
-          SimplexSolutionStatus::REACHED_DUAL_OBJECTIVE_VALUE_UPPER_BOUND)
-    return;
+  if (workHMO.model_status_ == HighsModelStatus::REACHED_TIME_LIMIT) return;
 
   if (columnIn == -1) {
     HighsPrintMessage(ML_DETAILED, "primal-optimal\n");
     HighsPrintMessage(ML_DETAILED, "problem-optimal\n");
-    simplex_lp_status.solution_status = SimplexSolutionStatus::OPTIMAL;
+    workHMO.model_status_ = HighsModelStatus::OPTIMAL;
   } else {
     HighsPrintMessage(ML_MINIMAL, "primal-unbounded\n");
-    simplex_lp_status.solution_status = SimplexSolutionStatus::UNBOUNDED;
+    workHMO.model_status_ = HighsModelStatus::PRIMAL_UNBOUNDED;
   }
   computeDualObjectiveValue(workHMO);
 }
@@ -342,27 +321,28 @@ void HPrimal::primalRebuild() {
   timer.stop(simplex_info.clock_[ComputePrimalClock]);
 
   // Primal objective section
-  bool check_primal_objective_value =
-      simplex_lp_status.has_primal_objective_value;
   timer.start(simplex_info.clock_[ComputePrObjClock]);
   computePrimalObjectiveValue(workHMO);
   timer.stop(simplex_info.clock_[ComputePrObjClock]);
 
   double primal_objective_value = simplex_info.primal_objective_value;
-  if (check_primal_objective_value) {
+#ifdef HiGHSDEV
+  // Check the objective value maintained by updating against the
+  // value when computed exactly - so long as there is a value to
+  // check against
+  if (simplex_lp_status.has_primal_objective_value) {
     double absPrimalObjectiveError = fabs(
         simplex_info.updated_primal_objective_value - primal_objective_value);
     double rlvPrimalObjectiveError =
         absPrimalObjectiveError / max(1.0, fabs(primal_objective_value));
-#ifdef HiGHSDEV
     // TODO Investigate these Primal objective value errors
     if (rlvPrimalObjectiveError >= 1e-8) {
       HighsLogMessage(HighsMessageType::WARNING,
                       "Primal objective value error |rel| = %12g (%12g)",
                       absPrimalObjectiveError, rlvPrimalObjectiveError);
     }
-#endif
   }
+#endif
   simplex_info.updated_primal_objective_value = primal_objective_value;
 
   timer.start(simplex_info.clock_[ComputePrIfsClock]);
@@ -510,9 +490,7 @@ void HPrimal::primalChooseRow() {
   timer.start(simplex_info.clock_[Chuzr1Clock]);
   // Initialize
   rowOut = -1;
-  int simplexIteration = simplex_info.iteration_count;
 
-  bool report = false;
   // Choose row pass 1
   double alphaTol = workHMO.simplex_info_.update_count < 10
                         ? 1e-9
@@ -747,7 +725,7 @@ void HPrimal::iterationReport() {
   int iteration_count_difference = iteration_count -
     previous_iteration_report_header_iteration_count;
   bool header = (previous_iteration_report_header_iteration_count < 0)
-    || (iteration_count - previous_iteration_report_header_iteration_count > 10);
+    || (iteration_count_difference > 10);
   if (header) {
     iterationReportFull(header);
     previous_iteration_report_header_iteration_count = iteration_count;
@@ -756,6 +734,10 @@ void HPrimal::iterationReport() {
 }
 
 void HPrimal::iterationReportFull(bool header) {
+#ifdef HiGHSDEV
+  HighsSimplexInfo& simplex_info = workHMO.simplex_info_;
+  bool report_condition = simplex_info.analyse_invert_condition;
+#endif
   if (header) {
     iterationReportIterationAndPhase(ML_DETAILED, true);
     iterationReportPrimalObjective(ML_DETAILED, true);
@@ -763,6 +745,7 @@ void HPrimal::iterationReportFull(bool header) {
     iterationReportIterationData(ML_DETAILED, true);
     //    iterationReportDsty(ML_DETAILED, true);
     //    HighsPrintMessage(ML_DETAILED, " FreeLsZ");
+    if (report_condition) HighsPrintMessage(ML_DETAILED, "   Condition");
 #endif
     HighsPrintMessage(ML_DETAILED, "\n");
   } else {
@@ -772,6 +755,7 @@ void HPrimal::iterationReportFull(bool header) {
     iterationReportIterationData(ML_DETAILED, false);
     //    iterationReportDsty(ML_DETAILED, false);
     //    HighsPrintMessage(ML_DETAILED, " %7d", dualRow.freeListSize);
+    if (report_condition) HighsPrintMessage(ML_DETAILED, " %11.4g", simplex_info.invert_condition);
 #endif
     HighsPrintMessage(ML_DETAILED, "\n");
   }
@@ -849,20 +833,23 @@ int HPrimal::intLog10(double v) {
 */
 void HPrimal::iterationReportRebuild(const int i_v) {
 #ifdef HiGHSDEV
+  HighsSimplexInfo& simplex_info = workHMO.simplex_info_;
+  bool report_condition = simplex_info.analyse_invert_condition;
   HighsPrintMessage(ML_MINIMAL,
                     "Iter %10d:", workHMO.simplex_info_.iteration_count);
   //  iterationReportDsty(ML_MINIMAL, true);
   //  iterationReportDsty(ML_MINIMAL, false);
   iterationReportPrimalObjective(ML_MINIMAL, false);
   HighsPrintMessage(ML_MINIMAL, " PrPh%1d(%2d)", solvePhase, i_v);
-  if (solvePhase == 2) reportInfeasibility(i_v);
+  if (report_condition) HighsPrintMessage(ML_MINIMAL, " k(B)%10.4g", simplex_info.invert_condition);
+  if (solvePhase == 2) reportInfeasibility();
   HighsPrintMessage(ML_MINIMAL, "\n");
 #else
-  logRebuild(workHMO, true, solvePhase, i_v);
+  logRebuild(workHMO, true, solvePhase);
 #endif
 }
 
-void HPrimal::reportInfeasibility(const int i_v) {
+void HPrimal::reportInfeasibility() {
   HighsSimplexInfo& simplex_info = workHMO.simplex_info_;
   if (simplex_info.sum_primal_infeasibilities > 0) {
     HighsPrintMessage(ML_MINIMAL, " Pr: %d(%g);",

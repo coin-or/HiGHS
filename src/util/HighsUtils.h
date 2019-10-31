@@ -15,8 +15,11 @@
 #define UTIL_HIGHSUTILS_H_
 
 #include <vector>
+#include <string>
 
 #include "HConfig.h"
+
+double getNorm2(const std::vector<double> values);
 
 /**
  * @brief Logical check of double being +Infinity
@@ -33,8 +36,10 @@ void analyseVectorValues(
     const char* message,             //!< Message to be printed
     int vecDim,                      //!< Dimension of vector
     const std::vector<double>& vec,  //!< Vector of values
-    bool analyseValueList  //!< Possibly analyse the distribution of different
+    bool analyseValueList = false,  //!< Possibly analyse the distribution of different
                            //!< values in the vector
+    std::string model_name = "Unknown" //!< Model name to report if analysing distribution of different
+                                       //!< values in the vector
 );
 
 void analyseMatrixSparsity(

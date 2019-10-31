@@ -12,7 +12,7 @@ avalue = [1.0, 2.0, 1.0, 3.0]
 model = HighsModel(cc, cl, cu, rl, ru, astart, aindex, avalue)
 
 # solve model in one go
-status, solution, basis = callhighs(model)
+status, solution, basis, modelstatus = Highs_call(model)
 
 # create highs object and work with it
 highs = Highs_create()
@@ -26,7 +26,7 @@ Highs_destroy(highs)
 
 # read model from file
 highs = Highs_create()
-Highs_readFromFile(highs, "/home/s1613957/HiGHs/build/bin/avgas.mps")
+Highs_readFromFile(highs, "../check/instances/adlittle.mps")
 Highs_run(highs)
 Highs_getSolution(highs)
 Highs_getBasis(highs)

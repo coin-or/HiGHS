@@ -54,7 +54,7 @@ void Presolve::load(const HighsLp& lp) {
   rowLower = lp.rowLower_;
   rowUpper = lp.rowUpper_;
 
-  modelName = &modelName[0];
+  modelName = lp.model_name_;  //&modelName[0];
 }
 
 HighsLp& PresolveInfo::getReducedProblem() {
@@ -82,6 +82,10 @@ HighsLp& PresolveInfo::getReducedProblem() {
       reduced_lp_.rowUpper_ = std::move(presolve_[0].rowUpper);
 
       reduced_lp_.sense_ = 1;
+      reduced_lp_.offset_ = 0;
+      reduced_lp_.model_name_ =
+          std::move(presolve_[0].modelName);  //"Presolved model";
+
       reduced_lp_.nnz_ = reduced_lp_.Avalue_.size();
     }
   }
@@ -129,6 +133,8 @@ int Presolve::presolve(int print) {
     hasChange = false;
     if (iPrint > 0) cout << "PR: main loop " << iter << ":" << endl;
     //***************** main loop ******************
+    checkBoundsAreConsistent();
+    if (status) return status;
 
     removeRowSingletons();
     if (status) return status;
@@ -182,6 +188,26 @@ HighsPresolveStatus Presolve::presolve() {
       break;
   }
   return presolve_status;
+}
+
+void Presolve::checkBoundsAreConsistent() {
+  for (int col = 0; col < numCol; col++) {
+    if (flagCol[col]) {
+      if (colUpper[col] - colLower[col] < -tol) {
+        status = Infeasible;
+        return;
+      }
+    }
+  }
+
+  for (int row = 0; row < numRow; row++) {
+    if (flagRow[row]) {
+      if (rowUpper[row] - rowLower[row] < -tol) {
+        status = Infeasible;
+        return;
+      }
+    }
+  }
 }
 
 /**
@@ -507,6 +533,8 @@ void Presolve::UpdateMatrixCoeffDoubletonEquationXnonZero(
       removeEmptyColumn(x);
     }
   }
+  if (y) {
+  }  // surpress warning.
 }
 
 void Presolve::trimA() {
@@ -579,13 +607,6 @@ void Presolve::resizeProblem() {
   numRow = nR;
   numCol = nC;
   numTot = nR + nC;
-
-  std::stringstream ss;
-  ss << "Problem reduced: ";
-  ss << "rows " << numRow << "(-" << numRowOriginal - numRow << "), ";
-  ss << "columns " << numCol << "(-" << numColOriginal - numCol << "), ";
-  ss << "nonzeros " << nz << "(-" << ARindex.size() - nz << ") " << std::endl;
-  HighsPrintMessage(ML_MINIMAL, ss.str().c_str());
 
   if (nR + nC == 0) {
     status = Empty;
@@ -1133,6 +1154,9 @@ pair<double, double> Presolve::getNewBoundsDoubletonConstraint(int row, int col,
     if (colUpper.at(col) < HIGHS_CONST_INF)
       low = (rowUpper.at(i) - aik * colUpper.at(col)) / aij;
   }
+
+  if (j) {
+  }  // surpress warning.
 
   return make_pair(low, upp);
 }
@@ -1743,6 +1767,8 @@ void Presolve::removeForcingConstraints(int mainIter) {
         dominatedConstraintProcedure(i, g, h);
       }
     }
+  if (mainIter) {
+  }  // surpress warning.
 }
 
 void Presolve::removeRowSingletons() {
@@ -2669,12 +2695,17 @@ HighsPostsolveStatus Presolve::postsolve(const HighsSolution& reduced_solution,
             cout << "PR: Error in postsolving doubleton inequality " << c.row
                  << " : inconsistent bounds for its dual value.\n";
 
-          double bound_row_dual = 0;
-          if (lo > 0) {
-            bound_row_dual = lo;
-          } else if (up < 0) {
-            bound_row_dual = up;
-          }
+          // WARNING: bound_row_dual not used. commented out to surpress warning
+          // but maybe this causes trouble. Look into when you do dual postsolve
+          // again (todo)
+          //
+          //
+          // double bound_row_dual = 0;
+          // if (lo > 0) {
+          //   bound_row_dual = lo;
+          // } else if (up < 0) {
+          //   bound_row_dual = up;
+          // }
 
           if (lo > 0 || up < 0) {
             // row is nonbasic, since dual value zero for it is infeasible.
@@ -2778,7 +2809,7 @@ HighsPostsolveStatus Presolve::postsolve(const HighsSolution& reduced_solution,
     }
   }
   for (int iRow = 0; iRow < numRowOriginal; iRow++) {
-    int iVar = numColOriginal + iRow;
+    // int iVar = numColOriginal + iRow;
     if (row_status[iRow] == HighsBasisStatus::BASIC) {
       assert(num_basic_var < numRowOriginal);
       if (num_basic_var == numRowOriginal) {
@@ -3212,7 +3243,7 @@ void Presolve::getDualsSingletonRow(int row, int col) {
   oldBounds.pop();
 
   valueRowDual.at(row) = 0;
-  double cost = postValue.top();
+  //   double cost = postValue.top();
   postValue.pop();
   double aij = getaij(row, col);
   double l = (get<1>(bnd))[0];

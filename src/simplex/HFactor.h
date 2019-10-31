@@ -222,6 +222,10 @@ class HFactor {
   int haveInvert;
   // The representation of B^{-1} corresponds to the current basis and is fresh
   int haveFreshInvert;
+  int basis_matrix_num_el = 0;
+  int invert_num_el = 0;
+  int kernel_dim = 0;
+  int kernel_num_el = 0;
 
  private:
   /**
@@ -338,11 +342,11 @@ class HFactor {
   void ftranAPF(HVector& vector) const;
   void btranAPF(HVector& vector) const;
 
-  void updateCFT(HVector* aq, HVector* ep, int* iRow, int* hint);
-  void updateFT(HVector* aq, HVector* ep, int iRow, int* hint);
-  void updatePF(HVector* aq, HVector* ep, int iRow, int* hint);
+  void updateCFT(HVector* aq, HVector* ep, int* iRow);//, int* hint);
+  void updateFT(HVector* aq, HVector* ep, int iRow);//, int* hint);
+  void updatePF(HVector* aq, int iRow, int* hint);
   void updateMPF(HVector* aq, HVector* ep, int iRow, int* hint);
-  void updateAPF(HVector* aq, HVector* ep, int iRow, int* hint);
+  void updateAPF(HVector* aq, HVector* ep, int iRow);//, int* hint);
 
   /**
    * Local in-line functions

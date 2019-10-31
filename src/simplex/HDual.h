@@ -248,9 +248,7 @@ class HDual {
   /**
    * @brief Report infeasibility
    */
-  void reportInfeasibility(
-      const int i_v  //!< Integer value for reporting - generally invertHint
-  );
+  void reportInfeasibility();
 
   /**
    * @brief Update an average density record for BTRAN, an FTRAN or PRICE
@@ -314,10 +312,11 @@ class HDual {
    * @brief Update the basic and nonbasic variables, iteration count,
    * invertible representation of the basis matrix and row-wise
    * representation of the nonbasic columns, delete the Freelist entry
-   * for the entering column, update the primal value for the row where
-   * the basis change has occurred, and set the corresponding squared
-   * primal infeasibility value in dualRHS.workArray, and then determine
-   * whether to reinvert according to the synthetic clock
+   * for the entering column, update the primal value for the row
+   * where the basis change has occurred, and set the corresponding
+   * primal infeasibility value in dualRHS.work_infeasibility, and
+   * then determine whether to reinvert according to the synthetic
+   * clock
    */
   void updatePivots();
 
@@ -332,12 +331,15 @@ class HDual {
    * other actions
    */
   void interpret_dual_edge_weight_strategy(
-      SimplexDualEdgeWeightStrategy simplex_dual_edge_weight_strategy);
+					   const int simplex_dual_edge_weight_strategy
+					   );
 
   /**
    * @brief Interpret the PRICE strategy as setting of a mode and other actions
    */
-  void interpret_price_strategy(SimplexPriceStrategy simplex_price_strategy);
+  void interpret_price_strategy(
+				const int simplex_price_strategy
+				);
 
 #ifdef HiGHSDEV
   double checkDualObjectiveValue(const char* message, int phase = 2);
@@ -463,10 +465,6 @@ class HDual {
 #ifdef HiGHSDEV
   int AnIterPrevRpNumCostlyDseIt;  //!< Number of costly DSE iterations when
                                    //!< previously reported
-#endif
-
-#ifdef HiGHSDEV
-  int n_wg_DSE_wt;
 #endif
 
   // Model
@@ -602,6 +600,21 @@ class HDual {
 #endif
   double total_INVERT_TICK;
   double total_FT_inc_TICK;
+
+  int num_dual_steepest_edge_weight_check;
+  int num_dual_steepest_edge_weight_reject;
+  int num_wrong_low_dual_steepest_edge_weight;
+  int num_wrong_high_dual_steepest_edge_weight;
+  double average_frequency_low_dual_steepest_edge_weight;
+  double average_frequency_high_dual_steepest_edge_weight;
+  double average_log_low_dual_steepest_edge_weight_error;
+  double average_log_high_dual_steepest_edge_weight_error;
+  double max_average_frequency_low_dual_steepest_edge_weight;
+  double max_average_frequency_high_dual_steepest_edge_weight;
+  double max_sum_average_frequency_extreme_dual_steepest_edge_weight;
+  double max_average_log_low_dual_steepest_edge_weight_error;
+  double max_average_log_high_dual_steepest_edge_weight_error;
+  double max_sum_average_log_extreme_dual_steepest_edge_weight_error;
 
   int AnIterIt0;
 #ifdef HiGHSDEV

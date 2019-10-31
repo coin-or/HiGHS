@@ -9,6 +9,7 @@
 #include "lp_data/HConst.h"
 #include "lp_data/HighsLpUtils.h"
 #include "presolve/ExactSubproblem.h"
+#include "util/HighsUtils.h"
 
 constexpr double kExitTolerance = 0.00000001;
 
@@ -44,6 +45,46 @@ std::vector<double> getAtLambda(const HighsLp& lp,
 }
 
 enum class ResidualFunctionType { kLinearised, kPiecewise };
+// if you want to test accuracy of residual use something like
+// assert(getResidual(..) == quadratic.residual_);
+
+double getQuadraticObjective(const std::vector<double> cost,
+                             const std::vector<double>& x,
+                             std::vector<double>& r, const double mu,
+                             const std::vector<double> lambda) {
+  assert(cost.size() == x.size());
+  // c'x
+  double quadratic = 0;
+  for (int col = 0; col < (int)x.size(); col++) quadratic += cost[col] * x[col];
+
+  // lambda'x
+  for (int row = 0; row < (int)lambda.size(); row++) {
+    quadratic += lambda[row] * r[row];
+  }
+
+  // 1/2mu r'r
+  for (int row = 0; row < (int)lambda.size(); row++) {
+    quadratic += (r[row] * r[row]) / mu;
+  }
+
+  return quadratic;
+}
+
+void printMinorIterationDetails(const double iteration, const double col,
+                                const double old_value, const double update,
+                                const double ctx, const std::vector<double>& r,
+                                const double quadratic_objective) {
+  double rnorm = getNorm2(r);
+  std::cout << "iter " << iteration;
+  std::cout << ", col " << col;
+  std::cout << ", update " << update;
+  std::cout << ", old_value " << old_value;
+  std::cout << ", new_value " << old_value + update;
+  std::cout << ", ctx " << ctx;
+  std::cout << ", r " << rnorm;
+  std::cout << ", quadratic_objective " << quadratic_objective;
+  std::cout << std::endl;
+}
 
 class Quadratic {
  public:
@@ -161,7 +202,14 @@ void Quadratic::updateObjective() {
     objective_ += lp_.colCost_[col] * col_value_[col];
 }
 
-double chooseStartingMu(const HighsLp& lp) { return 0.001; }
+double chooseStartingMu(const HighsLp& lp) {
+  // for now just surpress warning but later use LP data to determine starting
+  // mu.
+  if (lp.numCol_ > 0) {
+  }
+  // return 0.001;
+  return 10;
+}
 
 HighsStatus initialize(const HighsLp& lp, HighsSolution& solution, double& mu,
                        std::vector<double>& lambda) {
@@ -596,13 +644,20 @@ HighsStatus runFeasibility(const HighsLp& lp, HighsSolution& solution,
     quadratic_type = ResidualFunctionType::kPiecewise;
 
   if (quadratic_type != ResidualFunctionType::kPiecewise &&
-      !isEqualityProblem(lp))
-    return HighsStatus::NotImplemented;
+      !isEqualityProblem(lp)) {
+    HighsPrintMessage(
+        ML_ALWAYS,
+        "Error: FindFeasibility does not support smooth minimization of "
+        "inequality problems. Run transformIntoEqualityProblem(..) before "
+        "runFeasibility(..)\n");
+    return HighsStatus::Error;
+  }
 
   if (lp.sense_ != OBJSENSE_MINIMIZE) {
     HighsPrintMessage(
         ML_ALWAYS,
         "Error: FindFeasibility does not support maximization problems.\n");
+    return HighsStatus::Error;
   }
 
   // Initialize x_0 ≥ 0, μ_1, λ_1 = 0.
@@ -610,7 +665,12 @@ HighsStatus runFeasibility(const HighsLp& lp, HighsSolution& solution,
   std::vector<double> lambda;
 
   HighsStatus status = initialize(lp, solution, mu, lambda);
+  if (status != HighsStatus::OK) {
+    // todo: handle errors.
+  }
+
   Quadratic quadratic(lp, solution.col_value, quadratic_type);
+  // Quadratic quadratic(lp, solution.col_value);
 
   if (type == MinimizationType::kComponentWise)
     HighsPrintMessage(ML_ALWAYS,

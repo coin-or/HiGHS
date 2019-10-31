@@ -19,14 +19,14 @@
 #include "lp_data/HighsOptions.h"
 #include "lp_data/HighsStatus.h"
 
-void options(
-    HighsModelObject& highs_model_object,  //!< Model object in which simplex
-                                           //!< options are to be set
-    const HighsOptions&
-        opt  //!< HiGHS options to be used to set simplex options
-);
+void setSimplexOptions(
+	     HighsModelObject& highs_model_object  //!< Model object in which simplex
+	                                           //!< options are to be set
+	     );
 
-SimplexSolutionStatus transition(HighsModelObject& highs_model_object);
+HighsModelStatus transition(
+			    HighsModelObject& highs_model_object  //!< Model object
+			    );
 
 bool dual_infeasible(const double value, const double lower, const double upper,
                      const double dual, const double value_tolerance,
@@ -42,7 +42,9 @@ void append_nonbasic_cols_to_basis(HighsLp& lp, SimplexBasis& simplex_basis,
 
 void append_basic_rows_to_basis(HighsLp& lp, HighsBasis& basis, int XnumNewRow);
 
-bool highs_basis_ok(HighsLp& lp, HighsBasis& basis);
+bool highs_basis_ok(
+		    //		    HighsLp& lp, HighsBasis& basis
+		    );
 
 bool nonbasic_flag_basic_index_ok(HighsLp& lp, SimplexBasis& simplex_basis);
 
@@ -178,16 +180,13 @@ void computePrimalInfeasible(HighsModelObject& highs_model_object,
 void computeDualInfeasible(HighsModelObject& highs_model_object,
                            const bool report = false);
 
+void computeDualInfeasibleWithFlips(HighsModelObject& highs_model_object,
+				    const bool report = false);
+
 void compute_dual(HighsModelObject& highs_model_object);
 
 void correct_dual(HighsModelObject& highs_model_object,
                   int* free_infeasibility_count);
-
-void compute_dual_infeasible_in_dual(HighsModelObject& highs_model_object,
-                                     int* dual_infeasibility_count);
-
-void compute_dual_infeasible_in_primal(HighsModelObject& highs_model_object,
-                                       int* dual_infeasibility_count);
 
 // Record the shift in the cost of a particular column
 void shift_cost(HighsModelObject& highs_model_object, int iCol, double amount);
@@ -208,9 +207,7 @@ void update_matrix(HighsModelObject& highs_model_object, int columnIn,
                    int columnOut);
 
 void logRebuild(HighsModelObject& highs_model_object, const bool primal,
-                const int solve_phase, const int i_v = -1);
-
-std::string SimplexSolutionStatusToString(SimplexSolutionStatus status);
+                const int solve_phase);
 
 void reportSimplexLpStatus(
     HighsSimplexLpStatus&
@@ -233,4 +230,5 @@ void updateSimplexLpStatus(
     LpAction action         // !< Action prompting update
 );
 
+HighsStatus solveUnconstrainedLp(HighsModelObject& highs_model_object);
 #endif  // SIMPLEX_HSIMPLEX_H_

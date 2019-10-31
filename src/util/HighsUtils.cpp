@@ -13,12 +13,20 @@
  */
 
 #include "util/HighsUtils.h"
+
+#include <cstdio>
+#include <cmath>
+#include <vector>
+
 #include "HConfig.h"
 #include "lp_data/HConst.h"
 
-#include <stdio.h>
-#include <cmath>
-#include <vector>
+double getNorm2(const std::vector<double> values) {
+  double sum = 0;
+  int values_size = values.size();
+  for (int i = 0; i < values_size; i++) sum += values[i] * values[i];
+  return sum;
+}
 
 bool highs_isInfinity(double val) {
   if (val >= HIGHS_CONST_INF) return true;
@@ -28,7 +36,8 @@ bool highs_isInfinity(double val) {
 #ifdef HiGHSDEV
 void analyseVectorValues(const char* message, int vecDim,
                          const std::vector<double>& vec,
-                         bool analyseValueList) {
+                         bool analyseValueList,
+			 std::string model_name) {
   if (vecDim == 0) return;
   double log10 = log(10.0);
   const int nVK = 20;
@@ -145,6 +154,11 @@ void analyseVectorValues(const char* message, int vecDim,
       int pct = ((100.0 * VLsK[ix]) / vecDim) + 0.5;
       printf("     %12g %12d (%3d%%)\n", VLsV[ix], VLsK[ix], pct);
     }
+    printf("grep_value_distrib,%s,%d", model_name.c_str(), VLsZ);
+    printf(",");
+    if (excessVLsV) printf("!");
+    for (int ix = 0; ix < VLsZ; ix++) printf(",%g", VLsV[ix]);
+    printf("\n");      
   }
 }
 

@@ -3,7 +3,6 @@ program fortrantest
   use highs_lp_solver
   implicit none
 
-
   integer ( c_int ), parameter :: n = 2
   integer ( c_int ), parameter :: m = 2
   integer ( c_int ), parameter :: nz = 4
@@ -23,6 +22,7 @@ program fortrantest
   real ( c_double ) rd(m)
   integer ( c_int ) cbs(n)
   integer ( c_int ) rbs(m)
+  integer ( c_int ) ms
 
   cc(1) = 1
   cc(2) = -2
@@ -46,7 +46,7 @@ program fortrantest
   av(3) = 3
   av(4) = 0.2
 
-  call callhighs( n, m, nz, cc, cl, cu, rl, ru, as, ai, av, cv, cd, rv, rd, cbs, rbs )
+  call Highs_call( n, m, nz, cc, cl, cu, rl, ru, as, ai, av, cv, cd, rv, rd, cbs, rbs, ms)
       
 
 end program fortrantest

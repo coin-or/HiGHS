@@ -71,10 +71,11 @@ void HDual::major_chooseRow() {
    * Major loop:
    *     repeat 1-5, until we found a good sets of choices
    */
+  int* choiceIndex = new int[multi_num];
   for (;;) {
     // 1. Multiple CHUZR
     int initialCount = 0;
-    int choiceIndex[multi_num];
+    
     dualRHS.choose_multi_HGauto(&choiceIndex[0], &initialCount, multi_num);
     //        dualRHS.choose_multi_global(&choiceIndex[0], &initialCount,
     //        multi_num);
@@ -87,7 +88,7 @@ void HDual::major_chooseRow() {
     int choiceCount = 0;
     for (int i = 0; i < initialCount; i++) {
       int iRow = choiceIndex[i];
-      if (dualRHS.workArray[iRow] / dualRHS.workEdWt[iRow] >=
+      if (dualRHS.work_infeasibility[iRow] / dualRHS.workEdWt[iRow] >=
           dualRHS.workCutoff) {
         choiceIndex[choiceCount++] = iRow;
       }
@@ -128,6 +129,7 @@ void HDual::major_chooseRow() {
     }
     if (countWrongEdWt <= choiceCount / 3) break;
   }
+  delete[] choiceIndex;
 
   // 6. Take other info associated with choices
   double pami_cutoff = 0.95;
@@ -138,10 +140,10 @@ void HDual::major_chooseRow() {
     multi_choice[i].baseValue = baseValue[iRow];
     multi_choice[i].baseLower = baseLower[iRow];
     multi_choice[i].baseUpper = baseUpper[iRow];
-    multi_choice[i].infeasValue = dualRHS.workArray[iRow];
+    multi_choice[i].infeasValue = dualRHS.work_infeasibility[iRow];
     multi_choice[i].infeasEdWt = dualRHS.workEdWt[iRow];
     multi_choice[i].infeasLimit =
-        dualRHS.workArray[iRow] / dualRHS.workEdWt[iRow];
+        dualRHS.work_infeasibility[iRow] / dualRHS.workEdWt[iRow];
     multi_choice[i].infeasLimit *= pami_cutoff;
   }
 
@@ -277,10 +279,10 @@ void HDual::minor_updateDual() {
     shift_cost(workHMO, columnIn, -workDual[columnIn]);  // model->shiftCost(columnIn,
                                                          // -workDual[columnIn]);
   } else {
-    dualRow.update_dual(thetaDual, columnOut);
+    dualRow.update_dual(thetaDual);//, columnOut);
     if (slice_PRICE) {
       for (int i = 0; i < slice_num; i++)
-        slice_dualRow[i].update_dual(thetaDual, columnOut);
+        slice_dualRow[i].update_dual(thetaDual);//, columnOut);
     }
   }
   workDual[columnIn] = 0;
@@ -613,7 +615,7 @@ void HDual::major_updatePrimal() {
   if (updatePrimal_inDense) {
     // Update the RHS in dense
     const double* mixArray = &columnBFRT.array[0];
-    double* rhs = &dualRHS.workArray[0];
+    double* local_work_infeasibility = &dualRHS.work_infeasibility[0];
 #pragma omp parallel for schedule(static)
     for (int iRow = 0; iRow < solver_num_row; iRow++) {
       baseValue[iRow] -= mixArray[iRow];
@@ -621,7 +623,11 @@ void HDual::major_updatePrimal() {
       const double less = baseLower[iRow] - value;
       const double more = value - baseUpper[iRow];
       double infeas = less > Tp ? less : (more > Tp ? more : 0);
-      rhs[iRow] = infeas * infeas;
+      //      local_work_infeasibility[iRow] = infeas * infeas;
+      if (workHMO.simplex_info_.store_squared_primal_infeasibility) 
+	local_work_infeasibility[iRow] = infeas * infeas;
+      else
+	local_work_infeasibility[iRow] = fabs(infeas);
     }
 
     // Update the weight in dense
@@ -685,7 +691,7 @@ void HDual::major_updateFactor() {
   /**
    * 9. Update the factor by CFT
    */
-  int iRows[multi_nFinish];
+  int* iRows = new int[multi_nFinish];
   for (int iCh = 0; iCh < multi_nFinish - 1; iCh++) {
     multi_finish[iCh].row_ep->next = multi_finish[iCh + 1].row_ep;
     multi_finish[iCh].column->next = multi_finish[iCh + 1].column;
@@ -700,6 +706,7 @@ void HDual::major_updateFactor() {
   if (total_FT_inc_TICK > total_INVERT_TICK * 1.5 &&
       workHMO.simplex_info_.update_count > 200)
     invertHint = INVERT_HINT_SYNTHETIC_CLOCK_SAYS_INVERT;
+  delete[] iRows;
 }
 
 void HDual::major_rollback() {
