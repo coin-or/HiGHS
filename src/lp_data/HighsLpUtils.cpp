@@ -2251,7 +2251,6 @@ HighsLp dualizeEqualityProblem(const HighsLp& lp) {
 
   HighsPrintMessage(ML_ALWAYS, "Dualized equality LP.\n");
 
-  HighsPrintMessage(ML_ALWAYS, "Dualized equality LP.\n");
   return dual;
 }
 

@@ -428,13 +428,13 @@ class HighsOptions {
 				     "Strategy for iCrash",
 				     advanced, &feasibility_strategy,
 				     0,
-				     (int) FeasibilityStrategy::kApproxComponentWise,
+				     (int) FeasibilityStrategy::kComponentWise,
 				     (int) FeasibilityStrategy::FEASIBILITY_STRATEGY_MAX);
     records.push_back(record_int);
 
-    record_bool = new OptionRecordBool("feasibility_strategy_dualize",
+    record_bool = new OptionRecordBool("feasibility_dualize",
 				     "Dualise strategy for iCrash",
-				     advanced, &feasibility_strategy_dualize,
+				     advanced, &feasibility_dualize,
 				     false);
     records.push_back(record_bool);
 
@@ -499,7 +499,7 @@ class HighsOptions {
   // Options for iCrash
   bool find_feasibility;
   int feasibility_strategy;
-  bool feasibility_strategy_dualize;
+  bool feasibility_dualize;
 
   // Switch for MIP solver
   bool mip;

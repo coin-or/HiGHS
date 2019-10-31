@@ -13,13 +13,13 @@ void solve_exact(const HighsLp& lp, const double mu, std::vector<double>& col_va
   HighsLp& lp_non_const = const_cast<HighsLp&>(lp);
 
   HighsOptions options;
-  options.messageLevel = ML_NONE;
+  options.message_level = ML_NONE;
   HighsSetIO(options);
 
   ProjectedGradient projected_gradient;
   projected_gradient.solveLpPenalty(lp_non_const, mu, vector);
 
-  options.messageLevel = ML_MINIMAL;
+  options.message_level = ML_MINIMAL;
   HighsSetIO(options);
 
   col_value = vector.array;

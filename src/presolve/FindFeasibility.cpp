@@ -327,7 +327,8 @@ void Quadratic::minimize_component_quadratic_linearisation(
   double new_quadratic_objective =
       calculateQuadraticValue(mu, lambda, ResidualFunctionType::kLinearised);
 
-  std::cout << "col " << col << ": " << delta_x << std::endl;
+  // std::cout << "col " << col << ": " << delta_x << std::endl;
+
   // Update objective, row_value, residual after each component update.
   objective_ += lp_.colCost_[col] * delta_x;
   for (int k = lp_.Astart_[col]; k < lp_.Astart_[col + 1]; k++) {
@@ -621,7 +622,12 @@ void Quadratic::minimize_by_component(
       if (quadratic_type == ResidualFunctionType::kLinearised)
         minimize_component_quadratic_linearisation(col, mu, lambda);
       else if (quadratic_type == ResidualFunctionType::kPiecewise)
-        minimize_component_quadratic_piecewise(col, mu, lambda);
+      // todo: broken (for addlittle) during merge.
+      // minimize_component_quadratic_piecewise(col, mu, lambda);
+      {
+        std::cout << "Piecewise minimization dev in progress.";
+        return;
+      }
     }
 
     HighsPrintMessage(ML_DESC,

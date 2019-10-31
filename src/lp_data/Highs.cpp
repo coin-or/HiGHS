@@ -163,10 +163,10 @@ HighsStatus Highs::run() {
 
     // Add slacks and make sure a minimization problem is passed to
     // runFeasibility.
-    if (options_.feasibility_strategy !=
-        FeasibilityStrategy::kApproxComponentWiseBreakpoints) {
+    if (options_.feasibility_strategy != (int)
+        FeasibilityStrategy::kComponentWiseBreakpoints) {
       HighsLp primal = transformIntoEqualityProblem(lp_);
-      if (options_.feasibility_strategy_dualize) {
+      if (options_.feasibility_dualize) {
         // Add slacks & dualize.
         HighsLp dual = dualizeEqualityProblem(primal);
         // dualizeEqualityProblem returns a minimization problem.
@@ -189,13 +189,13 @@ HighsStatus Highs::run() {
       initializeLp(lp);
     }
 
-    if (options_.feasibility_strategy == (int) FeasibilityStrategy::kApproxComponentWise)
+    if (options_.feasibility_strategy == (int) FeasibilityStrategy::kComponentWise)
       return runFeasibility(lp_, solution_, MinimizationType::kComponentWise);
     else if (options_.feasibility_strategy == (int)
-             FeasibilityStrategy::kApproxComponentWiseBreakpoints)
+             FeasibilityStrategy::kComponentWiseBreakpoints)
       return runFeasibility(lp_, solution_,
                             MinimizationType::kComponentWiseBreakpoints);
-    else if (options_.feasibility_strategy == (int) FeasibilityStrategy::kApproxExact)
+    else if (options_.feasibility_strategy == (int) FeasibilityStrategy::kExact)
       return runFeasibility(lp_, solution_, MinimizationType::kExact);
     else if (options_.feasibility_strategy == (int) FeasibilityStrategy::kDirectSolve) {
       // Proceed to normal exection of run().

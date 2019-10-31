@@ -109,9 +109,9 @@ enum InvertHint {
 const bool invert_if_row_out_negative = true;
 
 enum class FeasibilityStrategy {
-  kApproxComponentWise,
-  kApproxComponentWiseBreakpoints,
-  kApproxExact,
+  kComponentWise,
+  kComponentWiseBreakpoints,
+  kExact,
   kDirectSolve,
   FEASIBILITY_STRATEGY_MAX = kDirectSolve
 // enum FeasibilityStrategy {
