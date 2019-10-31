@@ -7,7 +7,7 @@
 
 double getQuadraticObjective(const std::vector<double> cost,
                              const std::vector<double>& x,
-                             std::vector<double>& r, const double mu,
+                             const std::vector<double>& r, const double mu,
                              const std::vector<double> lambda);
 
 enum class MinimizationType {
@@ -21,7 +21,7 @@ enum class MinimizationType {
 };
 
 HighsStatus runFeasibility(const HighsLp& lp, HighsSolution& solution,
-                           const MinimizationType type, const double initial_weight, 
-                           HighsTimer& timer);
+                           const MinimizationType type,
+                           const double initial_weight, HighsTimer& timer);
 
 #endif
