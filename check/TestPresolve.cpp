@@ -25,7 +25,7 @@ const double kOptimalQap04 = 32;
 // test/ as mini-ff and mini-ff-i
 
 // No commas in test case name.
-TEST_CASE("ff-mini", "[highs_presolve") {
+TEST_CASE("ff-mini", "[highs_presolve]") {
   HighsLp lp = generateTestLpMini();
 
   Highs highs;
@@ -63,15 +63,15 @@ TEST_CASE("ff-mini", "[highs_presolve") {
 }
 
 // No commas in test case name.
-TEST_CASE("ff-qap04", "[highs_presolve") {
+TEST_CASE("ff-qap04", "[highs_presolve]") {
   HighsOptions options;
   std::string dir = GetCurrentWorkingDir();
 
   std::cout << dir << std::endl;
 
   // For debugging use the latter.
-  options.filename = dir + "/../../check/instances/qap04.mps";
-  //options.filename = dir + "/check/instances/qap04.mps";
+  options.model_file = dir + "/../../check/instances/qap04.mps";
+  //options.model_file = dir + "/check/instances/qap04.mps";
 
   HighsLp lp;
   HighsStatus read_status = loadLpFromFile(options, lp);

@@ -24,6 +24,7 @@
 #include "io/HighsIO.h"
 #include "lp_data/HConst.h"
 #include "lp_data/HighsLp.h"
+#include "lp_data/HighsLpUtils.h"
 #include "lp_data/HighsModelObject.h"
 #include "simplex/HCrash.h"
 #include "simplex/HPrimal.h"
@@ -40,7 +41,7 @@ using std::runtime_error;
 void HDual::solve(int num_threads) {
   HighsSimplexInfo& simplex_info = workHMO.simplex_info_;
   HighsSimplexLpStatus& simplex_lp_status = workHMO.simplex_lp_status_;
-  simplex_lp_status.solution_status = SimplexSolutionStatus::UNSET;
+  workHMO.model_status_ = HighsModelStatus::NOTSET;
   // Cannot solve box-constrained LPs
   if (workHMO.simplex_lp_.numRow_ == 0) return;
 
@@ -55,6 +56,17 @@ void HDual::solve(int num_threads) {
   // initialisation of edge weights to 1s. Should only be called if
   // model dimension changes
   init(num_threads);
+
+  // Decide whether to use LiDSE by not storing squared primal infeasibilities
+  simplex_info.store_squared_primal_infeasibility = true;
+  if (workHMO.options_.less_infeasible_DSE_check) {
+    if (isLessInfeasibleDSECandidate(workHMO.simplex_lp_)) {
+      // LP is a candidate for LiDSE
+      if (workHMO.options_.less_infeasible_DSE_choose_row)
+	// Use LiDSE
+	simplex_info.store_squared_primal_infeasibility = false;
+    }
+  }
 
   initialise_cost(workHMO, 1);
   assert(simplex_lp_status.has_fresh_invert);
@@ -85,8 +97,22 @@ void HDual::solve(int num_threads) {
           solver_num_row - simplex_info.num_basic_logicals;
       bool computeExactDseWeights =
           num_basic_structurals > 0 && initialise_dual_steepest_edge_weights;
+      // Initialise the measures used to analyse accuracy of steepest edge weights
+      num_dual_steepest_edge_weight_check = 0;
+      num_dual_steepest_edge_weight_reject = 0;
+      num_wrong_low_dual_steepest_edge_weight = 0;
+      num_wrong_high_dual_steepest_edge_weight = 0;
+      average_frequency_low_dual_steepest_edge_weight = 0;
+      average_frequency_high_dual_steepest_edge_weight = 0;
+      average_log_low_dual_steepest_edge_weight_error = 0;
+      average_log_high_dual_steepest_edge_weight_error = 0;
+      max_average_frequency_low_dual_steepest_edge_weight = 0;
+      max_average_frequency_high_dual_steepest_edge_weight = 0;
+      max_sum_average_frequency_extreme_dual_steepest_edge_weight = 0;
+      max_average_log_low_dual_steepest_edge_weight_error = 0;
+      max_average_log_high_dual_steepest_edge_weight_error = 0;
+      max_sum_average_log_extreme_dual_steepest_edge_weight_error = 0;
 #ifdef HiGHSDEV
-      n_wg_DSE_wt = 0;
       if (computeExactDseWeights) {
         printf(
             "If (0<num_basic_structurals = %d) && %d = "
@@ -137,7 +163,20 @@ void HDual::solve(int num_threads) {
   // Compute the dual values
   compute_dual(workHMO);
   // Determine the number of dual infeasibilities, and hence the solve phase
-  compute_dual_infeasible_in_dual(workHMO, &dualInfeasCount);
+  computeDualInfeasible(workHMO);
+  /* int num_dual_infeasibilities_without_flips = simplex_info.num_dual_infeasibilities; */
+  if (simplex_info.allow_primal_flips_for_dual_feasibility) {
+    computeDualInfeasibleWithFlips(workHMO);
+  } else {
+    computeDualInfeasible(workHMO);
+  }
+  /*
+  printf("Dual infeasibilities with / without flips is %d / %d: Difference = %d\n",
+	 simplex_info.num_dual_infeasibilities,
+	 num_dual_infeasibilities_without_flips,
+	 num_dual_infeasibilities_without_flips - simplex_info.num_dual_infeasibilities);
+  */
+  dualInfeasCount = simplex_info.num_dual_infeasibilities;
   solvePhase = dualInfeasCount > 0 ? 1 : 2;
   //
   // Check that the model is OK to solve:
@@ -197,13 +236,32 @@ void HDual::solve(int num_threads) {
     // Possibly bail out
     if (solve_bailout) break;
   }
+
+#ifdef HiGHSDEV
+  int strategy = workHMO.options_.simplex_dual_edge_weight_strategy;
+  if (
+      strategy == SIMPLEX_DUAL_EDGE_WEIGHT_STRATEGY_STEEPEST_EDGE ||
+      strategy == SIMPLEX_DUAL_EDGE_WEIGHT_STRATEGY_STEEPEST_EDGE_UNIT_INITIAL ||
+      strategy == SIMPLEX_DUAL_EDGE_WEIGHT_STRATEGY_STEEPEST_EDGE_TO_DEVEX_SWITCH) {
+    printf("grep_DSE_WtCk,%s,%s,%d,%d,%d,%d,%10.4g,%10.4g,%10.4g,%10.4g,%10.4g,%10.4g\n",
+	   workHMO.lp_.model_name_.c_str(),
+	   workHMO.lp_.lp_name_.c_str(),
+	   num_dual_steepest_edge_weight_check,
+	   num_dual_steepest_edge_weight_reject,
+	   num_wrong_low_dual_steepest_edge_weight,
+	   num_wrong_high_dual_steepest_edge_weight,
+	   max_average_frequency_low_dual_steepest_edge_weight,
+	   max_average_frequency_high_dual_steepest_edge_weight,
+	   max_sum_average_frequency_extreme_dual_steepest_edge_weight,
+	   max_average_log_low_dual_steepest_edge_weight_error,
+	   max_average_log_high_dual_steepest_edge_weight_error,
+	   max_sum_average_log_extreme_dual_steepest_edge_weight_error);
+  }
+#endif
+
   if (solve_bailout) {
-    bool out_of_time =
-        simplex_lp_status.solution_status == SimplexSolutionStatus::OUT_OF_TIME;
-    bool reached_dual_objective_bound =
-        simplex_lp_status.solution_status ==
-        SimplexSolutionStatus::REACHED_DUAL_OBJECTIVE_VALUE_UPPER_BOUND;
-    assert(out_of_time || reached_dual_objective_bound);
+    assert(workHMO.model_status_ == HighsModelStatus::REACHED_TIME_LIMIT ||
+	   workHMO.model_status_ == HighsModelStatus::REACHED_DUAL_OBJECTIVE_VALUE_UPPER_BOUND);
     return;
   }
 
@@ -249,7 +307,7 @@ void HDual::options() {
   primal_feasibility_tolerance = simplex_info.primal_feasibility_tolerance;
   dual_feasibility_tolerance = simplex_info.dual_feasibility_tolerance;
   dual_objective_value_upper_bound =
-      simplex_info.dual_objective_value_upper_bound;
+      workHMO.options_.dual_objective_value_upper_bound;
   //  perturb_costs = simplex_info.perturb_costs;
   //  iterationLimit = simplex_info.iterationLimit;
 
@@ -295,12 +353,12 @@ void HDual::init(int num_threads) {
   dualRHS.setup();
 
   // Initialize for tasks
-  if (workHMO.simplex_info_.simplex_strategy == SimplexStrategy::DUAL_TASKS) {
+  if (workHMO.simplex_info_.simplex_strategy == SIMPLEX_STRATEGY_DUAL_TASKS) {
     initSlice(num_threads - 2);
   }
 
   // Initialize for multi
-  if (workHMO.simplex_info_.simplex_strategy == SimplexStrategy::DUAL_MULTI) {
+  if (workHMO.simplex_info_.simplex_strategy == SIMPLEX_STRATEGY_DUAL_MULTI) {
     multi_num = num_threads;
     if (multi_num < 1) multi_num = 1;
     if (multi_num > HIGHS_THREAD_LIMIT) multi_num = HIGHS_THREAD_LIMIT;
@@ -397,13 +455,13 @@ void HDual::solvePhase1() {
     for (;;) {
       switch (simplex_info.simplex_strategy) {
         default:
-        case SimplexStrategy::DUAL_PLAIN:
+        case SIMPLEX_STRATEGY_DUAL_PLAIN:
           iterate();
           break;
-        case SimplexStrategy::DUAL_TASKS:
+        case SIMPLEX_STRATEGY_DUAL_TASKS:
           iterateTasks();
           break;
-        case SimplexStrategy::DUAL_MULTI:
+        case SIMPLEX_STRATEGY_DUAL_MULTI:
           iterateMulti();
           break;
       }
@@ -413,21 +471,21 @@ void HDual::solvePhase1() {
       double current_dual_objective_value =
           simplex_info.updated_dual_objective_value;
       if (current_dual_objective_value >
-          simplex_info.dual_objective_value_upper_bound) {
+          workHMO.options_.dual_objective_value_upper_bound) {
 #ifdef SCIP_DEV
         printf("HDual::solvePhase1: %12g = Objective > ObjectiveUB\n",
                current_dual_objective_value,
-               simplex_info.dual_objective_value_upper_bound);
+               workHMO.options_.dual_objective_value_upper_bound);
 #endif
-        simplex_lp_status.solution_status =
-            SimplexSolutionStatus::REACHED_DUAL_OBJECTIVE_VALUE_UPPER_BOUND;
+        workHMO.model_status_ =
+            HighsModelStatus::REACHED_DUAL_OBJECTIVE_VALUE_UPPER_BOUND;
         break;
       }
     }
     double current_run_highs_time = timer.readRunHighsClock();
-    if (current_run_highs_time > simplex_info.highs_run_time_limit) {
+    if (current_run_highs_time > workHMO.options_.time_limit) {
       solve_bailout = true;
-      simplex_lp_status.solution_status = SimplexSolutionStatus::OUT_OF_TIME;
+      workHMO.model_status_ = HighsModelStatus::REACHED_TIME_LIMIT;
       break;
     }
     // If the data are fresh from rebuild(), break out of
@@ -454,7 +512,7 @@ void HDual::solvePhase1() {
         // Report dual infeasible
         solvePhase = -1;
         HighsPrintMessage(ML_MINIMAL, "dual-infeasible\n");
-        simplex_lp_status.solution_status = SimplexSolutionStatus::UNBOUNDED;
+        workHMO.model_status_ = HighsModelStatus::PRIMAL_UNBOUNDED;
       }
     }
   } else if (invertHint == INVERT_HINT_CHOOSE_COLUMN_FAIL) {
@@ -462,7 +520,7 @@ void HDual::solvePhase1() {
     // Behave as "Report strange issues" below
     solvePhase = -1;
     HighsPrintMessage(ML_MINIMAL, "dual-phase-1-not-solved\n");
-    simplex_lp_status.solution_status = SimplexSolutionStatus::FAILED;
+    workHMO.model_status_ = HighsModelStatus::SOLVE_ERROR;
   } else if (columnIn == -1) {
     // We got dual phase 1 unbounded - strange
     HighsPrintMessage(ML_MINIMAL, "dual-phase-1-unbounded\n");
@@ -474,7 +532,7 @@ void HDual::solvePhase1() {
       // Report strange issues
       solvePhase = -1;
       HighsPrintMessage(ML_MINIMAL, "dual-phase-1-not-solved\n");
-      simplex_lp_status.solution_status = SimplexSolutionStatus::FAILED;
+      workHMO.model_status_ = HighsModelStatus::SOLVE_ERROR;
     }
   }
 
@@ -512,16 +570,16 @@ void HDual::solvePhase2() {
     if (dualInfeasCount > 0) break;
     for (;;) {
       // Inner loop of solvePhase2()
-      // Performs one iteration in case SimplexStrategy::DUAL_PLAIN:
+      // Performs one iteration in case SIMPLEX_STRATEGY_DUAL_PLAIN:
       switch (simplex_info.simplex_strategy) {
         default:
-        case SimplexStrategy::DUAL_PLAIN:
+        case SIMPLEX_STRATEGY_DUAL_PLAIN:
           iterate();
           break;
-        case SimplexStrategy::DUAL_TASKS:
+        case SIMPLEX_STRATEGY_DUAL_TASKS:
           iterateTasks();
           break;
-        case SimplexStrategy::DUAL_MULTI:
+        case SIMPLEX_STRATEGY_DUAL_MULTI:
           iterateMulti();
           break;
       }
@@ -530,26 +588,26 @@ void HDual::solvePhase2() {
       double current_dual_objective_value =
           simplex_info.updated_dual_objective_value;
       if (current_dual_objective_value >
-          simplex_info.dual_objective_value_upper_bound) {
+          workHMO.options_.dual_objective_value_upper_bound) {
 #ifdef SCIP_DEV
         printf("HDual::solvePhase2: %12g = Objective > ObjectiveUB\n",
                current_dual_objective_value,
-               simplex_info.dual_objective_value_upper_bound);
+               workHMO.options_.dual_objective_value_upper_bound);
 #endif
-        simplex_lp_status.solution_status =
-            SimplexSolutionStatus::REACHED_DUAL_OBJECTIVE_VALUE_UPPER_BOUND;
+        workHMO.model_status_ =
+            HighsModelStatus::REACHED_DUAL_OBJECTIVE_VALUE_UPPER_BOUND;
         solve_bailout = true;
         break;
       }
     }
-    if (simplex_lp_status.solution_status ==
-        SimplexSolutionStatus::REACHED_DUAL_OBJECTIVE_VALUE_UPPER_BOUND) {
+    if (workHMO.model_status_ ==
+        HighsModelStatus::REACHED_DUAL_OBJECTIVE_VALUE_UPPER_BOUND) {
       solve_bailout = true;
       break;
     }
     double current_run_highs_time = timer.readRunHighsClock();
-    if (current_run_highs_time > simplex_info.highs_run_time_limit) {
-      simplex_lp_status.solution_status = SimplexSolutionStatus::OUT_OF_TIME;
+    if (current_run_highs_time > workHMO.options_.time_limit) {
+      workHMO.model_status_ = HighsModelStatus::REACHED_TIME_LIMIT;
       solve_bailout = true;
       break;
     }
@@ -580,14 +638,14 @@ void HDual::solvePhase2() {
       // There are no dual infeasiblities after cleanup() so optimal!
       solvePhase = 0;
       HighsPrintMessage(ML_DETAILED, "problem-optimal\n");
-      simplex_lp_status.solution_status = SimplexSolutionStatus::OPTIMAL;
+      workHMO.model_status_ = HighsModelStatus::OPTIMAL;
     }
   } else if (invertHint == INVERT_HINT_CHOOSE_COLUMN_FAIL) {
     // chooseColumn has failed
     // Behave as "Report strange issues" below
     solvePhase = -1;
     HighsPrintMessage(ML_MINIMAL, "dual-phase-2-not-solved\n");
-    simplex_lp_status.solution_status = SimplexSolutionStatus::FAILED;
+    workHMO.model_status_ = HighsModelStatus::SOLVE_ERROR;
   } else if (columnIn == -1) {
     // There is no candidate in CHUZC, so probably dual unbounded
     HighsPrintMessage(ML_MINIMAL, "dual-phase-2-unbounded\n");
@@ -599,7 +657,7 @@ void HDual::solvePhase2() {
       // primal infeasible
       solvePhase = -1;
       HighsPrintMessage(ML_MINIMAL, "problem-infeasible\n");
-      simplex_lp_status.solution_status = SimplexSolutionStatus::INFEASIBLE;
+      workHMO.model_status_ = HighsModelStatus::PRIMAL_INFEASIBLE;
     }
   }
 }
@@ -667,7 +725,7 @@ void HDual::rebuild() {
 
   // Collect primal infeasible as a list
   timer.start(simplex_info.clock_[CollectPrIfsClock]);
-  dualRHS.create_infeasArray();
+  dualRHS.createArrayOfPrimalInfeasibilities();
   dualRHS.create_infeasList(columnDensity);
   timer.stop(simplex_info.clock_[CollectPrIfsClock]);
 
@@ -679,31 +737,30 @@ void HDual::rebuild() {
   computeDualInfeasible(workHMO);
   timer.stop(simplex_info.clock_[ComputeDuIfsClock]);
 
-  // Check the objective value maintained by updating against the
-  // value when computed exactly - so long as there is a value to
-  // check against
-  bool check_dual_objective_value = simplex_lp_status.has_dual_objective_value;
   // Compute the objective value
   timer.start(simplex_info.clock_[ComputeDuObjClock]);
   computeDualObjectiveValue(workHMO, solvePhase);
   timer.stop(simplex_info.clock_[ComputeDuObjClock]);
 
   double dual_objective_value = simplex_info.dual_objective_value;
-  if (check_dual_objective_value) {
+#ifdef HiGHSDEV
+  // Check the objective value maintained by updating against the
+  // value when computed exactly - so long as there is a value to
+  // check against
+  /*
+  if (simplex_lp_status.has_dual_objective_value) {
     double absDualObjectiveError =
         fabs(simplex_info.updated_dual_objective_value - dual_objective_value);
     double rlvDualObjectiveError =
         absDualObjectiveError / max(1.0, fabs(dual_objective_value));
-#ifdef HiGHSDEV
-    /*
     // TODO Investigate these Dual objective value errors
     if (rlvDualObjectiveError >= 1e-8) {
       HighsLogMessage(HighsMessageType::WARNING, "Dual objective value error
     |rel| = %12g (%12g)", absDualObjectiveError, rlvDualObjectiveError);
     }
-    */
-#endif
   }
+  */
+#endif
   simplex_info.updated_dual_objective_value = dual_objective_value;
 
 #ifdef HiGHSDEV
@@ -764,7 +821,8 @@ void HDual::cleanup() {
 
   iterationReportRebuild(-1);
 
-  compute_dual_infeasible_in_primal(workHMO, &dualInfeasCount);
+  computeDualInfeasible(workHMO);
+  dualInfeasCount = simplex_info.num_dual_infeasibilities;
 }
 
 void HDual::iterate() {
@@ -871,7 +929,6 @@ void HDual::iterateTasks() {
 }
 
 void HDual::iterationAnalysisInitialise() {
-  HighsTimer& timer = workHMO.timer_;
   AnIterIt0 = workHMO.simplex_info_.iteration_count;
   AnIterCostlyDseFq = 0;
 #ifdef HiGHSDEV
@@ -931,21 +988,21 @@ void HDual::iterationAnalysisInitialise() {
   AnIterTraceIterDl = 1;
   AnIterTraceRec* lcAnIter = &AnIterTrace[0];
   lcAnIter->AnIterTraceIter = AnIterIt0;
-  lcAnIter->AnIterTraceTime = timer.getTime();
+  lcAnIter->AnIterTraceTime = workHMO.timer_.getTime();
 #endif
 }
 
 void HDual::iterationAnalysis() {
-  HighsTimer& timer = workHMO.timer_;
   // Possibly report on the iteration
   iterationReport();
 
   // Possibly switch from DSE to Dvx
   if (dual_edge_weight_mode == DualEdgeWeightMode::STEEPEST_EDGE) {
+    bool switch_to_devex = false;
+    // Firstly consider switching on the basis of NLA cost
     double AnIterCostlyDseMeasureDen;
-    //    AnIterCostlyDseMeasureDen = row_epDensity*columnDensity;
     AnIterCostlyDseMeasureDen =
-        max(max(row_epDensity, columnDensity), row_apDensity);
+      max(max(row_epDensity, columnDensity), row_apDensity);
     if (AnIterCostlyDseMeasureDen > 0) {
       AnIterCostlyDseMeasure = rowdseDensity / AnIterCostlyDseMeasureDen;
       AnIterCostlyDseMeasure = AnIterCostlyDseMeasure * AnIterCostlyDseMeasure;
@@ -953,30 +1010,49 @@ void HDual::iterationAnalysis() {
       AnIterCostlyDseMeasure = 0;
     }
     bool CostlyDseIt = AnIterCostlyDseMeasure > AnIterCostlyDseMeasureLimit &&
-                       rowdseDensity > AnIterCostlyDseMnDensity;
+      rowdseDensity > AnIterCostlyDseMnDensity;
     AnIterCostlyDseFq = (1 - runningAverageMu) * AnIterCostlyDseFq;
     if (CostlyDseIt) {
       AnIterNumCostlyDseIt++;
       AnIterCostlyDseFq += runningAverageMu * 1.0;
       int lcNumIter = workHMO.simplex_info_.iteration_count - AnIterIt0;
-      if (allow_dual_steepest_edge_to_devex_switch &&
-          (AnIterNumCostlyDseIt > lcNumIter * AnIterFracNumCostlyDseItbfSw) &&
-          (lcNumIter > AnIterFracNumTot_ItBfSw * solver_num_tot)) {
-        // At least 5% of the (at least) 0.1NumTot iterations have been costly
-        // DSE so switch to Devex
+      // Switch to Devex if at least 5% of the (at least) 0.1NumTot iterations have been costly
+      switch_to_devex = allow_dual_steepest_edge_to_devex_switch &&
+	(AnIterNumCostlyDseIt > lcNumIter * AnIterFracNumCostlyDseItbfSw) &&
+	(lcNumIter > AnIterFracNumTot_ItBfSw * solver_num_tot);
 #ifdef HiGHSDEV
-        printf(
-            "Switch from DSE to Dvx after %d costly DSE iterations of %d: "
-            "Col_Dsty = %11.4g; R_Ep_Dsty = %11.4g; DSE_Dsty = %11.4g\n",
-            AnIterNumCostlyDseIt, lcNumIter, rowdseDensity, row_epDensity,
-            columnDensity);
-#endif
-        dual_edge_weight_mode = DualEdgeWeightMode::DEVEX;
-        // Zero the number of Devex frameworks used and set up the first one
-        n_dvx_fwk = 0;
-        dvx_ix.assign(solver_num_tot, 0);
-        iz_dvx_fwk();
+      if (switch_to_devex) {
+	HighsLogMessage(HighsMessageType::INFO,
+			"Switch from DSE to Devex after %d costly DSE iterations of %d: "
+			"Col_Dsty = %11.4g; R_Ep_Dsty = %11.4g; DSE_Dsty = %11.4g",
+			AnIterNumCostlyDseIt, lcNumIter, rowdseDensity, row_epDensity,
+			columnDensity);
       }
+#endif
+    }
+    if (!switch_to_devex) {
+      // Secondly consider switching on the basis of weight accuracy
+      double dse_weight_error_measure =
+	average_log_low_dual_steepest_edge_weight_error +
+	average_log_high_dual_steepest_edge_weight_error;
+      double dse_weight_error_threshhold =
+	workHMO.options_.dual_steepest_edge_weight_log_error_threshhold;
+      switch_to_devex = allow_dual_steepest_edge_to_devex_switch &&
+	dse_weight_error_measure > dse_weight_error_threshhold;
+#ifdef HiGHSDEV
+      if (switch_to_devex) {
+	HighsLogMessage(HighsMessageType::INFO,
+			"Switch from DSE to Devex with log error measure of %g > %g = threshhold",
+			dse_weight_error_measure, dse_weight_error_threshhold);
+      }
+#endif
+    }
+    if (switch_to_devex) {
+      dual_edge_weight_mode = DualEdgeWeightMode::DEVEX;
+      // Zero the number of Devex frameworks used and set up the first one
+      n_dvx_fwk = 0;
+      dvx_ix.assign(solver_num_tot, 0);
+      iz_dvx_fwk();
     }
   }
 
@@ -1033,7 +1109,7 @@ void HDual::iterationAnalysis() {
       AnIterTraceNumRec++;
       lcAnIter = &AnIterTrace[AnIterTraceNumRec];
       lcAnIter->AnIterTraceIter = workHMO.simplex_info_.iteration_count;
-      lcAnIter->AnIterTraceTime = timer.getTime();
+      lcAnIter->AnIterTraceTime = workHMO.timer_.getTime();
       lcAnIter->AnIterTraceDsty[AnIterOpTy_Btran] = row_epDensity;
       lcAnIter->AnIterTraceDsty[AnIterOpTy_Price] = row_apDensity;
       lcAnIter->AnIterTraceDsty[AnIterOpTy_Ftran] = columnDensity;
@@ -1056,8 +1132,8 @@ void HDual::iterationReport() {
   int iteration_count = workHMO.simplex_info_.iteration_count;
   int iteration_count_difference = iteration_count -
     previous_iteration_report_header_iteration_count;
-  bool header = (previous_iteration_report_header_iteration_count < 0)
-    || (iteration_count - previous_iteration_report_header_iteration_count > 10);
+  bool header = previous_iteration_report_header_iteration_count < 0
+    || iteration_count_difference > 10;
   if (header) {
     iterationReportFull(header);
     previous_iteration_report_header_iteration_count = iteration_count;
@@ -1146,20 +1222,23 @@ void HDual::iterationReportDensity(int iterate_log_level, bool header) {
 
 void HDual::iterationReportRebuild(const int i_v) {
 #ifdef HiGHSDEV
+  HighsSimplexInfo& simplex_info = workHMO.simplex_info_;
+  bool report_condition = simplex_info.analyse_invert_condition;
   HighsPrintMessage(ML_MINIMAL,
                     "Iter %10d:", workHMO.simplex_info_.iteration_count);
   iterationReportDensity(ML_MINIMAL, true);
   iterationReportDensity(ML_MINIMAL, false);
   iterationReportDualObjective(ML_MINIMAL, false);
   HighsPrintMessage(ML_MINIMAL, " DuPh%1d(%2d)", solvePhase, i_v);
-  if (solvePhase == 2) reportInfeasibility(i_v);
+  if (report_condition) HighsPrintMessage(ML_MINIMAL, " k(B)%10.4g", simplex_info.invert_condition);
+  if (solvePhase == 2) reportInfeasibility();
   HighsPrintMessage(ML_MINIMAL, "\n");
 #else
-  logRebuild(workHMO, false, solvePhase, i_v);
+  logRebuild(workHMO, false, solvePhase);
 #endif
 }
 
-void HDual::reportInfeasibility(const int i_v) {
+void HDual::reportInfeasibility() {
   HighsSimplexInfo& simplex_info = workHMO.simplex_info_;
   HighsPrintMessage(ML_MINIMAL, " Pr: %d(%g)",
                     simplex_info.num_primal_infeasibilities,
@@ -1232,11 +1311,66 @@ void HDual::chooseRow() {
       // loop. All we worry about is accepting rows with weights
       // which are not too small, since this can make the row look
       // unreasonably attractive
-      if (u_weight >= 0.25 * c_weight) break;
+      const double accept_weight_threshhold = 0.25;
+      const double weight_error_threshhold = 4.0;
+      bool accept_weight = u_weight >= accept_weight_threshhold * c_weight;
+      int low_weight_error = 0;
+      int high_weight_error = 0;
+      double weight_error;
+      string error_type = "  OK";
+      num_dual_steepest_edge_weight_check++;
+      if (!accept_weight) num_dual_steepest_edge_weight_reject++;
+      if (u_weight < c_weight) {
+	// Updated weight is low
+	weight_error = c_weight/u_weight;
+	if (weight_error > weight_error_threshhold) {
+	  low_weight_error = 1;
+	  error_type = " Low";
+	}
+	average_log_low_dual_steepest_edge_weight_error = 0.99*average_log_low_dual_steepest_edge_weight_error + 0.01*log(weight_error);
+      } else {
+	// Updated weight is correct or high
+	weight_error = u_weight/c_weight;
+	if (weight_error > weight_error_threshhold) {
+	  high_weight_error = 1;
+	  error_type = "High";
+	}
+	average_log_high_dual_steepest_edge_weight_error = 0.99*average_log_high_dual_steepest_edge_weight_error + 0.01*log(weight_error);
+      }
+      average_frequency_low_dual_steepest_edge_weight = 0.99*average_frequency_low_dual_steepest_edge_weight + 0.01*low_weight_error;
+      average_frequency_high_dual_steepest_edge_weight = 0.99*average_frequency_high_dual_steepest_edge_weight + 0.01*high_weight_error;
+      max_average_frequency_low_dual_steepest_edge_weight = max(max_average_frequency_low_dual_steepest_edge_weight,
+								average_frequency_low_dual_steepest_edge_weight);
+      max_average_frequency_high_dual_steepest_edge_weight = max(max_average_frequency_high_dual_steepest_edge_weight,
+								 average_frequency_high_dual_steepest_edge_weight);
+      max_sum_average_frequency_extreme_dual_steepest_edge_weight = max(max_sum_average_frequency_extreme_dual_steepest_edge_weight,
+									average_frequency_low_dual_steepest_edge_weight + average_frequency_high_dual_steepest_edge_weight);
+      max_average_log_low_dual_steepest_edge_weight_error = max(max_average_log_low_dual_steepest_edge_weight_error,
+								average_log_low_dual_steepest_edge_weight_error);
+      max_average_log_high_dual_steepest_edge_weight_error = max(max_average_log_high_dual_steepest_edge_weight_error,
+								 average_log_high_dual_steepest_edge_weight_error);
+      max_sum_average_log_extreme_dual_steepest_edge_weight_error = max(max_sum_average_log_extreme_dual_steepest_edge_weight_error,
+									average_log_low_dual_steepest_edge_weight_error + average_log_high_dual_steepest_edge_weight_error);
 #ifdef HiGHSDEV
-      // Count the number of wrong DSE weights for reporting
-      n_wg_DSE_wt += 1;
+      const bool report_weight_error = false;
+      if (report_weight_error && weight_error > 0.5*weight_error_threshhold) {
+	printf("DSE Wt Ck |%8d| OK = %1d (%4d / %6d) (c %10.4g, u %10.4g, er %10.4g - %s): Low (Fq %10.4g, Er %10.4g); High (Fq%10.4g, Er%10.4g) | %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g\n",
+	       simplex_info.iteration_count,
+	       accept_weight, 
+	       num_dual_steepest_edge_weight_check, num_dual_steepest_edge_weight_reject,
+	       c_weight, u_weight, weight_error, error_type.c_str(),
+	       average_frequency_low_dual_steepest_edge_weight, average_log_low_dual_steepest_edge_weight_error,
+	       average_frequency_high_dual_steepest_edge_weight, average_log_high_dual_steepest_edge_weight_error,
+	       max_average_frequency_low_dual_steepest_edge_weight,
+	       max_average_frequency_high_dual_steepest_edge_weight,
+	       max_sum_average_frequency_extreme_dual_steepest_edge_weight,
+	       max_average_log_low_dual_steepest_edge_weight_error,
+	       max_average_log_high_dual_steepest_edge_weight_error,
+	       max_sum_average_log_extreme_dual_steepest_edge_weight_error);
+      }
 #endif
+	     
+      if (accept_weight) break;
       // Weight error is unacceptable so look for another
       // candidate. Of course, it's possible that the same
       // candidate is chosen, but the weight will be correct (so
@@ -1632,14 +1766,14 @@ void HDual::updateDual() {
     shift_cost(workHMO, columnIn, -workDual[columnIn]);
   else {
     // Update the dual values (if packCount>0)
-    dualRow.update_dual(thetaDual, columnOut);
-    if (workHMO.simplex_info_.simplex_strategy != SimplexStrategy::DUAL_PLAIN &&
+    dualRow.update_dual(thetaDual);//, columnOut);
+    if (workHMO.simplex_info_.simplex_strategy != SIMPLEX_STRATEGY_DUAL_PLAIN &&
         slice_PRICE) {
       // Update the dual variables slice-by-slice [presumably
       // nothing is done in the previous call to
       // dualRow.update_dual. TODO: Check with Qi
       for (int i = 0; i < slice_num; i++)
-        slice_dualRow[i].update_dual(thetaDual, columnOut);
+        slice_dualRow[i].update_dual(thetaDual);//, columnOut);
     }
   }
   workDual[columnIn] = 0;
@@ -1731,8 +1865,8 @@ void HDual::updatePivots() {
   dualRow.delete_Freelist(columnIn);
   //
   // Update the primal value for the row where the basis change has
-  // occurred, and set the corresponding squared primal infeasibility
-  // value in dualRHS.workArray
+  // occurred, and set the corresponding primal infeasibility value in
+  // dualRHS.work_infeasibility
   dualRHS.update_pivots(
       rowOut, workHMO.simplex_info_.workValue_[columnIn] + thetaPrimal);
   // Determine whether to reinvert based on the synthetic clock
@@ -1781,25 +1915,24 @@ void HDual::iz_dvx_fwk() {
   timer.stop(simplex_info.clock_[DevexIzClock]);
 }
 
-void HDual::interpret_dual_edge_weight_strategy(
-    SimplexDualEdgeWeightStrategy dual_edge_weight_strategy) {
-  if (dual_edge_weight_strategy == SimplexDualEdgeWeightStrategy::DANTZIG) {
+void HDual::interpret_dual_edge_weight_strategy(const int dual_edge_weight_strategy) {
+  if (dual_edge_weight_strategy == SIMPLEX_DUAL_EDGE_WEIGHT_STRATEGY_DANTZIG) {
     dual_edge_weight_mode = DualEdgeWeightMode::DANTZIG;
   } else if (dual_edge_weight_strategy ==
-             SimplexDualEdgeWeightStrategy::DEVEX) {
+             SIMPLEX_DUAL_EDGE_WEIGHT_STRATEGY_DEVEX) {
     dual_edge_weight_mode = DualEdgeWeightMode::DEVEX;
   } else if (dual_edge_weight_strategy ==
-             SimplexDualEdgeWeightStrategy::STEEPEST_EDGE) {
+             SIMPLEX_DUAL_EDGE_WEIGHT_STRATEGY_STEEPEST_EDGE) {
     dual_edge_weight_mode = DualEdgeWeightMode::STEEPEST_EDGE;
     initialise_dual_steepest_edge_weights = true;
     allow_dual_steepest_edge_to_devex_switch = false;
   } else if (dual_edge_weight_strategy ==
-             SimplexDualEdgeWeightStrategy::STEEPEST_EDGE_UNIT_INITIAL) {
+             SIMPLEX_DUAL_EDGE_WEIGHT_STRATEGY_STEEPEST_EDGE_UNIT_INITIAL) {
     dual_edge_weight_mode = DualEdgeWeightMode::STEEPEST_EDGE;
     initialise_dual_steepest_edge_weights = false;
     allow_dual_steepest_edge_to_devex_switch = false;
   } else if (dual_edge_weight_strategy ==
-             SimplexDualEdgeWeightStrategy::STEEPEST_EDGE_TO_DEVEX_SWITCH) {
+             SIMPLEX_DUAL_EDGE_WEIGHT_STRATEGY_STEEPEST_EDGE_TO_DEVEX_SWITCH) {
     dual_edge_weight_mode = DualEdgeWeightMode::STEEPEST_EDGE;
     initialise_dual_steepest_edge_weights = true;
     allow_dual_steepest_edge_to_devex_switch = true;
@@ -1815,22 +1948,22 @@ void HDual::interpret_dual_edge_weight_strategy(
   }
 }
 
-void HDual::interpret_price_strategy(SimplexPriceStrategy price_strategy) {
+void HDual::interpret_price_strategy(const int price_strategy) {
   allow_price_by_col_switch = false;
   allow_price_by_row_switch = false;
   allow_price_ultra = false;
-  if (price_strategy == SimplexPriceStrategy::COL) {
+  if (price_strategy == SIMPLEX_PRICE_STRATEGY_COL) {
     price_mode = PriceMode::COL;
-  } else if (price_strategy == SimplexPriceStrategy::ROW) {
+  } else if (price_strategy == SIMPLEX_PRICE_STRATEGY_ROW) {
     price_mode = PriceMode::ROW;
-  } else if (price_strategy == SimplexPriceStrategy::ROW_SWITCH) {
+  } else if (price_strategy == SIMPLEX_PRICE_STRATEGY_ROW_SWITCH) {
     price_mode = PriceMode::ROW;
     allow_price_by_row_switch = true;
-  } else if (price_strategy == SimplexPriceStrategy::ROW_SWITCH_COL_SWITCH) {
+  } else if (price_strategy == SIMPLEX_PRICE_STRATEGY_ROW_SWITCH_COL_SWITCH) {
     price_mode = PriceMode::ROW;
     allow_price_by_col_switch = true;
     allow_price_by_row_switch = true;
-  } else if (price_strategy == SimplexPriceStrategy::ROW_ULTRA) {
+  } else if (price_strategy == SIMPLEX_PRICE_STRATEGY_ROW_ULTRA) {
     price_mode = PriceMode::ROW;
     allow_price_by_col_switch = true;
     allow_price_by_row_switch = true;

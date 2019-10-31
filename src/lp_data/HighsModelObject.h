@@ -30,6 +30,7 @@ class HighsModelObject {
   HighsOptions& options_;
   HighsTimer& timer_;
 
+  HighsModelStatus model_status_ = HighsModelStatus::NOTSET;
   HighsBasis basis_;
   HighsSolution solution_;
 
@@ -43,7 +44,7 @@ class HighsModelObject {
   HFactor factor_;
   HighsRandom random_;
 
-  bool reportModelOperationsClock = false;
+  bool report_model_operations_clock = false;
 };
 
 #endif  // LP_DATA_HIGHS_MODEL_OBJECT_H_

@@ -15,6 +15,7 @@
 #define LP_DATA_HIGHSLPUTILS_H_
 
 #include "HConfig.h"
+#include "io/Filereader.h"
 #include "lp_data/HighsLp.h"
 #include "lp_data/HighsOptions.h"
 #include "lp_data/HighsStatus.h"
@@ -24,20 +25,18 @@ class HighsLp;
 enum class ResidualFunctionType { kLinearised, kPiecewise };
 
 // Methods taking HighsLp as an argument
-HighsStatus checkLp(const HighsLp& lp);
-
 HighsStatus assessLp(HighsLp& lp, const HighsOptions& options,
-                     const bool normalise);
+                     const bool normalise = true);
 
 HighsStatus assessLpDimensions(const HighsLp& lp);
 
-HighsStatus assess_costs(const int col_ix_os, const int mask_num_col,
-                         const bool interval, const int from_col,
-                         const int to_col, const bool set,
-                         const int num_set_entries, const int* col_set,
-                         const bool mask, const int* col_mask,
-                         const double* usr_col_cost,
-                         const double infinite_cost);
+HighsStatus assessCosts(const int col_ix_os, const int mask_num_col,
+			const bool interval, const int from_col,
+			const int to_col, const bool set,
+			const int num_set_entries, const int* col_set,
+			const bool mask, const int* col_mask,
+			const double* usr_col_cost,
+			const double infinite_cost);
 
 HighsStatus assessBounds(const char* type, const int ix_os,
                          const int mask_num_ix, const bool interval,
@@ -71,12 +70,6 @@ HighsStatus scaleLpRowBounds(HighsLp& lp, vector<double>& rowScale,
                              const int num_set_entries, const int* row_set,
                              const bool mask, const int* row_mask);
 
-HighsStatus addLpCols(HighsLp& lp, const int num_new_col,
-                      const double* XcolCost, const double* XcolLower,
-                      const double* XcolUpper, const int num_new_nz,
-                      const int* XAstart, const int* XAindex,
-                      const double* XAvalue, const HighsOptions& options);
-
 HighsStatus appendLpCols(HighsLp& lp, const int num_new_col,
                          const double* XcolCost, const double* XcolLower,
                          const double* XcolUpper, const int num_new_nz,
@@ -92,12 +85,6 @@ HighsStatus appendColsToLpVectors(HighsLp& lp, const int num_new_col,
 HighsStatus appendColsToLpMatrix(HighsLp& lp, const int num_new_col,
                                  const int num_new_nz, const int* XAstart,
                                  const int* XAindex, const double* XAvalue);
-
-HighsStatus addLpRows(HighsLp& lp, const int num_new_row,
-                      const double* XrowLower, const double* XrowUpper,
-                      const int num_new_nz, const int* XARstart,
-                      const int* XARindex, const double* XARvalue,
-                      const HighsOptions& options);
 
 HighsStatus appendLpRows(HighsLp& lp, const int num_new_row,
                          const double* XrowLower, const double* XrowUpper,
@@ -188,7 +175,7 @@ HighsStatus changeBounds(const char* type, double* lower, double* upper,
 /**
  * @brief Write out the LP as an MPS file
  */
-bool writeLpAsMPS(const char* filename, const HighsLp& lp);
+HighsStatus writeLpAsMPS(const char* filename, const HighsLp& lp, const bool free = true);
 
 /**
  * @brief Report the data of an LP
@@ -285,5 +272,7 @@ HighsLp transformIntoEqualityProblem(const HighsLp& lp);
 HighsLp dualizeEqualityProblem(const HighsLp& lp);
 
 void logPresolveReductions(const HighsLp& lp, const HighsLp& presolve_lp);
+
+bool isLessInfeasibleDSECandidate(const HighsLp& lp);
 
 #endif  // LP_DATA_HIGHSLPUTILS_H_

@@ -278,6 +278,19 @@ int HFactor::build() {
   // Complete INVERT
   buildFinish();
   build_realTick = timer.getTick() - build_realTick;
+  // Record the number of entries in the INVERT
+  invert_num_el = Lstart[numRow] + Ulastp[numRow-1] + numRow;
+  
+  if (rankDeficiency) {
+    kernel_dim -= rankDeficiency;
+    printf("Rank deficiency %1d: basis_matrix (%d el); INVERT (%d el); kernel (%d dim; %d el): nwork = %d\n",
+	   rankDeficiency,
+	   basis_matrix_num_el,
+	   invert_num_el,
+	   kernel_dim,
+	   kernel_num_el,
+	   nwork);
+  }
   return rankDeficiency;
 }
 
@@ -294,14 +307,14 @@ void HFactor::btran(HVector& vector, double hist_dsty) const {
 void HFactor::update(HVector* aq, HVector* ep, int* iRow, int* hint) {
   // Special case
   if (aq->next) {
-    updateCFT(aq, ep, iRow, hint);
+    updateCFT(aq, ep, iRow);//, hint);
     return;
   }
 
-  if (updateMethod == UPDATE_METHOD_FT) updateFT(aq, ep, *iRow, hint);
-  if (updateMethod == UPDATE_METHOD_PF) updatePF(aq, ep, *iRow, hint);
+  if (updateMethod == UPDATE_METHOD_FT) updateFT(aq, ep, *iRow);//, hint);
+  if (updateMethod == UPDATE_METHOD_PF) updatePF(aq, *iRow, hint);
   if (updateMethod == UPDATE_METHOD_MPF) updateMPF(aq, ep, *iRow, hint);
-  if (updateMethod == UPDATE_METHOD_APF) updateAPF(aq, ep, *iRow, hint);
+  if (updateMethod == UPDATE_METHOD_APF) updateAPF(aq, ep, *iRow);//, hint);
 }
 
 #ifdef HiGHSDEV
@@ -398,11 +411,11 @@ void HFactor::buildSimple() {
       int count = Astart[iMat + 1] - start;
       int lc_iRow = Aindex[start];
       // Check for unit column with double pivot
-      bool unit_column = count == 1 && Avalue[start] == 1;
-      if (unit_column && MRcountb4[lc_iRow] >= 0) {
+      bool unit_col = count == 1 && Avalue[start] == 1;
+      if (unit_col && MRcountb4[lc_iRow] >= 0) {
         iRow = lc_iRow;
       } else {
-        if (unit_column)
+        if (unit_col)
           printf("STRANGE: Found a second unit column with pivot in row %d\n",
                  lc_iRow);
         for (int k = start; k < start + count; k++) {
@@ -429,6 +442,9 @@ void HFactor::buildSimple() {
 #ifdef HiGHSDEV
   BtotalX = numRow - nwork + BcountX;
 #endif
+  // Record the number of elements in the basis matrix
+  basis_matrix_num_el = numRow - nwork + BcountX;
+  
   // count1 = 0;
   // Comments: for pds-20, dfl001: 60 / 80
   // Comments: when system is large: enlarge
@@ -535,6 +551,8 @@ void HFactor::buildSimple() {
   rlinkFirst.assign(numRow + 1, -1);
   MRcount.assign(numRow, 0);
   int MRcountX = 0;
+  // Determine the number of entries in the kernel
+  kernel_num_el = 0;
   for (int iRow = 0; iRow < numRow; iRow++) {
     int count = MRcountb4[iRow];
     if (count > 0) {
@@ -542,10 +560,11 @@ void HFactor::buildSimple() {
       MRspace[iRow] = count * 2;
       MRcountX += count * 2;
       rlinkAdd(iRow, count);
+      kernel_num_el += count+1;
     }
   }
   MRindex.resize(MRcountX);
-
+  
   // 3.2 Prepare column links, kernel matrix
   clinkFirst.assign(numRow + 1, -1);
   MCindex.clear();
@@ -560,7 +579,6 @@ void HFactor::buildSimple() {
     MCcountX += MCspace[iCol];
     MCindex.resize(MCcountX);
     MCvalue.resize(MCcountX);
-
     for (int k = Bstart[iCol]; k < Bstart[iCol + 1]; k++) {
       const int iRow = Bindex[k];
       const double value = Bvalue[k];
@@ -575,6 +593,8 @@ void HFactor::buildSimple() {
     clinkAdd(iCol, MCcountA[iCol]);
   }
   build_syntheticTick += (numRow + nwork + MCcountX) * 40 + MRcountX * 20;
+  // Record the kernel dimension
+  kernel_dim = nwork;
 }
 
 int HFactor::buildKernel() {
@@ -994,6 +1014,7 @@ void HFactor::buildRpRankDeficiency() {
     }
     printf("\n");
   }
+  free (ASM);
 }
 
 void HFactor::buildMarkSingC() {
@@ -1600,7 +1621,9 @@ void HFactor::btranAPF(HVector& vector) const {
   vector.count = RHScount;
 }
 
-void HFactor::updateCFT(HVector* aq, HVector* ep, int* iRow, int* hint) {
+void HFactor::updateCFT(HVector* aq, HVector* ep, int* iRow
+			//, int* hint
+			) {
   /*
    * In the major update loop, the prefix
    *
@@ -1860,7 +1883,9 @@ void HFactor::updateCFT(HVector* aq, HVector* ep, int* iRow, int* hint) {
   delete[] Tpivot;
 }
 
-void HFactor::updateFT(HVector* aq, HVector* ep, int iRow, int* hint) {
+void HFactor::updateFT(HVector* aq, HVector* ep, int iRow
+		       //, int* hint
+		       ) {
   // Store pivot
   int pLogic = UpivotLookup[iRow];
   double pivot = UpivotValue[pLogic];
@@ -1987,7 +2012,7 @@ void HFactor::updateFT(HVector* aq, HVector* ep, int iRow, int* hint) {
   //        *hint = 1;
 }
 
-void HFactor::updatePF(HVector* aq, HVector* ep, int iRow, int* hint) {
+void HFactor::updatePF(HVector* aq, int iRow, int* hint) {
   // Check space
   const int columnCount = aq->packCount;
   const int* columnIndex = &aq->packIndex[0];
@@ -2054,7 +2079,9 @@ void HFactor::updateMPF(HVector* aq, HVector* ep, int iRow, int* hint) {
   if (UtotalX > UmeritX) *hint = 1;
 }
 
-void HFactor::updateAPF(HVector* aq, HVector* ep, int iRow, int* hint) {
+void HFactor::updateAPF(HVector* aq, HVector* ep, int iRow
+			//, int* hint
+			) {
 #ifdef HiGHSDEV
   int PFcountX0 = PFindex.size();
 #endif

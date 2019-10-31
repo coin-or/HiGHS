@@ -9,7 +9,6 @@
 #include "lp_data/HConst.h"
 #include "lp_data/HighsLpUtils.h"
 #include "presolve/ExactSubproblem.h"
-#include "util/HighsTimer.h"
 #include "util/HighsUtils.h"
 
 constexpr double kExitTolerance = 0.00000001;
@@ -45,9 +44,6 @@ std::vector<double> getAtLambda(const HighsLp& lp,
   return atl;
 }
 
-// if you want to test accuracy of residual use something like
-// assert(getResidual(..) == quadratic.residual_);
-
 double getQuadraticObjective(const std::vector<double> cost,
                              const std::vector<double>& x,
                              std::vector<double>& r, const double mu,
@@ -55,15 +51,15 @@ double getQuadraticObjective(const std::vector<double> cost,
   assert(cost.size() == x.size());
   // c'x
   double quadratic = 0;
-  for (int col = 0; col < x.size(); col++) quadratic += cost[col] * x[col];
+  for (int col = 0; col < (int)x.size(); col++) quadratic += cost[col] * x[col];
 
   // lambda'x
-  for (int row = 0; row < lambda.size(); row++) {
+  for (int row = 0; row < (int)lambda.size(); row++) {
     quadratic += lambda[row] * r[row];
   }
 
   // 1/2mu r'r
-  for (int row = 0; row < lambda.size(); row++) {
+  for (int row = 0; row < (int)lambda.size(); row++) {
     quadratic += (r[row] * r[row]) / (2 * mu);
   }
 
@@ -245,7 +241,7 @@ void Quadratic::minimize_exact_with_lambda(const double mu,
 
   std::vector<double> atb = getAtb(lp);
   std::vector<double> atlambda = getAtLambda(lp, lambda);
-  for (int col = 0; col < lp.colCost_.size(); col++)
+  for (int col = 0; col < (int)lp.colCost_.size(); col++)
     lp.colCost_[col] -= atlambda[col];
 
   solve_exact(lp, mu_penalty, col_value_);
@@ -277,7 +273,7 @@ double Quadratic::minimize_component_quadratic_linearisation(
 
   // Formulas for a and b when minimizing for x_j
   // a = (1/(2*mu)) * sum_i a_ij^2
-  // b = -(1/(2*mu)) sum_i (2 * a_ij * (sum_{k!=j} a_ik * x_k - b_i)) + c_j \
+  // b = -(1/(2*mu)) sum_i (2 * a_ij * (sum_{k!=j} a_ik * x_k - b_i)) + c_j (\)
       //     + sum_i a_ij * lambda_i
   // b / 2 = -(1/(2*mu)) sum_i (2 * a_ij
   double a = 0.0;
@@ -645,10 +641,10 @@ void Quadratic::minimize_by_component(
 HighsStatus runFeasibility(const HighsLp& lp, HighsSolution& solution,
                            const MinimizationType type,
                            const double initial_weight, HighsTimer& timer) {
-  if (!isEqualityProblem(lp)) return HighsStatus::NotImplemented;
-  if (type == MinimizationType::kExactAdmm) return HighsStatus::NotImplemented;
+  if (!isEqualityProblem(lp)) return HighsStatus::Error;
+  if (type == MinimizationType::kExactAdmm) return HighsStatus::Error;
   if (type == MinimizationType::kComponentWiseAdmm)
-    return HighsStatus::NotImplemented;
+    return HighsStatus::Error;
 
   double start_time = timer.getWallTime();
 
@@ -665,13 +661,20 @@ HighsStatus runFeasibility(const HighsLp& lp, HighsSolution& solution,
           : ResidualFunctionType::kPiecewise;
 
   if (residual_type != ResidualFunctionType::kPiecewise &&
-      !isEqualityProblem(lp))
-    return HighsStatus::NotImplemented;
+      !isEqualityProblem(lp)) {
+    HighsPrintMessage(
+        ML_ALWAYS,
+        "Error: FindFeasibility does not support smooth minimization of "
+        "inequality problems. Run transformIntoEqualityProblem(..) before "
+        "runFeasibility(..)\n");
+    return HighsStatus::Error;
+  }
 
   if (lp.sense_ != OBJSENSE_MINIMIZE) {
     HighsPrintMessage(
         ML_ALWAYS,
         "Error: FindFeasibility does not support maximization problems.\n");
+    return HighsStatus::Error;
   }
 
   // Initialize x_0 ≥ 0, μ_1, λ_1 = 0.
@@ -684,6 +687,7 @@ HighsStatus runFeasibility(const HighsLp& lp, HighsSolution& solution,
   }
 
   Quadratic quadratic(lp, solution.col_value, residual_type);
+  // Quadratic quadratic(lp, solution.col_value);
 
   if (type == MinimizationType::kComponentWise)
     HighsPrintMessage(ML_ALWAYS,

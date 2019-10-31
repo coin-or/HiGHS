@@ -20,59 +20,29 @@ const int HIGHS_CONST_I_INF = 2147483647;  // 32767;
 const double HIGHS_CONST_INF = 1e200;
 const double HIGHS_CONST_TINY = 1e-14;
 const double HIGHS_CONST_ZERO = 1e-50;
+const std::string off_string = "off";
+const std::string choose_string = "choose";
+const std::string on_string = "on";
 
 constexpr double kBoundTolerance = 1e-8;
 
 enum HighsPrintMessageLevel {
-  ML_NONE = 0,
+  ML_MIN = 0,
+  ML_NONE = ML_MIN,
   ML_VERBOSE = 1,
   ML_DETAILED = 2,
   ML_MINIMAL = 4,
-  ML_DEFAULT = ML_MINIMAL,
-  ML_ALWAYS = ML_VERBOSE | ML_DETAILED | ML_MINIMAL
+  ML_ALWAYS = ML_VERBOSE | ML_DETAILED | ML_MINIMAL,
+  ML_MAX = ML_ALWAYS
 };
 
-enum class ParallelOption { OFF = 0, ON, DEFAULT = OFF };
+enum class HighsOptionType { BOOL = 0, INT, DOUBLE, STRING};
 
-enum class PresolveOption { OFF = 0, ON, DEFAULT = OFF };
+enum OptionOffChooseOn { OPTION_OFF = -1, OPTION_CHOOSE, OPTION_ON };
 
-enum class CrashOption { OFF = 0, ON, DEFAULT = OFF };
-
-enum class SimplexOption { OFF = 0, ON, DEFAULT = OFF };
-
-enum class IpmOption { OFF = 0, ON, DEFAULT = OFF };
+enum SolverOption { SOLVER_OPTION_SIMPLEX = -1, SOLVER_OPTION_CHOOSE, SOLVER_OPTION_IPM }; 
 
 const std::string FILENAME_DEFAULT = "";
-const std::string OPTIONS_FILE_DEFAULT = "";
-const double INFINITE_COST_MIN = 1e15;
-const double INFINITE_COST_DEFAULT = 1e20;
-const double INFINITE_COST_MAX = 1e25;
-const double INFINITE_BOUND_MIN = 1e15;
-const double INFINITE_BOUND_DEFAULT = 1e20;
-const double INFINITE_BOUND_MAX = 1e25;
-const double SMALL_MATRIX_VALUE_MIN = 1e-12;
-const double SMALL_MATRIX_VALUE_DEFAULT = 1e-9;
-const double SMALL_MATRIX_VALUE_MAX = HIGHS_CONST_INF;
-const double LARGE_MATRIX_VALUE_MIN = 1e0;
-const double LARGE_MATRIX_VALUE_DEFAULT = 1e15;
-const double LARGE_MATRIX_VALUE_MAX = 1e20;
-const int ALLOWED_SIMPLEX_SCALE_FACTOR_MIN = 0;
-const int ALLOWED_SIMPLEX_SCALE_FACTOR_DEFAULT = 10;
-const int ALLOWED_SIMPLEX_SCALE_FACTOR_MAX = 20;
-const double HIGHS_RUN_TIME_LIMIT_DEFAULT = HIGHS_CONST_INF;
-const double PRIMAL_FEASIBILITY_TOLERANCE_MIN = 1e-10;
-const double PRIMAL_FEASIBILITY_TOLERANCE_DEFAULT = 1e-7;
-const double PRIMAL_FEASIBILITY_TOLERANCE_MAX = HIGHS_CONST_INF;
-const double DUAL_FEASIBILITY_TOLERANCE_MIN = 1e-10;
-const double DUAL_FEASIBILITY_TOLERANCE_DEFAULT = 1e-7;
-const double DUAL_FEASIBILITY_TOLERANCE_MAX = HIGHS_CONST_INF;
-const double DUAL_OBJECTIVE_VALUE_UPPER_BOUND_DEFAULT = HIGHS_CONST_INF;
-const int SIMPLEX_ITERATION_LIMIT_DEFAULT = HIGHS_CONST_I_INF;
-const int SIMPLEX_UPDATE_LIMIT_DEFAULT = 5000;
-
-const double SIMPLEX_INITIAL_CONDITION_TOLERANCE_MIN = 1e0;
-const double SIMPLEX_INITIAL_CONDITION_TOLERANCE_DEFAULT = 1e14;
-const double SIMPLEX_INITIAL_CONDITION_TOLERANCE_MAX = 1e24;
 
 /** SCIP/CPLEX-like HiGHS basis status for columns and rows. */
 enum class HighsBasisStatus {

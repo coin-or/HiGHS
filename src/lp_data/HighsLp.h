@@ -37,6 +37,24 @@ enum class LpAction {
   DEL_ROWS_BASIS_OK
 };
 
+enum class HighsModelStatus {
+  NOTSET = 0,
+    LOAD_ERROR,
+    MODEL_ERROR,
+    MODEL_EMPTY,
+    PRESOLVE_ERROR,
+    SOLVE_ERROR,
+    POSTSOLVE_ERROR,
+    PRIMAL_FEASIBLE,
+    DUAL_FEASIBLE,
+    PRIMAL_INFEASIBLE,
+    PRIMAL_UNBOUNDED,
+    OPTIMAL,
+    REACHED_DUAL_OBJECTIVE_VALUE_UPPER_BOUND,
+    REACHED_TIME_LIMIT,
+    REACHED_ITERATION_LIMIT
+    };
+
 class HighsLp {
  public:
   // Model data
@@ -59,6 +77,7 @@ class HighsLp {
   double offset_ = 0;
 
   std::string model_name_ = "";
+  std::string lp_name_ = "";
 
   std::vector<std::string> row_names_;
   std::vector<std::string> col_names_;
@@ -85,6 +104,7 @@ class HighsLp {
 
     return true;
   }
+
 };
 
 // Cost, column and row scaling factors
@@ -137,6 +157,7 @@ struct HighsSimplexLpStatus {
 };
 
 struct HighsSimplexInfo {
+  bool initialised = false;
   // Simplex information regarding primal and dual solution, objective
   // and iteration counts for this Highs Model Object. This is
   // information which should be retained from one run to the next in
@@ -193,21 +214,21 @@ struct HighsSimplexInfo {
   std::vector<int> clock_;
   //
   // Options from HighsOptions for the simplex solver
-  double highs_run_time_limit;
-  SimplexStrategy simplex_strategy;
-  SimplexDualEdgeWeightStrategy dual_edge_weight_strategy;
-  SimplexPrimalEdgeWeightStrategy primal_edge_weight_strategy;
-  SimplexPriceStrategy price_strategy;
+  int simplex_strategy;
+  int dual_edge_weight_strategy;
+  int primal_edge_weight_strategy;
+  int price_strategy;
 
   double primal_feasibility_tolerance;
   double dual_feasibility_tolerance;
   bool perturb_costs;
   int update_limit;
-  int iteration_limit;
-  double dual_objective_value_upper_bound;
+  //  int iteration_limit;
+  //  double dual_objective_value_upper_bound;
 
   // Internal options - can't be changed externally
-
+  bool store_squared_primal_infeasibility;
+  bool allow_primal_flips_for_dual_feasibility;
   bool analyseLpSolution;
 #ifdef HiGHSDEV
   // Options for reporting timing
@@ -218,6 +239,8 @@ struct HighsSimplexInfo {
   // time
   bool analyseLp;
   bool analyseSimplexIterations;
+  bool analyse_invert_form;
+  bool analyse_invert_condition;
   bool analyse_invert_time;
   bool analyseRebuildTime;
 #endif
@@ -263,8 +286,24 @@ struct HighsSimplexInfo {
 
 #ifdef HiGHSDEV
   // Analysis of INVERT
+  int num_invert = 0;
+  // Analysis of INVERT form
+  int num_kernel = 0;
+  int num_major_kernel = 0;
+  const double major_kernel_relative_dim_threshhold = 0.1;
+  double max_kernel_dim = 0;
+  double sum_kernel_dim = 0;
+  double running_average_kernel_dim = 0;
+  double sum_invert_fill_factor = 0;
+  double sum_kernel_fill_factor = 0;
+  double sum_major_kernel_fill_factor = 0;
+  double running_average_invert_fill_factor = 1;
+  double running_average_kernel_fill_factor = 1;
+  double running_average_major_kernel_fill_factor = 1;
+
   int total_inverts;
   double total_invert_time;
+  double invert_condition = 1;
 #endif
 
   /*

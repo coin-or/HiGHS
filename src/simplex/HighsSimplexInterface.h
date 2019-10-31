@@ -100,6 +100,8 @@ class HighsSimplexInterface {
                              int* row_matrix_start, int* row_matrix_index,
                              double* row_matrix_value);
 
+  HighsStatus getCoefficient(const int Xrow, const int Xcol, double& value);
+
   /**
    * @brief Add a contiguous set of rows to the model data---making them basic
    */
@@ -118,7 +120,7 @@ class HighsSimplexInterface {
                                 bool set, int num_set_entries,
                                 const int* row_set, bool mask, int* row_mask);
 
-  HighsStatus changeCoefficient(int Xrow, int Xcol, const double XnewValue);
+  HighsStatus changeCoefficient(const int Xrow, const int Xcol, const double XnewValue);
 
   // Shift the objective
   void shiftObjectiveValue(double Xshift);
@@ -185,13 +187,19 @@ class HighsSimplexInterface {
                                      const double* usr_row_lower,
                                      const double* usr_row_upper);
 
+  HighsStatus basisSolve(
+			 const vector<double>& rhs,
+			 double* solution,
+			 int* solution_num_nz,
+			 int* solution_nz_indices,
+			 bool transpose=false
+			 );
+
 #ifdef HiGHSDEV
   // Changes the update method, but only used in HTester.cpp
   void change_update_method(int updateMethod);
 #endif
 
-  HighsStatus lpStatusToHighsStatus(
-      SimplexSolutionStatus simplex_solution_status);
   /**
    * @brief Convert a SCIP baseStat for columns and rows to HiGHS basis
    * Postive  return value k implies invalid basis status for column k-1
@@ -238,10 +246,10 @@ class HighsSimplexInterface {
    * @brief Analyse the HiGHS solution and basis, looking for
    * inconsistencies, as well as primal and dual infeasibilities
    */
-  SimplexSolutionStatus analyseHighsSolutionAndBasis(
-						     const int report_level,
-						     const string message
-						     );
+  HighsModelStatus analyseHighsSolutionAndBasis(
+						const int report_level,
+						const string message
+						);
 
   /**
    * @brief Get the indices of the basic variables for SCIP

@@ -55,6 +55,7 @@ set(headers
     io/HToyIO.h
     io/HighsIO.h
     io/LoadProblem.h
+    io/LoadOptions.h
     lp_data/HConst.h
     lp_data/HighsLp.h
     lp_data/HighsLpUtils.h
@@ -104,6 +105,7 @@ if (GAMS_FOUND)
     set(sources ${sources} interfaces/GAMS.cpp)
     set(sources ${sources} "${GAMS_ROOT}/apifiles/C/api/gmomcc.c")
     set(sources ${sources} "${GAMS_ROOT}/apifiles/C/api/gevmcc.c")
+    include_directories(${GAMS_ROOT}/apifiles/C/api)
 endif()
 
 add_library(libhighs ${sources})
@@ -132,7 +134,7 @@ if(FORTRAN_FOUND)
     set(fortransources
     interfaces/highs_lp_solver.f90
     )
-    set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/modules)
+    set(CMAKE_Fortran_MODULE_DIRECTORY ${HIGHS_BINARY_DIR}/modules)
     add_library(FortranHighs interfaces/highs_lp_solver.f90)
     target_link_libraries(FortranHighs PUBLIC libhighs)
     install(TARGETS FortranHighs
@@ -142,6 +144,20 @@ if(FORTRAN_FOUND)
         MODULES DESTINATION modules)
     set_target_properties(FortranHighs PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
  endif(FORTRAN_FOUND)
+
+ check_language("CSharp")
+if(CSHARP_FOUND)
+  message(STATUS "CSharp supported")
+  set(csharpsources
+  interfaces/highs_csharp_api.cs)
+  add_library(HighsCsharp interfaces/highs_csharp_api.cs)
+  target_compile_options(HighsCsharp PUBLIC "/unsafe")
+  add_executable(csharpexample ../examples/call_highs_from_csharp.cs)
+  target_compile_options(csharpexample PUBLIC "/unsafe")
+  target_link_libraries(csharpexample PUBLIC HighsCsharp)
+else()
+  message(STATUS "No CSharp support")
+endif()
 
 if (OSI_FOUND)
     add_library(OsiHighs interfaces/OsiHiGHSSolverInterface.cpp)
@@ -167,7 +183,7 @@ if (OSI_FOUND)
     set_target_properties(OsiHighs PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
     #configure and install the pkg-config file
-    configure_file(${CMAKE_SOURCE_DIR}/osi-highs.pc.in
+    configure_file(${HIGHS_SOURCE_DIR}/osi-highs.pc.in
         "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/osi-highs.pc" @ONLY)
     install(FILES "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/osi-highs.pc" DESTINATION lib/pkg-config)
 endif()
@@ -181,7 +197,7 @@ foreach ( file ${headers} )
     get_filename_component( dir ${file} DIRECTORY )
     install( FILES ${file} DESTINATION include/${dir} )
 endforeach()
-install(FILES ${CMAKE_BINARY_DIR}/HConfig.h DESTINATION include)
+install(FILES ${HIGHS_BINARY_DIR}/HConfig.h DESTINATION include)
 
 # install the binary and the library to appropriate locations and add them to an export group
 install(TARGETS libhighs EXPORT highs-targets
@@ -191,27 +207,27 @@ install(TARGETS libhighs EXPORT highs-targets
 
 # Add library targets to the build-tree export set
 export(TARGETS libhighs
-  FILE "${CMAKE_BINARY_DIR}/highs-targets.cmake")
+  FILE "${HIGHS_BINARY_DIR}/highs-targets.cmake")
 
 #configure the config file for the build tree
 #Either list all the src/* directories here, or put explicit paths in all the #include statements
 #M reckons that the latter is more transparent, and I'm inclined to agree.
-set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/src" "${CMAKE_BINARY_DIR}")
-configure_file(${CMAKE_SOURCE_DIR}/highs-config.cmake.in
-  "${CMAKE_BINARY_DIR}/highs-config.cmake" @ONLY)
+set(CONF_INCLUDE_DIRS "${HIGHS_SOURCE_DIR}/src" "${HIGHS_BINARY_DIR}")
+configure_file(${HIGHS_SOURCE_DIR}/highs-config.cmake.in
+  "${HIGHS_BINARY_DIR}/highs-config.cmake" @ONLY)
 
 #configure the config file for the install
 set(CONF_INCLUDE_DIRS "\${CMAKE_CURRENT_LIST_DIR}/../../../include")
-configure_file(${CMAKE_SOURCE_DIR}/highs-config.cmake.in
-  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/highs-config.cmake" @ONLY)
+configure_file(${HIGHS_SOURCE_DIR}/highs-config.cmake.in
+   "${HIGHS_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/highs-config.cmake" @ONLY)
 
 #configure the pkg-config file for the install
-configure_file(${CMAKE_SOURCE_DIR}/highs.pc.in
-  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/highs.pc" @ONLY)
+configure_file(${HIGHS_SOURCE_DIR}/highs.pc.in
+   "${HIGHS_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/highs.pc" @ONLY)
 
 # install the targets of the highs export group, the config file so that other cmake-projects
 # can link easily against highs, and the pkg-config flie so that other projects can easily
 # build against highs
 install(EXPORT highs-targets FILE highs-targets.cmake DESTINATION lib/cmake/highs)
-install(FILES "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/highs-config.cmake" DESTINATION lib/cmake/highs)
-install(FILES "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/highs.pc" DESTINATION lib/pkg-config)
+install(FILES "${HIGHS_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/highs-config.cmake" DESTINATION lib/cmake/highs)
+install(FILES "${HIGHS_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/highs.pc" DESTINATION lib/pkg-config)

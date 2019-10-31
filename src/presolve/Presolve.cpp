@@ -133,6 +133,8 @@ int Presolve::presolve(int print) {
     hasChange = false;
     if (iPrint > 0) cout << "PR: main loop " << iter << ":" << endl;
     //***************** main loop ******************
+    checkBoundsAreConsistent();
+    if (status) return status;
 
     removeRowSingletons();
     if (status) return status;
@@ -186,6 +188,26 @@ HighsPresolveStatus Presolve::presolve() {
       break;
   }
   return presolve_status;
+}
+
+void Presolve::checkBoundsAreConsistent() {
+  for (int col = 0; col < numCol; col++) {
+    if (flagCol[col]) {
+      if (colUpper[col] - colLower[col] < -tol) {
+        status = Infeasible;
+        return;
+      }
+    }
+  }
+
+  for (int row = 0; row < numRow; row++) {
+    if (flagRow[row]) {
+      if (rowUpper[row] - rowLower[row] < -tol) {
+        status = Infeasible;
+        return;
+      }
+    }
+  }
 }
 
 /**
@@ -585,13 +607,6 @@ void Presolve::resizeProblem() {
   numRow = nR;
   numCol = nC;
   numTot = nR + nC;
-
-  std::stringstream ss;
-  ss << "Problem reduced: ";
-  ss << "rows " << numRow << "(-" << numRowOriginal - numRow << "), ";
-  ss << "columns " << numCol << "(-" << numColOriginal - numCol << "), ";
-  ss << "nonzeros " << nz << "(-" << ARindex.size() - nz << ") " << std::endl;
-  HighsPrintMessage(ML_MINIMAL, ss.str().c_str());
 
   if (nR + nC == 0) {
     status = Empty;

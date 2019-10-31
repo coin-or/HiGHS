@@ -230,7 +230,7 @@ class FilereaderLp : public Filereader {
                                       HighsLp& model);
   FilereaderRetcode readModelFromFile(const char* filename,
                                       HighsModelBuilder& model);
-  FilereaderRetcode writeModelToFile(const char* filename, HighsLp& model);
+  HighsStatus writeModelToFile(const char* filename, HighsLp& model);
   FilereaderLp();
   ~FilereaderLp();
 
@@ -250,7 +250,6 @@ class FilereaderLp : public Filereader {
   FILE* file;
   char fileBuffer[BUFFERSIZE];
   char stringBuffer[BUFFERSIZE];
-  char stringBuffer2[BUFFERSIZE];
   char* readingPosition;
   bool isFileBufferFullyRead;
   double constantBuffer;
