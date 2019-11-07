@@ -78,6 +78,8 @@ if (NOT (${OSI_ROOT} STREQUAL "OFF"))
 endif ()
 unset(OSI_ROOT CACHE)
 
+option(IPX_ON "IPX" OFF)
+
 include(CheckLanguage)
 check_language("Fortran")
 if(CMAKE_Fortran_COMPILER)

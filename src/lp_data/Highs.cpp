@@ -1037,7 +1037,7 @@ HighsStatus Highs::callRunSolver(HighsModelObject& model, int& iteration_count,
   HighsLogMessage(HighsMessageType::INFO, message.c_str());
 
   if (options_.solver == "ipm") {
-#ifdef __unix
+#ifdef IPX_ON
     IpxStatus ipx_return = solveModelWithIpx(lp_, solution_, basis_);
     if (ipx_return != IpxStatus::OK) {
       // todo:
@@ -1045,6 +1045,9 @@ HighsStatus Highs::callRunSolver(HighsModelObject& model, int& iteration_count,
     }
     return HighsStatus::OK;
 #else
+    HighsPrintMessage(ML_ALWAYS,
+                      "Error: Interior point solver requires Linux and a "
+                      "version of GCC above 5\n.");
     return HighsStatus::Error;
 #endif
   }

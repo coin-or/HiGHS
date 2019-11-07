@@ -4,7 +4,7 @@ include_directories(interior_point/ipx/include)
 include_directories(interior_point/basiclu/src)
 include_directories(interior_point/basiclu/include)
 
-if (UNIX)
+if (LINUX AND (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5)) 
 set(basiclu_sources
     interior_point/basiclu/src/basiclu_factorize.c
     interior_point/basiclu/src/basiclu_solve_dense.c
@@ -169,16 +169,21 @@ if (GAMS_FOUND)
     include_directories(${GAMS_ROOT}/apifiles/C/api)
 endif()
 
-if (UNIX)
-add_library(libbasiclu ${basiclu_sources})
+if (LINUX AND (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5))
+    set(sources ${sources} IpxWrapper.cpp)
+    set(IPX_ON ON)
+    add_library(libbasiclu ${basiclu_sources})
 
-add_library(libipx ${ipx_sources})
-target_link_libraries(libipx libbasiclu)
+    add_library(libipx ${ipx_sources})
 endif()
 
 add_library(libhighs ${sources})
-if (UNIX)
-target_link_libraries(libhighs libipx)
+
+#if (IPX_ON)
+if (LINUX AND (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5))
+    target_link_libraries(libipx libbasiclu)
+else()
+    target_link_libraries(libhighs)
 endif()
 
 # put version information into shared library file
@@ -270,24 +275,25 @@ foreach ( file ${headers} )
 endforeach()
 install(FILES ${HIGHS_BINARY_DIR}/HConfig.h DESTINATION include)
 
-if (UNIX)
-install(TARGETS libhighs libipx libbasiclu EXPORT highs-targets
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        INCLUDES DESTINATION include)
+#if (IPX_ON)
+if (LINUX AND (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5))
+    install(TARGETS libhighs libipx libbasiclu EXPORT highs-targets
+            LIBRARY DESTINATION lib
+            ARCHIVE DESTINATION lib
+            INCLUDES DESTINATION include)
 
-# Add library targets to the build-tree export set
-export(TARGETS libhighs libipx libbasiclu
-  FILE "${HIGHS_BINARY_DIR}/highs-targets.cmake")
+    # Add library targets to the build-tree export set
+    export(TARGETS libhighs libipx libbasiclu
+    FILE "${HIGHS_BINARY_DIR}/highs-targets.cmake")
 else()
-install(TARGETS libhighs EXPORT highs-targets
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        INCLUDES DESTINATION include)
+    install(TARGETS libhighs EXPORT highs-targets
+            LIBRARY DESTINATION lib
+            ARCHIVE DESTINATION lib
+            INCLUDES DESTINATION include)
 
-# Add library targets to the build-tree export set
-export(TARGETS libhighs 
-  FILE "${HIGHS_BINARY_DIR}/highs-targets.cmake")
+    # Add library targets to the build-tree export set
+    export(TARGETS libhighs 
+    FILE "${HIGHS_BINARY_DIR}/highs-targets.cmake")
 
 endif()
 

@@ -25,12 +25,17 @@ set(TEST_SOURCES
     TestIpx.cpp
     Avgas.cpp)
 
-if (UNIX) 
+if (LINUX AND (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5)) 
     set (TEST_SOURCES ${TEST_SOURCES} TestIpx.cpp)
 endif()
 
 add_executable(unit_tests ${TEST_SOURCES})
-target_link_libraries(unit_tests libhighs Catch)
+
+if (LINUX AND (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5)) 
+    target_link_libraries(unit_tests libhighs Catch libipx)
+else()
+    target_link_libraries(unit_tests libhighs Catch)
+endif()
 
 if (OSI_FOUND)
 option(OSI_ROOT "Osi root folder." "OFF")
