@@ -33,6 +33,12 @@
 // until add_row_.. functions are moved to HighsLpUtils.h
 #include "simplex/HSimplex.h"
 
+#ifdef IPX_ON
+#include "interior_point/IpxWrapper.h"
+#else
+#include "interior_point/IpxWrapperEmpty.h"
+#endif
+
 Highs::Highs() {
   hmos_.clear();
   HighsModelObject* hmo = new HighsModelObject(lp_, options_, timer_);
@@ -247,6 +253,12 @@ HighsStatus Highs::run() {
 #endif
   reportOptions(stdout, options_.records);  //, true);
   HighsPrintMessage(ML_VERBOSE, "Solving %s", lp_.model_name_.c_str());
+
+  // IPX with no presolve yet.
+  if (options_.solver == "ipm") {
+    int ipx_iteration_count = 0;
+    return callRunSolver(hmos_[0], ipx_iteration_count, "IPX");
+  }
   if (options_.mip) return runBnb();
 
   // Running as LP solver: start the HiGHS clock unless it's already running
@@ -318,6 +330,7 @@ HighsStatus Highs::run() {
         break;
       }
       case HighsPresolveStatus::ReducedToEmpty: {
+        hmos_[0].model_status_ = HighsModelStatus::OPTIMAL;
         // Proceed to postsolve.
         break;
       }
@@ -368,7 +381,8 @@ HighsStatus Highs::run() {
     }
     // Postsolve. Does nothing if there were no reductions during presolve.
     if (hmos_[solved_hmo].model_status_ == HighsModelStatus::OPTIMAL) {
-      if (presolve_status == HighsPresolveStatus::Reduced) {
+      if (presolve_status == HighsPresolveStatus::Reduced ||
+          presolve_status == HighsPresolveStatus::ReducedToEmpty) {
         // If presolve is nontrivial, extract the optimal solution
         // and basis for the presolved problem in order to generate
         // the solution and basis for postsolve to use to generate a
@@ -1059,8 +1073,19 @@ HighsPostsolveStatus Highs::runPostsolve(PresolveInfo& info) {
 // The method below runs simplex or ipx solver on the lp.
 HighsStatus Highs::callRunSolver(HighsModelObject& model, int& iteration_count,
                                  const string message) {
-  HighsStatus solver_return_status;
   HighsLogMessage(HighsMessageType::INFO, message.c_str());
+
+  if (options_.solver == "ipm") {
+    HighsPrintMessage(ML_ALWAYS, "Starting IPX...\n");
+    IpxStatus ipx_return = solveModelWithIpx(lp_, solution_, basis_);
+    if (ipx_return != IpxStatus::OK) {
+      // todo:
+      return HighsStatus::Error;
+    }
+    return HighsStatus::OK;
+  }
+
+  HighsStatus solver_return_status;
   if (!model.lp_.numRow_) {
     // Handle the case of unconstrained LPs here
     HighsSimplexInterface simplex_interface(model);
