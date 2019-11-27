@@ -64,6 +64,15 @@ bool parseICrashStrategy(const std::string& strategy,
 }
 
 bool checkOptions(const HighsLp& lp, const ICrashOptions options) {
+  if (options.exact) {
+    bool is_eq = isEqualityProblem(lp);
+    if (!is_eq) {
+      HighsPrintMessage(ML_ALWAYS,
+                        "ICrash error: exact subproblem solution available "
+                        "only for equality problems./n");
+      return false;
+    }
+  }
   if (options.strategy == ICrashStrategy::kBreakpoints) {
     if (options.exact) {
       HighsPrintMessage(
@@ -178,45 +187,75 @@ void updateParameters(Quadratic& idata, const ICrashOptions& options,
   }
 }
 
-void solveSubproblem(Quadratic& idata, const ICrashOptions& options) {
-  // todo: switch
-  if (options.strategy == ICrashStrategy::kICA) {
-    bool minor_iteration_details = false;
+void solveSubproblemICA(Quadratic& idata, const ICrashOptions& options) {
+  bool minor_iteration_details = false;
 
-    std::vector<double> residual_ica(idata.lp.numRow_, 0);
-    updateResidualIca(idata.lp, idata.xk, residual_ica);
-    double objective_ica = 0;
+  std::vector<double> residual_ica(idata.lp.numRow_, 0);
+  updateResidualIca(idata.lp, idata.xk, residual_ica);
+  double objective_ica = 0;
 
-    for (int k = 0; k < options.approximate_minimization_iterations; k++) {
-      for (int col = 0; col < idata.lp.numCol_; col++) {
-        // determine whether to minimize for col.
-        // if empty skip.
-        if (idata.lp.Astart_[col] == idata.lp.Astart_[col + 1]) continue;
+  for (int k = 0; k < options.approximate_minimization_iterations; k++) {
+    for (int col = 0; col < idata.lp.numCol_; col++) {
+      // determine whether to minimize for col.
+      // if empty skip.
+      if (idata.lp.Astart_[col] == idata.lp.Astart_[col + 1]) continue;
 
-        double delta_x = 0;
-        minimizeComponentIca(col, idata.mu, idata.lambda, idata.lp,
-                             objective_ica, residual_ica, idata.xk);
+      double delta_x = 0;
+      minimizeComponentIca(col, idata.mu, idata.lambda, idata.lp, objective_ica,
+                           residual_ica, idata.xk);
 
-        if (minor_iteration_details) {
-          double quadratic_objective = getQuadraticObjective(idata);
-          printMinorIterationDetails(k, col, idata.xk.col_value[col] - delta_x,
-                                     delta_x, objective_ica, residual_ica,
-                                     quadratic_objective);
-        }
-
-        assert(std::fabs(objective_ica -
-                         vectorProduct(idata.lp.colCost_, idata.xk.col_value)) <
-               1e08);
+      if (minor_iteration_details) {
+        double quadratic_objective = getQuadraticObjective(idata);
+        printMinorIterationDetails(k, col, idata.xk.col_value[col] - delta_x,
+                                   delta_x, objective_ica, residual_ica,
+                                   quadratic_objective);
       }
 
-      // code below just for checking. Can comment out later if speed up is
-      // needed.
-      std::vector<double> residual_ica_check(idata.lp.numRow_, 0);
-      updateResidualIca(idata.lp, idata.xk, residual_ica_check);
-      double difference = getNorm2(residual_ica) - getNorm2(residual_ica_check);
-      assert(std::fabs(difference) < 1e08);
+      assert(std::fabs(objective_ica -
+                       vectorProduct(idata.lp.colCost_, idata.xk.col_value)) <
+             1e08);
+    }
+
+    // code below just for checking. Can comment out later if speed up is
+    // needed.
+    std::vector<double> residual_ica_check(idata.lp.numRow_, 0);
+    updateResidualIca(idata.lp, idata.xk, residual_ica_check);
+    double difference = getNorm2(residual_ica) - getNorm2(residual_ica_check);
+    assert(std::fabs(difference) < 1e08);
+  }
+}
+
+bool solveSubproblem(Quadratic& idata, const ICrashOptions& options) {
+  switch (options.strategy) {
+    case ICrashStrategy::kICA: {
+      if (!options.exact)
+        solveSubproblemICA(idata, options);
+      else {
+        // temporary modify cost to c + A^t \lambda
+        // A^t \lambda = (\lambda^t A)^t
+        std::vector<double> cost(idata.lp.numCol_);
+        muptiplyByTranspose(idata.lp, idata.lambda, cost);
+        for (int j=0;j<idata.lp.numCol_;j++) cost[j] += idata.lp.colCost_[j];
+        minimizeSubproblemExact(idata.lp, idata.mu, cost,
+                                idata.xk.col_value);
+      }
+      break;
+    }
+    case ICrashStrategy::kPenalty: {
+      if (!options.exact) {
+        HighsPrintMessage(ML_ALWAYS, "ICrash error: Not implemented yet./n");
+        return false;
+      }
+      minimizeSubproblemExact(idata.lp, idata.mu, idata.lp.colCost_,
+                              idata.xk.col_value);
+      break;
+    }
+    default: {
+      HighsPrintMessage(ML_ALWAYS, "ICrash error: Not implemented yet./n");
+      return false;
     }
   }
+  return true;
 }
 
 void reportSubproblem(const Quadratic& idata, const int iteration) {
@@ -251,7 +290,8 @@ HighsStatus callICrash(const HighsLp& lp, const ICrashOptions& options,
   int iteration = 0;
   for (iteration = 1; iteration <= options.iterations; iteration++) {
     updateParameters(idata, options, iteration);
-    solveSubproblem(idata, options);
+    bool success = solveSubproblem(idata, options);
+    if (!success) return HighsStatus::Error;
     update(idata);
     reportSubproblem(idata, iteration);
     result.details.push_back(fillDetails(iteration, idata));

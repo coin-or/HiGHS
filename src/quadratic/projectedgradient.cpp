@@ -137,7 +137,8 @@ void ProjectedGradient::computeProjectedGradient(HVector& gradient,
 }
 
 // solves c'x + mu/2 (Ax-b)'(Ax-b) s.t. l <= x <= u
-void ProjectedGradient::solveLpPenalty(HighsLp& lp, double mu, HVector& x) {
+void ProjectedGradient::solveLpPenalty(const HighsLp& lp, double mu,
+                                       const std::vector<double>& cost, HVector& x) {
   HighsPrintMessage(
       ML_VERBOSE,
       "solving qp arrising from lp-penalty method. Cols: %d Rows: %d\n",
@@ -147,7 +148,7 @@ void ProjectedGradient::solveLpPenalty(HighsLp& lp, double mu, HVector& x) {
   HVector b(lp.rowUpper_, lp.numRow_);
   HVector l(lp.colLower_, lp.numCol_);
   HVector u(lp.colUpper_, lp.numCol_);
-  HVector c(lp.colCost_, lp.numCol_);
+  HVector c(cost, lp.numCol_);
 
   // temp variables
   HVector gradientConstant(lp.numCol_);

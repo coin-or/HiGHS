@@ -18,12 +18,14 @@
 #include "io/HighsIO.h"
 #include "lp_data/HighsLp.h"
 #include "lp_data/HighsLpUtils.h"
+#include "quadratic/projectedgradient.h"
+#include "simplex/HVector.h"
 #include "util/HighsUtils.h"
 
 void muptiplyByTranspose(const HighsLp& lp, const std::vector<double>& v,
                          std::vector<double>& result) {
-  assert((int) result.size() == lp.numCol_);
-  assert((int) v.size() == lp.numRow_);
+  assert((int)result.size() == lp.numCol_);
+  assert((int)v.size() == lp.numRow_);
 
   result.assign(lp.numCol_, 0);
   for (int col = 0; col < lp.numCol_; col++) {
@@ -82,14 +84,24 @@ bool initialize(const HighsLp& lp, HighsSolution& solution,
   return true;
 }
 
-// Should only work with kLinearized type.
-void minimizeExactIcaAdmm() {
-  // !!! do not modify LP cost ***
-  // update();
-}
+void minimizeSubproblemExact(const HighsLp& lp, const double mu,
+                             const std::vector<double>& cost,
+                             std::vector<double>& col_value) {
+  // solveLpPenalty(..) has mu/2 * rtr, rather than 1/(2*mu) rtr.
+  const double mu_projected_gradient = 1.0 / mu;
 
-void minimizeExactPenalty() {
-  // update();
+  HighsOptions options;
+  options.message_level = ML_NONE;
+  HighsSetIO(options);
+  
+  ProjectedGradient projected_gradient;
+  HVector vector(col_value, col_value.size());
+  projected_gradient.solveLpPenalty(lp, mu_projected_gradient, cost, vector);
+  
+  options.message_level = ML_MINIMAL;
+  HighsSetIO(options);
+
+  col_value = vector.array;
 }
 
 double minimizeComponentIca(const int col, const double mu,

@@ -35,9 +35,9 @@ void printMinorIterationDetails(const double iteration, const double col,
 bool initialize(const HighsLp& lp, HighsSolution& solution,
                 std::vector<double>& lambda);
 
-// todo:
-void minimizeExactIcaAdmm();
-void minimizeExactPenalty();
+void minimizeSubproblemExact(const HighsLp& lp, const double mu,
+                             const std::vector<double>& cost,
+                             std::vector<double>& col_value);
 
 double minimizeComponentIca(const int col, const double mu,
                             const std::vector<double>& lambda,

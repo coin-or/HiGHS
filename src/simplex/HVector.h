@@ -36,7 +36,7 @@ class HVector {
 
   HVector(int length);
 
-  HVector(vector<double>& vec, int length);
+  HVector(const vector<double>& vec, int length);
 
   double scalarProduct(const HVector* other);
 

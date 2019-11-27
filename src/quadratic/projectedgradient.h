@@ -9,7 +9,7 @@ class ProjectedGradient {
  public:
   void solveQpPenalty(HighsQp& qp, double rho, double mu, double nu, HVector x0, HVector xbar);
 
-  void solveLpPenalty(HighsLp& lp, double mu, HVector& x0);
+  void solveLpPenalty(const HighsLp& lp, double mu, const std::vector<double>& cost, HVector& x);
 
  private:
   void computeGradientConstantPart(HVector& c, SparseMatrix& A, double mu, HVector& b, HVector& gradient);
