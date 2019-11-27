@@ -18,6 +18,39 @@
 #include <cmath>
 #include "stdio.h"  //Just for temporary printf
 
+HVector::HVector() {}
+
+HVector::HVector(int length) { this->setup(length); }
+
+HVector::HVector(vector<double>& vec, int length) {
+  this->setup(length);
+  int nz = 0;
+  for (int i = 0; i < length; i++) {
+    this->array[i] = vec[i];
+    if (fabs(vec[i]) > HIGHS_CONST_TINY) {
+      this->index[nz] = i;
+      nz++;
+    }
+  }
+  this->count = nz;
+}
+
+double HVector::scalarProduct(const HVector* other) {
+  double result = 0.0;
+ 
+  for (int i=0; i<this->count; i++) {
+    result += this->array[this->index[i]] * other->array[this->index[i]];
+  }
+
+  return result;
+}
+
+void HVector::scale(double factor) {
+  for (int i=0; i<this->count; i++) {
+    this->array[this->index[i]] *= factor;
+  }
+}
+
 void HVector::setup(int size_) {
   /*
    * Initialise an HVector instance

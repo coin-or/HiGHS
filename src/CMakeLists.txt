@@ -93,6 +93,9 @@ set(sources
     presolve/ICrashUtil.cpp
     presolve/Presolve.cpp
     presolve/HPreData.cpp
+    quadratic/conjugategradient.cpp
+    quadratic/projectedgradient.cpp
+    quadratic/SparseMatrix.cpp
     simplex/HCrash.cpp
     simplex/HDual.cpp
     simplex/HDualRHS.cpp
@@ -136,6 +139,10 @@ set(headers
     lp_data/HighsStatus.h
     lp_data/HighsModelBuilder.h
     mip/SolveMip.h
+    quadratic/conjugategradient.h
+    quadratic/HighsQp.h
+    quadratic/projectedgradient.h
+    quadratic/SparseMatrix.h
     simplex/HApp.h
 #    simplex/HConst.h
     simplex/HCrash.h

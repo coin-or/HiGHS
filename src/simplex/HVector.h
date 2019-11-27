@@ -31,6 +31,17 @@ class HVector {
   void setup(int size_  //!< Dimension of the vector to be initialised
   );
 
+
+  HVector();
+
+  HVector(int length);
+
+  HVector(vector<double>& vec, int length);
+
+  double scalarProduct(const HVector* other);
+
+  void scale(double factor);
+
   /**
    * @brief Clear the vector
    *
