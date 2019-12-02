@@ -56,8 +56,6 @@ bool parseICrashStrategy(const std::string& strategy,
     icrash_strategy = ICrashStrategy::kAdmm;
   else if (lower == "ica")
     icrash_strategy = ICrashStrategy::kICA;
-  else if (lower == "breakpoints")
-    icrash_strategy = ICrashStrategy::kBreakpoints;
   else
     return false;
   return true;
@@ -73,19 +71,22 @@ bool checkOptions(const HighsLp& lp, const ICrashOptions options) {
       return false;
     }
   }
-  if (options.strategy == ICrashStrategy::kBreakpoints) {
+  if (options.breakpoints) {
     if (options.exact) {
-      HighsPrintMessage(
-          ML_ALWAYS,
-          "ICrash error: exact strategy not allowed for kBreakpoints./n");
+      HighsPrintMessage(ML_ALWAYS,
+                        "ICrash error: exact strategy not allowed for "
+                        "breakpoints minimization./n");
       return false;
     }
     if (options.dualize) {
       HighsPrintMessage(
           ML_ALWAYS,
-          "ICrash error: kBreakpoints does not support dualize option.\n");
+          "ICrash error: breakpoints does not support dualize option.\n");
       return false;
     }
+    HighsPrintMessage(ML_ALWAYS,
+                      "ICrash error: breakpoints not implemented yet.\n");
+    return false;
   }
   return true;
 }
@@ -97,13 +98,13 @@ Quadratic parseOptions(const HighsLp& lp, const ICrashOptions options) {
     if (options.dualize) ilp = dualizeEqualityProblem(ilp);
   } else {
     // not equality problem.
-    if (options.strategy != ICrashStrategy::kBreakpoints) {
-      ilp = transformIntoEqualityProblem(ilp);
-      if (options.dualize) {
-        // Add slacks & dualize.
-        // dualizeEqualityProblem returns a minimization equality problem.
-        ilp = dualizeEqualityProblem(ilp);
-      }
+    assert(!options.breakpoints);  // remove when implementing breakpoints and
+                                   // add if else.
+    ilp = transformIntoEqualityProblem(ilp);
+    if (options.dualize) {
+      // Add slacks & dualize.
+      // dualizeEqualityProblem returns a minimization equality problem.
+      ilp = dualizeEqualityProblem(ilp);
     }
   }
 
@@ -139,9 +140,7 @@ void update(Quadratic& idata) {
 
   // residual & residual_norm_2
   calculateRowValues(idata.lp, idata.xk);
-  bool piecewise =
-      (idata.options.strategy == ICrashStrategy::kBreakpoints) ? true : false;
-  updateResidual(piecewise, idata.lp, idata.xk, idata.residual);
+  updateResidual(idata.options.breakpoints, idata.lp, idata.xk, idata.residual);
   idata.residual_norm_2 = getNorm2(idata.residual);
 
   // quadratic_objective
@@ -152,7 +151,11 @@ void update(Quadratic& idata) {
 }
 
 ICrashIterationDetails fillDetails(const int num, const Quadratic& idata) {
-  return ICrashIterationDetails{num, idata.mu, idata.lp_objective,
+  double lambda_norm_2 = getNorm2(idata.lambda);
+  return ICrashIterationDetails{num,
+                                idata.mu,
+                                lambda_norm_2,
+                                idata.lp_objective,
                                 idata.quadratic_objective,
                                 idata.residual_norm_2};
 }
@@ -222,6 +225,7 @@ void solveSubproblemICA(Quadratic& idata, const ICrashOptions& options) {
     updateResidualIca(idata.lp, idata.xk, residual_ica_check);
     double difference = getNorm2(residual_ica) - getNorm2(residual_ica_check);
     assert(std::fabs(difference) < 1e08);
+    (void)difference;
   }
 }
 
@@ -254,6 +258,7 @@ bool solveSubproblem(Quadratic& idata, const ICrashOptions& options) {
       HighsPrintMessage(ML_ALWAYS, "ICrash error: Not implemented yet./n");
       return false;
     }
+
   }
   return true;
 }
@@ -290,8 +295,10 @@ HighsStatus callICrash(const HighsLp& lp, const ICrashOptions& options,
   int iteration = 0;
   for (iteration = 1; iteration <= options.iterations; iteration++) {
     updateParameters(idata, options, iteration);
+
     bool success = solveSubproblem(idata, options);
     if (!success) return HighsStatus::Error;
+
     update(idata);
     reportSubproblem(idata, iteration);
     result.details.push_back(fillDetails(iteration, idata));
