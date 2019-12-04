@@ -73,7 +73,7 @@ bool initialize(const HighsLp& lp, HighsSolution& solution,
       solution.col_value[col] = lp.colUpper_[col];
     else {
       HighsPrintMessage(
-          ML_ALWAYS, "ICrash error: setting initial value for column %d", col);
+          ML_ALWAYS, "ICrash error: setting initial value for column %d\n", col);
       return false;
     }
   }
