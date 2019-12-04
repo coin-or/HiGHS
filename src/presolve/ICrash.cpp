@@ -62,15 +62,6 @@ bool parseICrashStrategy(const std::string& strategy,
 }
 
 bool checkOptions(const HighsLp& lp, const ICrashOptions options) {
-  if (options.exact) {
-    bool is_eq = isEqualityProblem(lp);
-    if (!is_eq) {
-      HighsPrintMessage(ML_ALWAYS,
-                        "ICrash error: exact subproblem solution available "
-                        "only for equality problems.\n");
-      return false;
-    }
-  }
   if (options.breakpoints) {
     if (options.exact) {
       HighsPrintMessage(ML_ALWAYS,
