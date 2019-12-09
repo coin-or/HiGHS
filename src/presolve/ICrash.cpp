@@ -245,26 +245,28 @@ bool solveSubproblem(Quadratic& idata, const ICrashOptions& options) {
         // A^t \lambda = (\lambda^t A)^t
         std::vector<double> cost(idata.lp.numCol_);
         muptiplyByTranspose(idata.lp, idata.lambda, cost);
-        for (int j=0;j<idata.lp.numCol_;j++) cost[j] += idata.lp.colCost_[j];
-        minimizeSubproblemExact(idata.lp, idata.mu, cost,
-                                idata.xk.col_value);
+        for (int j = 0; j < idata.lp.numCol_; j++)
+          cost[j] += idata.lp.colCost_[j];
+        minimizeSubproblemExact(idata.lp, idata.mu, cost, idata.xk.col_value);
       }
       break;
     }
     case ICrashStrategy::kPenalty: {
       if (!options.exact) {
-        HighsPrintMessage(ML_ALWAYS, "ICrash error: Not implemented yet.\n");
-        return false;
+        solveSubproblemICA(idata, options);
+        HighsPrintMessage(
+            ML_ALWAYS,
+            "ICrash Warning: Using solveSubproblemICA with lambda = 0.\n");
+      } else {
+        minimizeSubproblemExact(idata.lp, idata.mu, idata.lp.colCost_,
+                                idata.xk.col_value);
       }
-      minimizeSubproblemExact(idata.lp, idata.mu, idata.lp.colCost_,
-                              idata.xk.col_value);
       break;
     }
     default: {
       HighsPrintMessage(ML_ALWAYS, "ICrashError: Not implemented yet.\n");
       return false;
     }
-
   }
   return true;
 }
