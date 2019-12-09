@@ -80,6 +80,12 @@ bool checkOptions(const HighsLp& lp, const ICrashOptions options) {
                       "ICrashError: breakpoints not implemented yet.\n");
     return false;
   }
+
+  if (options.strategy == ICrashStrategy::kPenalty)
+    HighsPrintMessage(
+        ML_ALWAYS,
+        "ICrash Warning: Using solveSubproblemICA with lambda = 0.\n");
+
   return true;
 }
 
@@ -254,9 +260,6 @@ bool solveSubproblem(Quadratic& idata, const ICrashOptions& options) {
     case ICrashStrategy::kPenalty: {
       if (!options.exact) {
         solveSubproblemICA(idata, options);
-        HighsPrintMessage(
-            ML_ALWAYS,
-            "ICrash Warning: Using solveSubproblemICA with lambda = 0.\n");
       } else {
         minimizeSubproblemExact(idata.lp, idata.mu, idata.lp.colCost_,
                                 idata.xk.col_value);
