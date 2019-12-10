@@ -31,7 +31,7 @@ void muptiplyByTranspose(const HighsLp& lp, const std::vector<double>& v,
   for (int col = 0; col < lp.numCol_; col++) {
     for (int k = lp.Astart_[col]; k < lp.Astart_[col + 1]; k++) {
       const int row = lp.Aindex_[k];
-      result.at(col) += lp.Avalue_[k] * lp.rowUpper_[row];
+      result.at(col) += lp.Avalue_[k] * v[row];
     }
   }
 }
@@ -72,8 +72,9 @@ bool initialize(const HighsLp& lp, HighsSolution& solution,
     else if (lp.colUpper_[col] < 0)
       solution.col_value[col] = lp.colUpper_[col];
     else {
-      HighsPrintMessage(
-          ML_ALWAYS, "ICrash error: setting initial value for column %d\n", col);
+      HighsPrintMessage(ML_ALWAYS,
+                        "ICrash error: setting initial value for column %d\n",
+                        col);
       return false;
     }
   }
@@ -93,11 +94,11 @@ void minimizeSubproblemExact(const HighsLp& lp, const double mu,
   HighsOptions options;
   options.message_level = ML_NONE;
   HighsSetIO(options);
-  
+
   ProjectedGradient projected_gradient;
   HVector vector(col_value, col_value.size());
   projected_gradient.solveLpPenalty(lp, mu_projected_gradient, cost, vector);
-  
+
   options.message_level = ML_MINIMAL;
   HighsSetIO(options);
 
