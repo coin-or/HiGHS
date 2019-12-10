@@ -91,16 +91,9 @@ void minimizeSubproblemExact(const HighsLp& lp, const double mu,
   // solveLpPenalty(..) has mu/2 * rtr, rather than 1/(2*mu) rtr.
   const double mu_projected_gradient = 1.0 / mu;
 
-  HighsOptions options;
-  options.message_level = ML_NONE;
-  HighsSetIO(options);
-
   ProjectedGradient projected_gradient;
   HVector vector(col_value, col_value.size());
   projected_gradient.solveLpPenalty(lp, mu_projected_gradient, cost, vector);
-
-  options.message_level = ML_MINIMAL;
-  HighsSetIO(options);
 
   col_value = vector.array;
 }
