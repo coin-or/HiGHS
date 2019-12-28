@@ -139,8 +139,7 @@ void ProjectedGradient::computeProjectedGradient(HVector& gradient,
 // solves c'x + mu/2 (Ax-b)'(Ax-b) s.t. l <= x <= u
 void ProjectedGradient::solveLpPenalty(const HighsLp& lp, double mu,
                                        const std::vector<double>& cost, HVector& x) {
-  HighsPrintMessage(
-      ML_VERBOSE,
+  printf(
       "solving qp arrising from lp-penalty method. Cols: %d Rows: %d\n",
       lp.numCol_, lp.numRow_);
   // data
@@ -168,7 +167,7 @@ void ProjectedGradient::solveLpPenalty(const HighsLp& lp, double mu,
     this->projectGradient(1.0, gradient, x, l, u, lp.numCol_,
                           projectedGradient);
     double norm = projectedGradient.norm2();
-    HighsPrintMessage(ML_MINIMAL, "%d: gradient norm %lf\n",
+    printf( "%d: gradient norm %lf\n",
                       iteration, norm);
 
     // TODO: I feel like this should not be a fixed value for all problems if used in the context of idiot crash
@@ -236,7 +235,7 @@ void ProjectedGradient::solveLpPenalty(const HighsLp& lp, double mu,
       matlab_iterations++;
       double norm_sk = sk.norm2();
       if (norm_sk < HIGHS_CONST_TINY) {
-        HighsPrintMessage(ML_MINIMAL, "zero search direction in CG\n");
+        printf( "zero search direction in CG\n");
         break;
       }
 
@@ -252,7 +251,7 @@ void ProjectedGradient::solveLpPenalty(const HighsLp& lp, double mu,
       double alpha = -q2 / q1;
 
       if (alpha <= HIGHS_CONST_TINY) {
-        HighsPrintMessage(ML_MINIMAL, "alpha in CG too small %lf\n", alpha);
+        printf( "alpha in CG too small %lf\n", alpha);
         break;
       }
 
@@ -270,7 +269,7 @@ void ProjectedGradient::solveLpPenalty(const HighsLp& lp, double mu,
 
       double norm_gkp1 = gradient.norm2();
       if (norm_gkp1 < TOLERANCE_CG_GRADIENT_SMALL) {
-        HighsPrintMessage(ML_MINIMAL, "CG: norm of gradient too small: %lf\n", norm_gkp1);
+        printf( "CG: norm of gradient too small: %lf\n", norm_gkp1);
         break;
       }
 
@@ -278,7 +277,7 @@ void ProjectedGradient::solveLpPenalty(const HighsLp& lp, double mu,
       double newObjValue = this->computeObjectiveValue(c, A, mu, b, x);
       double objChange = fabs(prevObjValue - newObjValue);
       if (objChange < TOLERANCE_CG_OBJECTIVE_CHANGE) {
-        HighsPrintMessage(ML_MINIMAL, "CG iter %d: objective change too small: %lf\n", cgIteration, objChange);
+        printf( "CG iter %d: objective change too small: %lf\n", cgIteration, objChange);
         iteration += 10;
         break;
       }
@@ -302,5 +301,5 @@ void ProjectedGradient::solveLpPenalty(const HighsLp& lp, double mu,
     iteration++;
   }
   // x.peak();
-  HighsPrintMessage(ML_MINIMAL, "Matlab Iterations %d\n", matlab_iterations);
+  printf( "Matlab Iterations %d\n", matlab_iterations);
 }

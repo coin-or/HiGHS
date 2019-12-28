@@ -20,11 +20,11 @@ ConjugateGradient::ConjugateGradient(SparseMatrix& A, HVector& b, const HVector&
 }
 
 void printVector(HVector& vec, const char* name) {
-  HighsPrintMessage(ML_MINIMAL, "%s count: %d\n", name, vec.count);
+  printf("%s count: %d\n", name, vec.count);
   for(int i=0; i<vec.count; i++) {
-    HighsPrintMessage(ML_MINIMAL, "%d %lf \n", vec.index[i],vec.array[vec.index[i]]);
+   printf( "%d %lf \n", vec.index[i],vec.array[vec.index[i]]);
   }
-  HighsPrintMessage(ML_MINIMAL, "norm: %lf\n", sqrt(vec.norm2()));
+  printf( "norm: %lf\n", sqrt(vec.norm2()));
 }
 
 void ConjugateGradient::iterate() {
@@ -70,5 +70,5 @@ void ConjugateGradient::solve() {
     printVector(this->x, "x");
   }
 
-  HighsPrintMessage(7, "Solved using Conjugate Gradient Method in %d iterations. Final residual: %lf.\n", this->k, this->r.norm2());
+  printf( "Solved using Conjugate Gradient Method in %d iterations. Final residual: %lf.\n", this->k, this->r.norm2());
 }

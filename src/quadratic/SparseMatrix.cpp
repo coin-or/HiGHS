@@ -15,42 +15,41 @@ SparseMatrix::~SparseMatrix() {
 }
 
 void SparseMatrix::print(bool transpose) {
-  if (transpose) {
-    HighsPrintMessage(ML_VERBOSE, "Tstart: \n");
+  if (transpose) {    printf( "Tstart: \n");
     for (int i=0; i<numRow; i++) {
-      HighsPrintMessage(ML_VERBOSE, "%d ", this->Tstart[i]);
+      printf( "%d ", this->Tstart[i]);
     }
-    HighsPrintMessage(ML_VERBOSE, "\n");
+    printf( "\n");
 
-    HighsPrintMessage(ML_VERBOSE, "Tindex: \n");
+    printf( "Tindex: \n");
     for(size_t i=0; i<this->Tindex.size(); i++) {
-      HighsPrintMessage(ML_VERBOSE, "%d ", this->Tindex[i]);
+      printf( "%d ", this->Tindex[i]);
     }
-    HighsPrintMessage(ML_VERBOSE, "\n");
+    printf( "\n");
 
-    HighsPrintMessage(ML_VERBOSE, "Tvalue: \n");
+    printf( "Tvalue: \n");
     for(size_t i=0; i<this->Tvalue.size(); i++) {
-      HighsPrintMessage(ML_VERBOSE, "%lf ", this->Tvalue[i]);
+      printf( "%lf ", this->Tvalue[i]);
     }
-    HighsPrintMessage(ML_VERBOSE, "\n");
+    printf( "\n");
   } else {
-    HighsPrintMessage(ML_VERBOSE, "Astart: \n");
+    printf( "Astart: \n");
     for (int i=0; i<numCol; i++) {
-      HighsPrintMessage(ML_VERBOSE, "%d ", this->Astart[i]);
+      printf( "%d ", this->Astart[i]);
     }
-    HighsPrintMessage(ML_VERBOSE, "\n");
+    printf( "\n");
 
-    HighsPrintMessage(ML_VERBOSE, "Aindex: \n");
+    printf( "Aindex: \n");
     for(size_t i=0; i<this->Aindex.size(); i++) {
-      HighsPrintMessage(ML_VERBOSE, "%d ", this->Aindex[i]);
+      printf( "%d ", this->Aindex[i]);
     }
-    HighsPrintMessage(ML_VERBOSE, "\n");
+    printf( "\n");
 
-    HighsPrintMessage(ML_VERBOSE, "Avalue: \n");
+    printf( "Avalue: \n");
     for(size_t i=0; i<this->Avalue.size(); i++) {
-      HighsPrintMessage(ML_VERBOSE, "%lf ", this->Avalue[i]);
+      printf( "%lf ", this->Avalue[i]);
     }
-    HighsPrintMessage(ML_VERBOSE, "\n");
+    printf( "\n");
   }
 }
 
@@ -122,7 +121,7 @@ void SparseMatrix::compute_transpose() {
 void SparseMatrix::mat_vec_prod(HVector& vec, HVector* result) {
   if (!this->hasTranspose) {
     this->compute_transpose();
-    HighsPrintMessage(ML_VERBOSE, "Tranposing..\n");
+    printf( "Tranposing..\n");
   }
   
   int nz = 0;
