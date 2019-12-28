@@ -148,6 +148,7 @@ set(headers
     quadratic/projectedgradient.h
     quadratic/SparseMatrix.h
     simplex/HApp.h
+    simplex/FactorTimer.h
     simplex/HCrash.h
     simplex/HDual.h
     simplex/HDualRow.h
