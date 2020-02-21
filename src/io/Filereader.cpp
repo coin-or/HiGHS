@@ -8,7 +8,7 @@
 /*                                                                       */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#include <cstring> // For strrchr
+#include <cstring>  // For strrchr
 #include <stdexcept>
 
 #include "io/Filereader.h"
