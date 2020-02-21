@@ -11,6 +11,6 @@ jobs:
     - uses: DoozyX/clang-format-lint-action@v0.5
       with:
         source: './src'
-        exclude: './src/ipm/'
+        exclude: './src/ipm/*'
         extensions: 'h,cpp,c'
         clangFormatVersion: 9
