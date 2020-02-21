@@ -16,6 +16,7 @@
 
 #include <string>
 #include <vector>
+
 #include "HConfig.h"
 
 #ifdef HiGHSDEV

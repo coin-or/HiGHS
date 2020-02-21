@@ -12,10 +12,11 @@
  * @author Julian Hall, Ivet Galabova, Qi Huangfu and Michael Feldmeier
  */
 
+#include "io/FilereaderEms.h"
+
 #include <fstream>
 #include <iomanip>
 
-#include "io/FilereaderEms.h"
 #include "lp_data/HConst.h"
 #include "util/stringutil.h"
 
