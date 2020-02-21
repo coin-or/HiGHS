@@ -1,0 +1,17 @@
+name: test-clang-format
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - uses: DoozyX/clang-format-lint-action@v0.5
+      with:
+        source: './src'
+        exclude: './src/ipm/ipx'
+        exclude: './src/ipm/basiclu'
+        extensions: 'h,cpp,c'
+        clangFormatVersion: 9
