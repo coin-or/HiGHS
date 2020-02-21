@@ -10,7 +10,6 @@ jobs:
     - uses: actions/checkout@v1
     - uses: DoozyX/clang-format-lint-action@v0.5
       with:
-        source: './src'
-        exclude: './src/ipm/basiclu/include,./src/ipm/basiclu/src/,./src/ipm/ipx/src/,./src/ipm/ipx/include'
+        source: './src/lp_data,./src/presolve'
         extensions: 'h,cpp,c'
         clangFormatVersion: 9
