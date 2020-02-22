@@ -248,7 +248,7 @@ class Presolve : public HPreData {
 // Class for easy communication between Presolve and Highs. A single
 // instance of PresolveInfo handles a single presolve execution on one
 // LP.
-        class PresolveInfo {
+class PresolveInfo {
  public:
   PresolveInfo() {}
   // option_presolve : off_string means don't presolve.
