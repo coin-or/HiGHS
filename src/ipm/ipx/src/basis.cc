@@ -720,6 +720,7 @@ void Basis::PivotFreeVariablesIntoBasis(const double* colweights, Info* info) {
         for_each_nonzero(ftran, update_max);
 
         if (fmax > 4.0 && fmax_nonfree < 1.0) {
+            assert(pmax > -1);
             Int jb = basis_[pmax];
             assert(std::isinf(colweights[jb]));
             bool exchanged;
@@ -760,6 +761,7 @@ void Basis::PivotFreeVariablesIntoBasis(const double* colweights, Info* info) {
                 info->dependent_cols++;
                 remaining.pop_back();
             } else {
+                assert(pmax_nonfree > -1);
                 Int jb = basis_[pmax_nonfree];
                 bool exchanged;
                 info->errflag = ExchangeIfStable(jb, jn, ftran[pmax_nonfree],

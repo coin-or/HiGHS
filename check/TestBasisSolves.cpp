@@ -6,7 +6,8 @@
 #include <algorithm>
 
 bool GetBasisSolvesSolutionNzOk(int numRow, double* pass_solution_vector, int* solution_num_nz, int* solution_indices) {
-  double* solution_vector = (double*)malloc(sizeof(double) * numRow);
+  std::vector<double> sol_std_vec(numRow);
+  double* solution_vector = &sol_std_vec[0];
   if (solution_num_nz == NULL) return true;
   bool solution_nz_ok = true;
   for (int row=0; row<numRow; row++) solution_vector[row] = pass_solution_vector[row];
@@ -27,7 +28,6 @@ bool GetBasisSolvesSolutionNzOk(int numRow, double* pass_solution_vector, int* s
       solution_nz_ok = false;
     }
   }
-  delete solution_vector;
   return solution_nz_ok;
   
   
@@ -134,7 +134,6 @@ TEST_CASE("Basis-solves", "[highs_basis_solves]") {
   double* known_solution;
   double* solution_vector = nullptr;
   int solution_num_nz;
-  int* solution_indices = (int*)malloc(sizeof(int) * 1);
 
   HighsStatus highs_status;
 
@@ -176,7 +175,8 @@ TEST_CASE("Basis-solves", "[highs_basis_solves]") {
   basic_variables = (int*)malloc(sizeof(int) * numRow);
   known_solution = (double*)malloc(sizeof(double) * numRow);
   solution_vector = (double*)malloc(sizeof(double) * numRow);
-  solution_indices = (int*)malloc(sizeof(int) * numRow);
+
+  int* solution_indices = (int*)malloc(sizeof(int) * numRow);
   rhs = (double*)malloc(sizeof(double) * numRow);
 
   highs_status = highs.getBasicVariables(basic_variables);
