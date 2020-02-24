@@ -39,7 +39,7 @@ FilereaderRetcode FilereaderEms::readModelFromFile(const HighsOptions& options,
     }
     if (!f) {
       HighsLogMessage(options.logfile, HighsMessageType::ERROR,
-		      "n_rows not found in EMS file");
+                      "n_rows not found in EMS file");
       return FilereaderRetcode::PARSERERROR;
     }
     f >> numRow;
@@ -71,7 +71,7 @@ FilereaderRetcode FilereaderEms::readModelFromFile(const HighsOptions& options,
     while (trim(line) == "") std::getline(f, line);
     if (trim(line) != "matrix") {
       HighsLogMessage(options.logfile, HighsMessageType::ERROR,
-		      "matrix not found in EMS file");
+                      "matrix not found in EMS file");
       return FilereaderRetcode::PARSERERROR;
     }
     model.Astart_.resize(numCol + 1);
@@ -200,21 +200,21 @@ FilereaderRetcode FilereaderEms::readModelFromFile(const HighsOptions& options,
       // end_linear
       if (!f) return FilereaderRetcode::OK;
       HighsLogMessage(options.logfile, HighsMessageType::ERROR,
-		      "names not found in EMS file");
+                      "names not found in EMS file");
       return FilereaderRetcode::PARSERERROR;
     }
     f.close();
   } else {
     HighsLogMessage(options.logfile, HighsMessageType::ERROR,
-		    "EMS file not found");
+                    "EMS file not found");
     return FilereaderRetcode::FILENOTFOUND;
   }
   return FilereaderRetcode::OK;
 }
 
 HighsStatus FilereaderEms::writeModelToFile(const HighsOptions& options,
-					    const char* filename,
-					    HighsLp& model) {
+                                            const char* filename,
+                                            HighsLp& model) {
   std::ofstream f;
   f.open(filename, std::ios::out);
 
