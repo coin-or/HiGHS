@@ -9,4 +9,3 @@ jobs:
     steps:
     - name: action-cpp-lint
       uses: CyberZHG/github-action-cpp-lint@0.0.2"
-      args: "--linelength=120 --filter=-build/include_subdir include/*.h src/*.cpp tests/*.cpp"
