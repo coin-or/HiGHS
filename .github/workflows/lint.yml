@@ -8,4 +8,11 @@ jobs:
 
     steps:
     - name: action-cpp-lint
-      uses: CyberZHG/github-action-cpp-lint@master"
+      uses: CyberZHG/github-action-cpp-lint@0.0.2
+    # - uses: actions/checkout@v1
+    # - uses: DoozyX/clang-format-lint-action@v0.5
+    #   with:
+    #     source: './src'
+    #     exclude: '/src/ipm/basiclu/[^/]/'
+    #     extensions: 'h,cpp,c'
+    #     clangFormatVersion: 9
