@@ -13,14 +13,14 @@
  */
 #include "io/HMPSIO.h"
 
+#include <algorithm>
+
 #include "lp_data/HConst.h"
 #include "lp_data/HighsLp.h"
 #include "lp_data/HighsModelUtils.h"
 #include "lp_data/HighsOptions.h"
 #include "util/HighsUtils.h"
 #include "util/stringutil.h"
-
-#include <algorithm>
 
 using std::map;
 

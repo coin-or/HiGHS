@@ -13,7 +13,9 @@
  */
 
 #include "io/FilereaderLp.h"
+
 #include <cstdarg>
+
 #include "lp_data/HConst.h"
 #include "util/stringutil.h"
 
