@@ -22,7 +22,7 @@
 
 FILE* logfile = stdout;
 FILE* output = stdout;
-unsigned int messageLevel = ML_MINIMAL;
+unsigned int messageLevel = ML_ALWAYS;//ML_MINIMAL;
 void (*printmsgcb)(unsigned int, const char*, void*) = NULL;
 void (*logmsgcb)(HighsMessageType, const char*, void*) = NULL;
 void* msgcb_data = NULL;

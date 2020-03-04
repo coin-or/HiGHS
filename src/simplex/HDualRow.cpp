@@ -242,6 +242,7 @@ bool HDualRow::choose_final() {
              selectTheta, remainTheta);
       printf("workDataNorm = %g; dualNorm = %g\n", workDataNorm, dualNorm);
 #endif
+      timer.stop(simplex_info.clock_[Chuzc3Clock]);
       return true;
     }
     // Record the initial values of workCount, remainTheta and selectTheta for
