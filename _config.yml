@@ -29,7 +29,7 @@ baseurl: "/HiGHS" # the subpath of your site, e.g. /blog
 url: "https://ERGO-Code.github.io" # the base hostname & protocol for your site
 
 # Social (First three Required)
-repo: "https://github.com/vsoch/docsy-jekyll"
+repo: "https://github.com/ERGO-Code/HiGHS"
 github_user: "ERGO-Code"
 github_repo: "HiGHS"
 
