@@ -67,7 +67,7 @@
                                 if (item.title) {
 					contentPreview = getPreview(query, item.content, 170),
 					titlePreview = getPreview(query, item.title);
-					resultsHTML += "<li><h4><a href='/docsy-jekyll" + item.url.trim() + "'>" + titlePreview + "</a></h4><p><small>" + contentPreview + "</small></p></li>";
+					resultsHTML += "<li><h4><a href='/HiGHS" + item.url.trim() + "'>" + titlePreview + "</a></h4><p><small>" + contentPreview + "</small></p></li>";
 				}
 			});
 
