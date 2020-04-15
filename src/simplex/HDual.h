@@ -540,6 +540,8 @@ class HDual {
 
   double build_syntheticTick;
   double total_syntheticTick;
+
+  const bool check_ok_to_solve = true;
 };
 
 #endif /* SIMPLEX_HDUAL_H_ */

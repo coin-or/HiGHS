@@ -305,7 +305,7 @@ bool HDualRow::chooseFinal() {
 
 void HDualRow::updateFlip(HVector* bfrtColumn) {
   //  checkDualObjectiveValue("Before update_flip");
-  double* workDual = &workHMO.simplex_info_.workDual_[0];  //
+  //  double* workDual = &workHMO.simplex_info_.workDual_[0];  //
   //  double *workLower = &workHMO.simplex_info_.workLower_[0];
   //  double *workUpper = &workHMO.simplex_info_.workUpper_[0];
   //  double *workValue = &workHMO.simplex_info_.workValue_[0];
@@ -348,12 +348,16 @@ void HDualRow::updateDual(double theta) {
 }
 
 void HDualRow::createFreelist() {
+  double* workLower = &workHMO.simplex_info_.workLower_[0];
+  double* workUpper = &workHMO.simplex_info_.workUpper_[0];
   freeList.clear();
   const int* nonbasicFlag = &workHMO.simplex_basis_.nonbasicFlag_[0];
   int ckFreeListSize = 0;
   const int numTot = workHMO.simplex_lp_.numCol_ + workHMO.simplex_lp_.numRow_;
   for (int i = 0; i < numTot; i++) {
-    if (nonbasicFlag[i] && workRange[i] > 1.5 * HIGHS_CONST_INF) {
+    //    if (nonbasicFlag[i] && workRange[i] > 1.5 * HIGHS_CONST_INF) {
+    if (nonbasicFlag[i] && workLower[i] <= -HIGHS_CONST_INF &&
+        workUpper[i] >= HIGHS_CONST_INF) {
       freeList.insert(i);
       ckFreeListSize++;
     }

@@ -32,6 +32,7 @@ class FilereaderLp : public Filereader {
                                       HighsLp& model);
   HighsStatus writeModelToFile(const HighsOptions& options,
                                const char* filename, HighsLp& model);
+
  private:
   // functions to write files
   int linelength;

@@ -391,6 +391,12 @@ HighsStatus assessBounds(const HighsOptions& options, const char* type,
                       upper_bounds[data_ix], -infinite_bound);
       error_found = true;
     }
+    if (normalise) {
+      if (upper_bounds[data_ix] >= HIGHS_CONST_INF)
+        upper_bounds[data_ix] = NEW_HIGHS_CONST_INF;
+      if (lower_bounds[data_ix] <= -HIGHS_CONST_INF)
+        lower_bounds[data_ix] = -NEW_HIGHS_CONST_INF;
+    }
   }
   if (normalise) {
     if (num_infinite_lower_bound) {

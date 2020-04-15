@@ -797,7 +797,7 @@ bool basisOk(FILE* logfile, const HighsLp& lp, const HighsBasis& basis) {
 
 bool basisOk(FILE* logfile, const HighsLp& lp, SimplexBasis& simplex_basis) {
 #ifdef HiGHSDEV
-  printf("!! Don't check if basis is invalid! !!\n");
+  //  printf("!! Don't check if basis is invalid! !!\n");
 #endif
   if (!nonbasicFlagOk(logfile, lp, simplex_basis)) return false;
   int nonbasicFlag_size = simplex_basis.nonbasicFlag_.size();
@@ -1278,16 +1278,16 @@ void scaleSimplexLp(HighsModelObject& highs_model_object) {
       // Matrix is scaled, so scale the bounds and costs
       for (int iCol = 0; iCol < numCol; iCol++) {
         colLower[iCol] /=
-            colLower[iCol] == -HIGHS_CONST_INF ? 1 : colScale[iCol];
+            colLower[iCol] <= -HIGHS_CONST_INF ? 1 : colScale[iCol];
         colUpper[iCol] /=
-            colUpper[iCol] == +HIGHS_CONST_INF ? 1 : colScale[iCol];
+            colUpper[iCol] >= +HIGHS_CONST_INF ? 1 : colScale[iCol];
         colCost[iCol] *= colScale[iCol];
       }
       for (int iRow = 0; iRow < numRow; iRow++) {
         rowLower[iRow] *=
-            rowLower[iRow] == -HIGHS_CONST_INF ? 1 : rowScale[iRow];
+            rowLower[iRow] <= -HIGHS_CONST_INF ? 1 : rowScale[iRow];
         rowUpper[iRow] *=
-            rowUpper[iRow] == +HIGHS_CONST_INF ? 1 : rowScale[iRow];
+            rowUpper[iRow] >= +HIGHS_CONST_INF ? 1 : rowScale[iRow];
       }
     }
   }
@@ -2124,11 +2124,11 @@ void initialise_cost(HighsModelObject& highs_model_object, int perturb) {
 #ifdef HiGHSDEV
     const double previous_cost = simplex_info.workCost_[i];
 #endif
-    if (lower == -HIGHS_CONST_INF && upper == HIGHS_CONST_INF) {
+    if (lower <= -HIGHS_CONST_INF && upper >= HIGHS_CONST_INF) {
       // Free - no perturb
-    } else if (upper == HIGHS_CONST_INF) {  // Lower
+    } else if (upper >= HIGHS_CONST_INF) {  // Lower
       simplex_info.workCost_[i] += xpert;
-    } else if (lower == -HIGHS_CONST_INF) {  // Upper
+    } else if (lower <= -HIGHS_CONST_INF) {  // Upper
       simplex_info.workCost_[i] += -xpert;
     } else if (lower != upper) {  // Boxed
       simplex_info.workCost_[i] +=

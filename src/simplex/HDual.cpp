@@ -44,6 +44,9 @@ using std::flush;
 using std::runtime_error;
 
 HighsStatus HDual::solve() {
+  if (check_ok_to_solve)
+    HighsLogMessage(workHMO.options_.logfile, HighsMessageType::WARNING,
+                    "HDual::solve running with check_ok_to_solve = TRUE");
   HighsOptions& options = workHMO.options_;
   HighsSolutionParams& scaled_solution_params = workHMO.scaled_solution_params_;
   HighsSimplexInfo& simplex_info = workHMO.simplex_info_;
@@ -62,7 +65,7 @@ HighsStatus HDual::solve() {
   assert(positive_num_row);
   if (!positive_num_row) {
     HighsLogMessage(workHMO.options_.logfile, HighsMessageType::ERROR,
-                    "HPrimal::solve called for LP with non-positive (%d) "
+                    "HDual::solve called for LP with non-positive (%d) "
                     "number of constraints",
                     workHMO.simplex_lp_.numRow_);
     return HighsStatus::Error;
@@ -527,6 +530,7 @@ void HDual::solvePhase1() {
     rebuild();
     analysis->simplexTimerStop(IterateDualRebuildClock);
     for (;;) {
+      if (check_ok_to_solve) assert(ok_to_solve(workHMO, 1, solvePhase));
       switch (simplex_info.simplex_strategy) {
         default:
         case SIMPLEX_STRATEGY_DUAL_PLAIN:
@@ -637,6 +641,7 @@ void HDual::solvePhase2() {
     for (;;) {
       // Inner loop of solvePhase2()
       // Performs one iteration in case SIMPLEX_STRATEGY_DUAL_PLAIN:
+      if (check_ok_to_solve) assert(ok_to_solve(workHMO, 1, solvePhase));
       switch (simplex_info.simplex_strategy) {
         default:
         case SIMPLEX_STRATEGY_DUAL_PLAIN:
