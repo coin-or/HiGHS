@@ -18,7 +18,8 @@
 #include <string>
 
 const int HIGHS_CONST_I_INF = 2147483647;  // 32767;
-const double HIGHS_CONST_INF = std::numeric_limits<double>::infinity();//1e200;// 
+const double HIGHS_CONST_INF =
+    std::numeric_limits<double>::infinity();  // 1e200;//
 const double NEW_HIGHS_CONST_INF =
     HIGHS_CONST_INF;  // std::numeric_limits<double>::infinity();//
 const double HIGHS_CONST_TINY = 1e-14;

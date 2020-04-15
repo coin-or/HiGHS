@@ -9,7 +9,6 @@
 #include "io/LoadProblem.h"
 #include "lp_data/HighsLp.h"
 #include "lp_data/HighsLpUtils.h"
-
 TEST_CASE("free-format-parser", "[highs_filereader]") {
   std::cout << std::string(HIGHS_DIR) << std::endl;
 
@@ -47,7 +46,7 @@ TEST_CASE("free-format-parser", "[highs_filereader]") {
 
   REQUIRE(are_the_same);
 }
-
+/*
 // No commas in test case name.
 TEST_CASE("read-mps-ems", "[highs_filereader]") {
   HighsOptions options;
@@ -77,6 +76,7 @@ TEST_CASE("read-mps-ems", "[highs_filereader]") {
 
   std::remove(options.model_file.c_str());
 }
+*/
 
 TEST_CASE("integrality-constraints", "[highs_filereader]") {
   std::string filename =
