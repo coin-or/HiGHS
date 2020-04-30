@@ -309,9 +309,9 @@ pair<int, int> Presolve::getXYDoubletonEquations(const int row) {
 void Presolve::processRowDoubletonEquation(const int row, const int x,
                                            const int y, const double akx,
                                            const double aky, const double b) {
-  assert(row < numRow && row >=0);
-  assert(x < numCol && x >=0);
-  assert(y < numCol && y >=0);
+  assert(row < numRow && row >= 0);
+  assert(x < numCol && x >= 0);
+  assert(y < numCol && y >= 0);
 
   postValue.push(akx);
   postValue.push(aky);
@@ -412,10 +412,8 @@ void Presolve::removeDoubletonEquations() {
               addChange(DOUBLETON_EQUATION_ROW_BOUNDS_UPDATE, i, y);
             }
 
-            if (rowLower[i] > -HIGHS_CONST_INF)
-              rowLower[i] -= b * aiy / aky;
-            if (rowUpper[i] < HIGHS_CONST_INF)
-              rowUpper[i] -= b * aiy / aky;
+            if (rowLower[i] > -HIGHS_CONST_INF) rowLower[i] -= b * aiy / aky;
+            if (rowUpper[i] < HIGHS_CONST_INF) rowUpper[i] -= b * aiy / aky;
 
             if (implRowValueLower[i] > -HIGHS_CONST_INF)
               implRowValueLower[i] -= b * aiy / aky;
@@ -449,7 +447,7 @@ void Presolve::UpdateMatrixCoeffDoubletonEquationXzero(const int i, const int x,
 
   // update AR
   int ind;
-  for (ind = ARstart[i]; ind < ARstart[i+1]; ++ind)
+  for (ind = ARstart[i]; ind < ARstart[i + 1]; ++ind)
     if (ARindex[ind] == y) {
       break;
     }
@@ -499,7 +497,7 @@ void Presolve::UpdateMatrixCoeffDoubletonEquationXnonZero(
   }
 
   double xNew;
-  for (ind = ARstart[i]; ind < ARstart[i+1]; ++ind)
+  for (ind = ARstart[i]; ind < ARstart[i + 1]; ++ind)
     if (ARindex[ind] == x) break;
 
   xNew = ARvalue[ind] - (aiy * akx) / aky;
@@ -674,17 +672,16 @@ void Presolve::resizeProblem() {
 
   for (i = 0; i < numRowOriginal; ++i)
     if (flagRow[i])
-      for (int k = ARstart[i]; k < ARstart[i+1]; ++k) {
+      for (int k = ARstart[i]; k < ARstart[i + 1]; ++k) {
         j = ARindex[k];
         if (flagCol[j]) iwork[cIndex[j]]++;
       }
-  for (i = 1; i <= numCol; ++i)
-    Astart[i] = Astart[i - 1] + iwork[i - 1];
+  for (i = 1; i <= numCol; ++i) Astart[i] = Astart[i - 1] + iwork[i - 1];
   for (i = 0; i < numCol; ++i) iwork[i] = Aend[i] = Astart[i];
   for (i = 0; i < numRowOriginal; ++i) {
     if (flagRow[i]) {
       int iRow = rIndex[i];
-      for (k = ARstart[i]; k < ARstart[i+1]; ++k) {
+      for (k = ARstart[i]; k < ARstart[i + 1]; ++k) {
         j = ARindex[k];
         if (flagCol[j]) {
           int iCol = cIndex[j];
@@ -784,7 +781,7 @@ void Presolve::initializeVectors() {
   nzRow.assign(numRow, 0);
 
   for (int i = 0; i < numRow; ++i) {
-    nzRow[i] = ARstart[i+1] - ARstart[i];
+    nzRow[i] = ARstart[i + 1] - ARstart[i];
     if (nzRow[i] == 1) singRow.push_back(i);
     if (nzRow[i] == 0) {
       timer.recordStart(EMPTY_ROW);
@@ -796,7 +793,7 @@ void Presolve::initializeVectors() {
 
   Aend.resize(numCol + 1);
   for (int i = 0; i < numCol; ++i) {
-    Aend[i] = Astart[i+1];
+    Aend[i] = Astart[i + 1];
     nzCol[i] = Aend[i] - Astart[i];
     if (nzCol[i] == 1) singCol.push_back(i);
   }
@@ -1058,8 +1055,7 @@ void Presolve::removeDominatedColumns() {
           implColDualLower[j] = colCost[j] - d;
         if (implColDualUpper[j] > (colCost[j] - e))
           implColDualUpper[j] = colCost[j] - e;
-        if (implColDualLower[j] > implColDualUpper[j])
-          cout << "INCONSISTENT\n";
+        if (implColDualLower[j] > implColDualUpper[j]) cout << "INCONSISTENT\n";
 
         timer.recordFinish(DOMINATED_COLS);
 
@@ -1099,45 +1095,34 @@ void Presolve::removeIfWeaklyDominated(const int j, const double d,
       double bnd;
 
       // calculate new bounds
-      if (colLower[j] > -HIGHS_CONST_INF ||
-          colUpper[j] >= HIGHS_CONST_INF)
+      if (colLower[j] > -HIGHS_CONST_INF || colUpper[j] >= HIGHS_CONST_INF)
         for (int kk = Astart[j]; kk < Aend[j]; ++kk)
           if (flagRow[Aindex[kk]] && d < HIGHS_CONST_INF) {
             i = Aindex[kk];
-            if (Avalue[kk] > 0 &&
-                implRowDualLower[i] > -HIGHS_CONST_INF) {
-              bnd =
-                  -(colCost[j] + d) / Avalue[kk] + implRowDualLower[i];
-              if (bnd < implRowDualUpper[i] &&
-                  !(bnd < implRowDualLower[i]))
+            if (Avalue[kk] > 0 && implRowDualLower[i] > -HIGHS_CONST_INF) {
+              bnd = -(colCost[j] + d) / Avalue[kk] + implRowDualLower[i];
+              if (bnd < implRowDualUpper[i] && !(bnd < implRowDualLower[i]))
                 implRowDualUpper[i] = bnd;
             } else if (Avalue[kk] < 0 &&
                        implRowDualUpper[i] < HIGHS_CONST_INF) {
-              bnd =
-                  -(colCost[j] + d) / Avalue[kk] + implRowDualUpper[i];
-              if (bnd > implRowDualLower[i] &&
-                  !(bnd > implRowDualUpper[i]))
+              bnd = -(colCost[j] + d) / Avalue[kk] + implRowDualUpper[i];
+              if (bnd > implRowDualLower[i] && !(bnd > implRowDualUpper[i]))
                 implRowDualLower[i] = bnd;
             }
           }
 
-      if (colLower[j] <= -HIGHS_CONST_INF ||
-          colUpper[j] < HIGHS_CONST_INF)
+      if (colLower[j] <= -HIGHS_CONST_INF || colUpper[j] < HIGHS_CONST_INF)
         for (int kk = Astart[j]; kk < Aend[j]; ++kk)
           if (flagRow[Aindex[kk]] && e > -HIGHS_CONST_INF) {
             i = Aindex[kk];
             if (Avalue[kk] > 0 && implRowDualUpper[i] < HIGHS_CONST_INF) {
-              bnd =
-                  -(colCost[j] + e) / Avalue[kk] + implRowDualUpper[i];
-              if (bnd > implRowDualLower[i] &&
-                  !(bnd > implRowDualUpper[i]))
+              bnd = -(colCost[j] + e) / Avalue[kk] + implRowDualUpper[i];
+              if (bnd > implRowDualLower[i] && !(bnd > implRowDualUpper[i]))
                 implRowDualLower[i] = bnd;
             } else if (Avalue[kk] < 0 &&
                        implRowDualLower[i] > -HIGHS_CONST_INF) {
-              bnd =
-                  -(colCost[j] + e) / Avalue[kk] + implRowDualLower[i];
-              if (bnd < implRowDualUpper[i] &&
-                  !(bnd < implRowDualLower[i]))
+              bnd = -(colCost[j] + e) / Avalue[kk] + implRowDualLower[i];
+              if (bnd < implRowDualUpper[i] && !(bnd < implRowDualLower[i]))
                 implRowDualUpper[i] = bnd;
             }
           }
@@ -1219,8 +1204,7 @@ void Presolve::removeFreeColumnSingleton(const int col, const int row,
     j = ARindex[kk];
     if (flagCol[j] && j != col) {
       newCosts.push_back(make_pair(j, colCost[j]));
-      colCost[j] =
-          colCost[j] - colCost[col] * ARvalue[kk] / Avalue[k];
+      colCost[j] = colCost[j] - colCost[col] * ARvalue[kk] / Avalue[k];
     }
   }
   if (iKKTcheck == 1) chk.costs.push(newCosts);
@@ -1248,20 +1232,19 @@ bool Presolve::removeColumnSingletonInDoubletonInequality(const int col,
 
   // count
   int kk = ARstart[i];
-  while (kk < ARstart[i+1]) {
+  while (kk < ARstart[i + 1]) {
     j = ARindex[kk];
     if (flagCol[j] && j != col)
       break;
     else
       ++kk;
   }
-  if (kk == ARstart[i+1])
+  if (kk == ARstart[i + 1])
     cout << "ERROR: nzRow[" << i << "]=2, but no second variable in row. \n";
 
   // only inequality case and case two singletons here,
   // others handled in doubleton equation
-  if ((fabs(rowLower[i] - rowUpper[i]) < tol) && (nzCol[j] > 1))
-    return false;
+  if ((fabs(rowLower[i] - rowUpper[i]) < tol) && (nzCol[j] > 1)) return false;
 
   // additional check if it is indeed implied free
   // needed since we handle inequalities and it may not be true
@@ -1304,8 +1287,7 @@ bool Presolve::removeColumnSingletonInDoubletonInequality(const int col,
   if (upp < colUpper[j]) colUpper[j] = upp;
 
   // modify cost of xj
-  colCost[j] =
-      colCost[j] - colCost[col] * ARvalue[kk] / Avalue[k];
+  colCost[j] = colCost[j] - colCost[col] * ARvalue[kk] / Avalue[k];
 
   // for postsolve: need the new bounds too
   // oldBounds.push_back(colLower[j]); oldBounds.push_back(colUpper[j]);
@@ -1327,8 +1309,7 @@ bool Presolve::removeColumnSingletonInDoubletonInequality(const int col,
 
   valueColDual[col] = 0;
   valueRowDual[i] =
-      -colCost[col] /
-      Avalue[k];  // may be changed later, depending on bounds.
+      -colCost[col] / Avalue[k];  // may be changed later, depending on bounds.
   addChange(SING_COL_DOUBLETON_INEQ, i, col);
 
   // if not special case two column singletons
@@ -1437,7 +1418,7 @@ pair<double, double> Presolve::getBoundsImpliedFree(double lowInit,
   // if at any stage low becomes  or upp becomes inf break loop
   // can't use bounds for variables generated by the same row.
   // low
-  for (int kk = ARstart[i]; kk < ARstart[i+1]; ++kk) {
+  for (int kk = ARstart[i]; kk < ARstart[i + 1]; ++kk) {
     j = ARindex[kk];
     if (flagCol[j] && j != col) {
       // check if new bounds are precisely implied bounds from same row
@@ -1465,7 +1446,7 @@ pair<double, double> Presolve::getBoundsImpliedFree(double lowInit,
     }
   }
   // upp
-  for (int kk = ARstart[i]; kk < ARstart[i+1]; ++kk) {
+  for (int kk = ARstart[i]; kk < ARstart[i + 1]; ++kk) {
     j = ARindex[kk];
     if (flagCol[j] && j != col) {
       // check if new bounds are precisely implied bounds from same row
@@ -1508,12 +1489,11 @@ void Presolve::removeImpliedFreeColumn(const int col, const int i,
   // modify costs
   int j;
   vector<pair<int, double>> newCosts;
-  for (int kk = ARstart[i]; kk < ARstart[i+1]; ++kk) {
+  for (int kk = ARstart[i]; kk < ARstart[i + 1]; ++kk) {
     j = ARindex[kk];
     if (flagCol[j] && j != col) {
       newCosts.push_back(make_pair(j, colCost[j]));
-      colCost[j] =
-          colCost[j] - colCost[col] * ARvalue[kk] / Avalue[k];
+      colCost[j] = colCost[j] - colCost[col] * ARvalue[kk] / Avalue[k];
     }
   }
   if (iKKTcheck == 1) chk.costs.push(newCosts);
@@ -1587,7 +1567,7 @@ bool Presolve::removeIfImpliedFree(int col, int i, int k) {
 void Presolve::removeRow(int i) {
   hasChange = true;
   flagRow[i] = 0;
-  for (int k = ARstart[i]; k < ARstart[i+1]; ++k) {
+  for (int k = ARstart[i]; k < ARstart[i + 1]; ++k) {
     int j = ARindex[k];
     if (flagCol[j]) {
       nzCol[j]--;
@@ -1666,8 +1646,7 @@ void Presolve::setVariablesToBoundForForcingRow(const int row,
   int k, col;
   if (iPrint > 0)
     cout << "PR: Forcing row " << row
-         << " removed. Following variables too:   nzRow=" << nzRow[row]
-         << endl;
+         << " removed. Following variables too:   nzRow=" << nzRow[row] << endl;
 
   flagRow[row] = 0;
   addChange(FORCING_ROW, row, 0);
@@ -1711,7 +1690,7 @@ void Presolve::dominatedConstraintProcedure(const int i, const double g,
     if (h <= rowUpper[i]) implRowDualLower[i] = 0;
 
     // calculate implied bounds for discovering free column singletons
-    for (int k = ARstart[i]; k < ARstart[i+1]; ++k) {
+    for (int k = ARstart[i]; k < ARstart[i + 1]; ++k) {
       j = ARindex[k];
       if (flagCol[j]) {
         if (ARvalue[k] < 0 && colLower[j] > -HIGHS_CONST_INF) {
@@ -1738,7 +1717,7 @@ void Presolve::dominatedConstraintProcedure(const int i, const double g,
     if (g >= rowLower[i]) implRowDualUpper[i] = 0;
 
     // calculate implied bounds for discovering free column singletons
-    for (int k = ARstart[i]; k < ARstart[i+1]; ++k) {
+    for (int k = ARstart[i]; k < ARstart[i + 1]; ++k) {
       int j = ARindex[k];
       if (flagCol[j]) {
         if (ARvalue[k] < 0 && colUpper[j] < HIGHS_CONST_INF) {
@@ -1849,8 +1828,7 @@ void Presolve::removeRowSingletons() {
       chk.cUppers.push(bndsU);
     }
 
-    vector<double> bnds(
-        {colLower[j], colUpper[j], rowLower[i], rowUpper[i]});
+    vector<double> bnds({colLower[j], colUpper[j], rowLower[i], rowUpper[i]});
     oldBounds.push(make_pair(j, bnds));
 
     double aij = ARvalue[k];
@@ -1876,12 +1854,10 @@ void Presolve::removeRowSingletons() {
         colLower[j] =
             max(max(rowLower[i] / aij, -HIGHS_CONST_INF), colLower[j]);
       if (rowUpper[i] != HIGHS_CONST_INF)
-        colUpper[j] =
-            min(min(rowUpper[i] / aij, HIGHS_CONST_INF), colUpper[j]);
+        colUpper[j] = min(min(rowUpper[i] / aij, HIGHS_CONST_INF), colUpper[j]);
     } else if (aij < 0) {
       if (rowLower[i] != -HIGHS_CONST_INF)
-        colUpper[j] =
-            min(min(rowLower[i] / aij, HIGHS_CONST_INF), colUpper[j]);
+        colUpper[j] = min(min(rowLower[i] / aij, HIGHS_CONST_INF), colUpper[j]);
       if (rowUpper[i] != HIGHS_CONST_INF)
         colLower[j] =
             max(max(rowUpper[i] / aij, -HIGHS_CONST_INF), colLower[j]);
@@ -2160,14 +2136,14 @@ void Presolve::resizeImpliedBounds() {
 int Presolve::getSingRowElementIndexInAR(int i) {
   int k = ARstart[i];
   while (!flagCol[ARindex[k]]) ++k;
-  if (k >= ARstart[i+1]) {
+  if (k >= ARstart[i + 1]) {
     cout << "Error during presolve: no variable found in singleton row " << i
          << endl;
     return -1;
   }
   int rest = k + 1;
-  while (rest < ARstart[i+1] && !flagCol[ARindex[rest]]) ++rest;
-  if (rest < ARstart[i+1]) {
+  while (rest < ARstart[i + 1] && !flagCol[ARindex[rest]]) ++rest;
+  if (rest < ARstart[i + 1]) {
     cout << "Error during presolve: more variables found in singleton row " << i
          << endl;
     return -1;
@@ -2220,7 +2196,7 @@ void Presolve::testAnAR(int post) {
         }
 
       hasValueAR = false;
-      for (k = ARstart[i]; k < ARstart[i+1]; ++k)
+      for (k = ARstart[i]; k < ARstart[i + 1]; ++k)
         if (ARindex[k] == j) {
           hasValueAR = true;
           valueAR = ARvalue[k];
@@ -2243,7 +2219,7 @@ void Presolve::testAnAR(int post) {
     for (i = 0; i < rows; ++i) {
       if (!flagRow[i]) continue;
       nz = 0;
-      for (k = ARstart[i]; k < ARstart[i+1]; ++k)
+      for (k = ARstart[i]; k < ARstart[i + 1]; ++k)
         if (flagCol[ARindex[k]]) nz++;
       if (nz != nzRow[i])
         cout << "    NZ ROW      DIFF row=" << i << " nzRow=" << nzRow[i]
@@ -2330,8 +2306,8 @@ HighsPostsolveStatus Presolve::postsolve(const HighsSolution& reduced_solution,
 
   for (int i = 0; i < numCol; ++i) {
     int iCol = eqIndexOfReduced[i];
-    assert(iCol < (int)valuePrimal.size()); 
-    assert(iCol < (int)valueColDual.size()); 
+    assert(iCol < (int)valuePrimal.size());
+    assert(iCol < (int)valueColDual.size());
     assert(iCol >= 0);
     valuePrimal[iCol] = colValue[i];
     valueColDual[iCol] = colDual[i];
@@ -2557,8 +2533,7 @@ HighsPostsolveStatus Presolve::postsolve(const HighsSolution& reduced_solution,
         double aij = getaij(c.row, c.col);
         double sum = 0;
         for (int k = ARstart[c.row]; k < ARstart[c.row + 1]; ++k)
-          if (flagCol[ARindex[k]])
-            sum += valuePrimal[ARindex[k]] * ARvalue[k];
+          if (flagCol[ARindex[k]]) sum += valuePrimal[ARindex[k]] * ARvalue[k];
 
         double rowlb = postValue.top();
         postValue.pop();
@@ -2798,8 +2773,7 @@ HighsPostsolveStatus Presolve::postsolve(const HighsSolution& reduced_solution,
         if (c.type != EMPTY_COL) {
           z = colCostAtEl[c.col];
           for (int k = Astart[c.col]; k < Astart[c.col + 1]; ++k)
-            if (flagRow[Aindex[k]])
-              z = z + valueRowDual[Aindex[k]] * Avalue[k];
+            if (flagRow[Aindex[k]]) z = z + valueRowDual[Aindex[k]] * Avalue[k];
           valueColDual[c.col] = z;
         }
 
@@ -2920,7 +2894,7 @@ HighsPostsolveStatus Presolve::postsolve(const HighsSolution& reduced_solution,
   rowDual = valueRowDual;
   rowValue.assign(numRow, 0);
   for (int i = 0; i < numRowOriginal; ++i) {
-    for (int k = ARstart[i]; k < ARstart[i+1]; ++k)
+    for (int k = ARstart[i]; k < ARstart[i + 1]; ++k)
       rowValue[i] += valuePrimal[ARindex[k]] * ARvalue[k];
   }
   // JAJH(120519) Added following four lines so that recovered solution is
@@ -3150,8 +3124,7 @@ void Presolve::getBoundOnLByZj(int row, int j, double* lo, double* up,
   if (fabs(colLow - colUpp) < tol)
     return;  // here there is no restriction on zj so no bound on y
 
-  if ((valuePrimal[j] - colLow) > tol &&
-      (colUpp - valuePrimal[j]) > tol) {
+  if ((valuePrimal[j] - colLow) > tol && (colUpp - valuePrimal[j]) > tol) {
     // set both bounds
     if (x < *up) *up = x;
     if (x > *lo) *lo = x;
@@ -3305,8 +3278,7 @@ void Presolve::getDualsSingletonRow(int row, int col) {
   if (local_status != HighsBasisStatus::BASIC) {
     // x was not basic but is now
     // if x is strictly between original bounds or a_ij*x_j is at a bound.
-    if (fabs(valuePrimal[col] - l) > tol &&
-        fabs(valuePrimal[col] - u) > tol) {
+    if (fabs(valuePrimal[col] - l) > tol && fabs(valuePrimal[col] - u) > tol) {
       if (report_postsolve) {
         printf("3.1 : Make column %3d basic and row %3d nonbasic\n", col, row);
       }
