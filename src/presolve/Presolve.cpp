@@ -140,7 +140,7 @@ int Presolve::presolve(int print) {
   if (iPrint < 0) {
     stringstream ss;
     ss << "dev-presolve: model:      rows, colx, nnz , " << modelName << ":  "
-       << numRow << ",  " << numCol << ",  " << (int)Avalue.size();
+       << numRow << ",  " << numCol << ",  " << (int)Avalue.size() << endl;
     reportDev(ss.str());
   }
 
@@ -264,11 +264,15 @@ pair<int, int> Presolve::getXYDoubletonEquations(const int row) {
   int col2 = -1;
   int kk = ARstart[row];
   while (kk < ARstart[row + 1]) {
-    bool must_be_true = ARindex[kk] < numCol && ARindex[kk] >= 0;
-    if (!must_be_true) {
-      printf("Failing assert (ARindex[kk] < numCol && ARindex[kk] >= 0),  ARindex[kk] = %d; numCol = %d\n", ARindex[kk], numCol);
-    }
-    assert(must_be_true);
+    // Was
+    //
+    // assert(ARindex[kk] < numCol && ARindex[kk] > 0);
+    //
+    // But a zero column index is surely OK, and a column index of
+    // numCol is set in UpdateMatrixCoeffDoubletonEquationXnonZero
+    // (line 549), with numCol a valid index of flagCol
+    //
+    assert(ARindex[kk] <= numCol && ARindex[kk] >= 0);
     if (flagCol[ARindex[kk]]) {
       if (col1 == -1)
         col1 = ARindex[kk];
