@@ -139,8 +139,8 @@ int Presolve::presolve(int print) {
 
   if (iPrint < 0) {
     stringstream ss;
-    ss << "dev-presolve: model:      rows, colx, nnz , " << modelName << ":  " << numRow << ",  " << numCol
-       << ",  " << (int)Avalue.size();
+    ss << "dev-presolve: model:      rows, colx, nnz , " << modelName << ":  "
+       << numRow << ",  " << numCol << ",  " << (int)Avalue.size();
     reportDev(ss.str());
   }
 
@@ -649,8 +649,7 @@ void Presolve::resizeProblem() {
 
   if (iPrint < 0) {
     stringstream ss;
-    ss << ",  Reduced : " << numRow << ",  " << numCol
-       << ",  ";
+    ss << ",  Reduced : " << numRow << ",  " << numCol << ",  ";
     reportDev(ss.str());
   }
 
