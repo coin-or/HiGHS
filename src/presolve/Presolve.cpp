@@ -139,7 +139,7 @@ int Presolve::presolve(int print) {
 
   if (iPrint < 0) {
     stringstream ss;
-    ss << "dev-presolve: model:      rows, colx, nnz , " << modelName << ":  " << numRow << ",  " << numCol
+    ss << "dev-presolve-aa: model:      rows, colx, nnz , " << modelName << ":  " << numRow << ",  " << numCol
        << ",  " << (int)Avalue.size();
     reportDev(ss.str());
   }
