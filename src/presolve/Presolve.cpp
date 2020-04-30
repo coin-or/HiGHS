@@ -151,7 +151,7 @@ int Presolve::presolve(int print) {
   // print(0);
 
   timer.recordStart(FIXED_COL);
-  assert(flagCol.size() == numCol);
+  assert((int)flagCol.size() == numCol);
   for (int j = 0; j < numCol; ++j)
     if (flagCol[j]) {
       removeIfFixed(j);
@@ -264,7 +264,11 @@ pair<int, int> Presolve::getXYDoubletonEquations(const int row) {
   int col2 = -1;
   int kk = ARstart[row];
   while (kk < ARstart[row + 1]) {
-    assert(ARindex[kk] < numCol && ARindex[kk] > 0);
+    bool must_be_true = ARindex[kk] < numCol && ARindex[kk] >= 0;
+    if (!must_be_true) {
+      printf("Failing assert (ARindex[kk] < numCol && ARindex[kk] >= 0),  ARindex[kk] = %d; numCol = %d\n", ARindex[kk], numCol);
+    }
+    assert(must_be_true);
     if (flagCol[ARindex[kk]]) {
       if (col1 == -1)
         col1 = ARindex[kk];
