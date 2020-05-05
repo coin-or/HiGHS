@@ -166,7 +166,7 @@ set(IPX_ON ON)
 #endif()
 
 include(CheckLanguage)
-check_language("Fortran")
+#check_language("Fortran")
 if(CMAKE_Fortran_COMPILER)
     enable_language(Fortran)
     set(FORTRAN_FOUND ON)
@@ -191,7 +191,7 @@ else ()
 endif ()
 
 # whether to use shared or static libraries
-option(SHARED "Build shared libraries" ON)
+option(SHARED "Build shared libraries" OFF)
 set(BUILD_SHARED_LIBS ${SHARED})
 message(STATUS "Build shared libraries: " ${SHARED})
 
