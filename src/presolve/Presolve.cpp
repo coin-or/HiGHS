@@ -45,7 +45,7 @@ using std::setprecision;
 using std::setw;
 using std::stringstream;
 
-constexpr int iPrint = 0;
+constexpr int iPrint = -1;
 // todo:
 // iKKTcheck = 1;
 
@@ -96,7 +96,7 @@ void printMainLoop(const MainLoop& l) {
 }
 
 void printDevStats(const DevStats& stats) {
-  assert(stats.n_loops == stats.loops.size());
+  assert(stats.n_loops == (int)stats.loops.size());
   if (iPrint == 0) return;
 
   std::cout << "dev-presolve-stats::" << std::endl;
@@ -197,9 +197,20 @@ int Presolve::runPresolvers(const std::vector<Presolver>& order) {
       case Presolver::kMainColSingletons:
         removeColumnSingletons();
         break;
-      case Presolver::kMainDoubletonEq:
+      case Presolver::kMainDoubletonEq: {
+        if (dev_stats.n_loops > 0) {
+          assert(dev_stats.n_loops == (int)dev_stats.loops.size());
+
+          // todo: code below not efficient, just for test
+          int rows = 0;
+          int cols = 0;
+          int nnz = 0;
+          getRowsColsNnz(flagRow, flagCol, nzRow, nzCol, rows, cols, nnz);
+          if ((double)rows < 0.8 * (double)dev_stats.loops[0].rows) break;
+        }
         removeDoubletonEquations();
         break;
+      }
       case Presolver::kMainDominatedCols:
         removeDominatedColumns();
         break;
@@ -261,8 +272,16 @@ int Presolve::presolve(int print) {
     assert(run_status == status);
     if (status) return status;
 
-    // todo: next ~~~
-    // Exit check: less than 10 % of what we had before.
+    if (iter > 1) {
+      // Exit check: less than 10 % of what we had before.
+      assert((int)dev_stats.n_loops == iter);
+      assert((int)dev_stats.loops.size() == iter);
+      if ((double)dev_stats.loops[iter - 1].rows >
+          0.9 * (double)dev_stats.loops[iter - 2].rows) {
+        iter++;
+        break;
+      }
+    }
 
     iter++;
   }
