@@ -473,6 +473,7 @@ void Presolve::removeDoubletonEquations() {
           fabs(rowLower[row] - rowUpper[row]) < tol) {
         if (timer.reachLimit()) {
           status = stat::Timeout;
+          timer.recordFinish(DOUBLETON_EQUATION);
           return;
         }
 
@@ -485,7 +486,10 @@ void Presolve::removeDoubletonEquations() {
         y = colIndex.second;
 
         // two singletons case handled elsewhere
-        if (y < 0 || ((nzCol.at(y) == 1 && nzCol.at(x) == 1))) continue;
+        if (y < 0 || ((nzCol.at(y) == 1 && nzCol.at(x) == 1))) {
+          timer.timer_.stop(aux_clocks[DbleEq0]);
+          continue;
+        }
 
         akx = getaij(row, x);
         aky = getaij(row, y);
@@ -1165,6 +1169,7 @@ void Presolve::removeDominatedColumns() {
         if (colLower.at(j) <= -HIGHS_CONST_INF) {
           if (iPrint > 0) cout << "PR: Problem unbounded." << endl;
           status = Unbounded;
+          timer.recordFinish(DOMINATED_COLS);
           return;
         }
         setPrimalValue(j, colLower.at(j));
@@ -1177,6 +1182,7 @@ void Presolve::removeDominatedColumns() {
         if (colUpper.at(j) >= HIGHS_CONST_INF) {
           if (iPrint > 0) cout << "PR: Problem unbounded." << endl;
           status = Unbounded;
+          timer.recordFinish(DOMINATED_COLS);
           return;
         }
         setPrimalValue(j, colUpper.at(j));
@@ -1986,6 +1992,7 @@ void Presolve::removeRowSingletons() {
     if (status) return;
     if (timer.reachLimit()) {
       status = stat::Timeout;
+      timer.recordFinish(SING_ROW);
       return;
     }
 
@@ -2082,6 +2089,7 @@ void Presolve::removeRowSingletons() {
     // check for feasibility
     if (colLower.at(j) > colUpper.at(j) + tol) {
       status = Infeasible;
+      timer.timer_.stop(aux_clocks[SingRow3]);
       timer.recordFinish(SING_ROW);
       return;
     }
@@ -3697,6 +3705,7 @@ void Presolve::defineAuxClocks() {
   aux_clocks.push_back(highs_timer.clock_def("Dbl Eq5 UpdMtx Nz4", "DE54"));
   aux_clocks.push_back(highs_timer.clock_def("Dbl Eq6 TrimA", "DE6"));
   aux_clocks.push_back(highs_timer.clock_def("Set Pr V In RmIfFx", "SVF"));
+  aux_clocks.push_back(highs_timer.clock_def("Set Primal Value", "SPV"));
   aux_clocks.push_back(highs_timer.clock_def("singRow.remove()", "SRR"));
   aux_clocks.push_back(highs_timer.clock_def("singCol.remove()", "SCR"));
   assert(highs_timer.clock_ch3_names[aux_clocks[GetAij]] == "Gij");
