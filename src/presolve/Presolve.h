@@ -143,6 +143,19 @@ class Presolve : public HPreData {
     GetBoundsImpliedFree,
     GetBoundsImpliedFreeLow,
     GetBoundsImpliedFreeUpp,
+    SingRow0,
+    SingRowGetElInAR,
+    SingRow1,
+    SingRow2,
+    SingRow3,
+    SingRowRmRow,
+    SingRowRmIfFx,
+    DbleEq0,
+    DbleEq1,
+    DbleEq2,
+    DbleEq3,
+    DbleEq4,
+    DbleEq5,
   };
 
  private:
