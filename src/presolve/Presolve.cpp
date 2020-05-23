@@ -484,20 +484,17 @@ void Presolve::removeDoubletonEquations() {
         x = colIndex.first;
         y = colIndex.second;
 
-        timer.timer_.stop(aux_clocks[DbleEq0]);
         // two singletons case handled elsewhere
         if (y < 0 || ((nzCol.at(y) == 1 && nzCol.at(x) == 1))) continue;
 
-        timer.timer_.start(aux_clocks[DbleEq1]);
         akx = getaij(row, x);
         aky = getaij(row, y);
         processRowDoubletonEquation(row, x, y, akx, aky, b);
-        timer.timer_.stop(aux_clocks[DbleEq1]);
+        timer.timer_.stop(aux_clocks[DbleEq0]);
         if (status) return;
 
-        for (int k = Astart.at(y); k < Aend.at(y); ++k)
+        for (int k = Astart.at(y); k < Aend.at(y); ++k) {
           if (flagRow.at(Aindex.at(k)) && Aindex.at(k) != row) {
-            timer.timer_.start(aux_clocks[DbleEq2]);
             int i = Aindex.at(k);
             double aiy = Avalue.at(k);
 
@@ -511,8 +508,6 @@ void Presolve::removeDoubletonEquations() {
               addChange(DOUBLETON_EQUATION_ROW_BOUNDS_UPDATE, i, y);
             }
 
-            timer.timer_.stop(aux_clocks[DbleEq2]);
-            timer.timer_.start(aux_clocks[DbleEq3]);
             if (rowLower.at(i) > -HIGHS_CONST_INF)
               rowLower.at(i) -= b * aiy / aky;
             if (rowUpper.at(i) < HIGHS_CONST_INF)
@@ -523,20 +518,18 @@ void Presolve::removeDoubletonEquations() {
             if (implRowValueUpper.at(i) < HIGHS_CONST_INF)
               implRowValueUpper.at(i) -= b * aiy / aky;
 
-            timer.timer_.stop(aux_clocks[DbleEq3]);
-            timer.timer_.start(aux_clocks[DbleEq4]);
             // update matrix coefficients
             if (isZeroA(i, x))
               UpdateMatrixCoeffDoubletonEquationXzero(i, x, y, aiy, akx, aky);
             else
               UpdateMatrixCoeffDoubletonEquationXnonZero(i, x, y, aiy, akx,
                                                          aky);
-            timer.timer_.stop(aux_clocks[DbleEq4]);
           }
+        }
         if (Avalue.size() > 40000000) {
-          timer.timer_.start(aux_clocks[DbleEq5]);
+          timer.timer_.start(aux_clocks[DbleEq6]);
           trimA();
-          timer.timer_.stop(aux_clocks[DbleEq5]);
+          timer.timer_.stop(aux_clocks[DbleEq6]);
         }
 
         iter++;
@@ -549,6 +542,7 @@ void Presolve::UpdateMatrixCoeffDoubletonEquationXzero(const int i, const int x,
                                                        const double aiy,
                                                        const double akx,
                                                        const double aky) {
+  timer.timer_.start(aux_clocks[DbleEq40]);
   // case x is zero initially
   // row nonzero count doesn't change here
   // cout<<"case: x not present "<<i<<" "<<endl;
@@ -573,6 +567,8 @@ void Presolve::UpdateMatrixCoeffDoubletonEquationXzero(const int i, const int x,
     chk.ARindex.at(ind) = ARindex.at(ind);
   }
 
+  timer.timer_.stop(aux_clocks[DbleEq40]);
+  timer.timer_.start(aux_clocks[DbleEq41]);
   // update A: append X column to end of array
   int st = Avalue.size();
   for (int ind = Astart.at(x); ind < Aend.at(x); ++ind) {
@@ -586,7 +582,14 @@ void Presolve::UpdateMatrixCoeffDoubletonEquationXzero(const int i, const int x,
 
   nzCol.at(x)++;
   // nzRow does not change here.
-  if (nzCol.at(x) == 2) singCol.remove(x);
+  timer.timer_.stop(aux_clocks[DbleEq41]);
+  if (nzCol.at(x) == 2) {
+    timer.timer_.start(aux_clocks[DbleEq42]);
+    timer.timer_.start(aux_clocks[SingRowRm]);
+    singCol.remove(x);
+    timer.timer_.stop(aux_clocks[SingRowRm]);
+    timer.timer_.stop(aux_clocks[DbleEq42]);
+  }
 }
 
 void Presolve::UpdateMatrixCoeffDoubletonEquationXnonZero(
@@ -594,12 +597,15 @@ void Presolve::UpdateMatrixCoeffDoubletonEquationXnonZero(
     const double aky) {
   int ind;
 
+  timer.timer_.start(aux_clocks[DbleEq50]);
   // update nonzeros: for removal of
   nzRow.at(i)--;
   if (nzRow.at(i) == 1) singRow.push_back(i);
 
   if (nzRow.at(i) == 0) {
+    timer.timer_.start(aux_clocks[SingRowRm]);
     singRow.remove(i);
+    timer.timer_.stop(aux_clocks[SingRowRm]);
     removeEmptyRow(i);
     countRemovedRows(DOUBLETON_EQUATION);
   }
@@ -609,7 +615,9 @@ void Presolve::UpdateMatrixCoeffDoubletonEquationXnonZero(
     if (ARindex.at(ind) == x) break;
 
   xNew = ARvalue.at(ind) - (aiy * akx) / aky;
+  timer.timer_.stop(aux_clocks[DbleEq50]);
   if (fabs(xNew) > tol) {
+    timer.timer_.start(aux_clocks[DbleEq51]);
     // case new x != 0
     // cout<<"case: x still there row "<<i<<" "<<endl;
 
@@ -625,16 +633,20 @@ void Presolve::UpdateMatrixCoeffDoubletonEquationXnonZero(
         break;
       }
     Avalue.at(ind) = xNew;
+    timer.timer_.stop(aux_clocks[DbleEq51]);
   } else if (xNew < tol) {
     // case new x == 0
     // cout<<"case: x also disappears from row "<<i<<" "<<endl;
     // update nz row
+    timer.timer_.start(aux_clocks[DbleEq52]);
     nzRow.at(i)--;
     // update singleton row list
     if (nzRow.at(i) == 1) singRow.push_back(i);
 
     if (nzRow.at(i) == 0) {
+      timer.timer_.start(aux_clocks[SingRowRm]);
       singRow.remove(i);
+      timer.timer_.stop(aux_clocks[SingRowRm]);
       removeEmptyRow(i);
       countRemovedRows(DOUBLETON_EQUATION);
     }
@@ -653,9 +665,11 @@ void Presolve::UpdateMatrixCoeffDoubletonEquationXnonZero(
       }
 
       addChange(DOUBLETON_EQUATION_NEW_X_ZERO_AR_UPDATE, i, x);
+      timer.timer_.stop(aux_clocks[DbleEq52]);
     }
 
     if (nzCol.at(x) > 0) {
+      timer.timer_.start(aux_clocks[DbleEq53]);
       // A update for case when x is zero: move x entry to end and set
       // Aend to be Aend - 1;
       int indi;
@@ -675,6 +689,7 @@ void Presolve::UpdateMatrixCoeffDoubletonEquationXnonZero(
       }
       Aend.at(x)--;
       addChange(DOUBLETON_EQUATION_NEW_X_ZERO_A_UPDATE, i, x);
+      timer.timer_.stop(aux_clocks[DbleEq53]);
     }
 
     // update nz col
@@ -682,7 +697,9 @@ void Presolve::UpdateMatrixCoeffDoubletonEquationXnonZero(
     // update singleton col list
     if (nzCol.at(x) == 1) singCol.push_back(x);
     if (nzCol.at(x) == 0) {
+      timer.timer_.start(aux_clocks[DbleEq54]);
       removeEmptyColumn(x);
+      timer.timer_.stop(aux_clocks[DbleEq54]);
     }
   }
   if (y) {
@@ -940,7 +957,9 @@ void Presolve::initializeVectors() {
 
 void Presolve::removeIfFixed(int j) {
   if (colLower.at(j) == colUpper.at(j)) {
+    timer.timer_.start(aux_clocks[SetPrVinRmIfFx]);
     setPrimalValue(j, colUpper.at(j));
+    timer.timer_.stop(aux_clocks[SetPrVinRmIfFx]);
     addChange(FIXED_COL, 0, j);
     if (iPrint > 0)
       cout << "PR: Fixed variable " << j << " = " << colUpper.at(j)
@@ -976,7 +995,10 @@ void Presolve::removeEmptyRow(int i) {
 
 void Presolve::removeEmptyColumn(int j) {
   flagCol.at(j) = 0;
+  timer.timer_.start(aux_clocks[SingRowRm]);
   singCol.remove(j);
+  timer.timer_.stop(aux_clocks[SingRowRm]);
+
   double value;
   if ((colCost.at(j) < 0 && colUpper.at(j) >= HIGHS_CONST_INF) ||
       (colCost.at(j) > 0 && colLower.at(j) <= -HIGHS_CONST_INF)) {
@@ -1487,7 +1509,9 @@ void Presolve::removeSecondColumnSingletonInDoubletonRow(const int j,
     cout << "PR: Second singleton column " << j << " in doubleton row " << i
          << " removed.\n";
   countRemovedCols(SING_COL_DOUBLETON_INEQ);
+  timer.timer_.start(aux_clocks[SingRowRm]);
   singCol.remove(j);
+  timer.timer_.stop(aux_clocks[SingRowRm]);
 }
 
 void Presolve::removeColumnSingletons() {
@@ -1820,7 +1844,11 @@ void Presolve::setVariablesToBoundForForcingRow(const int row,
     ++k;
   }
 
-  if (nzRow.at(row) == 1) singRow.remove(row);
+  if (nzRow.at(row) == 1) {
+    timer.timer_.start(aux_clocks[SingRowRm]);
+    singRow.remove(row);
+    timer.timer_.stop(aux_clocks[SingRowRm]);
+  }
 
   countRemovedRows(FORCING_ROW);
 }
@@ -2094,6 +2122,7 @@ void Presolve::addChange(PresolveRule type, int row, int col) {
 // when setting a value to a primal variable and eliminating row update b,
 // singleton Rows linked list, number of nonzeros in rows
 void Presolve::setPrimalValue(int j, double value) {
+  timer.timer_.start(aux_clocks[SetPrV]);
   flagCol.at(j) = 0;
   if (!hasChange) hasChange = true;
   valuePrimal.at(j) = value;
@@ -2107,8 +2136,9 @@ void Presolve::setPrimalValue(int j, double value) {
       // update singleton row list
       if (nzRow.at(row) == 1)
         singRow.push_back(row);
-      else if (nzRow.at(row) == 0)
+      else if (nzRow.at(row) == 0) {
         singRow.remove(row);
+      }
     }
   }
 
@@ -2142,6 +2172,7 @@ void Presolve::setPrimalValue(int j, double value) {
     // shift objective
     if (colCost.at(j) != 0) objShift += colCost.at(j) * value;
   }
+  timer.timer_.stop(aux_clocks[SetPrV]);
 }
 
 void Presolve::checkForChanges(int iteration) {
@@ -3655,12 +3686,19 @@ void Presolve::defineAuxClocks() {
   aux_clocks.push_back(highs_timer.clock_def("Sing R 3", "SR3"));
   aux_clocks.push_back(highs_timer.clock_def("Sing R Rm Row", "RmR"));
   aux_clocks.push_back(highs_timer.clock_def("Sing R Rm If Fx", "RiF"));
-  aux_clocks.push_back(highs_timer.clock_def("Doubleton Eq0", "DE0"));
-  aux_clocks.push_back(highs_timer.clock_def("Doubleton Eq1", "DE1"));
-  aux_clocks.push_back(highs_timer.clock_def("Doubleton Eq2", "DE2"));
-  aux_clocks.push_back(highs_timer.clock_def("Doubleton Eq3", "DE3"));
-  aux_clocks.push_back(highs_timer.clock_def("Doubleton Eq4", "DE4"));
-  aux_clocks.push_back(highs_timer.clock_def("Doubleton Eq5", "DE5"));
+  aux_clocks.push_back(highs_timer.clock_def("Dbl Eq0", "DE0"));
+  aux_clocks.push_back(highs_timer.clock_def("Dbl Eq4 UpdMtx Ze0", "DE40"));
+  aux_clocks.push_back(highs_timer.clock_def("Dbl Eq4 UpdMtx Ze1", "DE41"));
+  aux_clocks.push_back(highs_timer.clock_def("Dbl Eq4 singCol.Rm", "DE42"));
+  aux_clocks.push_back(highs_timer.clock_def("Dbl Eq5 UpdMtx Nz0", "DE50"));
+  aux_clocks.push_back(highs_timer.clock_def("Dbl Eq5 UpdMtx Nz1", "DE51"));
+  aux_clocks.push_back(highs_timer.clock_def("Dbl Eq5 UpdMtx Nz2", "DE52"));
+  aux_clocks.push_back(highs_timer.clock_def("Dbl Eq5 UpdMtx Nz3", "DE53"));
+  aux_clocks.push_back(highs_timer.clock_def("Dbl Eq5 UpdMtx Nz4", "DE54"));
+  aux_clocks.push_back(highs_timer.clock_def("Dbl Eq6 TrimA", "DE6"));
+  aux_clocks.push_back(highs_timer.clock_def("Set Pr V In RmIfFx", "SVF"));
+  aux_clocks.push_back(highs_timer.clock_def("singRow.remove()", "SRR"));
+  aux_clocks.push_back(highs_timer.clock_def("singCol.remove()", "SCR"));
   assert(highs_timer.clock_ch3_names[aux_clocks[GetAij]] == "Gij");
   assert(highs_timer.clock_ch3_names[aux_clocks[GetBoundsImpliedFree]] ==
          "GIF");
@@ -3676,11 +3714,19 @@ void Presolve::defineAuxClocks() {
   assert(highs_timer.clock_ch3_names[aux_clocks[SingRowRmRow]] == "RmR");
   assert(highs_timer.clock_ch3_names[aux_clocks[SingRowRmIfFx]] == "RiF");
   assert(highs_timer.clock_ch3_names[aux_clocks[DbleEq0]] == "DE0");
-  assert(highs_timer.clock_ch3_names[aux_clocks[DbleEq1]] == "DE1");
-  assert(highs_timer.clock_ch3_names[aux_clocks[DbleEq2]] == "DE2");
-  assert(highs_timer.clock_ch3_names[aux_clocks[DbleEq3]] == "DE3");
-  assert(highs_timer.clock_ch3_names[aux_clocks[DbleEq4]] == "DE4");
-  assert(highs_timer.clock_ch3_names[aux_clocks[DbleEq5]] == "DE5");
+  assert(highs_timer.clock_ch3_names[aux_clocks[DbleEq40]] == "DE40");
+  assert(highs_timer.clock_ch3_names[aux_clocks[DbleEq41]] == "DE41");
+  assert(highs_timer.clock_ch3_names[aux_clocks[DbleEq42]] == "DE42");
+  assert(highs_timer.clock_ch3_names[aux_clocks[DbleEq50]] == "DE50");
+  assert(highs_timer.clock_ch3_names[aux_clocks[DbleEq51]] == "DE51");
+  assert(highs_timer.clock_ch3_names[aux_clocks[DbleEq52]] == "DE52");
+  assert(highs_timer.clock_ch3_names[aux_clocks[DbleEq53]] == "DE53");
+  assert(highs_timer.clock_ch3_names[aux_clocks[DbleEq54]] == "DE54");
+  assert(highs_timer.clock_ch3_names[aux_clocks[DbleEq6]] == "DE6");
+  assert(highs_timer.clock_ch3_names[aux_clocks[SetPrVinRmIfFx]] == "SVF");
+  assert(highs_timer.clock_ch3_names[aux_clocks[SetPrV]] == "SPV");
+  assert(highs_timer.clock_ch3_names[aux_clocks[SingRowRm]] == "SRR");
+  assert(highs_timer.clock_ch3_names[aux_clocks[SingColRm]] == "SCR");
 }
 
 void Presolve::reportAuxClocks() {
@@ -3689,6 +3735,7 @@ void Presolve::reportAuxClocks() {
   const bool profile_implied_free_sing_col = true;
   const bool profile_sing_row = true;
   const bool profile_doubleton_equations = true;
+  const bool profile_highlights = true;
   if (profile_implied_free_sing_col) {
     ideal_time = timer.getRuleTime(IMPLIED_FREE_SING_COL);
     report_clocks.push_back(aux_clocks[GetAij]);
@@ -3696,7 +3743,7 @@ void Presolve::reportAuxClocks() {
     report_clocks.push_back(aux_clocks[GetBoundsImpliedFreeLow]);
     report_clocks.push_back(aux_clocks[GetBoundsImpliedFreeUpp]);
     timer.timer_.report_tl("grep-AuxPresolve", report_clocks, ideal_time, 0);
-    printf("\n");
+    if (ideal_time) printf("\n");
     report_clocks.clear();
   }
   if (profile_sing_row) {
@@ -3707,21 +3754,35 @@ void Presolve::reportAuxClocks() {
     report_clocks.push_back(aux_clocks[SingRow2]);
     report_clocks.push_back(aux_clocks[SingRow3]);
     report_clocks.push_back(aux_clocks[SingRowRmRow]);
-    report_clocks.push_back(aux_clocks[SingRowRmIfFx]);
+    // report_clocks.push_back(aux_clocks[SingRowRmIfFx]);
+    report_clocks.push_back(aux_clocks[SetPrVinRmIfFx]);
     timer.timer_.report_tl("grep-AuxPresolve", report_clocks, ideal_time, 0);
-    printf("\n");
+    if (ideal_time) printf("\n");
     report_clocks.clear();
   }
   if (profile_doubleton_equations) {
     ideal_time = timer.getRuleTime(DOUBLETON_EQUATION);
     report_clocks.push_back(aux_clocks[DbleEq0]);
-    report_clocks.push_back(aux_clocks[DbleEq1]);
-    report_clocks.push_back(aux_clocks[DbleEq2]);
-    report_clocks.push_back(aux_clocks[DbleEq3]);
-    report_clocks.push_back(aux_clocks[DbleEq4]);
-    report_clocks.push_back(aux_clocks[DbleEq5]);
+    report_clocks.push_back(aux_clocks[DbleEq40]);
+    report_clocks.push_back(aux_clocks[DbleEq41]);
+    report_clocks.push_back(aux_clocks[DbleEq42]);
+    report_clocks.push_back(aux_clocks[DbleEq50]);
+    report_clocks.push_back(aux_clocks[DbleEq51]);
+    report_clocks.push_back(aux_clocks[DbleEq52]);
+    report_clocks.push_back(aux_clocks[DbleEq53]);
+    report_clocks.push_back(aux_clocks[DbleEq54]);
+    report_clocks.push_back(aux_clocks[DbleEq6]);
     timer.timer_.report_tl("grep-AuxPresolve", report_clocks, ideal_time, 0);
-    printf("\n");
+    if (ideal_time) printf("\n");
+    report_clocks.clear();
+  }
+  if (profile_highlights) {
+    ideal_time = timer.getRuleTime(TOTAL_PRESOLVE_TIME);
+    report_clocks.push_back(aux_clocks[SetPrV]);
+    report_clocks.push_back(aux_clocks[SingRowRm]);
+    report_clocks.push_back(aux_clocks[SingColRm]);
+    timer.timer_.report_tl("grep-AuxPresolve", report_clocks, ideal_time, 0);
+    if (ideal_time) printf("\n");
     report_clocks.clear();
   }
 }
