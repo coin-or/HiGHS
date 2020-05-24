@@ -589,9 +589,9 @@ void Presolve::UpdateMatrixCoeffDoubletonEquationXzero(const int i, const int x,
   timer.timer_.stop(aux_clocks[DbleEq41]);
   if (nzCol.at(x) == 2) {
     timer.timer_.start(aux_clocks[DbleEq42]);
-    timer.timer_.start(aux_clocks[SingRowRm]);
+    timer.timer_.start(aux_clocks[SingColRm]);
     singCol.remove(x);
-    timer.timer_.stop(aux_clocks[SingRowRm]);
+    timer.timer_.stop(aux_clocks[SingColRm]);
     timer.timer_.stop(aux_clocks[DbleEq42]);
   }
 }
@@ -999,9 +999,9 @@ void Presolve::removeEmptyRow(int i) {
 
 void Presolve::removeEmptyColumn(int j) {
   flagCol.at(j) = 0;
-  timer.timer_.start(aux_clocks[SingRowRm]);
+  timer.timer_.start(aux_clocks[SingColRm]);
   singCol.remove(j);
-  timer.timer_.stop(aux_clocks[SingRowRm]);
+  timer.timer_.stop(aux_clocks[SingColRm]);
 
   double value;
   if ((colCost.at(j) < 0 && colUpper.at(j) >= HIGHS_CONST_INF) ||
@@ -1515,9 +1515,9 @@ void Presolve::removeSecondColumnSingletonInDoubletonRow(const int j,
     cout << "PR: Second singleton column " << j << " in doubleton row " << i
          << " removed.\n";
   countRemovedCols(SING_COL_DOUBLETON_INEQ);
-  timer.timer_.start(aux_clocks[SingRowRm]);
+  timer.timer_.start(aux_clocks[SingColRm]);
   singCol.remove(j);
-  timer.timer_.stop(aux_clocks[SingRowRm]);
+  timer.timer_.stop(aux_clocks[SingColRm]);
 }
 
 void Presolve::removeColumnSingletons() {
@@ -2145,7 +2145,11 @@ void Presolve::setPrimalValue(int j, double value) {
       if (nzRow.at(row) == 1)
         singRow.push_back(row);
       else if (nzRow.at(row) == 0) {
+        // Don't time this singRow.remove since it's timed as part of
+        // "SetPrV"
+        timer.timer_.start(aux_clocks[SingRowRm]);
         singRow.remove(row);
+        timer.timer_.stop(aux_clocks[SingRowRm]);
       }
     }
   }
@@ -3787,7 +3791,7 @@ void Presolve::reportAuxClocks() {
   }
   if (profile_highlights) {
     ideal_time = timer.getRuleTime(TOTAL_PRESOLVE_TIME);
-    report_clocks.push_back(aux_clocks[SetPrV]);
+    //    report_clocks.push_back(aux_clocks[SetPrV]);
     report_clocks.push_back(aux_clocks[SingRowRm]);
     report_clocks.push_back(aux_clocks[SingColRm]);
     timer.timer_.report_tl("grep-AuxPresolve", report_clocks, ideal_time, 0);

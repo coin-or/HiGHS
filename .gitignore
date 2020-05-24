@@ -87,7 +87,7 @@ Makefile_opt_sw
 ml.mps
 ml.lp
 ml.ems
-options_file
+HighsRunModel.mps
 
 # Visual C++ cache files
 ipch/
