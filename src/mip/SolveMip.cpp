@@ -18,6 +18,9 @@ NodeIndex Tree::chooseBranchingVariable(const Node& node) {
   const double fractional_tolerance = 1e-7;
   assert(node.integer_variables.size() == node.primal_solution.size());
 
+  double max_fraction_off = 0;
+  int current_candidate_col = -1;
+  const bool choose_first_violated = false;
   for (int col = 0; col < (int)node.integer_variables.size(); col++) {
     if (!node.integer_variables[col]) continue;
 
@@ -37,6 +40,13 @@ NodeIndex Tree::chooseBranchingVariable(const Node& node) {
     assert(fraction_above >= 0);
     if (fraction_above > fractional_tolerance &&
         fraction_below > fractional_tolerance) {
+      // This column is a candidate for branching
+      double fraction_off = std::min(fraction_above, fraction_below);
+      if (max_fraction_off < fraction_off) {
+        max_fraction_off = fraction_off;
+        current_candidate_col = col;
+      }
+      assert(lower < upper);
       if (mip_report_level > 1) {
         if (fraction_above < 10 * fractional_tolerance)
           printf(
@@ -49,11 +59,10 @@ NodeIndex Tree::chooseBranchingVariable(const Node& node) {
               "10*fractional_tolerance = %g\n",
               col, fraction_below, 10 * fractional_tolerance);
       }
-      // This one is violated.
-      return NodeIndex(col);
+      if (choose_first_violated) break;
     }
   }
-
+  if (current_candidate_col > -1) return NodeIndex(current_candidate_col);
   return kNoNodeIndex;
 }
 
@@ -85,8 +94,8 @@ bool Tree::branch(Node& node) {
     return false;
   }
 
-  int col = static_cast<int>(branch_col);
-  double value = node.primal_solution[col];
+  const int col = static_cast<int>(branch_col);
+  const double value = node.primal_solution[col];
   const double value_ceil = std::ceil(value);
   const double value_floor = std::floor(value);
 
@@ -97,8 +106,9 @@ bool Tree::branch(Node& node) {
       << ") left child ub: " << value_floor
       << " right child lb: " << value_ceil << std::endl;
     */
-    printf("Branch on %2d (%9d, %9d) left UB: %4d; right LB: %4d\n", col,
-           num_nodes + 1, num_nodes + 2, (int)value_floor, (int)value_ceil);
+    printf("Branch on%9d (%9d, %9d) left UB:%4d; value: %10.4g; right LB:%4d\n",
+           col, num_nodes + 1, num_nodes + 2, (int)value_floor, value,
+           (int)value_ceil);
   }
   // Branch.
   // Create children and add to node.

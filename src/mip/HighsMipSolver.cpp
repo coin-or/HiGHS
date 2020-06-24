@@ -374,7 +374,7 @@ HighsMipStatus HighsMipSolver::solveTree(Node& root) {
       if (options_.mip_report_level > 1) {
         printf("Don't solve since no better than best IFS of %10.4g\n",
                best_objective);
-	fflush(stdout);
+        fflush(stdout);
       }
       num_nodes_pruned++;
       tree_.pop();
@@ -387,9 +387,9 @@ HighsMipStatus HighsMipSolver::solveTree(Node& root) {
       case HighsMipStatus::kNodeOptimal:
         reportMipSolverProgress(node_solve_status);
         if (options_.mip_report_level > 1) {
-          printf("Node %9d (branch on %2d) optimal objective %10.4g: ", node.id,
+          printf("Node%9d (branch on%9d) optimal objective %10.4g: ", node.id,
                  node.branch_col, node.objective_value);
-	    fflush(stdout);
+          fflush(stdout);
           /*
             std::cout << "Node " << node.id
             << " solved to optimality." << std::endl;
@@ -403,8 +403,8 @@ HighsMipStatus HighsMipSolver::solveTree(Node& root) {
           if (options_.mip_report_level > 1) {
             printf("Don't branch since no better than best IFS of %10.4g\n",
                    best_objective);
-	    fflush(stdout);
-	  }
+            fflush(stdout);
+          }
           break;
         }
         tree_.branch(node);
@@ -412,9 +412,9 @@ HighsMipStatus HighsMipSolver::solveTree(Node& root) {
       case HighsMipStatus::kNodeInfeasible:
         reportMipSolverProgress(node_solve_status);
         if (options_.mip_report_level > 1) {
-          printf("Node %9d (branch on %2d) infeasible\n", node.id,
+          printf("Node%9d (branch on%9d) infeasible\n", node.id,
                  node.branch_col);
-	  fflush(stdout);
+          fflush(stdout);
           /*
             std::cout << "Node " << node.id
             << " infeasible." << std::endl;
@@ -435,7 +435,7 @@ HighsMipStatus HighsMipSolver::solveTree(Node& root) {
           std::endl;
         */
         printf(
-            "Node %9d (branch on %2d) not solved to optimality, infeasibility "
+            "Node%9d (branch on%9d) not solved to optimality, infeasibility "
             "or unboundedness: status = %s\n",
             node.id, node.branch_col,
             highsMipStatusToString(node_solve_status).c_str());
@@ -467,64 +467,64 @@ void HighsMipSolver::reportMipSolverProgress(const HighsMipStatus mip_status) {
   }
   // Identify whether a line will be reported so that a header can be
   // printed when options_.mip_report_level > 1
-  bool regular_report =
-    mip_status == HighsMipStatus::kNodeOptimal ||
-    mip_status == HighsMipStatus::kNodeInfeasible;
-  bool report_line = !regular_report || num_nodes_solved % report_frequency == 0;
+  bool regular_report = mip_status == HighsMipStatus::kNodeOptimal ||
+                        mip_status == HighsMipStatus::kNodeInfeasible;
+  bool report_line =
+      !regular_report || num_nodes_solved % report_frequency == 0;
   if (report_line && options_.mip_report_level > 1)
     reportMipSolverProgressLine("", true);
   // Report according to mip_status
   switch (mip_status) {
-  case HighsMipStatus::kOptimal:
-    reportMipSolverProgressLine("");
-    break;
-  case HighsMipStatus::kTimeout:
-    reportMipSolverProgressLine("Timeout");
-    break;
-  case HighsMipStatus::kReachedSimplexIterationLimit:
-    reportMipSolverProgressLine("Reached simplex iteration limit");
-    break;
-  case HighsMipStatus::kError:
-    reportMipSolverProgressLine("Error");
-    break;
-  case HighsMipStatus::kNodeOptimal:
-    if (num_nodes_solved % report_frequency == 0)
+    case HighsMipStatus::kOptimal:
       reportMipSolverProgressLine("");
-    break;
-  case HighsMipStatus::kNodeInfeasible:
-    if (num_nodes_solved % report_frequency == 0)
+      break;
+    case HighsMipStatus::kTimeout:
+      reportMipSolverProgressLine("Timeout");
+      break;
+    case HighsMipStatus::kReachedSimplexIterationLimit:
+      reportMipSolverProgressLine("Reached simplex iteration limit");
+      break;
+    case HighsMipStatus::kError:
+      reportMipSolverProgressLine("Error");
+      break;
+    case HighsMipStatus::kNodeOptimal:
+      if (num_nodes_solved % report_frequency == 0)
+        reportMipSolverProgressLine("");
+      break;
+    case HighsMipStatus::kNodeInfeasible:
+      if (num_nodes_solved % report_frequency == 0)
+        reportMipSolverProgressLine("");
+      break;
+    case HighsMipStatus::kNodeUnbounded:
+      reportMipSolverProgressLine("Unbounded");
+      break;
+    case HighsMipStatus::kNodeNotOptimal:
+      reportMipSolverProgressLine("Not optimal");
+      break;
+    case HighsMipStatus::kNodeError:
+      reportMipSolverProgressLine("Node error");
+      break;
+    case HighsMipStatus::kRootNodeOptimal:
       reportMipSolverProgressLine("");
-    break;
-  case HighsMipStatus::kNodeUnbounded:
-    reportMipSolverProgressLine("Unbounded");
-    break;
-  case HighsMipStatus::kNodeNotOptimal:
-    reportMipSolverProgressLine("Not optimal");
-    break;
-  case HighsMipStatus::kNodeError:
-    reportMipSolverProgressLine("Node error");
-    break;
-  case HighsMipStatus::kRootNodeOptimal:
-    reportMipSolverProgressLine("");
-    break;
-  case HighsMipStatus::kRootNodeNotOptimal:
-    reportMipSolverProgressLine("Root node not optimal");
-    break;
-  case HighsMipStatus::kRootNodeError:
-    reportMipSolverProgressLine("Root node error");
-    break;
-  case HighsMipStatus::kMaxNodeReached:
-    reportMipSolverProgressLine("Max node reached");
-    break;
-  case HighsMipStatus::kUnderDevelopment:
-    reportMipSolverProgressLine("Under development");
-    break;
-  case HighsMipStatus::kTreeExhausted:
-    reportMipSolverProgressLine("Tree exhausted");
-    break;
-  default:
-    reportMipSolverProgressLine("Unknown");
-    break;
+      break;
+    case HighsMipStatus::kRootNodeNotOptimal:
+      reportMipSolverProgressLine("Root node not optimal");
+      break;
+    case HighsMipStatus::kRootNodeError:
+      reportMipSolverProgressLine("Root node error");
+      break;
+    case HighsMipStatus::kMaxNodeReached:
+      reportMipSolverProgressLine("Max node reached");
+      break;
+    case HighsMipStatus::kUnderDevelopment:
+      reportMipSolverProgressLine("Under development");
+      break;
+    case HighsMipStatus::kTreeExhausted:
+      reportMipSolverProgressLine("Tree exhausted");
+      break;
+    default:
+      reportMipSolverProgressLine("Unknown");
+      break;
   }
 }
 
@@ -532,8 +532,8 @@ void HighsMipSolver::reportMipSolverProgressLine(std::string message,
                                                  const bool header) {
   if (header) {
     printf(
-	   "  Time |      Node |      Left |   LP iter | LP it/n |    dualbound | "
-	   " primalbound |    gap \n");
+        "  Time |      Node |      Left |   LP iter | LP it/n |    dualbound | "
+        " primalbound |    gap \n");
   } else {
     double average_simplex_iterations = info_.simplex_iteration_count;
     average_simplex_iterations /= num_nodes_solved;
@@ -564,7 +564,7 @@ void HighsMipSolver::reportMipSolverProgressLine(std::string message,
     if (best_objective < HIGHS_CONST_INF) {
       // There is an integer solution
       double gap =
-	100 * (best_objective - best_bound) / max(1.0, fabs(best_objective));
+          100 * (best_objective - best_bound) / max(1.0, fabs(best_objective));
       printf("| %12.5e | %6.2f%%", best_objective, gap);
     } else {
       printf("|      --      |    Inf ");
@@ -575,9 +575,9 @@ void HighsMipSolver::reportMipSolverProgressLine(std::string message,
 }
 
 std::string HighsMipSolver::highsMipStatusToString(
-						   const HighsMipStatus mip_status) {
+    const HighsMipStatus mip_status) {
   switch (mip_status) {
-  case HighsMipStatus::kOptimal:
+    case HighsMipStatus::kOptimal:
       return "Optimal";
       break;
     case HighsMipStatus::kTimeout:
