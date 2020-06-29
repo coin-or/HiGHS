@@ -233,12 +233,11 @@ class HFactor {
    * Data of the factor
    */
 
-  // private:
-  // Problem size, coefficient matrix and update method
   int numRow;
   int numCol;
 
  private:
+  // Coefficient matrix and update method
   const int* Astart;
   const int* Aindex;
   const double* Avalue;
