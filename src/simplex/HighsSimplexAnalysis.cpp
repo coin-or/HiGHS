@@ -34,7 +34,6 @@ void HighsSimplexAnalysis::setup(const HighsLp& lp, const HighsOptions& options,
   //
   AnIterIt0 = simplex_iteration_count_;
   AnIterCostlyDseFq = 0;
-  AnIterPrevRpNumCostlyDseIt = 0;
   AnIterNumCostlyDseIt = 0;
   // Copy messaging parameter from options
   messaging(options.logfile, options.output, options.message_level);
