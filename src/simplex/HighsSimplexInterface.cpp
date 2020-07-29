@@ -247,8 +247,8 @@ HighsStatus HighsSimplexInterface::deleteCols(
     basis.valid_ = false;
   }
   return_status = interpretCallStatus(
-            deleteScale(options, highs_model_object.scale_.col_, index_collection),
-            return_status, "deleteScale");
+      deleteScale(options, highs_model_object.scale_.col_, index_collection),
+      return_status, "deleteScale");
   if (return_status == HighsStatus::Error) return return_status;
   if (valid_simplex_lp) {
     HighsLp& simplex_lp = highs_model_object.simplex_lp_;
