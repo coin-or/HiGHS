@@ -247,8 +247,8 @@ HighsStatus HighsSimplexInterface::deleteCols(
     basis.valid_ = false;
   }
   return_status = interpretCallStatus(
-            deleteScale(options, highs_model_object.scale_.col_, index_collection),
-            return_status, "deleteScale");
+      deleteScale(options, highs_model_object.scale_.col_, index_collection),
+      return_status, "deleteScale");
   if (return_status == HighsStatus::Error) return return_status;
   if (valid_simplex_lp) {
     HighsLp& simplex_lp = highs_model_object.simplex_lp_;
@@ -481,7 +481,8 @@ HighsStatus HighsSimplexInterface::addRows(int XnumNewRow,
   return return_status;
 }
 
-HighsStatus HighsSimplexInterface::deleteRows(HighsIndexCollection& index_collection) {
+HighsStatus HighsSimplexInterface::deleteRows(
+    HighsIndexCollection& index_collection) {
   HighsOptions& options = highs_model_object.options_;
   HighsLp& lp = highs_model_object.lp_;
   HighsBasis& basis = highs_model_object.basis_;
@@ -507,8 +508,8 @@ HighsStatus HighsSimplexInterface::deleteRows(HighsIndexCollection& index_collec
     basis.valid_ = false;
   }
   return_status = interpretCallStatus(
-            deleteScale(options, highs_model_object.scale_.row_, index_collection),
-            return_status, "deleteScale");
+      deleteScale(options, highs_model_object.scale_.row_, index_collection),
+      return_status, "deleteScale");
   if (return_status == HighsStatus::Error) return return_status;
   if (valid_simplex_lp) {
     HighsLp& simplex_lp = highs_model_object.simplex_lp_;
