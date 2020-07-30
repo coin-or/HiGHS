@@ -106,11 +106,9 @@ bool highs_isInfinity(double val  //!< Value being tested against +Infinity
  */
 double highsRelativeDifference(const double v0, const double v1);
 
-bool rightSizeDoubleVector(FILE* logfile,
-			   const std::string name0,
-			   const std::string name1,
-			   const std::vector<double> v,
-			   const int right_size);
+bool rightSizeDoubleVector(FILE* logfile, const std::string name0,
+                           const std::string name1, const std::vector<double> v,
+                           const int right_size);
 
 #ifdef HiGHSDEV
 /**
