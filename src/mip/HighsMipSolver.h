@@ -20,7 +20,17 @@ class HighsMipSolver {
  public:
   const HighsOptions* options_mip_;
   const HighsLp* model_;
+  const HighsLp* orig_model_;
   HighsModelStatus modelstatus_;
+  std::vector<double> solution_;
+  double solution_objective_;
+  double bound_violation_;
+  double integrality_violation_;
+  double row_violation_;
+  double dual_bound_;
+  double primal_bound_;
+  int64_t node_count_;
+
   bool submip;
   const HighsBasis* rootbasis;
 
@@ -46,6 +56,8 @@ class HighsMipSolver {
 
   double rowUpper(int col) const { return model_->rowUpper_[col]; }
 
+  bool isSolutionFeasible(const std::vector<double>& solution) const;
+
   const HighsVarType* variableType() const {
     return model_->integrality_.data();
   }
@@ -57,12 +69,16 @@ class HighsMipSolver {
 
   ~HighsMipSolver();
 
-  void setModel(const HighsLp& model) { model_ = &model; }
+  void setModel(const HighsLp& model) {
+    model_ = &model;
+    solution_objective_ = HIGHS_CONST_INF;
+  }
 
-  HighsTimer timer_;
+  mutable HighsTimer timer_;
   PresolveComponent presolve_;
   HighsPresolveStatus runPresolve();
   HighsPostsolveStatus runPostsolve();
+  void cleanupSolve();
 };
 
 #endif

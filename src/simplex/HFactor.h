@@ -65,6 +65,24 @@ const double hyperCANCEL = 0.05;
  * hyper-sparse - only for reporting
  */
 const double hyperRESULT = 0.10;
+
+/**
+ * Parameters for reinversion on synthetic clock
+ */
+const double original_multi_build_syntheticTick_mu = 1.5;
+const double multi_build_syntheticTick_mu = 1.0;
+// original_multi_build_syntheticTick_mu;//
+const double numerical_trouble_tolerance = 1e-7;
+const double original_multi_numerical_trouble_tolerance = 1e-8;
+const double multi_numerical_trouble_tolerance = 1e-7;
+// original_multi_numerical_trouble_tolerance;
+
+const int synthetic_tick_reinversion_min_update_count = 50;
+const int original_multi_synthetic_tick_reinversion_min_update_count = 201;
+const int multi_synthetic_tick_reinversion_min_update_count =
+    synthetic_tick_reinversion_min_update_count;
+// original_multi_synthetic_tick_reinversion_min_update_count;
+
 /**
  * @brief Basis matrix factorization, update and solves for HiGHS
  *
@@ -119,14 +137,12 @@ class HFactor {
       const int* Aindex,     //!< Row indices of constraint matrix
       const double* Avalue,  //!< Row values of constraint matrix
       int* baseIndex,        //!< Indices of basic variables
-      int highs_debug_level = HIGHS_DEBUG_LEVEL_MIN, FILE* logfile = NULL,
-      FILE* output = NULL, int message_level = ML_NONE,
       double pivot_threshold = default_pivot_threshold,  //!< Pivoting threshold
       double pivot_tolerance = default_pivot_tolerance,  //!< Min absolute pivot
+      int highs_debug_level = HIGHS_DEBUG_LEVEL_MIN, bool output_flag = false,
+      FILE* logfile = NULL, bool log_to_console = true, int log_dev_level = 0,
       const bool use_original_HFactor_logic = true,
-      int updateMethod =
-          UPDATE_METHOD_FT  //!< Default update method is Forrest Tomlin
-  );
+      const int updateMethod = UPDATE_METHOD_FT);
 
   /**
    * @brief Form \f$PBQ=LU\f$ for basis matrix \f$B\f$ or report degree of rank
@@ -245,14 +261,16 @@ class HFactor {
   const int* Aindex;
   const double* Avalue;
   int* baseIndex;
-  int updateMethod;
-  bool use_original_HFactor_logic;
-  int highs_debug_level;
-  FILE* logfile;
-  FILE* output;
-  int message_level;
   double pivot_threshold;
   double pivot_tolerance;
+  int highs_debug_level;
+
+  bool output_flag;
+  bool log_to_console;
+  int log_dev_level;
+  HighsLogOptions log_options;
+  bool use_original_HFactor_logic;
+  int updateMethod;
 
   // Working buffer
   int nwork;
@@ -284,9 +302,9 @@ class HFactor {
   vector<int> MRindex;
 
   // Kernel column buffer
-  vector<int> McolumnIndex;
-  vector<char> McolumnMark;
-  vector<double> McolumnArray;
+  vector<int> mwz_column_index;
+  vector<char> mwz_column_mark;
+  vector<double> mwz_column_array;
 
   // Count link list
   vector<int> clinkFirst;

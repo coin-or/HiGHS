@@ -85,17 +85,15 @@ int Highs_passLp(void* highs, const int numcol, const int numrow,
 int Highs_clearModel(void* highs) { return (int)((Highs*)highs)->clearModel(); }
 
 int Highs_runQuiet(void* highs) {
-  int return_status = Highs_setHighsLogfile(highs, NULL);
-  if (return_status) return return_status;
-  return Highs_setHighsOutput(highs, NULL);
+  return (int)((Highs*)highs)->setHighsOptionValue("output_flag", false);
 }
 
 int Highs_setHighsLogfile(void* highs, void* logfile) {
-  return (int)((Highs*)highs)->setHighsLogfile((FILE*)logfile);
+  return (int)((Highs*)highs)->setHighsOptionValue("output_flag", false);
 }
 
 int Highs_setHighsOutput(void* highs, void* outputfile) {
-  return (int)((Highs*)highs)->setHighsOutput((FILE*)outputfile);
+  return (int)((Highs*)highs)->setHighsOptionValue("output_flag", false);
 }
 
 int Highs_setHighsBoolOptionValue(void* highs, const char* option,
@@ -293,8 +291,6 @@ int Highs_setBasis(void* highs, const int* colstatus, const int* rowstatus) {
       basis.col_status[i] = HighsBasisStatus::ZERO;
     } else if (colstatus[i] == (int)HighsBasisStatus::NONBASIC) {
       basis.col_status[i] = HighsBasisStatus::NONBASIC;
-    } else if (colstatus[i] == (int)HighsBasisStatus::SUPER) {
-      basis.col_status[i] = HighsBasisStatus::SUPER;
     } else {
       return (int)HighsStatus::Error;
     }
@@ -312,8 +308,6 @@ int Highs_setBasis(void* highs, const int* colstatus, const int* rowstatus) {
       basis.row_status[i] = HighsBasisStatus::ZERO;
     } else if (rowstatus[i] == (int)HighsBasisStatus::NONBASIC) {
       basis.row_status[i] = HighsBasisStatus::NONBASIC;
-    } else if (rowstatus[i] == (int)HighsBasisStatus::SUPER) {
-      basis.row_status[i] = HighsBasisStatus::SUPER;
     } else {
       return (int)HighsStatus::Error;
     }
@@ -364,8 +358,13 @@ int Highs_changeObjectiveSense(void* highs, const int sense) {
   return ((Highs*)highs)->changeObjectiveSense(pass_sense);
 }
 
-int Highs_changeColCost(void* highs, const int col, const double cost) {
+int Highs_changeColsCost(void* highs, const int col, const double cost) {
   return ((Highs*)highs)->changeColCost(col, cost);
+}
+
+int Highs_changeColsCostByRange(void* highs, const int from_col,
+                                const int to_col, const double* cost) {
+  return ((Highs*)highs)->changeColsCost(from_col, to_col, cost);
 }
 
 int Highs_changeColsCostBySet(void* highs, const int num_set_entries,

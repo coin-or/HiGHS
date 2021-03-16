@@ -16,6 +16,7 @@
 
 #include <sstream>
 
+#include "lp_data/HighsLpUtils.h"
 #include "lp_data/HighsModelObject.h"
 #include "lp_data/HighsRanging.h"
 #include "lp_data/HighsSolutionDebug.h"
@@ -28,7 +29,7 @@ class Highs {
  public:
   // see if an empty lp should have Astart[0] = 0
   Highs();
-  Highs(HighsOptions& options) { options_ = options; }
+  Highs(HighsOptions& options);
 
   virtual ~Highs() {}
 
@@ -113,9 +114,11 @@ class Highs {
       const char* value           //!< The option value
   );
 
+  // Deprecated
   HighsStatus setHighsLogfile(FILE* logfile = NULL  //!< The log file
   );
 
+  // Deprecated
   HighsStatus setHighsOutput(FILE* output = NULL  //!< The log file
   );
 
@@ -191,17 +194,17 @@ class Highs {
    * @brief Returns the HighsLp instance for the LP of the (first?)
    * HighsModelObject
    */
-  const HighsLp& getLp() const;
+  const HighsLp& getLp() const { return lp_; }
 
   /**
    * @brief Returns the HighsSolution
    */
-  const HighsSolution& getSolution() const;
+  const HighsSolution& getSolution() const { return solution_; }
 
   /**
    * @brief Returns the HighsBasis
    */
-  const HighsBasis& getBasis() const;
+  const HighsBasis& getBasis() const { return basis_; }
 
   /**
    * @brief Returns the current model status
@@ -209,12 +212,12 @@ class Highs {
   const HighsModelStatus& getModelStatus(const bool scaled_model = false) const;
 
   /**
-   * @brief Returns the objective function value (if known)
+   * @brief Returns the objective function value (if known) - Deprecated
    */
   double getObjectiveValue() { return info_.objective_function_value; }
 
   /**
-   * @brief Returns the simplex iteration count (if known)
+   * @brief Returns the simplex iteration count (if known) - Deprecated
    */
   int getSimplexIterationCount() { return info_.simplex_iteration_count; }
 
@@ -485,6 +488,16 @@ class Highs {
   );
 
   /**
+   * @brief Change the cost of multiple columns given by an interval
+   */
+  bool changeColsCost(
+      const int from_col,  //!< The index of the first column whose cost changes
+      const int to_col,    //!< One more than the index of the last column whose
+                           //!< cost changes
+      const double* cost   //!< Array of size num_set_entries with new costs
+  );
+
+  /**
    * @brief Change the cost of multiple columns given by a set of indices
    */
   bool changeColsCost(
@@ -555,6 +568,12 @@ class Highs {
       const double lower,  //!< The new lower bound
       const double upper   //!< The new upper bound
   );
+
+  /**
+   * @brief Change the bounds of multiple rows given by an interval
+   */
+  bool changeRowsBounds(const int from_row, const int to_row,
+                        const double* lower, const double* upper);
 
   /**
    * @brief Change the bounds of multiple rows given by a set of indices
@@ -779,6 +798,8 @@ class Highs {
   void setPresolveOptions(const PresolveComponentOptions& options) {
     presolve_.options_ = options;
   }
+  void setMatrixOrientation(const MatrixOrientation& desired_orientation =
+                                MatrixOrientation::COLWISE);
 
  private:
   HighsSolution solution_;
@@ -806,7 +827,8 @@ class Highs {
   // it's set to the correct positive number in Highs::run()
   int omp_max_threads = 0;
 
-  HighsStatus runLpSolver(const int model_index, const string message);
+  HighsStatus callSolveLp(const int model_index, const string message);
+  HighsStatus callSolveMip();
 
   PresolveComponent presolve_;
   HighsPresolveStatus runPresolve();
@@ -829,7 +851,7 @@ class Highs {
 
   void newHighsBasis();
   void forceHighsSolutionBasisSize();
-  bool getHighsModelStatusAndInfo(const int solved_hmo);
+  bool getHighsModelStatusAndInfo(const int model_index);
 
   HighsStatus reset();
 
@@ -841,6 +863,62 @@ class Highs {
   void underDevelopmentLogMessage(const string method_name);
   HighsStatus returnFromRun(const HighsStatus return_status);
   HighsStatus returnFromHighs(const HighsStatus return_status);
+
+  // Interface methods
+  HighsStatus addColsInterface(int XnumNewCol, const double* XcolCost,
+                               const double* XcolLower, const double* XcolUpper,
+                               int XnumNewNZ, const int* XAstart,
+                               const int* XAindex, const double* XAvalue);
+
+  HighsStatus addRowsInterface(int XnumNewRow, const double* XrowLower,
+                               const double* XrowUpper, int XnumNewNZ,
+                               const int* XARstart, const int* XARindex,
+                               const double* XARvalue);
+
+  HighsStatus deleteColsInterface(HighsIndexCollection& index_collection);
+
+  HighsStatus deleteRowsInterface(HighsIndexCollection& index_collection);
+
+  HighsStatus getColsInterface(const HighsIndexCollection& index_collection,
+                               int& num_col, double* col_cost,
+                               double* col_lower, double* col_upper,
+                               int& num_nz, int* col_matrix_start,
+                               int* col_matrix_index, double* col_matrix_value);
+
+  HighsStatus getRowsInterface(const HighsIndexCollection& index_collection,
+                               int& num_row, double* row_lower,
+                               double* row_upper, int& num_nz,
+                               int* row_matrix_start, int* row_matrix_index,
+                               double* row_matrix_value);
+
+  HighsStatus getCoefficientInterface(const int Xrow, const int Xcol,
+                                      double& value);
+
+  HighsStatus changeObjectiveSenseInterface(const ObjSense Xsense);
+  HighsStatus changeCostsInterface(HighsIndexCollection& index_collection,
+                                   const double* usr_col_cost);
+  HighsStatus changeColBoundsInterface(HighsIndexCollection& index_collection,
+                                       const double* usr_col_lower,
+                                       const double* usr_col_upper);
+  HighsStatus changeRowBoundsInterface(HighsIndexCollection& index_collection,
+                                       const double* usr_row_lower,
+                                       const double* usr_row_upper);
+  HighsStatus changeCoefficientInterface(const int Xrow, const int Xcol,
+                                         const double XnewValue);
+  HighsStatus scaleColInterface(const int col, const double scaleval);
+  HighsStatus scaleRowInterface(const int row, const double scaleval);
+  HighsStatus setNonbasicStatusInterface(
+      const HighsIndexCollection& index_collection, const bool columns);
+  HighsStatus getBasicVariablesInterface(int* basic_variables);
+  HighsStatus basisSolveInterface(const vector<double>& rhs,
+                                  double* solution_vector, int* solution_num_nz,
+                                  int* solution_indices, bool transpose);
+  void clearBasisInterface();
+
+  HighsStatus getDualRayInterface(bool& has_dual_ray, double* dual_ray_value);
+
+  HighsStatus getPrimalRayInterface(bool& has_primal_ray,
+                                    double* primal_ray_value);
 
   friend class HighsMipSolver;
 };

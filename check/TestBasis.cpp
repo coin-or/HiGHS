@@ -127,10 +127,8 @@ TEST_CASE("Basis-file", "[highs_basis_file]") {
       std::string(HIGHS_DIR) + "/check/instances/avgas.mps";
 
   Highs highs(options);
-
   if (!dev_run) {
-    highs.setHighsLogfile();
-    highs.setHighsOutput();
+    highs.setHighsOptionValue("output_flag", false);
   }
   assert(model0_file != model1_file);
 
@@ -199,8 +197,7 @@ TEST_CASE("Basis-data", "[highs_basis_data]") {
 
   Highs highs(options);
   if (!dev_run) {
-    highs.setHighsLogfile();
-    highs.setHighsOutput();
+    highs.setHighsOptionValue("output_flag", false);
   }
   assert(model0_file != model1_file);
 

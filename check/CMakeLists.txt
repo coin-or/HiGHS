@@ -13,17 +13,22 @@ target_include_directories(Catch INTERFACE ${HIGHS_SOURCE_DIR}/src/ipm/basiclu/i
 
 # Make test executable
 set(TEST_SOURCES
+    TestEkk.cpp
     TestMain.cpp
     TestOptions.cpp
     TestIO.cpp
     TestSort.cpp
     TestSetup.cpp
     TestFilereader.cpp
+    TestHighsGFkSolve.cpp
     TestInfo.cpp
     TestBasis.cpp
     TestBasisSolves.cpp
+    TestHighsIntegers.cpp
+    TestHSet.cpp
     TestLpValidation.cpp
     TestLpModification.cpp
+    TestLpOrientation.cpp
     TestRays.cpp
     TestRanging.cpp
     Avgas.cpp)
@@ -33,7 +38,7 @@ if (NOT APPLE)
     # macOS (Lukas). Only triggered by gas11 with no presolve which is strange. 
     # may be an interface related issue which will pop up soon. 
     # works OK on linux. The test was added to doctest for macOS but still hanging.
-    set(TEST_SOURCES ${TEST_SOURCES} TestSpecialLps.cpp TestLpSolvers.cpp)
+    set(TEST_SOURCES ${TEST_SOURCES} TestSpecialLps.cpp TestLpSolvers.cpp TestMipSolver.cpp)
 endif()
 
 if (IPX_ON)
@@ -258,9 +263,9 @@ foreach(instance ${mipInstances})
 
         set_tests_properties (${name}${setting} PROPERTIES
                 PASS_REGULAR_EXPRESSION
-                "objective function value: ${optval}"
+                "Status            Optimal\n  Primal bound      ${optval}.*\n  Dual bound        ${optval}.*\n  Solution status   feasible\n                    ${optval}.* \\(objective\\)"
                 FAIL_REGULAR_EXPRESSION
-                "solution is infeasible")
+                "Solution status   infeasible")
 
     endforeach(setting)
 endforeach()

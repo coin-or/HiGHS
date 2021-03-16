@@ -19,6 +19,7 @@
 
 #include "io/HighsIO.h"
 #include "lp_data/HighsLp.h"
+#include "lp_data/HighsModelUtils.h"
 
 double infProduct(double value) {
   // Multiplying value and HIGHS_CONST_INF
@@ -38,23 +39,22 @@ double possInfProduct(double poss_inf, double value) {
   }
 }
 
-HighsStatus getHighsRanging(HighsRanging& ranging,
-                            const HighsModelObject& highs_model_object) {
+HighsStatus getRangingData(HighsRanging& ranging,
+                           const HighsModelObject& highs_model_object) {
   if (highs_model_object.scaled_model_status_ != HighsModelStatus::OPTIMAL) {
-    HighsLogMessage(highs_model_object.options_.logfile,
-                    HighsMessageType::ERROR,
-                    "Cannot get ranging without an optimal solution");
+    highsLogUser(highs_model_object.options_.log_options, HighsLogType::ERROR,
+                 "Cannot get ranging without an optimal solution\n");
     return HighsStatus::Error;
   }
-  if (!highs_model_object.simplex_lp_status_.valid) {
-    HighsLogMessage(highs_model_object.options_.logfile,
-                    HighsMessageType::ERROR,
-                    "Cannot get ranging without a valid Simplex LP");
+  const HEkk& ekk_instance = highs_model_object.ekk_instance_;
+  if (!ekk_instance.simplex_lp_status_.valid) {
+    highsLogUser(highs_model_object.options_.log_options, HighsLogType::ERROR,
+                 "Cannot get ranging without a valid Simplex LP\n");
     return HighsStatus::Error;
   }
   // Aliases
-  const HighsSimplexInfo& simplex_info = highs_model_object.simplex_info_;
-  const SimplexBasis& simplex_basis = highs_model_object.simplex_basis_;
+  const HighsSimplexInfo& simplex_info = ekk_instance.simplex_info_;
+  const SimplexBasis& simplex_basis = ekk_instance.simplex_basis_;
   const vector<double>& col_scale = highs_model_object.scale_.col_;
   const vector<double>& row_scale = highs_model_object.scale_.row_;
   const vector<double>& value_ = simplex_info.workValue_;
@@ -68,18 +68,18 @@ HighsStatus getHighsRanging(HighsRanging& ranging,
   const vector<int>& Nflag_ = simplex_basis.nonbasicFlag_;
   const vector<int>& Nmove_ = simplex_basis.nonbasicMove_;
   const vector<int>& Bindex_ = simplex_basis.basicIndex_;
-  const HMatrix& matrix = highs_model_object.matrix_;
-  const HFactor& factor = highs_model_object.factor_;
+  const HMatrix& matrix = ekk_instance.matrix_;
+  const HFactor& factor = ekk_instance.factor_;
 
   // Local copies of scalars
 
-  const int numRow = highs_model_object.simplex_lp_.numRow_;
-  const int numCol = highs_model_object.simplex_lp_.numCol_;
+  const int numRow = ekk_instance.simplex_lp_.numRow_;
+  const int numCol = ekk_instance.simplex_lp_.numCol_;
   const int numTotal = numCol + numRow;
   const double H_TT = 1e-13;
   const double H_INF = HIGHS_CONST_INF;
   const double objective =
-      highs_model_object.unscaled_solution_params_.objective_function_value;
+      highs_model_object.solution_params_.objective_function_value;
 
   // Code written for minimization problems. Maximization problems are
   // solved by using negated costs in the simplex solver and
@@ -574,5 +574,61 @@ HighsStatus getHighsRanging(HighsRanging& ranging,
   ranging.row_bound_dn.ou_var_ = {b_up_l.begin() + numCol,
                                   b_up_l.begin() + numTotal};
 
+  writeRanging(ranging, highs_model_object);
   return HighsStatus::OK;
+}
+
+void writeRanging(const HighsRanging& ranging,
+                  const HighsModelObject& highs_model_object) {
+  if (!highs_model_object.options_.log_dev_level) return;
+  if (highs_model_object.scaled_model_status_ != HighsModelStatus::OPTIMAL)
+    return;
+  HighsLp& lp = highs_model_object.lp_;
+  HighsLogOptions& log_options = highs_model_object.options_.log_options;
+  highsLogDev(log_options, HighsLogType::VERBOSE,
+              "\nRanging data: Optimal objective = %g\n"
+              "           |                               Bound ranging        "
+              "                           "
+              " |                    Cost ranging\n"
+              "Col Status | DownObj    Down       (Lower      Value      Upper "
+              "    ) Up         UpObj     "
+              " | DownObj    Down       Value      Up         UpObj\n",
+              highs_model_object.solution_params_.objective_function_value);
+  for (int iCol = 0; iCol < lp.numCol_; iCol++) {
+    highsLogDev(log_options, HighsLogType::VERBOSE,
+                "%3i   %4s | %-10.4g %-10.4g (%-10.4g %-10.4g %-10.4g) %-10.4g "
+                "%-10.4g | %-10.4g %-10.4g %-10.4g %-10.4g %-10.4g\n",
+                iCol,
+                statusToString(highs_model_object.basis_.col_status[iCol],
+                               lp.colLower_[iCol], lp.colUpper_[iCol])
+                    .c_str(),
+                ranging.col_bound_dn.objective_[iCol],
+                ranging.col_bound_dn.value_[iCol], lp.colLower_[iCol],
+                highs_model_object.solution_.col_value[iCol],
+                lp.colUpper_[iCol], ranging.col_bound_up.value_[iCol],
+                ranging.col_bound_up.objective_[iCol],
+                ranging.col_cost_dn.objective_[iCol],
+                ranging.col_cost_dn.value_[iCol], lp.colCost_[iCol],
+                ranging.col_cost_up.value_[iCol],
+                ranging.col_cost_up.objective_[iCol]);
+  }
+  highsLogDev(log_options, HighsLogType::VERBOSE,
+              "           |                               Bound ranging        "
+              "                             \n"
+              "Col Status | DownObj    Down       (Lower      Value      Upper "
+              "    ) Up         UpObj   \n");
+  for (int iRow = 0; iRow < lp.numRow_; iRow++) {
+    highsLogDev(log_options, HighsLogType::VERBOSE,
+                "%3i   %4s | %-10.4g %-10.4g (%-10.4g %-10.4g %-10.4g) %-10.4g "
+                "%-10.4g |\n",
+                iRow,
+                statusToString(highs_model_object.basis_.row_status[iRow],
+                               lp.rowLower_[iRow], lp.rowUpper_[iRow])
+                    .c_str(),
+                ranging.row_bound_dn.objective_[iRow],
+                ranging.row_bound_dn.value_[iRow], lp.rowLower_[iRow],
+                highs_model_object.solution_.row_value[iRow],
+                lp.rowUpper_[iRow], ranging.row_bound_up.value_[iRow],
+                ranging.row_bound_up.objective_[iRow]);
+  }
 }

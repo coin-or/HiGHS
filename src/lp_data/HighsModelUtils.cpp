@@ -22,9 +22,8 @@
 #include "lp_data/HConst.h"
 #include "util/HighsUtils.h"
 
-#ifdef HiGHSDEV
-void analyseModelBounds(const char* message, int numBd,
-                        const std::vector<double>& lower,
+void analyseModelBounds(const HighsLogOptions& log_options, const char* message,
+                        int numBd, const std::vector<double>& lower,
                         const std::vector<double>& upper) {
   if (numBd == 0) return;
   int numFr = 0;
@@ -59,25 +58,32 @@ void analyseModelBounds(const char* message, int numBd,
       }
     }
   }
-  printf("Analysing %d %s bounds\n", numBd, message);
+  highsLogDev(log_options, HighsLogType::INFO, "Analysing %d %s bounds\n",
+              numBd, message);
   if (numFr > 0)
-    printf("   Free:  %7d (%3d%%)\n", numFr, (100 * numFr) / numBd);
+    highsLogDev(log_options, HighsLogType::INFO, "   Free:  %7d (%3d%%)\n",
+                numFr, (100 * numFr) / numBd);
   if (numLb > 0)
-    printf("   LB:    %7d (%3d%%)\n", numLb, (100 * numLb) / numBd);
+    highsLogDev(log_options, HighsLogType::INFO, "   LB:    %7d (%3d%%)\n",
+                numLb, (100 * numLb) / numBd);
   if (numUb > 0)
-    printf("   UB:    %7d (%3d%%)\n", numUb, (100 * numUb) / numBd);
+    highsLogDev(log_options, HighsLogType::INFO, "   UB:    %7d (%3d%%)\n",
+                numUb, (100 * numUb) / numBd);
   if (numBx > 0)
-    printf("   Boxed: %7d (%3d%%)\n", numBx, (100 * numBx) / numBd);
+    highsLogDev(log_options, HighsLogType::INFO, "   Boxed: %7d (%3d%%)\n",
+                numBx, (100 * numBx) / numBd);
   if (numFx > 0)
-    printf("   Fixed: %7d (%3d%%)\n", numFx, (100 * numFx) / numBd);
-  printf("grep_CharMl,%s,Free,LB,UB,Boxed,Fixed\n", message);
-  printf("grep_CharMl,%d,%d,%d,%d,%d,%d\n", numBd, numFr, numLb, numUb, numBx,
-         numFx);
+    highsLogDev(log_options, HighsLogType::INFO, "   Fixed: %7d (%3d%%)\n",
+                numFx, (100 * numFx) / numBd);
+  highsLogDev(log_options, HighsLogType::INFO,
+              "grep_CharMl,%s,Free,LB,UB,Boxed,Fixed\n", message);
+  highsLogDev(log_options, HighsLogType::INFO,
+              "grep_CharMl,%d,%d,%d,%d,%d,%d\n", numBd, numFr, numLb, numUb,
+              numBx, numFx);
 }
 
-#endif
-std::string ch4VarStatus(const HighsBasisStatus status, const double lower,
-                         const double upper) {
+std::string statusToString(const HighsBasisStatus status, const double lower,
+                           const double upper) {
   switch (status) {
     case HighsBasisStatus::LOWER:
       if (lower == upper) {
@@ -94,9 +100,6 @@ std::string ch4VarStatus(const HighsBasisStatus status, const double lower,
       break;
     case HighsBasisStatus::ZERO:
       return "FR";
-      break;
-    case HighsBasisStatus::SUPER:
-      return "SU";
       break;
     case HighsBasisStatus::NONBASIC:
       return "NB";
@@ -116,7 +119,7 @@ void writeModelBoundSol(FILE* file, const bool columns, const int dim,
   const bool have_basis = status.size() > 0;
   const bool have_primal = primal.size() > 0;
   const bool have_dual = dual.size() > 0;
-  std::string ch4_var_status;
+  std::string var_status_string;
   if (columns) {
     fprintf(file, "Columns\n");
   } else {
@@ -132,12 +135,12 @@ void writeModelBoundSol(FILE* file, const bool columns, const int dim,
   }
   for (int ix = 0; ix < dim; ix++) {
     if (have_basis) {
-      ch4_var_status = ch4VarStatus(status[ix], lower[ix], upper[ix]);
+      var_status_string = statusToString(status[ix], lower[ix], upper[ix]);
     } else {
-      ch4_var_status = "";
+      var_status_string = "";
     }
-    fprintf(file, "%9d   %4s %12g %12g", ix, ch4_var_status.c_str(), lower[ix],
-            upper[ix]);
+    fprintf(file, "%9d   %4s %12g %12g", ix, var_status_string.c_str(),
+            lower[ix], upper[ix]);
     if (have_primal) {
       fprintf(file, " %12g", primal[ix]);
     } else {
@@ -178,7 +181,7 @@ int maxNameLength(const int num_name, const std::vector<std::string>& names) {
   return max_name_length;
 }
 
-HighsStatus normaliseNames(const HighsOptions& options,
+HighsStatus normaliseNames(const HighsLogOptions& log_options,
                            const std::string name_type, const int num_name,
                            std::vector<std::string>& names,
                            int& max_name_length) {
@@ -200,10 +203,10 @@ HighsStatus normaliseNames(const HighsOptions& options,
     // Construct names, either because they are empty names, or
     // because the existing names are too long
 
-    HighsLogMessage(options.logfile, HighsMessageType::WARNING,
-                    "There are empty or excessively-long %s names: using "
-                    "constructed names with prefix %s",
-                    name_type.c_str(), name_prefix.c_str());
+    highsLogUser(log_options, HighsLogType::WARNING,
+                 "There are empty or excessively-long %s names: using "
+                 "constructed names with prefix %s\n",
+                 name_type.c_str(), name_prefix.c_str());
     for (int ix = 0; ix < num_name; ix++)
       names[ix] = name_prefix + std::to_string(ix);
   } else {
@@ -351,6 +354,7 @@ void zeroHighsIterationCounts(HighsInfo& info) {
   info.simplex_iteration_count = 0;
   info.ipm_iteration_count = 0;
   info.crossover_iteration_count = 0;
+  info.mip_node_count = -1;
 }
 
 void copyHighsIterationCounts(const HighsIterationCounts& iteration_counts,
@@ -358,6 +362,7 @@ void copyHighsIterationCounts(const HighsIterationCounts& iteration_counts,
   info.simplex_iteration_count = iteration_counts.simplex;
   info.ipm_iteration_count = iteration_counts.ipm;
   info.crossover_iteration_count = iteration_counts.crossover;
+  info.mip_node_count = -1;
 }
 
 void copyHighsIterationCounts(const HighsInfo& info,
