@@ -14,7 +14,7 @@
 #include "lp_data/HighsDebug.h"
 
 #include <algorithm>  // For std::max
-#include <cassert>    // For std::max
+#include <cassert>
 
 HighsStatus debugDebugToHighsStatus(const HighsDebugStatus debug_status) {
   switch (debug_status) {

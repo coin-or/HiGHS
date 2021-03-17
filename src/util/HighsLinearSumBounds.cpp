@@ -1,4 +1,19 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/*                                                                       */
+/*    This file is part of the HiGHS linear optimization suite           */
+/*                                                                       */
+/*    Written and engineered 2008-2021 at the University of Edinburgh    */
+/*                                                                       */
+/*    Available as open-source under the MIT License                     */
+/*                                                                       */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/**@file lp_data/HighsLinearSumBounds.cpp
+ * @brief
+ * @author Julian Hall, Ivet Galabova, Qi Huangfu and Michael Feldmeier
+ */
 #include "util/HighsLinearSumBounds.h"
+
+#include <algorithm>  // For std::max
 
 void HighsLinearSumBounds::add(int sum, int var, double coefficient) {
   double vLower = implVarLowerSource[var] == sum
