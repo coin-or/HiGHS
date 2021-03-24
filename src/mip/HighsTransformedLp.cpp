@@ -301,6 +301,10 @@ bool HighsTransformedLp::transform(std::vector<double>& vals,
       int col = inds[j];
       if (!lprelaxation.isColIntegral(inds[j])) continue;
 
+      int boundTypes_size = boundTypes.size();
+      bool boundTypes_size_ok = col < boundTypes_size;
+      if (!boundTypes_size_ok) printf("boundTypes_size is not OK (%d>=%d)\n", col, boundTypes_size); fflush(stdout);
+      assert(boundTypes_size_ok);
       if (vals[j] > 0)
         boundTypes[col] = BoundType::kSimpleLb;
       else
