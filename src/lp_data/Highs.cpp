@@ -2275,9 +2275,9 @@ HighsStatus Highs::crossover() {
     bool x_status = callCrossover(lp_, options_, solution_, basis);
     if (!x_status)
       return HighsStatus::Error;
-     
+
     setBasis(basis);
-#else 
+#else
     // No IPX available so end here at approximate solve.
     HighsPrintMessage(options_.output, options_.message_level, ML_VERBOSE,
                     "No ipx code available. Error.\n");

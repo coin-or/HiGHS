@@ -853,7 +853,7 @@ int Highs_crossover(
 //     const HighsLp &lp  //!< The HighsLp instance for this LP
 // );
 
-// HighsStatus setSolution(const HighsSolution &solution);
+int Highs_setSolution(void* highs, const double* primal_values);
 
 // /**
 //  * @brief Uses the HighsBasis passed to set the basis for the

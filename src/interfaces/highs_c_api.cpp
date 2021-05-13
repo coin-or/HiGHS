@@ -572,3 +572,23 @@ const char* Highs_primalDualStatusToChar(void* highs,
       ->primalDualStatusToString(int_primal_dual_status)
       .c_str();
 }
+
+int Highs_crossover(void* highs) {
+  HighsStatus status = ((Highs*)highs)->crossover();
+  if (status == HighsStatus::OK) return 0;
+  return -1;
+}
+
+int Highs_setSolution(void* highs, const double* primal_values) {
+  HighsSolution solution;
+  const int ncols = ((Highs*)highs)->getNumCols();
+
+  solution.col_value.assign(ncols, 0);
+  for (int col = 0; col < ncols; col++)
+    solution.col_value[col] = primal_values[col];
+
+  HighsStatus status = ((Highs*)highs)->setSolution(solution);
+
+  if (status == HighsStatus::OK) return 0;
+  return -1;
+}
