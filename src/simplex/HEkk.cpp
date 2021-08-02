@@ -587,6 +587,7 @@ void HEkk::initialiseSimplexLpRandomVectors() {
   vector<double>& numTotRandomValue = info_.numTotRandomValue_;
   for (HighsInt i = 0; i < num_tot; i++) {
     numTotRandomValue[i] = random.fraction();
+    printf("Random %d = %g\n", (int)i, numTotRandomValue[i]);
   }
 }
 
