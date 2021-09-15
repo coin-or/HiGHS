@@ -792,7 +792,7 @@ void HighsCliqueTable::addClique(const HighsMipSolver& mipsolver,
   if (numcliquevars <= 100) {
     bool hasNewEdge = false;
     uint8_t hasNewEdges[100];
-    if (compressNewCliques) std::memset(hasNewEdges, 0, numcliquevars);
+    if (!inPresolve) std::memset(hasNewEdges, 0, numcliquevars);
 
     for (HighsInt i = 0; i < numcliquevars - 1; ++i) {
       if (globaldom.isFixed(cliquevars[i].col)) continue;
@@ -801,7 +801,7 @@ void HighsCliqueTable::addClique(const HighsMipSolver& mipsolver,
           cliquesetroot[cliquevars[i].complement().index()] == -1 &&
           sizeTwoCliquesetRoot[cliquevars[i].complement().index()] == -1) {
         hasNewEdge = true;
-        if (compressNewCliques) std::memset(hasNewEdges, 1, numcliquevars);
+        if (!inPresolve) std::memset(hasNewEdges, 1, numcliquevars);
         continue;
       }
 
@@ -894,7 +894,7 @@ void HighsCliqueTable::addClique(const HighsMipSolver& mipsolver,
     if (origin == kHighsIInf) {
       if (!hasNewEdge) return;
 
-      if (compressNewCliques) {
+      if (!inPresolve) {
         HighsInt numDelEntries = 0;
         for (HighsInt i = 0; i < numcliquevars; ++i) {
           if (!hasNewEdges[i]) {
@@ -1268,9 +1268,7 @@ void HighsCliqueTable::extractCliquesFromCut(const HighsMipSolver& mipsolver,
       //   if (numEntries >= maxEntries) return;
       //   runCliqueSubsumption(globaldom, clique);
       // }
-      compressNewCliques = true;
       addClique(mipsolver, clique.data(), clique.size());
-      compressNewCliques = false;
       if (globaldom.infeasible() || numEntries >= maxEntries) return;
     }
 
@@ -1572,6 +1570,8 @@ void HighsCliqueTable::processInfeasibleVertices(HighsDomain& globaldom) {
       node = cliquesetroot[v.index()] != -1 ? cliquesetroot[v.index()]
                                             : sizeTwoCliquesetRoot[v.index()];
     }
+
+    if (inPresolve) continue;
 
     node = sizeTwoCliquesetRoot[v.complement().index()];
     while (node != -1) {
@@ -2202,6 +2202,7 @@ void HighsCliqueTable::rebuild(HighsInt ncols, const HighsDomain& globaldomain,
                                const std::vector<HighsInt>& orig2reducedcol,
                                const std::vector<HighsInt>& orig2reducedrow) {
   HighsCliqueTable newCliqueTable(ncols);
+  newCliqueTable.setPresolveFlag(inPresolve);
   HighsInt ncliques = cliques.size();
   for (HighsInt i = 0; i != ncliques; ++i) {
     if (cliques[i].start == -1) continue;
@@ -2235,6 +2236,7 @@ void HighsCliqueTable::buildFrom(const HighsCliqueTable& init) {
   assert(init.colsubstituted.size() == colsubstituted.size());
   HighsInt ncols = init.colsubstituted.size();
   HighsCliqueTable newCliqueTable(ncols);
+  newCliqueTable.setPresolveFlag(inPresolve);
   HighsInt ncliques = init.cliques.size();
   for (HighsInt i = 0; i != ncliques; ++i) {
     if (init.cliques[i].start == -1) continue;

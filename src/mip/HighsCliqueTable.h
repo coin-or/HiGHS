@@ -106,7 +106,7 @@ class HighsCliqueTable {
   HighsRandom randgen;
   HighsInt nfixings;
   HighsInt numEntries;
-  bool compressNewCliques;
+  bool inPresolve;
   HighsInt splay(HighsInt cliqueid, HighsInt root);
 
   void unlink(HighsInt node);
@@ -166,8 +166,10 @@ class HighsCliqueTable {
     nfixings = 0;
     numSplayCalls = 0;
     numEntries = 0;
-    compressNewCliques = false;
+    inPresolve = false;
   }
+
+  void setPresolveFlag(bool inPresolve) { this->inPresolve = inPresolve; }
 
   HighsInt getNumEntries() const { return numEntries; }
 
