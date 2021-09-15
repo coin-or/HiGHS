@@ -238,29 +238,31 @@ restart:
             options_mip_->presolve != "off";
       }
 
-      if (upperLimLastCheck == mipdata_->upper_limit &&
-          currNodeEstim >=
-              50 * (mipdata_->num_nodes - mipdata_->num_nodes_before_run)) {
-        nextCheck = mipdata_->num_nodes + 100;
-        ++numHugeTreeEstim;
+      if (!doRestart) {
+        if (upperLimLastCheck == mipdata_->upper_limit &&
+            currNodeEstim >=
+                20 * (mipdata_->num_nodes - mipdata_->num_nodes_before_run)) {
+          nextCheck = mipdata_->num_nodes + 100;
+          ++numHugeTreeEstim;
+        } else {
+          numHugeTreeEstim = 0;
+          treeweightLastCheck = double(mipdata_->pruned_treeweight);
+          numNodesLastCheck = mipdata_->num_nodes;
+          upperLimLastCheck = mipdata_->upper_limit;
+        }
+
+        int64_t minHugeTreeOffset =
+            (mipdata_->num_leaves - mipdata_->num_leaves_before_run) * 1e-3;
+        int64_t minHugeTreeEstim =
+            (10 + minHugeTreeOffset) * (1 << nTreeRestarts);
+
+        doRestart =
+            numHugeTreeEstim >= ((10 + minHugeTreeOffset) << nTreeRestarts);
       } else {
-        numHugeTreeEstim = 0;
-        treeweightLastCheck = double(mipdata_->pruned_treeweight);
-        numNodesLastCheck = mipdata_->num_nodes;
-        upperLimLastCheck = mipdata_->upper_limit;
+        // count restart due to many fixings within the first 1000 nodes as
+        // root restart
+        ++mipdata_->numRestartsRoot;
       }
-
-      double minHugeTreeOffset =
-          (mipdata_->num_leaves - mipdata_->num_leaves_before_run) * 1e-3;
-      int64_t minHugeTreeEstim =
-          (10 + minHugeTreeOffset) * (1 << nTreeRestarts);
-
-      doRestart =
-          doRestart ||
-          numHugeTreeEstim >= ((10 + int64_t((mipdata_->num_leaves -
-                                              mipdata_->num_leaves_before_run) *
-                                             1e-3))
-                               << nTreeRestarts);
 
       if (doRestart) {
         highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
