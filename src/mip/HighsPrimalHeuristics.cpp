@@ -1072,7 +1072,7 @@ void HighsPrimalHeuristics::centralRounding() {
   lpmodel.col_cost_.assign(lpmodel.num_col_, 0.0);
   ipm.passModel(std::move(lpmodel));
 
-  if (mipsolver.mipdata_->upper_limit != kHighsInf) {
+  if (false && mipsolver.mipdata_->upper_limit != kHighsInf) {
     std::vector<HighsInt> objinds;
     std::vector<double> objval;
     for (HighsInt i = 0; i != mipsolver.numCol(); ++i) {
