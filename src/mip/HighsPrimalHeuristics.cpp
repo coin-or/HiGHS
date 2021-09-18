@@ -1030,7 +1030,10 @@ void HighsPrimalHeuristics::feasibilityPump() {
     for (HighsInt i : mipsolver.mipdata_->integer_cols) {
       assert(mipsolver.variableType(i) == HighsVarType::kInteger);
 
-      if (lpsol[i] > roundedsol[i] - mipsolver.mipdata_->feastol)
+      if (mipsolver.mipdata_->uplocks[i] == 0 ||
+          mipsolver.mipdata_->downlocks[i] == 0)
+        cost[i] = 0.0;
+      else if (lpsol[i] > roundedsol[i] - mipsolver.mipdata_->feastol)
         cost[i] = -1.0 + randgen.real(-1e-4, 1e-4);
       else
         cost[i] = 1.0 + randgen.real(-1e-4, 1e-4);
