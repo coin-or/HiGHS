@@ -787,6 +787,8 @@ bool HighsPrimalHeuristics::tryRoundedPoint(const std::vector<double>& point,
   if (numintcols != mipsolver.numCol()) {
     HighsLpRelaxation lprelax(mipsolver);
     lprelax.loadModel();
+    lprelax.setIterationLimit(
+        std::max(int64_t{10000}, 2 * mipsolver.mipdata_->firstrootlpiters));
     lprelax.getLpSolver().changeColsBounds(0, mipsolver.numCol() - 1,
                                            localdom.col_lower_.data(),
                                            localdom.col_upper_.data());
