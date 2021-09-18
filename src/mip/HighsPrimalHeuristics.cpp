@@ -910,11 +910,15 @@ void HighsPrimalHeuristics::randomizedRounding(
   if (int(mipsolver.mipdata_->integer_cols.size()) != mipsolver.numCol()) {
     HighsLpRelaxation lprelax(mipsolver);
     lprelax.loadModel();
+    lprelax.setIterationLimit(
+        std::max(int64_t{10000}, 2 * mipsolver.mipdata_->firstrootlpiters));
     lprelax.getLpSolver().changeColsBounds(0, mipsolver.numCol() - 1,
                                            localdom.col_lower_.data(),
                                            localdom.col_upper_.data());
-    // lprelax.getLpSolver().setHighsOptionValue("presolve", "on");
-    lprelax.getLpSolver().setBasis(mipsolver.mipdata_->firstrootbasis);
+    if (intcols.size() / (double)mipsolver.numCol() >= 0.2)
+      lprelax.getLpSolver().setOptionValue("presolve", "on");
+    else
+      lprelax.getLpSolver().setBasis(mipsolver.mipdata_->firstrootbasis);
     HighsLpRelaxation::Status st = lprelax.resolveLp();
 
     if (st == HighsLpRelaxation::Status::kInfeasible) {
