@@ -16,7 +16,7 @@
 #ifndef OsiHiGHSSolverInterface_H
 #define OsiHiGHSSolverInterface_H
 
-#include "../../../dist/include/coin-or/OsiSolverInterface.hpp"
+#include "OsiSolverInterface.hpp" //@jajhall needs path ../../../dist/include/coin-or/
 
 // forward declarations
 class Highs;

@@ -17,7 +17,7 @@
 
 #include <cmath>
 
-#include "../../../dist/include/coin-or/CoinWarmStartBasis.hpp"
+#include "CoinWarmStartBasis.hpp" //@jajhall needs path ../../../dist/include/coin-or/
 #include "Highs.h"
 #include "HighsLp.h"
 #include "HighsOptions.h"
