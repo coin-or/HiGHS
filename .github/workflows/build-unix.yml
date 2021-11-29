@@ -55,7 +55,7 @@ jobs:
         echo "int main(int argc, char** argv) {" >> file.cpp \
         echo "  Highs highs;" >> file.cpp \
         echo "return 0;}" >> file.cpp \
-        g++ -I ${{runner.workspace}}/install/include -L ${{runner.workspace}}/install/lib file.cpp 
+        g++ -I ${{runner.workspace}}/install/include -L ${{runner.workspace}}/install/lib file.cpp \
         a.out
 
   release:
