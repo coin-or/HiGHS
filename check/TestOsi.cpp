@@ -19,6 +19,8 @@
 #include "OsiHiGHSSolverInterface.hpp"
 #include "OsiUnitTests.hpp"
 
+#include "util/HighsInt.h"
+
 const bool dev_run = false;
 
 using namespace OsiUnitTest;
@@ -47,7 +49,17 @@ HighsInt main(HighsInt argc, const char* argv[]) {
 
   std::string mpsDir = COINSAMPLEDIR;
   mpsDir.push_back(CoinFindDirSeparator());
-
+  //
+  // OsiHiGHSSolverInterface has private data member
+  //
+  // Highs* highs;
+  //
+  // so this is null until the line
+  //
+  // this->highs = new Highs();
+  //
+  // in the default constructor OsiHiGHSSolverInterface();
+  //
   // Do common solverInterface testing by calling the base class testing method.
   {
     OsiHiGHSSolverInterface highsSi;

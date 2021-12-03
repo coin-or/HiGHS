@@ -16,7 +16,9 @@
 #ifndef OsiHiGHSSolverInterface_H
 #define OsiHiGHSSolverInterface_H
 
-#include "OsiSolverInterface.hpp" //@jajhall needs path ../../../dist/include/coin-or/
+#include "OsiSolverInterface.hpp"
+
+#include "util/HighsInt.h"
 
 // forward declarations
 class Highs;
@@ -408,6 +410,10 @@ class OsiHiGHSSolverInterface : virtual public OsiSolverInterface {
   double objOffset = 0.0;
 
   OsiHiGHSSolverInterface(const OsiHiGHSSolverInterface& original);
+  void setVectors(HighsLp& lp,
+		  const HighsInt numcols, const HighsInt numrows,
+		  const double* collb, const double* colub, const double* obj, 
+		  const double* rowlb, const double* rowub);
 };
 
 void OsiSolverInterfaceMpsUnitTest(const std::vector<OsiSolverInterface*>& vecSiP, const std::string& mpsDir);

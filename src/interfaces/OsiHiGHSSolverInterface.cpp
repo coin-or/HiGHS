@@ -17,7 +17,7 @@
 
 #include <cmath>
 
-#include "CoinWarmStartBasis.hpp" //@jajhall needs path ../../../dist/include/coin-or/
+#include "CoinWarmStartBasis.hpp"
 #include "Highs.h"
 #include "HighsLp.h"
 #include "HighsOptions.h"
@@ -64,10 +64,11 @@ OsiHiGHSSolverInterface::OsiHiGHSSolverInterface()
   highsSetLogCallback(printtomessagehandler, logtomessagehandler,
                       (void*)handler_);
 
+  this->highs = new Highs();
   HighsOptions& options = this->highs->options_;
   highsLogDev(options.log_options, HighsLogType::kInfo,
-              "Calling OsiHiGHSSolverInterface::OsiHiGHSSolverInterface()\n");
-  this->highs = new Highs();
+              "Calling OsiHiGHSSolverInterface::OsiHiGHSSolverInterface() - Default constructor\n");
+
   this->dummy_solution = new HighsSolution;
 
   // Because HiGHS calls highsSetLogCallback with the options, which overwrites
@@ -87,10 +88,11 @@ OsiHiGHSSolverInterface::OsiHiGHSSolverInterface(
   highsSetLogCallback(printtomessagehandler, logtomessagehandler,
                       (void*)handler_);
 
+  this->highs = new Highs();
   HighsOptions& options = this->highs->options_;
   highsLogDev(options.log_options, HighsLogType::kInfo,
-              "Calling OsiHiGHSSolverInterface::OsiHiGHSSolverInterface()\n");
-  this->highs = new Highs();
+              "Calling OsiHiGHSSolverInterface::OsiHiGHSSolverInterface() - Original - constructor\n");
+
   this->dummy_solution = new HighsSolution;
 
   // Because HiGHS calls highsSetLogCallback with the options, whichoverwrites
@@ -106,7 +108,7 @@ OsiHiGHSSolverInterface::OsiHiGHSSolverInterface(
 OsiHiGHSSolverInterface::~OsiHiGHSSolverInterface() {
   HighsOptions& options = this->highs->options_;
   highsLogDev(options.log_options, HighsLogType::kInfo,
-              "Calling OsiHiGHSSolverInterface::~OsiHiGHSSolverInterface()\n");
+              "Calling OsiHiGHSSolverInterface::~OsiHiGHSSolverInterface() - Destructor\n");
 
   highsSetLogCallback(NULL, NULL, NULL);
 
@@ -818,11 +820,11 @@ void OsiHiGHSSolverInterface::loadProblem(
   std::vector<HighsInt>& index = lp.a_matrix_.index_;
   std::vector<double>& value = lp.a_matrix_.value_;
   start.resize(start_dim + 1);
-  index.resize(start[start_dim]);
-  value.resize(start[start_dim]);
+  index.resize(num_nz);
+  value.resize(num_nz);
 
   // get matrix data
-  // const CoinBigIndex *vectorStarts = matrix.getVectorStarts();
+  //  const CoinBigIndex *vectorStarts = matrix.getVectorStarts();
   const HighsInt* vectorLengths = matrix.getVectorLengths();
   const double* elements = matrix.getElements();
   const HighsInt* indices = matrix.getIndices();
@@ -840,6 +842,9 @@ void OsiHiGHSSolverInterface::loadProblem(
     }
   }
   assert(num_nz == nz);
+
+
+
   this->highs->passModel(lp);
 }
 
@@ -1328,6 +1333,14 @@ void OsiHiGHSSolverInterface::setColNames(OsiNameVec& srcNames,
                                           HighsInt srcStart, HighsInt len,
                                           HighsInt tgtStart) {}
 
+// Private methods
+void OsiHiGHSSolverInterface::setVectors(HighsLp& lp,
+					 const HighsInt numcols, const HighsInt numrows,
+					 const double* collb, const double* colub, const double* obj, 
+					 const double* rowlb, const double* rowub) {
+}
+
 void OsiSolverInterfaceMpsUnitTest(
     const std::vector<OsiSolverInterface*>& vecSiP, const std::string& mpsDir) {
 }
+
