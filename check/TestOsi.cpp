@@ -18,7 +18,6 @@
 #include "HCheckConfig.h"
 #include "OsiHiGHSSolverInterface.hpp"
 #include "OsiUnitTests.hpp"
-
 #include "util/HighsInt.h"
 
 const bool dev_run = false;

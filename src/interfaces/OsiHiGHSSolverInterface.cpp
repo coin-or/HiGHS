@@ -67,7 +67,8 @@ OsiHiGHSSolverInterface::OsiHiGHSSolverInterface()
   this->highs = new Highs();
   HighsOptions& options = this->highs->options_;
   highsLogDev(options.log_options, HighsLogType::kInfo,
-              "Calling OsiHiGHSSolverInterface::OsiHiGHSSolverInterface() - Default constructor\n");
+              "Calling OsiHiGHSSolverInterface::OsiHiGHSSolverInterface() - "
+              "Default constructor\n");
 
   this->dummy_solution = new HighsSolution;
 
@@ -91,7 +92,8 @@ OsiHiGHSSolverInterface::OsiHiGHSSolverInterface(
   this->highs = new Highs();
   HighsOptions& options = this->highs->options_;
   highsLogDev(options.log_options, HighsLogType::kInfo,
-              "Calling OsiHiGHSSolverInterface::OsiHiGHSSolverInterface() - Original - constructor\n");
+              "Calling OsiHiGHSSolverInterface::OsiHiGHSSolverInterface() - "
+              "Original - constructor\n");
 
   this->dummy_solution = new HighsSolution;
 
@@ -108,7 +110,8 @@ OsiHiGHSSolverInterface::OsiHiGHSSolverInterface(
 OsiHiGHSSolverInterface::~OsiHiGHSSolverInterface() {
   HighsOptions& options = this->highs->options_;
   highsLogDev(options.log_options, HighsLogType::kInfo,
-              "Calling OsiHiGHSSolverInterface::~OsiHiGHSSolverInterface() - Destructor\n");
+              "Calling OsiHiGHSSolverInterface::~OsiHiGHSSolverInterface() - "
+              "Destructor\n");
 
   highsSetLogCallback(NULL, NULL, NULL);
 
@@ -808,8 +811,6 @@ void OsiHiGHSSolverInterface::loadProblem(
   }
   assert(num_nz == nz);
 
-
-
   this->highs->passModel(lp);
 }
 
@@ -1299,9 +1300,10 @@ void OsiHiGHSSolverInterface::setColNames(OsiNameVec& srcNames,
                                           HighsInt tgtStart) {}
 
 // Private methods
-void OsiHiGHSSolverInterface::setVectors(HighsLp& lp,
-					 const double* collb, const double* colub, const double* obj, 
-					 const double* rowlb, const double* rowub) {
+void OsiHiGHSSolverInterface::setVectors(HighsLp& lp, const double* collb,
+                                         const double* colub, const double* obj,
+                                         const double* rowlb,
+                                         const double* rowub) {
   HighsInt numrows = lp.num_row_;
   HighsInt numcols = lp.num_col_;
 
@@ -1343,10 +1345,8 @@ void OsiHiGHSSolverInterface::setVectors(HighsLp& lp,
   } else {
     lp.row_upper_.assign(numrows, kHighsInf);
   }
-
 }
 
 void OsiSolverInterfaceMpsUnitTest(
     const std::vector<OsiSolverInterface*>& vecSiP, const std::string& mpsDir) {
 }
-
