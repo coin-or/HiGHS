@@ -411,7 +411,6 @@ class OsiHiGHSSolverInterface : virtual public OsiSolverInterface {
 
   OsiHiGHSSolverInterface(const OsiHiGHSSolverInterface& original);
   void setVectors(HighsLp& lp,
-		  const HighsInt numcols, const HighsInt numrows,
 		  const double* collb, const double* colub, const double* obj, 
 		  const double* rowlb, const double* rowub);
 };

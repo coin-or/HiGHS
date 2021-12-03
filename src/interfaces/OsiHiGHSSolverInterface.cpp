@@ -724,51 +724,14 @@ void OsiHiGHSSolverInterface::loadProblem(
   double oldObjSense = this->getObjSense();
   HighsLp lp;
 
-  lp.num_row_ = numrows;
   lp.num_col_ = numcols;
+  lp.num_row_ = numrows;
 
-  // setup HighsLp data structures
-  lp.col_cost_.resize(numcols);
-  lp.col_upper_.resize(numcols);
-  lp.col_lower_.resize(numcols);
-
-  lp.row_lower_.resize(numrows);
-  lp.row_upper_.resize(numrows);
+  setVectors(lp, collb, colub, obj, rowlb, rowub);
 
   lp.a_matrix_.start_.resize(numcols + 1);
   lp.a_matrix_.index_.resize(start[numcols]);
   lp.a_matrix_.value_.resize(start[numcols]);
-
-  // copy data
-  if (obj != NULL) {
-    lp.col_cost_.assign(obj, obj + numcols);
-  } else {
-    lp.col_cost_.assign(numcols, 0.0);
-  }
-
-  if (collb != NULL) {
-    lp.col_lower_.assign(collb, collb + numcols);
-  } else {
-    lp.col_lower_.assign(numcols, 0.0);
-  }
-
-  if (colub != NULL) {
-    lp.col_upper_.assign(colub, colub + numcols);
-  } else {
-    lp.col_upper_.assign(numcols, kHighsInf);
-  }
-
-  if (rowlb != NULL) {
-    lp.row_lower_.assign(rowlb, rowlb + numrows);
-  } else {
-    lp.row_lower_.assign(numrows, -kHighsInf);
-  }
-
-  if (rowub != NULL) {
-    lp.row_upper_.assign(rowub, rowub + numrows);
-  } else {
-    lp.row_upper_.assign(numrows, kHighsInf);
-  }
 
   lp.a_matrix_.start_.assign(start, start + numcols + 1);
   lp.a_matrix_.index_.assign(index, index + start[numcols]);
@@ -809,8 +772,10 @@ void OsiHiGHSSolverInterface::loadProblem(
   HighsLp lp;
   lp.num_col_ = matrix.getNumCols();
   lp.num_row_ = matrix.getNumRows();
-  HighsInt num_nz = matrix.getNumElements();
 
+  setVectors(lp, collb, colub, obj, rowlb, rowub);
+
+  HighsInt num_nz = matrix.getNumElements();
   const bool colwise = matrix.isColOrdered();
   const HighsInt start_dim = colwise ? lp.num_col_ : lp.num_row_;
 
@@ -1335,9 +1300,50 @@ void OsiHiGHSSolverInterface::setColNames(OsiNameVec& srcNames,
 
 // Private methods
 void OsiHiGHSSolverInterface::setVectors(HighsLp& lp,
-					 const HighsInt numcols, const HighsInt numrows,
 					 const double* collb, const double* colub, const double* obj, 
 					 const double* rowlb, const double* rowub) {
+  HighsInt numrows = lp.num_row_;
+  HighsInt numcols = lp.num_col_;
+
+  // setup HighsLp data structures
+  lp.col_cost_.resize(numcols);
+  lp.col_upper_.resize(numcols);
+  lp.col_lower_.resize(numcols);
+
+  lp.row_lower_.resize(numrows);
+  lp.row_upper_.resize(numrows);
+
+  // copy data
+  if (obj != NULL) {
+    lp.col_cost_.assign(obj, obj + numcols);
+  } else {
+    lp.col_cost_.assign(numcols, 0.0);
+  }
+
+  if (collb != NULL) {
+    lp.col_lower_.assign(collb, collb + numcols);
+  } else {
+    lp.col_lower_.assign(numcols, 0.0);
+  }
+
+  if (colub != NULL) {
+    lp.col_upper_.assign(colub, colub + numcols);
+  } else {
+    lp.col_upper_.assign(numcols, kHighsInf);
+  }
+
+  if (rowlb != NULL) {
+    lp.row_lower_.assign(rowlb, rowlb + numrows);
+  } else {
+    lp.row_lower_.assign(numrows, -kHighsInf);
+  }
+
+  if (rowub != NULL) {
+    lp.row_upper_.assign(rowub, rowub + numrows);
+  } else {
+    lp.row_upper_.assign(numrows, kHighsInf);
+  }
+
 }
 
 void OsiSolverInterfaceMpsUnitTest(
