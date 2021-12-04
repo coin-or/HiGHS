@@ -3,6 +3,7 @@
 
 #cmakedefine FAST_BUILD
 #cmakedefine OSI_FOUND
+#cmakedefine OSI_ROOT
 #cmakedefine CMAKE_BUILD_TYPE "@CMAKE_BUILD_TYPE@"
 #cmakedefine HiGHSRELEASE
 #cmakedefine IPX_ON

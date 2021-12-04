@@ -284,33 +284,28 @@ bool OsiHiGHSSolverInterface::isAbandoned() const {
   HighsOptions& options = this->highs->options_;
   highsLogDev(options.log_options, HighsLogType::kInfo,
               "Calling OsiHiGHSSolverInterface::isAbandoned()\n");
-  //  return this->status == HighsStatus::NumericalDifficulties;
-  return false;
+  return this->highs->model_status_ == HighsModelStatus::kSolveError;
 }
 
 bool OsiHiGHSSolverInterface::isProvenOptimal() const {
   HighsOptions& options = this->highs->options_;
   highsLogDev(options.log_options, HighsLogType::kInfo,
               "Calling OsiHiGHSSolverInterface::isProvenOptimal()\n");
-  //  return (this->status == HighsStatus::kOptimal) ||
-  //         (this->status == HighsStatus::kOk);
-  return false;
+  return (this->highs->model_status_ == HighsModelStatus::kOptimal);
 }
 
 bool OsiHiGHSSolverInterface::isProvenPrimalInfeasible() const {
   HighsOptions& options = this->highs->options_;
   highsLogDev(options.log_options, HighsLogType::kInfo,
               "Calling OsiHiGHSSolverInterface::isProvenPrimalInfeasible()\n");
-  //  return this->status == HighsStatus::kInfeasible;
-  return false;
+  return this->highs->model_status_ == HighsModelStatus::kInfeasible;
 }
 
 bool OsiHiGHSSolverInterface::isProvenDualInfeasible() const {
   HighsOptions& options = this->highs->options_;
   highsLogDev(options.log_options, HighsLogType::kInfo,
               "Calling OsiHiGHSSolverInterface::isProvenDualInfeasible()\n");
-  //  return this->status == HighsStatus::Unbounded;
-  return false;
+  return this->highs->model_status_ == HighsModelStatus::kUnbounded;
 }
 
 bool OsiHiGHSSolverInterface::isPrimalObjectiveLimitReached() const {
@@ -318,7 +313,7 @@ bool OsiHiGHSSolverInterface::isPrimalObjectiveLimitReached() const {
   highsLogDev(
       options.log_options, HighsLogType::kInfo,
       "Calling OsiHiGHSSolverInterface::isPrimalObjectiveLimitReached()\n");
-  return false;
+  return this->highs->model_status_ == HighsModelStatus::kObjectiveTarget;
 }
 
 bool OsiHiGHSSolverInterface::isDualObjectiveLimitReached() const {
@@ -326,16 +321,14 @@ bool OsiHiGHSSolverInterface::isDualObjectiveLimitReached() const {
   highsLogDev(
       options.log_options, HighsLogType::kInfo,
       "Calling OsiHiGHSSolverInterface::isDualObjectiveLimitReached()\n");
-  //  return this->status == HighsStatus::ReachedDualObjectiveUpperBound;
-  return false;
+  return this->highs->model_status_ == HighsModelStatus::kObjectiveBound;
 }
 
 bool OsiHiGHSSolverInterface::isIterationLimitReached() const {
   HighsOptions& options = this->highs->options_;
   highsLogDev(options.log_options, HighsLogType::kInfo,
               "Calling OsiHiGHSSolverInterface::isIterationLimitReached()\n");
-  //  return this->status == HighsStatus::ReachedIterationLimit;
-  return false;
+  return this->highs->model_status_ == HighsModelStatus::kIterationLimit;
 }
 
 HighsInt OsiHiGHSSolverInterface::getNumCols() const {
