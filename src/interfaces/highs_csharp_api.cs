@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 
 public enum HighsStatus
 {
-   kOk,
-   kWarning,
-   kError
+   kError = -1,
+   kOk = 0,
+   kWarning = 1
 }
 
 public enum HighsBasisStatus
@@ -20,7 +20,7 @@ public enum HighsBasisStatus
   kNonbasic
 }
 
-public enum HighsObjectiveSense
+public enum ObjSense
 {
    kMinimize = 1,
    kMaximize = -1
@@ -125,9 +125,35 @@ public unsafe class HighsLpSolver
    private const string highslibname = "highs.dll";
 
    [DllImport(highslibname)]
-   private static extern int Highs_call(Int32 numcol, Int32 numrow, Int32 numnz, double[] colcost,
-   double[] collower, double[] colupper, double[] rowlower, double[] rowupper, int[] astart, int[] aindex, double[] avalue,
-   double[] colvalue, double[] coldual, double[] rowvalue, double[] rowdual, int[] colbasisstatus, int[] rowbasisstatus, ref int modelstatus);
+   private static extern int Highs_call(Int32 numcol, Int32 numrow, Int32 numnz,
+   double[] colcost, double[] collower, double[] colupper, double[] rowlower, double[] rowupper,
+   int[] astart, int[] aindex, double[] avalue,
+   double[] colvalue, double[] coldual, double[] rowvalue, double[] rowdual,
+   int[] colbasisstatus, int[] rowbasisstatus, ref int modelstatus);
+
+   [DllImport(highslibname)]
+   private static extern int Highs_lpCall(Int32 numcol, Int32 numrow, Int32 numnz,
+   Int32 a_format, Int32 sense, double offset,
+   double[] colcost, double[] collower, double[] colupper, double[] rowlower, double[] rowupper,
+   int[] astart, int[] aindex, double[] avalue,
+   double[] colvalue, double[] coldual, double[] rowvalue, double[] rowdual,
+   int[] colbasisstatus, int[] rowbasisstatus, ref int modelstatus);
+
+   [DllImport(highslibname)]
+   private static extern int Highs_mipCall(Int32 numcol, Int32 numrow, Int32 numnz,
+   Int32 a_format, Int32 sense, double offset,
+   double[] colcost, double[] collower, double[] colupper, double[] rowlower, double[] rowupper,
+   int[] astart, int[] aindex, double[] avalue, int[] integrality,
+   double[] colvalue, double[] rowvalue, ref int modelstatus);
+
+   [DllImport(highslibname)]
+   private static extern int Highs_qpCall(Int32 numcol, Int32 numrow, Int32 numnz, Int32 q_numnz,
+   Int32 a_format, Int32 q_format, Int32 sense, double offset,
+   double[] colcost, double[] collower, double[] colupper, double[] rowlower, double[] rowupper,
+   int[] astart, int[] aindex, double[] avalue, 
+   int[] qstart, int[] qindex, double[] qvalue, 
+   double[] colvalue, double[] coldual, double[] rowvalue, double[] rowdual,
+   int[] colbasisstatus, int[] rowbasisstatus, ref int modelstatus);
 
    [DllImport(highslibname)]
    private static extern void* Highs_create();
@@ -145,8 +171,26 @@ public unsafe class HighsLpSolver
    private static extern int Highs_writeModel(void* highs, string filename);
 
    [DllImport(highslibname)]
-   private static extern int Highs_passLp(void* highs, int numcol, int numrow, int numnz, double[] colcost,
-   double[] collower, double[] colupper, double[] rowlower, double[] rowupper, int[] astart, int[] aindex, double[] avalue);
+   private static extern int Highs_passLp(void* highs, int numcol, int numrow, int numnz,
+   Int32 a_format, Int32 sense, double offset,
+   double[] colcost, double[] collower, double[] colupper, double[] rowlower, double[] rowupper,
+   int[] astart, int[] aindex, double[] avalue);
+
+   [DllImport(highslibname)]
+   private static extern int Highs_passMip(void* highs, int numcol, int numrow, int numnz,
+   Int32 a_format, Int32 sense, double offset,
+   double[] colcost, double[] collower, double[] colupper, double[] rowlower, double[] rowupper,
+   int[] astart, int[] aindex, double[] avalue, int[] integrality);
+
+   [DllImport(highslibname)]
+   private static extern int Highs_passModel(void* highs, int numcol, int numrow, int numnz, int q_num_nz,
+   Int32 a_format, Int32 q_format, Int32 sense, double offset,
+   double[] colcost, double[] collower, double[] colupper, double[] rowlower, double[] rowupper,
+   int[] astart, int[] aindex, double[] avalue, int[] qstart, int[] qindex, double[] qvalue, int[] integrality);
+
+   [DllImport(highslibname)]
+   private static extern int Highs_passHessian(void* highs, int dim, int num_nz, Int32 format,
+      int[] qstart, int[] qindex, double[] qvalue);
 
    [DllImport(highslibname)]
    private static extern int Highs_setOptionValue(void* highs, string option, string value);
