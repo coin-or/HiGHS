@@ -183,4 +183,5 @@ bool computeScatterDataRegressionError(HighsScatterData& scatter_data,
 double nearestPowerOfTwoScale(const double value);
 
 void highsAssert(const bool assert_condition, const std::string message="");
+bool highsPause(const bool pause_condition, const std::string message="");
 #endif  // UTIL_HIGHSUTILS_H_

@@ -1148,7 +1148,7 @@ double nearestPowerOfTwoScale(const double value) {
 
 void highsAssert(const bool assert_condition, const std::string message) {
   if (assert_condition) return;
-  printf("Failing highsAssert(%s, \"%s\")\n", message.c_str(), message.c_str());
+  printf("Failing highsAssert(\"%s\")\n", message.c_str());
 #ifdef NDEBUG
   // Standard assert won't trigger abort, so do it explicitly
   printf("assert(%s) failed ...\n", message.c_str());
@@ -1158,4 +1158,14 @@ void highsAssert(const bool assert_condition, const std::string message) {
   // Standard assert
   assert(assert_condition);
 #endif  
+}
+
+bool highsPause(const bool pause_condition, const std::string message) {
+  if (!pause_condition) return pause_condition;
+  printf("Satisfying highsPause(\"%s\")\n", message.c_str());
+  char str[100];
+  printf( "Enter any value to continue:");
+  if (fgets( str, 100, stdin ) != nullptr) 
+    printf( "You entered: \"%s\"\n", str);
+  return pause_condition;
 }
