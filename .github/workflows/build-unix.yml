@@ -40,24 +40,23 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: |
-       cmake -E make_directory ${{runner.workspace}}/install \
-       cmake -E make_directory ${{runner.workspace}}/driver \
-       cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release -DFAST_BUILD=ON -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/install \
-       cmake --build . --parallel --config Release \
-       cmake --install 
+       cmake -E make_directory ${{runner.workspace}}/driver
+       cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release -DFAST_BUILD=ON -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/install 
+       cmake --build . --parallel --config Release
+       cmake --install
 
     - name: Link with install 
       working-directory: ${{runner.workspace}}/driver
       shell: bash
       run: |
-        touch file.cpp \
-        echo "#include <iostream>" >> file.cpp \ 
-        echo "#include \"Highs.h\"" >> file.cpp \ 
-        echo "int main(int argc, char** argv) {" >> file.cpp \
-        echo "  Highs highs;" >> file.cpp \
-        echo "  std::cout<<\"Linked cpp with install dir\";" >> file.cpp \
-        echo "return 0;}" >> file.cpp \
-        g++ -I ${{runner.workspace}}/install/include -L ${{runner.workspace}}/install/lib file.cpp \
+        touch file.cpp
+        echo "#include <iostream>" >> file.cpp
+        echo "#include \"Highs.h\"" >> file.cpp
+        echo "int main(int argc, char** argv) {" >> file.cpp
+        echo "  Highs highs;" >> file.cpp
+        echo "  std::cout<<\"Linked cpp with install dir\";" >> file.cpp
+        echo "return 0;}" >> file.cpp
+        g++ -I ${{runner.workspace}}/install/include -L ${{runner.workspace}}/install/lib file.cpp
         a.out
 
   release:
