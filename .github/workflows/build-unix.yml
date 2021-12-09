@@ -44,7 +44,7 @@ jobs:
        cmake -E make_directory ${{runner.workspace}}/driver \
        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release -DFAST_BUILD=ON -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/install \
        cmake --build . --parallel --config Release \
-       make install 
+       cmake --install 
 
     - name: Link with install 
       working-directory: ${{runner.workspace}}/driver
