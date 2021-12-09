@@ -56,7 +56,7 @@ jobs:
         echo "  Highs highs;" >> file.cpp
         echo "  std::cout<<\"Linked cpp with install dir\";" >> file.cpp
         echo "return 0;}" >> file.cpp
-        g++ -I ${{runner.workspace}}/install/include -L ${{runner.workspace}}/install/lib file.cpp
+        g++ -ggdb3 -O0 -I ${{runner.workspace}}/install/include -L ${{runner.workspace}}/install/lib file.cpp -lhighs
         a.out
 
   release:
