@@ -17,6 +17,7 @@
 #include "util/HighsUtils.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstdio>
 #include <vector>
@@ -1143,4 +1144,18 @@ double nearestPowerOfTwoScale(const double value) {
   // the exp power
   double scale = std::ldexp(1, exp_scale);
   return scale;
+}
+
+void highsAssert(const bool assert_condition, const std::string message) {
+  if (assert_condition) return;
+  printf("Failing highsAssert(%s, \"%s\")\n", message.c_str(), message.c_str());
+#ifdef NDEBUG
+  // Standard assert won't trigger abort, so do it explicitly
+  printf("assert(%s) failed ...\n", message.c_str());
+  fflush(stdout);
+  abort();
+#else
+  // Standard assert
+  assert(assert_condition);
+#endif  
 }

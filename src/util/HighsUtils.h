@@ -16,7 +16,6 @@
 #ifndef UTIL_HIGHSUTILS_H_
 #define UTIL_HIGHSUTILS_H_
 
-#include <cassert>
 #include <string>
 #include <vector>
 
@@ -182,4 +181,6 @@ bool computeScatterDataRegressionError(HighsScatterData& scatter_data,
                                        const bool print = false);
 
 double nearestPowerOfTwoScale(const double value);
+
+void highsAssert(const bool assert_condition, const std::string message="");
 #endif  // UTIL_HIGHSUTILS_H_
