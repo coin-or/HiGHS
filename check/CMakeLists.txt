@@ -13,6 +13,7 @@ target_include_directories(Catch INTERFACE ${HIGHS_SOURCE_DIR}/src/ipm/basiclu/i
 
 # Make test executable
 set(TEST_SOURCES
+    TestAlienBasis.cpp
     TestDualise.cpp
     TestCheckSolution.cpp
     TestEkk.cpp
@@ -200,7 +201,7 @@ set(failInstances
 set(mipInstances 
     "small_mip\;3.2368421\;"
     "flugpl\;1201500\;"
-    "lseu\;1120|1119.99999995\;"
+    "lseu\;1120|1119.9999999\;"
     "egout\;(568.1007|568.1006999)\;"
     "gt2\;21166\;"
     "rgn\;82.1999992\;"
