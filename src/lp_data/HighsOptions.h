@@ -736,7 +736,7 @@ class HighsOptions : public HighsOptionsStruct {
         new OptionRecordInt("allowed_matrix_scale_factor",
                             "Largest power-of-two factor permitted when "
                             "scaling the constraint matrix",
-                            advanced, &allowed_matrix_scale_factor, 0, 10, 20);
+                            advanced, &allowed_matrix_scale_factor, 0, 20, 20);
     records.push_back(record_int);
 
     record_int = new OptionRecordInt(
