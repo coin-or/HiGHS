@@ -2262,9 +2262,9 @@ void HEkkPrimal::updateVerify() {
                 ekk_instance_.iteration_count_, alpha_col,
                 alpha_row_source.c_str(), alpha_row, abs_alpha_diff,
                 numericalTrouble);
-  // todo commented out this assert to reach the HFactor segfault: assert(numericalTrouble < 1e-3);
-  // Reinvert if the relative difference is large enough, and updates have been
-  // performed
+  // todo commented out this assert to reach the HFactor segfault:
+  // assert(numericalTrouble < 1e-3); Reinvert if the relative difference is
+  // large enough, and updates have been performed
   //
   if (numericalTrouble > 1e-7 && info.update_count > 0)
     rebuild_reason = kRebuildReasonPossiblySingularBasis;

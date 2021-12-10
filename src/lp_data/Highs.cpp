@@ -525,6 +525,7 @@ HighsStatus Highs::writeBasis(const std::string filename) {
 // Checks the options calls presolve and postsolve if needed. Solvers are called
 // with callSolveLp(..)
 HighsStatus Highs::run() {
+  this->debug_run_call_num_++;
   HighsInt min_highs_debug_level = kHighsDebugLevelMin;
   // kHighsDebugLevelCostly;
   // kHighsDebugLevelMax;
@@ -533,6 +534,40 @@ HighsStatus Highs::run() {
   //  writeLpMatrixPicToFile(options_, "LpMatrix", model_.lp_);
   if (options_.highs_debug_level < min_highs_debug_level)
     options_.highs_debug_level = min_highs_debug_level;
+
+  const HighsInt log_dev_level = options_.log_dev_level;
+  const bool output_flag = options_.output_flag;
+  HighsInt use_log_dev_level = log_dev_level;
+  bool use_output_flag = output_flag;
+
+  const HighsInt check_debug_run_call_num = 103757;
+  const HighsInt check_num_col = 317;
+  const HighsInt check_num_row = 714;
+  if (this->debug_run_call_num_ == check_debug_run_call_num &&
+      model_.lp_.num_col_ == check_num_col &&
+      model_.lp_.num_row_ == check_num_row) {
+    double* col_cost_pointer = &this->model_.lp_.col_cost_[0];
+    std::string message = "Entering Highs::run(): matching check ";
+    printf("%s: run %d: LP(%6d, %6d) has col_cost_ pointer %p\n",
+           message.c_str(), (int)this->debug_run_call_num_,
+           (int)model_.lp_.num_col_, (int)model_.lp_.num_row_,
+           (void*)col_cost_pointer);
+    highsPause(true, message);
+    use_log_dev_level = 2;
+    use_output_flag = true;
+  }
+  if (ekk_instance_.status_.has_nla) {
+    const HighsInt factor_num_row = ekk_instance_.getFactorNumRow();
+    const bool inconsistent_num_row = factor_num_row != model_.lp_.num_row_;
+    if (inconsistent_num_row) {
+      std::string message = "Entering Highs::run(): inconsistent_num_row";
+      printf("%s: %d: LP(%6d, %6d) factor_num_row = %d != %d = lp_.num_row_\n",
+             message.c_str(), (int)this->debug_run_call_num_,
+             (int)model_.lp_.num_col_, (int)model_.lp_.num_row_,
+             (int)factor_num_row, (int)model_.lp_.num_row_);
+      highsPause(inconsistent_num_row, message);
+    }
+  }
 
   highs::parallel::initialize_scheduler(options_.threads);
 
@@ -640,8 +675,12 @@ HighsStatus Highs::run() {
     if (basis_.valid) refineBasis(incumbent_lp, solution_, basis_);
     this_solve_original_lp_time = -timer_.read(timer_.solve_clock);
     timer_.start(timer_.solve_clock);
+    options_.log_dev_level = use_log_dev_level;
+    options_.output_flag = use_output_flag;
     call_status =
         callSolveLp(incumbent_lp, "Solving LP without presolve or with basis");
+    options_.log_dev_level = log_dev_level;
+    options_.output_flag = output_flag;
     timer_.stop(timer_.solve_clock);
     this_solve_original_lp_time += timer_.read(timer_.solve_clock);
     return_status = interpretCallStatus(options_.log_options, call_status,
@@ -680,8 +719,12 @@ HighsStatus Highs::run() {
         ekk_instance_.lp_name_ = "Original LP";
         this_solve_original_lp_time = -timer_.read(timer_.solve_clock);
         timer_.start(timer_.solve_clock);
+        options_.log_dev_level = use_log_dev_level;
+        options_.output_flag = use_output_flag;
         call_status =
             callSolveLp(incumbent_lp, "Not presolved: solving the LP");
+        options_.log_dev_level = log_dev_level;
+        options_.output_flag = output_flag;
         timer_.stop(timer_.solve_clock);
         this_solve_original_lp_time += timer_.read(timer_.solve_clock);
         return_status = interpretCallStatus(options_.log_options, call_status,
@@ -696,8 +739,12 @@ HighsStatus Highs::run() {
         reportPresolveReductions(log_options, incumbent_lp, false);
         this_solve_original_lp_time = -timer_.read(timer_.solve_clock);
         timer_.start(timer_.solve_clock);
+        options_.log_dev_level = use_log_dev_level;
+        options_.output_flag = use_output_flag;
         call_status = callSolveLp(
             incumbent_lp, "Problem not reduced by presolve: solving the LP");
+        options_.log_dev_level = log_dev_level;
+        options_.output_flag = output_flag;
         timer_.stop(timer_.solve_clock);
         this_solve_original_lp_time += timer_.read(timer_.solve_clock);
         return_status = interpretCallStatus(options_.log_options, call_status,
@@ -730,7 +777,13 @@ HighsStatus Highs::run() {
         options_.objective_bound = kHighsInf;
         this_solve_presolved_lp_time = -timer_.read(timer_.solve_clock);
         timer_.start(timer_.solve_clock);
+
+        options_.log_dev_level = use_log_dev_level;
+        options_.output_flag = use_output_flag;
         call_status = callSolveLp(reduced_lp, "Solving the presolved LP");
+        options_.log_dev_level = log_dev_level;
+        options_.output_flag = output_flag;
+
         timer_.stop(timer_.solve_clock);
         this_solve_presolved_lp_time += timer_.read(timer_.solve_clock);
         if (ekk_instance_.status_.initialised_for_solve) {
@@ -788,9 +841,13 @@ HighsStatus Highs::run() {
         options_.simplex_strategy = kSimplexStrategyPrimal;
         this_solve_original_lp_time = -timer_.read(timer_.solve_clock);
         timer_.start(timer_.solve_clock);
+        options_.log_dev_level = use_log_dev_level;
+        options_.output_flag = use_output_flag;
         call_status = callSolveLp(incumbent_lp,
                                   "Solving the original LP with primal simplex "
                                   "to determine infeasible or unbounded");
+        options_.log_dev_level = log_dev_level;
+        options_.output_flag = output_flag;
         timer_.stop(timer_.solve_clock);
         this_solve_original_lp_time += timer_.read(timer_.solve_clock);
         if (return_status == HighsStatus::kError)
@@ -913,9 +970,13 @@ HighsStatus Highs::run() {
           postsolve_iteration_count = -info_.simplex_iteration_count;
           this_solve_original_lp_time = -timer_.read(timer_.solve_clock);
           timer_.start(timer_.solve_clock);
+          options_.log_dev_level = use_log_dev_level;
+          options_.output_flag = use_output_flag;
           call_status = callSolveLp(
               incumbent_lp,
               "Solving the original LP from the solution after postsolve");
+          options_.log_dev_level = log_dev_level;
+          options_.output_flag = output_flag;
           timer_.stop(timer_.solve_clock);
           // Determine the iteration count and timing records
           postsolve_iteration_count += info_.simplex_iteration_count;
@@ -2677,6 +2738,32 @@ HighsStatus Highs::returnFromHighs(HighsStatus highs_return_status) {
     printf("LP Dimension error in returnFromHighs()\n");
   }
   assert(dimensions_ok);
+  if (return_status != HighsStatus::kError && ekk_instance_.status_.has_nla) {
+    const HighsInt factor_num_row = ekk_instance_.getFactorNumRow();
+    const bool inconsistent_num_row = factor_num_row != model_.lp_.num_row_;
+    if (inconsistent_num_row) {
+      std::string message =
+          "Leaving Highs::returnFromHighs(): inconsistent_num_row";
+      printf(
+          "%s: run() %d LP(%6d, %6d) has factor_num_row = %d != %d = "
+          "lp_.num_row_\n",
+          message.c_str(), (int)this->debug_run_call_num_,
+          (int)model_.lp_.num_col_, (int)model_.lp_.num_row_,
+          (int)factor_num_row, (int)model_.lp_.num_row_);
+      highsPause(inconsistent_num_row, message);
+    }
+  }
+  if (ekk_instance_.status_.has_nla) {
+    const HighsInt factor_num_row = ekk_instance_.getFactorNumRow();
+    const bool inconsistent_num_row = factor_num_row != model_.lp_.num_row_;
+    if (inconsistent_num_row) {
+      highsLogDev(options_.log_options, HighsLogType::kWarning,
+                  "Highs::returnFromHighs(): LP and HFactor have inconsistent "
+                  "numbers of rows\n");
+      // Clear Ekk entirely
+      ekk_instance_.clear();
+    }
+  }
   return return_status;
 }
 

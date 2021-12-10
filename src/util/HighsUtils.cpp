@@ -1157,15 +1157,18 @@ void highsAssert(const bool assert_condition, const std::string message) {
 #else
   // Standard assert
   assert(assert_condition);
-#endif  
+#endif
 }
 
 bool highsPause(const bool pause_condition, const std::string message) {
   if (!pause_condition) return pause_condition;
   printf("Satisfying highsPause(\"%s\")\n", message.c_str());
   char str[100];
-  printf( "Enter any value to continue:");
-  if (fgets( str, 100, stdin ) != nullptr) 
-    printf( "You entered: \"%s\"\n", str);
+  printf("Enter any value to continue:");
+  fflush(stdout);
+  if (fgets(str, 100, stdin) != nullptr) {
+    printf("You entered: \"%s\"\n", str);
+    fflush(stdout);
+  }
   return pause_condition;
 }

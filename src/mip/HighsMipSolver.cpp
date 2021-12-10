@@ -65,6 +65,7 @@ void HighsMipSolver::run() {
   mipdata_->runSetup();
 restart:
   if (modelstatus_ == HighsModelStatus::kNotset) {
+    //    highsPause((int)model_->num_row_==315, "(int)model_->num_row_==315");
     mipdata_->evaluateRootNode();
     // age 5 times to remove stored but never violated cuts after root
     // separation

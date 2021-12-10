@@ -428,7 +428,8 @@ class HFactor {
 
   void clinkAdd(const HighsInt index, const HighsInt count) {
     highsAssert(count >= 0, "clinkAdd::count >= 0");
-    highsAssert(count < (HighsInt)clinkFirst.size(), "count < (HighsInt)clinkFirst.size()");
+    highsAssert(count < (HighsInt)clinkFirst.size(),
+                "count < (HighsInt)clinkFirst.size()");
     const HighsInt mover = clinkFirst[count];
     clinkLast[index] = -2 - count;
     clinkNext[index] = mover;

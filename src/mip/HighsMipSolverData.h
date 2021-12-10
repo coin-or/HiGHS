@@ -29,10 +29,10 @@
 #include "mip/HighsRedcostFixing.h"
 #include "mip/HighsSearch.h"
 #include "mip/HighsSeparation.h"
+#include "parallel/HighsParallel.h"
 #include "presolve/HighsPostsolveStack.h"
 #include "presolve/HighsSymmetry.h"
 #include "util/HighsTimer.h"
-#include "parallel/HighsParallel.h"
 
 struct HighsMipSolverData {
   HighsMipSolver& mipsolver;
@@ -131,8 +131,10 @@ struct HighsMipSolverData {
     domain.addConflictPool(conflictPool);
   }
 
-  void startAnalyticCenterComputation(const highs::parallel::TaskGroup& taskGroup);
-  void finishAnalyticCenterComputation(const highs::parallel::TaskGroup& taskGroup);
+  void startAnalyticCenterComputation(
+      const highs::parallel::TaskGroup& taskGroup);
+  void finishAnalyticCenterComputation(
+      const highs::parallel::TaskGroup& taskGroup);
   bool moreHeuristicsAllowed();
   void removeFixedIndices();
   void init();

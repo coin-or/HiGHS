@@ -1556,6 +1556,19 @@ HighsInt HEkk::initialiseSimplexLpBasisAndFactor(
   // If simplex NLA is not set up, then it will be done if
   //
   if (this->status_.has_nla) {
+    const HighsInt factor_num_row = getFactorNumRow();
+    const bool inconsistent_num_row = factor_num_row != this->lp_.num_row_;
+    if (inconsistent_num_row) {
+      printf(
+          "HEkk::initialiseSimplexLpBasisAndFactor: LP(%6d, %6d) has "
+          "factor_num_row = %d\n",
+          (int)this->lp_.num_col_, (int)this->lp_.num_row_,
+          (int)factor_num_row);
+      highsPause(
+          true, "HEkk::initialiseSimplexLpBasisAndFactor: nconsistent_num_row");
+      this->options_->log_dev_level = 2;
+      this->options_->output_flag = true;
+    }
     this->simplex_nla_.setPointers(&(this->lp_), local_scaled_a_matrix,
                                    &this->basis_.basicIndex_[0], this->options_,
                                    this->timer_, &(this->analysis_));

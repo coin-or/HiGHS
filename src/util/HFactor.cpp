@@ -1166,11 +1166,13 @@ void HFactor::buildFinish() {
     // Finally, if not calling buildFinish after refactorizing,
     // permute the base index
     iwork.assign(baseIndex, baseIndex + numRow);
-    highsAssert((HighsInt)iwork.size() >= numRow, "(HighsInt)iwork.size() >= numRow");
-    highsAssert((HighsInt)permute.size() >= numRow, "(HighsInt)permute.size() >= numRow");
+    highsAssert((HighsInt)iwork.size() >= numRow,
+                "(HighsInt)iwork.size() >= numRow");
+    highsAssert((HighsInt)permute.size() >= numRow,
+                "(HighsInt)permute.size() >= numRow");
     for (HighsInt i = 0; i < numRow; i++) {
       highsAssert(permute[i] >= 0, "permute[i] >= 0");
-       baseIndex[permute[i]] = iwork[i];
+      baseIndex[permute[i]] = iwork[i];
     }
     // Add cost of buildFinish to build_synthetic_tick
     build_synthetic_tick += numRow * 80 + (LcountX + UcountX) * 60;
