@@ -189,6 +189,7 @@ class HighsSimplexAnalysis {
   HighsInt num_dual_infeasibility = 0;
   double sum_primal_infeasibility = 0;
   double sum_dual_infeasibility = 0;
+  double max_perturbed_infeasibility = 0.0;
   // This triple is an original infeasiblility record, so it includes max,
   // but it's only used for reporting
   HighsInt num_dual_phase_1_lp_dual_infeasibility = 0;

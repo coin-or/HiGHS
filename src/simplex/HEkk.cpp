@@ -2914,7 +2914,8 @@ void HEkk::correctDual(HighsInt* free_infeasibility_count) {
   HighsInt num_dual_infeasibilities_for_shift = 0;
   double max_dual_infeasibility_for_shift = 0;
   double sum_dual_infeasibilities_for_shift = 0;
-  const double kUseFlipMultiplier = 1000;
+  const double kUseFlipMultiplier =
+      std::max(1000.0, 2 * analysis_.max_perturbed_infeasibility / tau_d);
   const HighsInt num_tot = lp_.num_col_ + lp_.num_row_;
   for (HighsInt i = 0; i < num_tot; i++) {
     if (!basis_.nonbasicFlag_[i]) continue;

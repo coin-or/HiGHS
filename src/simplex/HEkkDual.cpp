@@ -65,6 +65,7 @@ HighsStatus HEkkDual::solve() {
   // Record whether the solution with unperturbed costs is dual feasible
   const bool dual_feasible_without_unperturbed_costs =
       info.num_dual_infeasibilities == 0;
+  double maxUnperturbedInfeasibility = info.max_dual_infeasibility;
   // Determine whether the solution is near-optimal.
   const bool near_optimal = dual_feasible_without_unperturbed_costs &&
                             info.num_primal_infeasibilities < 1000 &&
@@ -168,6 +169,11 @@ HighsStatus HEkkDual::solve() {
   // Determine the number of dual infeasibilities, and hence the solve phase
   ekk_instance_.computeDualInfeasibleWithFlips();
   dualInfeasCount = info.num_dual_infeasibilities;
+
+  analysis->max_perturbed_infeasibility =
+      std::max(0.0, info.max_dual_infeasibility - maxUnperturbedInfeasibility);
+  // printf("max_perturbed_infeasibility: %g\n",
+  //        analysis->max_perturbed_infeasibility);
   solve_phase = dualInfeasCount > 0 ? kSolvePhase1 : kSolvePhase2;
   // Allow phase 2 if the infeasibilities are minor - and can be
   // removed by shifts. This can happen when using cost perturbation
