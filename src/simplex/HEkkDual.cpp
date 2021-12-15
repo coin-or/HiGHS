@@ -1217,7 +1217,7 @@ void HEkkDual::iterate() {
   // Reporting:
   // Row-wise matrix after update in updateMatrix(variable_in, variable_out);
 
-  const HighsInt from_check_iter = 0;
+  const HighsInt from_check_iter = 125;
   const HighsInt to_check_iter = from_check_iter + 10;
   if (ekk_instance_.debug_solve_report_) {
     ekk_instance_.debug_iteration_report_ =
@@ -1237,6 +1237,30 @@ void HEkkDual::iterate() {
   chooseColumn(&row_ep);
   analysis->simplexTimerStop(IterateChuzcClock);
 
+  if (rebuild_reason == kRebuildReasonPossiblyDualUnbounded &&
+      solve_phase == kSolvePhase2 &&
+      ekk_instance_.status_.has_fresh_rebuild) {
+    // Appears to be dual unbounded in phase 2 after fresh
+    // rebuild. Normally this implies primal infeasibility, but only
+    // allow this to be claimed if the proof of primal infeasibility
+    // is true.
+    //
+    const bool proof_of_infeasibility = proofOfPrimalInfeasibility();
+    if (proof_of_infeasibility) {
+      // There is a proof of primal infeasiblilty
+      solve_phase = kSolvePhaseExit;
+      // Save dual ray information
+      saveDualRay();
+      // Model status should be unset?
+      assert(ekk_instance_.model_status_ == HighsModelStatus::kNotset);
+      ekk_instance_.model_status_ = HighsModelStatus::kInfeasible;
+      return;
+    } else {
+      // If the proof of primal infeasibility fails, then the row is
+      // taboo
+      ekk_instance_.addTabooRow(row_out, TabooReason::kNoPrimalInfeasibilityProof);
+    }
+  }
   if (cyclingDetected()) return;
 
   analysis->simplexTimerStart(IterateFtranClock);

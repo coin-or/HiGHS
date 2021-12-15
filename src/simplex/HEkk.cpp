@@ -3877,17 +3877,17 @@ bool HEkk::proofOfPrimalInfeasibility(HVector& row_ep, const HighsInt move_out,
   HighsLp& lp = this->lp_;
 
   HighsInt debug_product_report = kDebugReportOff;
-  const bool debug_proof_report_on = false;
+  const bool debug_proof_report_on = true;
   bool debug_rows_report = false;
   bool debug_proof_report = false;
   if (debug_iteration_report_) {
-    if (debug_proof_report_on) debug_product_report = kDebugReportAll;
+    if (debug_proof_report_on) debug_product_report = kDebugReportOff; //kDebugReportAll; //
     debug_rows_report = debug_proof_report_on;
     debug_proof_report = debug_proof_report_on;
   }
 
   const bool use_row_wise_matrix = status_.has_ar_matrix;
-  const bool use_iterative_refinement = false;
+  const bool use_iterative_refinement = debug_iteration_report_;//false;
   if (use_iterative_refinement) {
     simplex_nla_.reportArray("Row e_p.0", lp.num_col_, &row_ep, true);
     unitBtranIterativeRefinement(row_out, row_ep);
