@@ -2757,8 +2757,7 @@ bool HEkkDual::bailoutOnDualObjective() {
     // reasons
     assert(ekk_instance_.model_status_ == HighsModelStatus::kTimeLimit ||
            ekk_instance_.model_status_ == HighsModelStatus::kIterationLimit ||
-           ekk_instance_.model_status_ == HighsModelStatus::kObjectiveBound ||
-           ekk_instance_.model_status_ == HighsModelStatus::kObjectiveTarget);
+           ekk_instance_.model_status_ == HighsModelStatus::kObjectiveBound);
   } else if (ekk_instance_.lp_.sense_ == ObjSense::kMinimize &&
              solve_phase == kSolvePhase2) {
     if (ekk_instance_.info_.updated_dual_objective_value >
