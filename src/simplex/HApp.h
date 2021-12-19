@@ -307,8 +307,10 @@ HighsStatus solveLpSimplex(HighsLpSolverObject& solver_object) {
           options.dual_simplex_cost_perturbation_multiplier;
       HighsInt simplex_dual_edge_weight_strategy =
           ekk_info.dual_edge_weight_strategy;
-      if (num_unscaled_primal_infeasibilities == 0) {
-        // Only dual infeasibilities, so use primal simplex
+      if (num_unscaled_primal_infeasibilities == 0 ||
+          scaled_model_status == HighsModelStatus::kObjectiveBound) {
+        // Only dual infeasibilities or primal infeasibilities do not matter due
+        // to solution status, so use primal simplex phase 2
         options.simplex_strategy = kSimplexStrategyPrimal;
       } else {
         // Using dual simplex, so force Devex if starting from an advanced
@@ -321,9 +323,9 @@ HighsStatus solveLpSimplex(HighsLpSolverObject& solver_object) {
         // options.dual_simplex_cost_perturbation_multiplier = 0;
       }
       //
-      // Solve the unscaled LP with scaled NLA
+      // Solve the unscaled LP with scaled NLA and force to start in phase 2
       //
-      return_status = ekk_instance.solve();
+      return_status = ekk_instance.solve(true);
       solved_unscaled_lp = true;
       //
       // Restore the options/strategies that may have been changed

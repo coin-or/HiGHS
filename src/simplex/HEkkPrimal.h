@@ -35,7 +35,7 @@ class HEkkPrimal {
   /**
    * @brief Solve a model instance
    */
-  HighsStatus solve();
+  HighsStatus solve(bool forceph2 = false);
 
  private:
   /**
