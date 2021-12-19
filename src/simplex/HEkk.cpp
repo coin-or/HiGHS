@@ -1011,7 +1011,7 @@ HighsStatus HEkk::unpermute() {
   return HighsStatus::kError;
 }
 
-HighsStatus HEkk::solve(bool forceph2) {
+HighsStatus HEkk::solve(const bool force_phase2) {
   debug_solve_call_num_++;
   debug_initial_build_synthetic_tick_ = build_synthetic_tick_;
   const HighsInt debug_from_solve_call_num = -8;
@@ -1093,7 +1093,7 @@ HighsStatus HEkk::solve(bool forceph2) {
     HEkkPrimal primal_solver(*this);
     workEdWt_ = NULL;
     workEdWtFull_ = NULL;
-    call_status = primal_solver.solve(forceph2);
+    call_status = primal_solver.solve(force_phase2);
     assert(called_return_from_solve_);
     return_status = interpretCallStatus(options_->log_options, call_status,
                                         return_status, "HEkkPrimal::solve");
@@ -1119,7 +1119,7 @@ HighsStatus HEkk::solve(bool forceph2) {
     HEkkDual dual_solver(*this);
     workEdWt_ = dual_solver.getWorkEdWt();
     workEdWtFull_ = dual_solver.getWorkEdWtFull();
-    call_status = dual_solver.solve(forceph2);
+    call_status = dual_solver.solve(force_phase2);
     assert(called_return_from_solve_);
     return_status = interpretCallStatus(options_->log_options, call_status,
                                         return_status, "HEkkDual::solve");

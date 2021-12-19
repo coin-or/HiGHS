@@ -30,7 +30,7 @@
 
 using std::fabs;
 
-HighsStatus HEkkDual::solve(bool forceph2) {
+HighsStatus HEkkDual::solve(const bool pass_force_phase2) {
   // Initialise control data for a particular solve
   initialiseSolve();
 
@@ -71,9 +71,9 @@ HighsStatus HEkkDual::solve(bool forceph2) {
       info.num_dual_infeasibilities == 0;
   // Force phase 2 if dual infeasiblilities without cost perturbation
   // involved fixed variables or were (at most) small
-  force_phase2 =
-      forceph2 || info.max_dual_infeasibility * info.max_dual_infeasibility <
-                      ekk_instance_.options_->dual_feasibility_tolerance;
+  force_phase2 = pass_force_phase2 ||
+                 info.max_dual_infeasibility * info.max_dual_infeasibility <
+                     ekk_instance_.options_->dual_feasibility_tolerance;
   if (ekk_instance_.debug_dual_feasible &&
       !dual_feasible_with_unperturbed_costs) {
     SimplexBasis& basis = ekk_instance_.basis_;

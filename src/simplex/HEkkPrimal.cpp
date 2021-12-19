@@ -22,7 +22,7 @@
 
 using std::min;
 
-HighsStatus HEkkPrimal::solve(bool forceph2) {
+HighsStatus HEkkPrimal::solve(const bool pass_force_phase2) {
   // Initialise control data for a particular solve
   initialiseSolve();
 
@@ -50,7 +50,7 @@ HighsStatus HEkkPrimal::solve(bool forceph2) {
   const bool primal_feasible_with_unperturbed_bounds =
       info.num_primal_infeasibilities == 0;
   const bool force_phase2 =
-      forceph2 ||
+      pass_force_phase2 ||
       info.max_primal_infeasibility * info.max_primal_infeasibility <
           options.primal_feasibility_tolerance;
 
@@ -107,7 +107,7 @@ HighsStatus HEkkPrimal::solve(bool forceph2) {
     // fixed variables or were (at most) small, so can easily be
     // removed by flips for and fixed variables shifts for the rest
     solve_phase = kSolvePhase2;
-    if (!forceph2) {
+    if (!pass_force_phase2) {
       const bool local_report = true;
       if (!primal_feasible_with_unperturbed_bounds && local_report) {
         printf(
