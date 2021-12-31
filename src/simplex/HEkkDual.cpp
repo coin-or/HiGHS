@@ -52,15 +52,15 @@ HighsStatus HEkkDual::solve() {
   }
 
   // Decide whether to use LiDSE by not storing squared primal infeasibilities
-  info.store_squared_primal_infeasibility = true;
-  if (options.less_infeasible_DSE_check) {
-    if (isLessInfeasibleDSECandidate(options.log_options, ekk_instance_.lp_)) {
-      // LP is a candidate for LiDSE
-      if (options.less_infeasible_DSE_choose_row)
-        // Use LiDSE
-        info.store_squared_primal_infeasibility = false;
-    }
-  }
+  info.store_squared_primal_infeasibility = false;
+  // if (options.less_infeasible_DSE_check) {
+  //   if (isLessInfeasibleDSECandidate(options.log_options, ekk_instance_.lp_)) {
+  //     // LP is a candidate for LiDSE
+  //     if (options.less_infeasible_DSE_choose_row)
+  //       // Use LiDSE
+  //       info.store_squared_primal_infeasibility = false;
+  //   }
+  // }
 
   // Record whether the solution with unperturbed costs is dual feasible
   const bool dual_feasible_without_unperturbed_costs =

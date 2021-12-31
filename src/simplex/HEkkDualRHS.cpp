@@ -62,12 +62,16 @@ void HEkkDualRHS::chooseNormal(HighsInt* chIndex) {
     analysis->simplexTimerStart(ChuzrDualClock);
   }
 
+  constexpr double kLiDSEFac = 1024.0;
+
   if (workCount < 0) {
     // DENSE mode
     const HighsInt numRow = -workCount;
     HighsInt randomStart = ekk_instance_.random_.integer(numRow);
     double bestMerit = 0;
+    double bestMerit2 = 0;
     HighsInt bestIndex = -1;
+    HighsInt bestIndex2 = -1;
     for (HighsInt section = 0; section < 2; section++) {
       const HighsInt start = (section == 0) ? randomStart : 0;
       const HighsInt end = (section == 0) ? numRow : randomStart;
@@ -81,10 +85,20 @@ void HEkkDualRHS::chooseNormal(HighsInt* chIndex) {
             bestMerit = myInfeas / myWeight;
             bestIndex = iRow;
           }
+
+          const double myInfeas2 = myInfeas * myInfeas;
+          if (bestMerit2 * myWeight < myInfeas2) {
+            bestMerit2 = myInfeas2 / myWeight;
+            bestIndex2 = iRow;
+          }
         }
       }
     }
-    *chIndex = bestIndex;
+
+    if (workEdWt[bestIndex2] <= kLiDSEFac * workEdWt[bestIndex])
+      *chIndex = bestIndex2;
+    else
+      *chIndex = bestIndex;
   } else {
     // SPARSE mode
     // Moved the following to the top to avoid starting the clock for a trivial
@@ -97,7 +111,9 @@ void HEkkDualRHS::chooseNormal(HighsInt* chIndex) {
 
     HighsInt randomStart = ekk_instance_.random_.integer(workCount);
     double bestMerit = 0;
+    double bestMerit2 = 0;
     HighsInt bestIndex = -1;
+    HighsInt bestIndex2 = -1;
     for (HighsInt section = 0; section < 2; section++) {
       const HighsInt start = (section == 0) ? randomStart : 0;
       const HighsInt end = (section == 0) ? workCount : randomStart;
@@ -115,6 +131,12 @@ void HEkkDualRHS::chooseNormal(HighsInt* chIndex) {
             bestMerit = myInfeas / myWeight;
             bestIndex = iRow;
           }
+
+          const double myInfeas2 = myInfeas * myInfeas;
+          if (bestMerit2 * myWeight < myInfeas2) {
+            bestMerit2 = myInfeas2 / myWeight;
+            bestIndex2 = iRow;
+          }
         }
       }
     }
@@ -128,8 +150,11 @@ void HEkkDualRHS::chooseNormal(HighsInt* chIndex) {
     if (createListAgain) {
       createInfeasList(0);
       chooseNormal(&bestIndex);
-    }
-    *chIndex = bestIndex;
+      *chIndex = bestIndex;
+    } else if (workEdWt[bestIndex2] <= kLiDSEFac * workEdWt[bestIndex])
+      *chIndex = bestIndex2;
+    else
+      *chIndex = bestIndex;
   }
   // Since chooseNormal calls itself, only stop the clock if it's not currently
   // running
