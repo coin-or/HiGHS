@@ -28,13 +28,15 @@
 #include "util/HighsIntegers.h"
 
 template <HighsInt k, typename FoundModKCut>
-static void separateModKCuts(const std::vector<int64_t>& intSystemValue,
+static bool separateModKCuts(const std::vector<int64_t>& intSystemValue,
                              const std::vector<HighsInt>& intSystemIndex,
                              const std::vector<HighsInt>& intSystemStart,
-                             HighsInt numCol, bool& addPos, bool& addNeg,
+                             const HighsCutPool& cutpool, HighsInt numCol,
+                             bool& addPos, bool& addNeg,
                              FoundModKCut&& foundModKCut) {
   HighsGFkSolve GFkSolve;
 
+  HighsInt numCuts = cutpool.getNumCuts();
   addPos = true;
   addNeg = k == 2;
 
@@ -43,7 +45,9 @@ static void separateModKCuts(const std::vector<int64_t>& intSystemValue,
   GFkSolve.setRhs<k>(numCol, k - 1);
   GFkSolve.solve<k>(foundModKCut);
 
-  if (k != 2) {
+  bool success = numCuts != cutpool.getNumCuts();
+
+  if (k != 2 && success) {
     addPos = false;
     addNeg = true;
 
@@ -52,6 +56,8 @@ static void separateModKCuts(const std::vector<int64_t>& intSystemValue,
     GFkSolve.setRhs<k>(numCol, 1);
     GFkSolve.solve<k>(foundModKCut);
   }
+
+  return success;
 }
 
 void HighsModkSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
@@ -257,8 +263,6 @@ void HighsModkSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
   bool addPos;
   bool addNeg;
   auto foundCut = [&](std::vector<HighsGFkSolve::SolutionEntry>& weights) {
-    // cuts which come from a single row can already be found with the
-    // aggregation heuristic
     if (weights.empty()) return;
 
     pdqsort(weights.begin(), weights.end());
@@ -286,29 +290,21 @@ void HighsModkSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
   };
 
   k = 2;
-  HighsInt numCuts = -cutpool.getNumCuts();
-  separateModKCuts<2>(intSystemValue, intSystemIndex, intSystemStart,
-                      lp.num_col_, addPos, addNeg, foundCut);
-  numCuts += cutpool.getNumCuts();
-  if (numCuts > 0) return;
+  if (separateModKCuts<2>(intSystemValue, intSystemIndex, intSystemStart,
+                          cutpool, lp.num_col_, addPos, addNeg, foundCut))
+    return;
 
   k = 3;
-  numCuts = -cutpool.getNumCuts();
-  separateModKCuts<3>(intSystemValue, intSystemIndex, intSystemStart,
-                      lp.num_col_, addPos, addNeg, foundCut);
-  numCuts += cutpool.getNumCuts();
-  if (numCuts > 0) return;
+  if (separateModKCuts<3>(intSystemValue, intSystemIndex, intSystemStart,
+                          cutpool, lp.num_col_, addPos, addNeg, foundCut))
+    return;
 
   k = 5;
-  numCuts = -cutpool.getNumCuts();
-  separateModKCuts<5>(intSystemValue, intSystemIndex, intSystemStart,
-                      lp.num_col_, addPos, addNeg, foundCut);
-  numCuts += cutpool.getNumCuts();
-  if (numCuts > 0) return;
+  if (separateModKCuts<5>(intSystemValue, intSystemIndex, intSystemStart,
+                          cutpool, lp.num_col_, addPos, addNeg, foundCut))
+    return;
 
   k = 7;
-  numCuts = -cutpool.getNumCuts();
-  separateModKCuts<7>(intSystemValue, intSystemIndex, intSystemStart,
+  separateModKCuts<7>(intSystemValue, intSystemIndex, intSystemStart, cutpool,
                       lp.num_col_, addPos, addNeg, foundCut);
-  numCuts += cutpool.getNumCuts();
 }
