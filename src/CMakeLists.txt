@@ -82,6 +82,7 @@ set(sources
     io/FilereaderLp.cpp
     io/FilereaderEms.cpp
     io/FilereaderMps.cpp
+    io/FilereaderNag.cpp
     io/HighsIO.cpp
     io/HMPSIO.cpp
     io/HMpsFF.cpp
@@ -513,6 +514,7 @@ target_sources(libhighs PRIVATE
     io/FilereaderLp.cpp
     io/FilereaderEms.cpp
     io/FilereaderMps.cpp
+    io/filereaderNag.cpp
     io/HighsIO.cpp
     io/HMPSIO.cpp
     io/HMpsFF.cpp
@@ -632,6 +634,7 @@ set(headers_fast_build_
     io/FilereaderLp.h
     io/FilereaderEms.h
     io/FilereaderMps.h
+    io/filereaderNag.h
     io/HMpsFF.h
     io/HMPSIO.h
     io/HighsIO.h

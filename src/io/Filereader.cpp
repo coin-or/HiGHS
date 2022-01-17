@@ -16,6 +16,7 @@
 #include "io/FilereaderEms.h"
 #include "io/FilereaderLp.h"
 #include "io/FilereaderMps.h"
+#include "io/FilereaderNag.h"
 #include "io/HighsIO.h"
 
 static const std::string getFilenameExt(const std::string filename) {
@@ -39,6 +40,8 @@ Filereader* Filereader::getFilereader(const std::string filename) {
     reader = new FilereaderLp();
   } else if (extension.compare("ems") == 0) {
     reader = new FilereaderEms();
+  } else if (extension.compare("d") == 0) {
+    reader = new FilereaderNag();
   } else {
     reader = NULL;
   }
