@@ -25,14 +25,13 @@ const HighsInt kProductFormMaxUpdates = 50;
 const double kProductFormPivotTolerance = 1e-8;
 
 void ProductFormUpdate::clear() {
-  valid_ = false;
-  num_row_ = 0;
   update_count_ = 0;
   pivot_index_.clear();
   pivot_value_.clear();
   start_.clear();
   index_.clear();
   value_.clear();
+  if (valid_) start_.push_back(0);
 }
 
 void ProductFormUpdate::setup(const HighsInt num_row,
@@ -40,7 +39,9 @@ void ProductFormUpdate::setup(const HighsInt num_row,
   valid_ = true;
   num_row_ = num_row;
   update_count_ = 0;
-  start_.push_back(0);
+  index_.clear();
+  value_.clear();
+  start_.assign({(HighsInt)0});
   HighsInt reserve_entry_space =
       kProductFormExtraEntries +
       kProductFormMaxUpdates * num_row * expected_density;
