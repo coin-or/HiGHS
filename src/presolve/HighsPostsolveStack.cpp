@@ -30,6 +30,10 @@ void HighsPostsolveStack::initializeIndexMaps(HighsInt numRow,
 
   origColIndex.resize(numCol);
   std::iota(origColIndex.begin(), origColIndex.end(), 0);
+
+  linearColTransformations.resize(numCol);
+  for (HighsInt i = 0; i < numCol; ++i)
+    linearColTransformations[i] = LinearTransform{1.0, 0.0, i};
 }
 
 void HighsPostsolveStack::compressIndexMaps(
@@ -52,10 +56,14 @@ void HighsPostsolveStack::compressIndexMaps(
   for (size_t i = 0; i != newColIndex.size(); ++i) {
     if (newColIndex[i] == -1)
       --numCol;
-    else
+    else {
       origColIndex[newColIndex[i]] = origColIndex[i];
+      linearColTransformations[newColIndex[i]] =
+          linearColTransformations[origColIndex[i]];
+    }
   }
   origColIndex.resize(numCol);
+  linearColTransformations.resize(numCol);
 }
 
 void HighsPostsolveStack::LinearTransform::undo(const HighsOptions& options,

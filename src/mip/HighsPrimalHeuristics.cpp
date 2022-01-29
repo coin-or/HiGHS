@@ -351,6 +351,8 @@ retry:
     for (HighsInt i : intcols) {
       if (localdom.col_lower_[i] == localdom.col_upper_[i]) continue;
 
+      if (mipsolver.variableType(i) == HighsVarType::kImplicitInteger) continue;
+
       double downval =
           std::floor(relaxationsol[i] + mipsolver.mipdata_->feastol);
       double upval = std::ceil(relaxationsol[i] - mipsolver.mipdata_->feastol);
@@ -425,6 +427,9 @@ retry:
       double change = 0.0;
       // select a set of fractional variables to fix
       for (auto fracint : heurlp.getFractionalIntegers()) {
+        if (mipsolver.variableType(fracint.first) ==
+            HighsVarType::kImplicitInteger)
+          continue;
         double fixval = getFixVal(fracint.first, fracint.second);
 
         if (localdom.col_lower_[fracint.first] < fixval) {
@@ -595,9 +600,11 @@ retry:
         heurlp.getFractionalIntegers().begin(),
         heurlp.getFractionalIntegers().end(),
         [&](const std::pair<HighsInt, double>& fracvar) {
-          return std::abs(relaxationsol[fracvar.first] -
-                          mipsolver.mipdata_->incumbent[fracvar.first]) <=
-                 mipsolver.mipdata_->feastol;
+          return mipsolver.variableType(fracvar.first) !=
+                     HighsVarType::kImplicitInteger &&
+                 std::fabs(relaxationsol[fracvar.first] -
+                           mipsolver.mipdata_->incumbent[fracvar.first]) <=
+                     mipsolver.mipdata_->feastol;
         });
 
     bool fixtolpsol = true;
@@ -638,13 +645,12 @@ retry:
       fixingrate = neighborhood.getFixingRate();
       double stopFixingRate =
           std::min(maxfixingrate, 1.0 - (1.0 - fixingrate) * 0.9);
-      const auto& currlpsol = heurlp.getSolution().col_value;
       for (HighsInt i : intcols) {
         if (localdom.col_lower_[i] == localdom.col_upper_[i]) continue;
 
-        if (std::abs(currlpsol[i] - mipsolver.mipdata_->incumbent[i]) <=
+        if (std::fabs(relaxationsol[i] - mipsolver.mipdata_->incumbent[i]) <=
             mipsolver.mipdata_->feastol) {
-          double fixval = HighsIntegers::nearestInteger(currlpsol[i]);
+          double fixval = HighsIntegers::nearestInteger(relaxationsol[i]);
           HighsInt oldNumBranched = numBranched;
           if (localdom.col_lower_[i] < fixval) {
             ++numBranched;
@@ -712,6 +718,9 @@ retry:
     // select a set of fractional variables to fix
     for (auto fracint = heurlp.getFractionalIntegers().begin();
          fracint != fixcandend; ++fracint) {
+      if (mipsolver.variableType(fracint->first) ==
+          HighsVarType::kImplicitInteger)
+        continue;
       double fixval = getFixVal(fracint->first, fracint->second);
 
       if (localdom.col_lower_[fracint->first] < fixval) {

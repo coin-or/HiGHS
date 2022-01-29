@@ -309,22 +309,42 @@ void HighsImplications::rebuild(HighsInt ncols,
 
     if (newi == -1) continue;
 
-    for (const auto& oldvub : oldvubs[i]) {
-      if (orig2reducedcol[oldvub.first] == -1) continue;
+    double iColScale = 1.0;
+    double iColOffset = 0.0;
+    if (!mipsolver.mipdata_->postSolveStack.getReducedCoefficientAndOffset(
+            newi, iColScale, iColOffset))
+      continue;
 
-      if (!mipsolver.mipdata_->domain.isBinary(orig2reducedcol[oldvub.first]))
+    for (const auto& oldvub : oldvubs[i]) {
+      HighsInt newVubCol = orig2reducedcol[oldvub.first];
+      if (newVubCol == -1) continue;
+
+      if (!mipsolver.mipdata_->domain.isBinary(newVubCol)) continue;
+
+      double newVubCoef = oldvub.second.coef / iColScale;
+      double newVubConstant = (oldvub.second.constant - iColOffset) / iColScale;
+
+      if (!mipsolver.mipdata_->postSolveStack.getReducedCoefficientAndOffset(
+              newVubCol, newVubCoef, newVubConstant))
         continue;
-      addVUB(newi, orig2reducedcol[oldvub.first], oldvub.second.coef,
-             oldvub.second.constant);
+
+      addVUB(newi, newVubCol, newVubCoef, newVubConstant);
     }
 
     for (const auto& oldvlb : oldvlbs[i]) {
-      if (orig2reducedcol[oldvlb.first] == -1) continue;
+      HighsInt newVlbCol = orig2reducedcol[oldvlb.first];
+      if (newVlbCol == -1) continue;
 
-      if (!mipsolver.mipdata_->domain.isBinary(orig2reducedcol[oldvlb.first]))
+      if (!mipsolver.mipdata_->domain.isBinary(newVlbCol)) continue;
+
+      double newVlbCoef = oldvlb.second.coef / iColScale;
+      double newVlbConstant = (oldvlb.second.constant - iColOffset) / iColScale;
+
+      if (!mipsolver.mipdata_->postSolveStack.getReducedCoefficientAndOffset(
+              newVlbCol, newVlbCoef, newVlbConstant))
         continue;
-      addVLB(newi, orig2reducedcol[oldvlb.first], oldvlb.second.coef,
-             oldvlb.second.constant);
+
+      addVLB(newi, newVlbCol, newVlbCoef, newVlbConstant);
     }
 
     // todo also add old implications once implications can be added
@@ -335,19 +355,26 @@ void HighsImplications::rebuild(HighsInt ncols,
 }
 
 void HighsImplications::buildFrom(const HighsImplications& init) {
-  return;
-#if 0
+#if 1
   // todo check if this should be done
   HighsInt numcol = mipsolver.numCol();
 
   for (HighsInt i = 0; i != numcol; ++i) {
+    if (mipsolver.mipdata_->domain.isFixed(i)) continue;
+
     for (const auto& vub : init.vubs[i]) {
       if (!mipsolver.mipdata_->domain.isBinary(vub.first)) continue;
+      if (mipsolver.mipdata_->domain.col_upper_[i] <=
+          vub.second.minValue() + mipsolver.mipdata_->feastol)
+        continue;
       addVUB(i, vub.first, vub.second.coef, vub.second.constant);
     }
 
     for (const auto& vlb : init.vlbs[i]) {
       if (!mipsolver.mipdata_->domain.isBinary(vlb.first)) continue;
+      if (mipsolver.mipdata_->domain.col_lower_[i] >=
+          vlb.second.maxValue() - mipsolver.mipdata_->feastol)
+        continue;
       addVLB(i, vlb.first, vlb.second.coef, vlb.second.constant);
     }
 

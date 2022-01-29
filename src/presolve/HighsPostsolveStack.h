@@ -233,6 +233,7 @@ class HighsPostsolveStack {
   std::vector<HighsInt> origColIndex;
   std::vector<HighsInt> origRowIndex;
   std::vector<std::pair<ReductionType, HighsInt>> primalColTransformations;
+  std::vector<LinearTransform> linearColTransformations;
 
   std::vector<Nonzero> rowValues;
   std::vector<Nonzero> colValues;
@@ -287,6 +288,13 @@ class HighsPostsolveStack {
     HighsInt position = reductionValues.getCurrentDataSize();
     primalColTransformations.emplace_back(ReductionType::kLinearTransform,
                                           position);
+    if (linearColTransformations[col].col != -1) {
+      //     scale * (scaleNew * x' + constantNew) + constant
+      // <=> (scale * scaleNew) * x' + (scale * constantNew + constant)
+      linearColTransformations[col].constant +=
+          linearColTransformations[col].scale * constant;
+      linearColTransformations[col].scale *= scale;
+    }
   }
 
   template <typename RowStorageFormat, typename ColStorageFormat>
@@ -484,6 +492,8 @@ class HighsPostsolveStack {
     HighsInt position = reductionValues.getCurrentDataSize();
     primalColTransformations.emplace_back(ReductionType::kDuplicateColumn,
                                           position);
+    // mark column as not linearly transformable
+    linearColTransformations[col].col = -1;
   }
 
   std::vector<double> getReducedPrimalSolution(
@@ -518,6 +528,20 @@ class HighsPostsolveStack {
 
     reducedSolution.resize(reducedNumCol);
     return reducedSolution;
+  }
+
+  bool isLinearlyTransformable(HighsInt col) const {
+    return linearColTransformations[col].col != -1;
+  }
+
+  bool getReducedCoefficientAndOffset(HighsInt col, double& coef,
+                                      double& offset) const {
+    if (linearColTransformations[col].col == -1) return false;
+
+    offset += coef * linearColTransformations[col].constant;
+    coef *= linearColTransformations[col].scale;
+
+    return true;
   }
 
   /// undo presolve steps for primal dual solution and basis
