@@ -645,12 +645,13 @@ retry:
       fixingrate = neighborhood.getFixingRate();
       double stopFixingRate =
           std::min(maxfixingrate, 1.0 - (1.0 - fixingrate) * 0.9);
+      const auto& currlpsol = heurlp.getSolution().col_value;
       for (HighsInt i : intcols) {
         if (localdom.col_lower_[i] == localdom.col_upper_[i]) continue;
 
-        if (std::fabs(relaxationsol[i] - mipsolver.mipdata_->incumbent[i]) <=
+        if (std::fabs(currlpsol[i] - mipsolver.mipdata_->incumbent[i]) <=
             mipsolver.mipdata_->feastol) {
-          double fixval = HighsIntegers::nearestInteger(relaxationsol[i]);
+          double fixval = HighsIntegers::nearestInteger(currlpsol[i]);
           HighsInt oldNumBranched = numBranched;
           if (localdom.col_lower_[i] < fixval) {
             ++numBranched;
