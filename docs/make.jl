@@ -21,10 +21,10 @@ makedocs(
     authors = "Julian Hall, Ivet Galabova, Leona Gottwald and Michael Feldmeier.",
     pages = [
         "Home" => "index.md",
-        # "About" => "about.md", 
-        # "Get Started" => "get-started.md",
-        # # "Running HiGHS" => "run-executable.md",
-        # "Examples" =>"examples.md",
+        "About" => "about.md", 
+        "Get Started" => "get-started.md",
+        # "Running HiGHS" => "run-executable.md",
+        "Examples" =>"examples.md",
         # "HiGHS Library" => Any[
         #     "Guide" => "man/guide.md",
         #     "Library" => "man/library.md",
