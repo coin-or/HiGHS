@@ -4,7 +4,7 @@ Documentation for [HiGHS](https://github.com/ERGO-Code/HiGHS)
 
 ## Editing the Docs
 
-To make changes, please open a pull request to branch `highs-jl`.
+To make changes, please open a pull request to branch `docs-jl`.
 
 To edit the documentation, simply edit the Markdown files in `docs/src` and the page tree in `src/`.
 
