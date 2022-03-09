@@ -4,9 +4,8 @@ Documentation for [HiGHS](https://github.com/ERGO-Code/HiGHS)
 
 ## Editing the Docs
 
-To edit the documentation, simply edit the Markdown files in [docs/src](https://github.com/galabovaa/HighsDocs.jl)
-The new documentation files will be pushed to the [`gh-pages`](https://github.com/galabovaa/HighsDocs.jl/tree/gh-pages) branch in this repository (useful for debugging the `HighsDocs.jl` documentation build through CI).
+To make changes, please open a pull request to branch `highs-jl`.
 
-## Building the docs
+To edit the documentation, simply edit the Markdown files in `docs/src` and the page tree in `src/`.
 
-With proper dependencies installed, run `GKSwstype=nul julia --project=docs/ docs/make.jl`.
+To build locally, run `julia --color=yes docs/make.jl`. When the build is successful the generated html code for the website will be located in `docs/build`.
