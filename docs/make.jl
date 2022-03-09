@@ -1,13 +1,8 @@
-push!(LOAD_PATH,"../src/")
-
+# push!(LOAD_PATH,"../src/")
 # import Pkg; Pkg.add("HighsDocs")
-
 # using Documenter, HighsDocs
+
 using Documenter
-
-# makedocs(sitename="HiGHS Documentation",format = Documenter.HTML(
-# ))
-
 
 makedocs(
     format = Documenter.HTML(
@@ -23,7 +18,7 @@ makedocs(
         "Home" => "index.md",
         "About" => "about.md", 
         "Get Started" => "get-started.md",
-        # "Running HiGHS" => "run-executable.md",
+        "Running HiGHS" => "run-executable.md",
         "Examples" =>"examples.md",
         # "HiGHS Library" => Any[
         #     "Guide" => "man/guide.md",
@@ -34,6 +29,6 @@ makedocs(
         # ],
     ],
     strict = !("strict=false" in ARGS),
-    # doctest = ("doctest=only" in ARGS) ? :only : true,
-    doctest = false,
+    doctest = ("doctest=only" in ARGS) ? :only : true,
+    # doctest = true,
 )
