@@ -14,7 +14,7 @@ the interfaces, to a project written in other languages.
 
 Installing HiGHS from source code requires CMake minimum version 3.15, but no other third-party utilities ** Threads. 
 
-Your comments or specific questions on HiGHS would be greatly appreciated, so please send an email to <a href="mailto:highsopt@gmail.com">highsopt@gmail.com</a> to get in touch with the team.
+Your comments or specific questions on HiGHS would be greatly appreciated, so please send an email to [highsopt@gmail.com](mailto:highsopt@gmail.com) to get in touch with the team.
 
 <img src="images/HiGHS_banner.png" width="250" alt="" class="center" />
 
