@@ -30,7 +30,7 @@ jobs:
       # Execute the build.  You can specify a specific target with "--target <NAME>"
       run: |
          cmake --build . --parallel 4 --config Release
-         make install
+         cmake --install .
          HIGHS_LIB_DIR=${{runner.workspace}}/install/lib
          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HIGHS_LIB_DIR" >> $GITHUB_ENV
          echo "DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$HIGHS_LIB_DIR" >> $GITHUB_ENV
