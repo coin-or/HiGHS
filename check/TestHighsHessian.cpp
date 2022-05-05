@@ -31,8 +31,7 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
   // OK for default assessHessian (minimization) but not for
   // maximization.
   REQUIRE(assessHessian(square_hessian, options) == HighsStatus::kOk);
-  REQUIRE(assessHessian(square_hessian, options, ObjSense::kMaximize) ==
-          HighsStatus::kError);
+  REQUIRE(!okHessianDiagonal(options, square_hessian, ObjSense::kMaximize));
   if (dev_run) {
     printf("\nReturned square Hessian\n");
     square_hessian.print();
@@ -42,8 +41,7 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
   // OK for default assessHessian (minimization) but not for
   // maximization.
   REQUIRE(assessHessian(triangular_hessian, options) == HighsStatus::kOk);
-  REQUIRE(assessHessian(triangular_hessian, options, ObjSense::kMaximize) ==
-          HighsStatus::kError);
+  REQUIRE(!okHessianDiagonal(options, triangular_hessian, ObjSense::kMaximize));
   if (dev_run) {
     printf("\nReturned triangular Hessian\n");
     triangular_hessian.print();
@@ -73,10 +71,10 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
   negative_diagonal_hessian.value_[6] = -negative_diagonal_hessian.value_[6];
   negative_diagonal_hessian.value_[8] = -negative_diagonal_hessian.value_[8];
   negative_diagonal_hessian.value_[9] = -negative_diagonal_hessian.value_[9];
-  REQUIRE(assessHessian(negative_diagonal_hessian, options,
-                        ObjSense::kMaximize) == HighsStatus::kOk);
-  REQUIRE(assessHessian(negative_diagonal_hessian, options,
-                        ObjSense::kMinimize) == HighsStatus::kError);
+  REQUIRE(assessHessian(negative_diagonal_hessian, options) ==
+          HighsStatus::kOk);
+  REQUIRE(!okHessianDiagonal(options, negative_diagonal_hessian,
+                             ObjSense::kMinimize));
 
   // Square Hessian with only triangular entries - doubled strictly triangular
   // entries.
@@ -117,6 +115,8 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
   indefinite.value_ = {2, 1, 4};
   HighsInt indefinite_num_nz0 = indefinite.numNz();
   REQUIRE(assessHessian(indefinite, options) == HighsStatus::kOk);
+  REQUIRE(okHessianDiagonal(options, indefinite, ObjSense::kMinimize));
+  REQUIRE(!okHessianDiagonal(options, indefinite, ObjSense::kMaximize));
   // Check that there is one more entry due to the explicit zero
   REQUIRE(indefinite.numNz() == indefinite_num_nz0 + 1);
   // Check that all first indices are for the diagonal
@@ -129,6 +129,7 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
     const HighsInt iEl = indefinite.start_[iCol];
     indefinite.value_[iEl] = -indefinite.value_[iEl];
   }
-  REQUIRE(assessHessian(indefinite, options, ObjSense::kMaximize) ==
-          HighsStatus::kOk);
+  REQUIRE(assessHessian(indefinite, options) == HighsStatus::kOk);
+  REQUIRE(!okHessianDiagonal(options, indefinite, ObjSense::kMinimize));
+  REQUIRE(okHessianDiagonal(options, indefinite, ObjSense::kMaximize));
 }

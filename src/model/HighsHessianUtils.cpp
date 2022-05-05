@@ -24,8 +24,7 @@
 
 using std::fabs;
 
-HighsStatus assessHessian(HighsHessian& hessian, const HighsOptions& options,
-                          const ObjSense sense) {
+HighsStatus assessHessian(HighsHessian& hessian, const HighsOptions& options) {
   HighsStatus return_status = HighsStatus::kOk;
   HighsStatus call_status;
 
