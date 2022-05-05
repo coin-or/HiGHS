@@ -808,6 +808,13 @@ HighsStatus Highs::run() {
                    "Cannot solve MIQP problems with HiGHS\n");
       return returnFromRun(HighsStatus::kError);
     }
+    // Ensure that its diagonal entries are OK in the context of the
+    // objective sense. It's OK to be semi-definite
+    if (!okHessianDiagonal(options_, model_.hessian_, model_.lp_.sense_)) {
+      highsLogUser(options_.log_options, HighsLogType::kError,
+                   "Cannot solve non-convex QP problems with HiGHS\n");
+      return returnFromRun(HighsStatus::kError);
+    }
     call_status = callSolveQp();
     return_status = interpretCallStatus(options_.log_options, call_status,
                                         return_status, "callSolveQp");
@@ -3194,25 +3201,27 @@ void Highs::reportSolvedLpQpStats() {
   HighsLogOptions& log_options = options_.log_options;
   highsLogUser(log_options, HighsLogType::kInfo, "Model   status      : %s\n",
                modelStatusToString(model_status_).c_str());
-  if (info_.simplex_iteration_count)
+  if (info_.valid) {
+    if (info_.simplex_iteration_count >= 0)
+      highsLogUser(log_options, HighsLogType::kInfo,
+                   "Simplex   iterations: %" HIGHSINT_FORMAT "\n",
+                   info_.simplex_iteration_count);
+    if (info_.ipm_iteration_count >= 0)
+      highsLogUser(log_options, HighsLogType::kInfo,
+                   "IPM       iterations: %" HIGHSINT_FORMAT "\n",
+                   info_.ipm_iteration_count);
+    if (info_.crossover_iteration_count >= 0)
+      highsLogUser(log_options, HighsLogType::kInfo,
+                   "Crossover iterations: %" HIGHSINT_FORMAT "\n",
+                   info_.crossover_iteration_count);
+    if (info_.qp_iteration_count >= 0)
+      highsLogUser(log_options, HighsLogType::kInfo,
+                   "QP ASM    iterations: %" HIGHSINT_FORMAT "\n",
+                   info_.qp_iteration_count);
     highsLogUser(log_options, HighsLogType::kInfo,
-                 "Simplex   iterations: %" HIGHSINT_FORMAT "\n",
-                 info_.simplex_iteration_count);
-  if (info_.ipm_iteration_count)
-    highsLogUser(log_options, HighsLogType::kInfo,
-                 "IPM       iterations: %" HIGHSINT_FORMAT "\n",
-                 info_.ipm_iteration_count);
-  if (info_.crossover_iteration_count)
-    highsLogUser(log_options, HighsLogType::kInfo,
-                 "Crossover iterations: %" HIGHSINT_FORMAT "\n",
-                 info_.crossover_iteration_count);
-  if (info_.qp_iteration_count)
-    highsLogUser(log_options, HighsLogType::kInfo,
-                 "QP ASM    iterations: %" HIGHSINT_FORMAT "\n",
-                 info_.qp_iteration_count);
-  highsLogUser(log_options, HighsLogType::kInfo,
-               "Objective value     : %17.10e\n",
-               info_.objective_function_value);
+                 "Objective value     : %17.10e\n",
+                 info_.objective_function_value);
+  }
   double run_time = timer_.readRunHighsClock();
   highsLogUser(log_options, HighsLogType::kInfo,
                "HiGHS run time      : %13.2f\n", run_time);
