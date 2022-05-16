@@ -2509,6 +2509,30 @@ HighsPostsolveStatus Highs::runPostsolve() {
                                       presolve_.data_.recovered_solution_,
                                       presolve_.data_.recovered_basis_);
 
+  std::vector<double> row_activities;
+  std::vector<HighsInt>& start = model_.lp_.a_matrix_.start_;
+  std::vector<HighsInt>& index = model_.lp_.a_matrix_.index_;
+  std::vector<double>& value = model_.lp_.a_matrix_.value_;
+  std::vector<double>& col_value =
+      presolve_.data_.recovered_solution_.col_value;
+  std::vector<double>& row_value =
+      presolve_.data_.recovered_solution_.row_value;
+  row_activities.assign(model_.lp_.num_row_, 0);
+  for (HighsInt iCol = 0; iCol < model_.lp_.num_col_; iCol++) {
+    for (HighsInt iEl = start[iCol]; iEl < start[iCol + 1]; iEl++)
+      row_activities[index[iEl]] += col_value[iCol] * value[iEl];
+  }
+  double norm_dl = 0;
+  HighsInt num_rp = 0;
+  for (HighsInt iRow = 0; iRow < model_.lp_.num_row_; iRow++) {
+    double dl = std::fabs(row_value[iRow] - row_activities[iRow]);
+    if (dl > 1e-8 && num_rp++ < 5)
+      printf("Highs::runPostsolve Residual(%d) of %11.4g in row %d\n", num_rp,
+             dl, (int)iRow);
+    norm_dl = std::max(dl, norm_dl);
+  }
+  printf("Highs::runPostsolve Residual %11.4g in row activities\n", norm_dl);
+
   if (have_dual_solution && model_.lp_.sense_ == ObjSense::kMaximize)
     presolve_.negateReducedLpColDuals(true);
 
