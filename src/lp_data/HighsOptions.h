@@ -680,7 +680,6 @@ class HighsOptions : public HighsOptionsStruct {
                                        advanced, &icrash_breakpoints, false);
     records.push_back(record_bool);
 
-
     record_string = new OptionRecordString(
         kWriteModelFileString, "Write model file", advanced, &write_model_file,
         kHighsFilenameDefault);
