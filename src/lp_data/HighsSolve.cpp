@@ -240,7 +240,10 @@ HighsStatus solveLp(HighsModelObject& model, const string message) {
     }
   }
   // Possibly analyse the HiGHS basic solution
-  debugHighsBasicSolution(message, model);
+  int highs_debug_level = options.highs_debug_level;
+  options.highs_debug_level = HIGHS_DEBUG_LEVEL_EXPENSIVE;
+  printf("debugHighsBasicSolution(message, model) returns %d\n", int(debugHighsBasicSolution(message, model)));
+  options.highs_debug_level = highs_debug_level;
 
   return return_status;
 }

@@ -691,7 +691,7 @@ basis_.valid_, hmos_[0].basis_.valid_);
 
           // Possibly force debug to perform KKT check on what's
           // returned from postsolve
-          const bool force_debug = false;
+          const bool force_debug = true;
           int save_highs_debug_level = options_.highs_debug_level;
           if (force_debug)
             options_.highs_debug_level = HIGHS_DEBUG_LEVEL_COSTLY;

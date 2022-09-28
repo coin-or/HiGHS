@@ -124,6 +124,7 @@ HighsDebugStatus debugHighsBasicSolution(const string message,
                                          const HighsSolution& solution) {
   // Non-trivially expensive analysis of a HiGHS basic solution, starting from
   // options, assuming no knowledge of solution parameters or model status
+  printf("debugHighsBasicSolution: options.highs_debug_level  = %d\n", options.highs_debug_level );
   if (options.highs_debug_level < HIGHS_DEBUG_LEVEL_CHEAP)
     return HighsDebugStatus::NOT_CHECKED;
 
@@ -217,6 +218,22 @@ HighsDebugStatus debugHighsBasicSolution(
       options, solution_params, check_solution_params);
   debugReportHighsBasicSolution(message, options, solution_params,
                                 model_status);
+
+  printf("GrepResiduals,%s,%s, %d, %.4g, %.4g, %d, %.4g, %.4g, %d, %.4g, %.4g, %d, %.4g, %.4g\n",
+	 lp.model_name_.c_str(), message.c_str(),
+	 solution_params.num_primal_infeasibilities,
+	 solution_params.max_primal_infeasibility,
+	 solution_params.sum_primal_infeasibilities,
+	 solution_params.num_dual_infeasibilities,
+	 solution_params.max_dual_infeasibility,
+	 solution_params.sum_dual_infeasibilities,
+	 primal_dual_errors.num_primal_residual,
+	 primal_dual_errors.max_primal_residual,
+	 primal_dual_errors.sum_primal_residual,
+	 primal_dual_errors.num_dual_residual,
+	 primal_dual_errors.max_dual_residual,
+	 primal_dual_errors.sum_dual_residual);
+
   return_status = debugWorseStatus(
       debugAnalysePrimalDualErrors(options, primal_dual_errors), return_status);
 
