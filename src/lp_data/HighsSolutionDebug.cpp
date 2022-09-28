@@ -153,6 +153,20 @@ HighsDebugStatus debugHighsBasicSolution(const string message,
       solution_params.num_dual_infeasibilities == 0)
     model_status = HighsModelStatus::OPTIMAL;
 
+  printf("GrepResiduals,%s,%s, %d, %.4g, %.4g, %d, %.4g, %.4g, %d, %.4g, %.4g, %d, %.4g, %.4g\n",
+	 lp.model_name_.c_str(), message.c_str(),
+	 solution_params.num_primal_infeasibilities,
+	 solution_params.max_primal_infeasibility,
+	 solution_params.sum_primal_infeasibilities,
+	 solution_params.num_dual_infeasibilities,
+	 solution_params.max_dual_infeasibility,
+	 solution_params.sum_dual_infeasibilities,
+	 primal_dual_errors.num_primal_residual,
+	 primal_dual_errors.max_primal_residual,
+	 primal_dual_errors.sum_primal_residual,
+	 primal_dual_errors.num_dual_residual,
+	 primal_dual_errors.max_dual_residual,
+	 primal_dual_errors.sum_dual_residual);
   debugReportHighsBasicSolution(message, options, solution_params,
                                 model_status);
   return debugAnalysePrimalDualErrors(options, primal_dual_errors);
