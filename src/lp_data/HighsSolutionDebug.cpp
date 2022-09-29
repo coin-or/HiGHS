@@ -183,8 +183,7 @@ HighsDebugStatus debugHighsBasicSolution(
   if (options.highs_debug_level < HIGHS_DEBUG_LEVEL_CHEAP)
     return HighsDebugStatus::NOT_CHECKED;
   // No basis to test if model status corresponds to warning or error
-  if (highsStatusFromHighsModelStatus(model_status) != HighsStatus::OK)
-    return HighsDebugStatus::OK;
+  //  if (highsStatusFromHighsModelStatus(model_status) != HighsStatus::OK) return HighsDebugStatus::OK;
 
   // No basis to test if model status is primal infeasible or unbounded
   if (model_status == HighsModelStatus::PRIMAL_INFEASIBLE ||
