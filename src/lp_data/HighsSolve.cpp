@@ -57,6 +57,16 @@ HighsStatus solveLp(HighsLpSolverObject& solver_object, const string message) {
       call_status = HighsStatus::kError;
     }
     // Non-error return requires a primal solution
+    const bool debug_report = !solver_object.solution_.value_valid;
+    
+    if (debug_report) {
+      printf("Non-error return has no primal solution\n");
+      printf("Model status = %s\n", utilModelStatusToString(solver_object.model_status_).c_str());
+      printf("IPX counts(%d; %d)\n",
+	     int(solver_object.highs_info_.ipm_iteration_count),
+	     int(solver_object.highs_info_.crossover_iteration_count));
+      fflush(stdout);
+    }
     assert(solver_object.solution_.value_valid);
     // Set the return_status, model status and, for completeness, scaled
     // model status
