@@ -56,23 +56,22 @@ HighsStatus solveLp(HighsLpSolverObject& solver_object, const string message) {
                   "Exception %s in solveLpIpx\n", exception.what());
       call_status = HighsStatus::kError;
     }
-    // Non-error return requires a primal solution
-    const bool debug_report = !solver_object.solution_.value_valid;
-    
-    if (debug_report) {
-      printf("Non-error return has no primal solution\n");
-      printf("Model status = %s\n", utilModelStatusToString(solver_object.model_status_).c_str());
-      printf("IPX counts(%d; %d)\n",
-	     int(solver_object.highs_info_.ipm_iteration_count),
-	     int(solver_object.highs_info_.crossover_iteration_count));
-      fflush(stdout);
-    }
-    assert(solver_object.solution_.value_valid);
-    // Set the return_status, model status and, for completeness, scaled
-    // model status
     return_status = interpretCallStatus(options.log_options, call_status,
                                         return_status, "solveLpIpx");
     if (return_status == HighsStatus::kError) return return_status;
+    // Non-error return requires a primal solution
+    const bool debug_report = !solver_object.solution_.value_valid;
+
+    if (debug_report) {
+      printf("Non-error return has no primal solution\n");
+      printf("Model status = %s\n",
+             utilModelStatusToString(solver_object.model_status_).c_str());
+      printf("IPX counts(%d; %d)\n",
+             int(solver_object.highs_info_.ipm_iteration_count),
+             int(solver_object.highs_info_.crossover_iteration_count));
+      fflush(stdout);
+    }
+    assert(solver_object.solution_.value_valid);
     // Get the objective and any KKT failures
     solver_object.highs_info_.objective_function_value =
         solver_object.lp_.objectiveValue(solver_object.solution_.col_value);
