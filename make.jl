@@ -31,6 +31,7 @@ makedocs(
         "Options" => "man/options.md",
         "Linking" => "man/link.md",
         "Interfaces" => "man/interfaces.md",
+        "Python Notebook" => "mini_example.html"
     ],
     strict = !("strict=false" in ARGS),
     doctest = ("doctest=only" in ARGS) ? :only : true,
