@@ -14,16 +14,19 @@ include(Platform/${CMAKE_SYSTEM_NAME}-CXX OPTIONAL)
 set(CMAKE_CXX_COMPILER_NAMES clang++ icpc c++ ${CMAKE_CXX_COMPILER_NAMES})
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-# set default build type before project call, as it otherwise seems to fail for some plattforms
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE RELEASE)
-endif()
 
 project(HIGHS VERSION 1.5 LANGUAGES CXX C)
 set(HIGHS_VERSION_PATCH 2)
 
-# use C++11 standard
+set(PROJECT_NAMESPACE highs)
+message(STATUS "${PROJECT_NAME} version: ${PROJECT_VERSION}")# use C++11 standard
+
 set(CMAKE_CXX_STANDARD 11)
+
+# set default build type before project call, as it otherwise seems to fail for some plattforms
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE RELEASE)
+endif()
 
 # use customizable install directories
 include(GNUInstallDirs)
@@ -463,7 +466,8 @@ if(BUILD_PYTHON)
   message(STATUS "Python: Fetch dependencies: ${FETCH_PYTHON_DEPS}")
 endif()
 
-add_subdirectory(src)
+# add_subdirectory(src)
+include(cpp)
 
 option(JULIA "Build library and executable for Julia" OFF)
 option(CMAKE_TARGETS "Install module to find HiGHS targets" OFF)
@@ -487,11 +491,11 @@ if (EXP)
 endif()
 
 
-install(TARGETS highs EXPORT highs-targets
-    LIBRARY
-    ARCHIVE
-    RUNTIME
-    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/highs)
+# install(TARGETS highs EXPORT highs-targets
+#     LIBRARY
+#     ARCHIVE
+#     RUNTIME
+#     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/highs)
 
 
 endif()
