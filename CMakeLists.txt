@@ -13,13 +13,14 @@ include(Platform/${CMAKE_SYSTEM_NAME}-Determine-CXX OPTIONAL)
 include(Platform/${CMAKE_SYSTEM_NAME}-CXX OPTIONAL)
 set(CMAKE_CXX_COMPILER_NAMES clang++ icpc c++ ${CMAKE_CXX_COMPILER_NAMES})
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # set default build type before project call, as it otherwise seems to fail for some plattforms
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RELEASE)
 endif()
 
 project(HIGHS VERSION 1.5 LANGUAGES CXX C)
-set(HIGHS_VERSION_PATCH 0)
+set(HIGHS_VERSION_PATCH 2)
 
 # use C++11 standard
 set(CMAKE_CXX_STANDARD 11)
@@ -33,8 +34,6 @@ if(EXISTS "${LOC_PATH}")
     message(FATAL_ERROR "You cannot build in a source directory (or any directory with a CMakeLists.txt file).
     Please make a build subdirectory. Feel free to remove CMakeCache.txt and CMakeFiles.")
 endif()
-
-option(BUILD_TESTING "Build Tests" ON)
 
 if(LINUX AND (NOT MSVC) AND (NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
     include(CheckIPOSupported)
@@ -107,6 +106,8 @@ endif()
 include(CheckCXXCompilerFlag)
 
 if (NOT FAST_BUILD)
+option(BUILD_TESTING "Build Tests" ON)
+
 # Function to set compiler flags on and off easily.
 function(enable_cxx_compiler_flag_if_supported flag)
     string(FIND "${CMAKE_CXX_FLAGS}" "${flag}" flag_already_set)
@@ -462,10 +463,6 @@ if(BUILD_PYTHON)
   message(STATUS "Python: Fetch dependencies: ${FETCH_PYTHON_DEPS}")
 endif()
 
-# Add tests in examples/tests
-add_subdirectory(examples/tests)
-
-# condition added to src/CMakeLists.txt
 add_subdirectory(src)
 
 option(JULIA "Build library and executable for Julia" OFF)
@@ -474,109 +471,6 @@ option(CMAKE_TARGETS "Install module to find HiGHS targets" OFF)
 # No changes in app/ apart from a relative path
 add_subdirectory(app)
 
-
-# check/ not added here, instead define fewer tests:
-# build, 3 feas, 1 infeas, 1 unbounded. 1 parallel, 1 no presolve
-if (NOT JULIA)
-    enable_testing()
-endif()
-
-# Check whether targets build OK.
-add_test(NAME highs-lib-build
-         COMMAND ${CMAKE_COMMAND}
-                 --build ${HIGHS_BINARY_DIR}
-                 --target libhighs
-                 --config ${CMAKE_BUILD_TYPE}
-         )
-
-set_tests_properties(highs-lib-build
-                     PROPERTIES
-                     RESOURCE_LOCK libhighs)
-
-add_test(NAME highs-exe-build
-         COMMAND ${CMAKE_COMMAND}
-                 --build ${HIGHS_BINARY_DIR}
-                 --target highs
-                 --config ${CMAKE_BUILD_TYPE}
-         )
-
-set_tests_properties(highs-exe-build
-                     PROPERTIES
-                     RESOURCE_LOCK highs)
-
-set(successInstances
-    "25fv47\;2888\; 5.5018458883\;"
-    "80bau3b\;3760\; 9.8722419241\;"
-    "greenbea\;5249\;-7.2555248130\;")
-
-set(optionsInstances
-    "adlittle\;74\; 2.2549496316\;")
-
-set(infeasibleInstances
-    "bgetam\;        infeasible")
-
-set(unboundedInstances
-     "gas11\;         unbounded")
-
-# define settings
-set(settings
-    ""
-    "--presolve=off"
-    "--parallel=on")
-
-# define function to add tests
-# More Modern CMake: avoid macros if you can
-function(add_instance_tests instances solutionstatus setting)
-# loop over the instances
-foreach(instance ${${instances}})
-    # add default tests
-    # treat the instance as a tuple (list) of two values
-    list(GET instance 0 name)
-    list(GET instance 1 iter)
-
-    if(${solutionstatus} STREQUAL "Optimal")
-        list(GET instance 2 optval)
-    endif()
-
-    # specify the instance and the settings load command
-    set(inst "${HIGHS_SOURCE_DIR}/check/instances/${name}.mps")
-
-    add_test(NAME ${name}${setting} COMMAND $<TARGET_FILE:highs> ${setting}
-            ${inst})
-
-    set_tests_properties (${name}${setting} PROPERTIES
-            DEPENDS unit_tests_all)
-    set_tests_properties (${name}${setting} PROPERTIES
-            PASS_REGULAR_EXPRESSION
-            "Model   status      : ${solutionstatus}")
-
-    if(${solutionstatus} STREQUAL "Optimal")
-        if("${setting}" STREQUAL "--presolve=off")
-            set_tests_properties (${name}${setting} PROPERTIES
-                    PASS_REGULAR_EXPRESSION
-                    "Simplex   iterations: ${iter}\nObjective value     : ${optval}")
-        else()
-            set_tests_properties (${name}${setting} PROPERTIES
-                    PASS_REGULAR_EXPRESSION
-                    "Objective value     : ${optval}")
-        endif()
-    endif()
-endforeach(instance)
-
-endfunction()
-
-if (NOT JULIA)
-    # add tests for success and fail instances
-    add_instance_tests(successInstances "Optimal" "")
-    add_instance_tests(failInstances "Fail" "")
-    add_instance_tests(infeasibleInstances "Infeasible" "")
-#    add_instance_tests(unboundedInstances "Unbounded" "")
-    set(settings ${settings} "--solver=ipm")
-
-    foreach(setting ${settings})
-        add_instance_tests(optionsInstances "Optimal" ${setting})
-    endforeach()
-endif()
 
 if (EXP)
     add_executable(doctest)
@@ -589,11 +483,11 @@ if (EXP)
     endif()
 
     target_include_directories(doctest PRIVATE extern)
-    target_link_libraries(doctest libhighs)
+    target_link_libraries(doctest highs)
 endif()
 
 
-install(TARGETS libhighs EXPORT highs-targets
+install(TARGETS highs EXPORT highs-targets
     LIBRARY
     ARCHIVE
     RUNTIME
@@ -601,11 +495,3 @@ install(TARGETS libhighs EXPORT highs-targets
 
 
 endif()
-
-# # Comment out for scaffold/ tests
-# add_subdirectory(scaffold)
-
-# # Only needed if it defines a target like a main executable. For methods stick
-# # to header-only.
-# add_subdirectory(dev_presolve)
-
