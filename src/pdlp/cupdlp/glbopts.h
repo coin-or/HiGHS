@@ -7,6 +7,11 @@
 // #include <cusparse.h>          // cusparseSpMV
 // #endif
 
+//template <typename T>
+//void mymalloc(T*& var, size_t size) {
+//  (var) = (T*)malloc((size)* sizeof(T));
+//}
+
 #ifdef __cplusplus
 
 extern "C" {
@@ -107,7 +112,7 @@ extern "C" {
   memcpy(dst, src, sizeof(type) * (size))
 #define CUPDLP_INIT_VEC(var, size)                              \
   {                                                             \
-    (var) = (typeof(var))malloc((size) * sizeof(typeof(*var))); \
+    (var) = (__typeof__(var))malloc((size) * sizeof(__typeof__(*var))); \
     if ((var) == cupdlp_NULL) {                                 \
       retcode = RETCODE_FAILED;                                 \
       goto exit_cleanup;                                        \
@@ -159,7 +164,7 @@ extern "C" {
   memcpy(dst, src, sizeof(type) * (size))
 #define CUPDLP_INIT(var, size)                                  \
   {                                                             \
-    (var) = (typeof(var))malloc((size) * sizeof(typeof(*var))); \
+    (var) = (__typeof__(var))malloc((size) * sizeof(__typeof__(*var))); \
     if ((var) == cupdlp_NULL) {                                 \
       retcode = RETCODE_FAILED;                                 \
       goto exit_cleanup;                                        \
@@ -167,7 +172,7 @@ extern "C" {
   }
 #define CUPDLP_INIT_ZERO(var, size)                          \
   {                                                          \
-    (var) = (typeof(var))calloc(size, sizeof(typeof(*var))); \
+    (var) = (__typeof__(var))calloc(size, sizeof(__typeof__(*var))); \
     if ((var) == cupdlp_NULL) {                              \
       retcode = RETCODE_FAILED;                              \
       goto exit_cleanup;                                     \
