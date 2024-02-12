@@ -1132,6 +1132,7 @@ PYBIND11_MODULE(highspy, m) {
       .value("kSteepestEdge", EdgeWeightMode::kSteepestEdge)
       .value("kCount", EdgeWeightMode::kCount);
   py::module_ callbacks = m.def_submodule("cb", "Callback interface submodule");
+
   // Types for interface
   py::enum_<HighsCallbackType>(callbacks, "HighsCallbackType")
       .value("kCallbackMin", HighsCallbackType::kCallbackMin)
