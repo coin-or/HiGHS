@@ -1,5 +1,4 @@
 # Define library.
-include(sources)
 
 set(sources ${highs_sources} ${cupdlp_sources} ${ipx_sources} ${basiclu_sources})
 set(headers ${highs_headers} ${cupdlp_headers} ${ipx_headers} ${basiclu_headers})
@@ -133,7 +132,6 @@ else()
       INSTALL_RPATH "@loader_path")
   endif()
 
-  target_sources(highs PRIVATE ${sources} ${headers})
 
   target_include_directories(highs PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -157,14 +155,14 @@ else()
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/qpsolver>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/simplex>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/util>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
-  )
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>)
 
   target_include_directories(highs PRIVATE
     $<BUILD_INTERFACE:${HIGHS_SOURCE_DIR}/extern/>
     $<BUILD_INTERFACE:${HIGHS_SOURCE_DIR}/extern/filereader>
-    $<BUILD_INTERFACE:${HIGHS_SOURCE_DIR}/extern/pdqsort>
-  )
+    $<BUILD_INTERFACE:${HIGHS_SOURCE_DIR}/extern/pdqsort>)
+
+  target_sources(highs PRIVATE ${sources} ${headers})
 
   if(ZLIB AND ZLIB_FOUND)
     target_include_directories(highs PRIVATE
@@ -243,6 +241,7 @@ else()
   install(FILES "${HIGHS_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/highs.pc"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
     
+endif()
 endif()
 
 if(FORTRAN_FOUND)

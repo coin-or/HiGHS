@@ -15,7 +15,7 @@ set(CMAKE_CXX_COMPILER_NAMES clang++ icpc c++ ${CMAKE_CXX_COMPILER_NAMES})
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-include(set-version)
+include(version)
 set_version(VERSION)
 
 project(HIGHS VERSION ${VERSION} LANGUAGES CXX C)
@@ -40,21 +40,23 @@ option(FAST_BUILD "Fast build: " ON)
 option(BUILD_CXX "Build C++ library" ON)
 message(STATUS "Build C++ library: ${BUILD_CXX}")
 
+option(BUILD_TESTING "Build Tests" ON)
+
 option(FORTRAN "Build Fortran interface" OFF)
 message(STATUS "Build Fortran: ${FORTRAN}")
 option(CSHARP "Build CSharp interface" OFF)
 message(STATUS "Build CSharp: ${CSHARP}")
-if (CSHARP)
+
+if (FORTRAN OR CSHARP)
   set(BUILD_SHARED_LIBS ON)
 endif()
 
 option(PYTHON_BUILD_SETUP "Build Python interface from setup.py" OFF)
-message(STATUS "Build Python: ${PYTHON_BUILD_ONLY}")
+message(STATUS "Build Python: ${PYTHON_BUILD_SETUP}")
 if (PYTHON_BUILD_SETUP) 
   set(BUILD_CXX OFF)
+  set(BUILD_TESTING OFF)
 endif()
-
-option(BUILD_TESTING "Build Tests" ON)
 
 include(CMakeDependentOption)
 
@@ -63,6 +65,9 @@ message(STATUS "Build all tests: ${BUILD_ALL_TESTS}")
 
 option(ZLIB "ZLIB" ON)
 message(STATUS "ZLIB: ${ZLIB}")
+if (PYTHON_BUILD_SETUP) 
+  set(ZLIB OFF)
+endif()
 
 # emscripten
 option(EMSCRIPTEN_HTML "Emscripten HTML output" OFF)
@@ -494,24 +499,27 @@ else(FAST_BUILD)
   message(STATUS "Build examples: ${BUILD_EXAMPLES}")
 
   CMAKE_DEPENDENT_OPTION(BUILD_CXX_EXAMPLE "Build cxx example" ON "BUILD_EXAMPLES;BUILD_CXX" OFF)
-  message(STATUS "Build C++ example: ${BUILD_CXX_EX}")
+  message(STATUS "Build C++ example: ${BUILD_CXX_EXAMPLE}")
   CMAKE_DEPENDENT_OPTION(BUILD_CSHARP_EXAMPLE "Build CSharp example" ON "BUILD_EXAMPLES;CSHARP" OFF)
   message(STATUS "Build CSharp example: ${BUILD_CSHARP_EXAMPLE}")
+  
+  # highs library
+  include(cpp)
 
-  include(cpp-highs)
-
-  if(PYTHON_BUILD_SETUP)
-    include(python-highs)
-  else()
-    add_subdirectory(app)
-    if(BUILD_TESTING)
-      enable_testing()
-      add_subdirectory(check)
-    endif()
-    include(c-highs)
-    # Add tests in examples/tests
-    add_subdirectory(examples)
+  # highs binary
+  add_subdirectory(app)
+  
+  # tests
+  if(BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(check)
   endif()
+  
+  # add_c_example
+  include(c)
+
+  # build examples
+  add_subdirectory(examples)
 
   if(EXP)
     add_executable(doctest)

@@ -1,4 +1,7 @@
 # set(CMAKE_VERBOSE_MAKEFILE ON)
+if (BUILD_PYTHON_SETUP)
+  include(python)
+endif()
 
 if(NOT BUILD_CXX)
   return()

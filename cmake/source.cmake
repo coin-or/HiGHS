@@ -147,8 +147,7 @@ set(ipx_sources
   src/ipm/ipx/utils.h)
 
 set(highs_sources
-    extern/filereaderlp/reader.cpp
-    src/interfaces/highs_c_api.cpp
+    interfaces/highs_c_api.cpp)
     src/io/Filereader.cpp
     src/io/FilereaderEms.cpp
     src/io/FilereaderLp.cpp
@@ -157,9 +156,7 @@ set(highs_sources
     src/io/HMpsFF.cpp
     src/io/HMPSIO.cpp
     src/io/LoadOptions.cpp
-
     src/ipm/IpxWrapper.cpp
-
     src/lp_data/Highs.cpp
     src/lp_data/HighsCallback.cpp
     src/lp_data/HighsDebug.cpp
@@ -176,9 +173,6 @@ set(highs_sources
     src/lp_data/HighsSolutionDebug.cpp
     src/lp_data/HighsSolve.cpp
     src/lp_data/HighsStatus.cpp
-
-
-
     src/mip/HighsCliqueTable.cpp
     src/mip/HighsConflictPool.cpp
     src/mip/HighsCutGeneration.cpp
@@ -190,7 +184,6 @@ set(highs_sources
     src/mip/HighsImplications.cpp
     src/mip/HighsLpAggregator.cpp
     src/mip/HighsLpRelaxation.cpp
-
     src/mip/HighsMipSolver.cpp
     src/mip/HighsMipSolverData.cpp
     src/mip/HighsModkSeparator.cpp
@@ -203,18 +196,13 @@ set(highs_sources
     src/mip/HighsSearch.cpp
     src/mip/HighsSeparation.cpp
     src/mip/HighsSeparator.cpp
-
     src/mip/HighsTableauSeparator.cpp
     src/mip/HighsTransformedLp.cpp
-
     src/model/HighsHessian.cpp
     src/model/HighsHessianUtils.cpp
     src/model/HighsModel.cpp
-
     src/parallel/HighsTaskExecutor.cpp
-
     src/pdlp/CupdlpWrapper.cpp
-
     src/presolve/HighsPostsolveStack.cpp
     src/presolve/HighsSymmetry.cpp
     src/presolve/HPresolve.cpp
@@ -223,7 +211,6 @@ set(highs_sources
     src/presolve/ICrashUtil.cpp
     src/presolve/ICrashX.cpp
     src/presolve/PresolveComponent.cpp
-
     src/qpsolver/a_asm.cpp
     src/qpsolver/a_quass.cpp
     src/qpsolver/basis.cpp
@@ -231,7 +218,6 @@ set(highs_sources
     src/qpsolver/quass.cpp
     src/qpsolver/ratiotest.cpp
     src/qpsolver/scaling.cpp
-    
     src/simplex/HEkk.cpp
     src/simplex/HEkkControl.cpp
     src/simplex/HEkkDebug.cpp
@@ -249,10 +235,8 @@ set(highs_sources
     src/simplex/HSimplexNlaFreeze.cpp
     src/simplex/HSimplexNlaProductForm.cpp
     src/simplex/HSimplexReport.cpp
-
     src/test/KktCh2.cpp
     src/test/DevKkt.cpp
-
     src/util/HFactor.cpp
     src/util/HFactorDebug.cpp
     src/util/HFactorExtend.cpp
@@ -268,6 +252,7 @@ set(highs_sources
     src/util/HSet.cpp
     src/util/HVectorBase.cpp
     src/util/stringutil.cpp
+    ../extern/filereaderlp/reader.cpp)
 
 set(highs_headers
     ../extern/filereaderlp/builder.hpp
