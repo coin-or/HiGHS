@@ -269,8 +269,7 @@ set(highs_sources
     src/util/HVectorBase.cpp
     src/util/stringutil.cpp
 
-
-set(headers_fast_build_
+set(highs_headers
     ../extern/filereaderlp/builder.hpp
     ../extern/filereaderlp/model.hpp
     ../extern/filereaderlp/reader.hpp
@@ -403,14 +402,10 @@ set(headers_fast_build_
     src/interfaces/highs_c_api.h
   )
 
-#   set(headers_fast_build_ ${headers_fast_build_} ipm/IpxWrapper.h ${basiclu_headers}
-#     ${ipx_headers})
-
 # todo: see which headers you need 
+# set_target_properties(highs PROPERTIES PUBLIC_HEADER "src/Highs.h;src/lp_data/HighsLp.h;src/lp_data/HighsLpSolverObject.h")
 
-  # set_target_properties(highs PROPERTIES PUBLIC_HEADER "src/Highs.h;src/lp_data/HighsLp.h;src/lp_data/HighsLpSolverObject.h")
-
-  # install the header files of highs
+# install the header files of highs
 #   foreach(file ${headers_fast_build_})
 #     get_filename_component(dir ${file} DIRECTORY)
 
@@ -422,7 +417,7 @@ set(headers_fast_build_
 #   endforeach()
 #   install(FILES ${HIGHS_BINARY_DIR}/HConfig.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/highs)
 
-  set(include_dirs
+set(include_dirs
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/interfaces
     ${CMAKE_SOURCE_DIR}/src/io
@@ -443,9 +438,7 @@ set(headers_fast_build_
     ${CMAKE_SOURCE_DIR}/extern
     ${CMAKE_SOURCE_DIR}/extern/filereader
     ${CMAKE_SOURCE_DIR}/extern/pdqsort
-    $<BUILD_INTERFACE:${HIGHS_BINARY_DIR}>
-    
-  )
+    $<BUILD_INTERFACE:${HIGHS_BINARY_DIR}>)
     
     # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     # $<BUILD_INTERFACE:${HIGHS_BINARY_DIR}>
