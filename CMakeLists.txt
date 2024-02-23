@@ -484,6 +484,10 @@ if(NOT FAST_BUILD)
   #   enable_cxx_compiler_flag_if_supported("-D_GLIBCXX_DEBUG")
   # endif()
 
+  if(PYTHON_BUILD_SETUP)
+    include(python)
+  endif()
+  
   # Targets
   add_subdirectory(src)
   add_subdirectory(app)
