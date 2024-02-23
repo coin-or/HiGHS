@@ -1,14 +1,10 @@
 # set(CMAKE_VERBOSE_MAKEFILE ON)
-if (BUILD_PYTHON_SETUP)
-  include(python)
-endif()
+# Main Target
+add_subdirectory(src)
 
 if(NOT BUILD_CXX)
   return()
 endif()
-
-# Main Target
-add_subdirectory(src)
 
 # ALIAS
 add_library(${PROJECT_NAMESPACE}::highs ALIAS highs)

@@ -67,9 +67,8 @@ set(basiclu_headers
   ipm/basiclu/basiclu_solve_sparse.h
   ipm/basiclu/basiclu_update.h
   ipm/basiclu/basiclu.h
-  ipm/basiclu/lu_dfs.h
+  ipm/basiclu/lu_def.h
   ipm/basiclu/lu_file.h
-  ipm/basiclu/lu_initialize.h
   ipm/basiclu/lu_internal.h
   ipm/basiclu/lu_list.h)
 

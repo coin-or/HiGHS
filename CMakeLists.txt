@@ -60,8 +60,8 @@ endif()
 
 include(CMakeDependentOption)
 
-CMAKE_DEPENDENT_OPTION(BUILD_ALL_TESTS "Build all tests" OFF "BUILD_TESTING;BUILD_CXX" OFF)
-message(STATUS "Build all tests: ${BUILD_ALL_TESTS}")
+CMAKE_DEPENDENT_OPTION(ALL_TESTS "Build all tests" OFF "BUILD_TESTING;BUILD_CXX" OFF)
+message(STATUS "Build all tests: ${ALL_TESTS}")
 
 option(ZLIB "ZLIB" ON)
 message(STATUS "ZLIB: ${ZLIB}")

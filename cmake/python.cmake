@@ -1,6 +1,6 @@
-set(CMAKE_VERBOSE_MAKEFILE ON)
+# set(CMAKE_VERBOSE_MAKEFILE ON)
 
-include(sources)
+include(source)
 
 # Find Python 3
 
