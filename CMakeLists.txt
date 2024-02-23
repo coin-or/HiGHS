@@ -377,7 +377,7 @@ message(STATUS "Compilation date: " ${TODAY})
 
 configure_file(${HIGHS_SOURCE_DIR}/src/HConfig.h.in ${HIGHS_BINARY_DIR}/HConfig.h)
 
-
+# include(sources)
 
 if(NOT FAST_BUILD)
   # For the moment keep above coverage part in case we are testing at CI.

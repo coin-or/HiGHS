@@ -1,5 +1,7 @@
 # Define library.
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_PROJECT_DIR}/cmake")
+include(source)
 set(sources ${highs_sources} ${cupdlp_sources} ${ipx_sources} ${basiclu_sources})
 set(headers ${highs_headers} ${cupdlp_headers} ${ipx_headers} ${basiclu_headers})
 
