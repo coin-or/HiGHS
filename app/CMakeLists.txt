@@ -1,3 +1,7 @@
+if(PYTHON_BUILD_SETUP)
+  return()
+endif()
+
 if(FAST_BUILD)
   if (BUILD_CXX)
     # create highs binary using library without pic

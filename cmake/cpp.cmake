@@ -1,11 +1,10 @@
 # set(CMAKE_VERBOSE_MAKEFILE ON)
+# Main Target
+add_subdirectory(src)
 
 if(NOT BUILD_CXX)
   return()
 endif()
-
-# Main Target
-add_subdirectory(src)
 
 # ALIAS
 add_library(${PROJECT_NAMESPACE}::highs ALIAS highs)
@@ -67,8 +66,6 @@ install(TARGETS highs
    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/highs)
   
-if (BUILD_CXX)
-
 # Add library targets to the build-tree export set
 export(TARGETS highs
     NAMESPACE ${PROJECT_NAMESPACE}::
@@ -89,8 +86,6 @@ write_basic_package_version_file(
   "${PROJECT_BINARY_DIR}/${PACKAGE_PREFIX}-config-version.cmake"
   COMPATIBILITY SameMajorVersion
   )
-
-endif()
 
 # add_cxx_test()
 # CMake function to generate and build C++ test.

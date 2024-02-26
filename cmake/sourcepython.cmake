@@ -1,23 +1,23 @@
 set(cupdlp_sources
-  src/pdlp/cupdlp/cupdlp_cs.c
-  src/pdlp/cupdlp/cupdlp_linalg.c
-  src/pdlp/cupdlp/cupdlp_proj.c
-  src/pdlp/cupdlp/cupdlp_restart.c
-  src/pdlp/cupdlp/cupdlp_scaling_cuda.c
-  src/pdlp/cupdlp/cupdlp_solver.c
-  src/pdlp/cupdlp/cupdlp_step.c
-  src/pdlp/cupdlp/cupdlp_utils.c)
+  src/src/pdlp/cusrc/pdlp/cupdlp_cs.c
+  src/pdlp/cusrc/pdlp/cupdlp_linalg.c
+  src/pdlp/cusrc/pdlp/cupdlp_proj.c
+  src/pdlp/cusrc/pdlp/cupdlp_restart.c
+  src/pdlp/cusrc/pdlp/cupdlp_scaling_cuda.c
+  src/pdlp/cusrc/pdlp/cupdlp_solver.c
+  src/pdlp/cusrc/pdlp/cupdlp_step.c
+  src/pdlp/cusrc/pdlp/cupdlp_utils.c)
 
 set(cupdlp_headers
-  src/pdlp/cupdlp/cupdlp_cs.h
-  src/pdlp/cupdlp/cupdlp_defs.h
-  src/pdlp/cupdlp/cupdlp_linalg.h
-  src/pdlp/cupdlp/cupdlp_proj.h
-  src/pdlp/cupdlp/cupdlp_restart.h
-  src/pdlp/cupdlp/cupdlp_scaling_cuda.h
-  src/pdlp/cupdlp/cupdlp_solver.h
-  src/pdlp/cupdlp/cupdlp_step.h
-  src/pdlp/cupdlp/cupdlp_utils.c)
+  src/pdlp/cusrc/pdlp/cupdlp_cs.h
+  src/pdlp/cusrc/pdlp/cupdlp_defs.h
+  src/pdlp/cusrc/pdlp/cupdlp_linalg.h
+  src/pdlp/cusrc/pdlp/cupdlp_proj.h
+  src/pdlp/cusrc/pdlp/cupdlp_restart.h
+  src/pdlp/cusrc/pdlp/cupdlp_scaling_cuda.h
+  src/pdlp/cusrc/pdlp/cupdlp_solver.h
+  src/pdlp/cusrc/pdlp/cupdlp_step.h
+  src/pdlp/cusrc/pdlp/cupdlp_utils.c)
 
 set(basiclu_sources
   src/ipm/basiclu/basiclu_factorize.c
@@ -67,9 +67,8 @@ set(basiclu_headers
   src/ipm/basiclu/basiclu_solve_sparse.h
   src/ipm/basiclu/basiclu_update.h
   src/ipm/basiclu/basiclu.h
-  src/ipm/basiclu/lu_dfs.h
+  src/ipm/basiclu/lu_def.h
   src/ipm/basiclu/lu_file.h
-  src/ipm/basiclu/lu_initialize.h
   src/ipm/basiclu/lu_internal.h
   src/ipm/basiclu/lu_list.h)
 
@@ -147,7 +146,6 @@ set(ipx_sources
   src/ipm/ipx/utils.h)
 
 set(highs_sources
-    extern/filereaderlp/reader.cpp
     src/interfaces/highs_c_api.cpp
     src/io/Filereader.cpp
     src/io/FilereaderEms.cpp
@@ -157,9 +155,7 @@ set(highs_sources
     src/io/HMpsFF.cpp
     src/io/HMPSIO.cpp
     src/io/LoadOptions.cpp
-
     src/ipm/IpxWrapper.cpp
-
     src/lp_data/Highs.cpp
     src/lp_data/HighsCallback.cpp
     src/lp_data/HighsDebug.cpp
@@ -176,9 +172,6 @@ set(highs_sources
     src/lp_data/HighsSolutionDebug.cpp
     src/lp_data/HighsSolve.cpp
     src/lp_data/HighsStatus.cpp
-
-
-
     src/mip/HighsCliqueTable.cpp
     src/mip/HighsConflictPool.cpp
     src/mip/HighsCutGeneration.cpp
@@ -190,7 +183,6 @@ set(highs_sources
     src/mip/HighsImplications.cpp
     src/mip/HighsLpAggregator.cpp
     src/mip/HighsLpRelaxation.cpp
-
     src/mip/HighsMipSolver.cpp
     src/mip/HighsMipSolverData.cpp
     src/mip/HighsModkSeparator.cpp
@@ -203,18 +195,13 @@ set(highs_sources
     src/mip/HighsSearch.cpp
     src/mip/HighsSeparation.cpp
     src/mip/HighsSeparator.cpp
-
     src/mip/HighsTableauSeparator.cpp
     src/mip/HighsTransformedLp.cpp
-
     src/model/HighsHessian.cpp
     src/model/HighsHessianUtils.cpp
     src/model/HighsModel.cpp
-
     src/parallel/HighsTaskExecutor.cpp
-
     src/pdlp/CupdlpWrapper.cpp
-
     src/presolve/HighsPostsolveStack.cpp
     src/presolve/HighsSymmetry.cpp
     src/presolve/HPresolve.cpp
@@ -223,7 +210,6 @@ set(highs_sources
     src/presolve/ICrashUtil.cpp
     src/presolve/ICrashX.cpp
     src/presolve/PresolveComponent.cpp
-
     src/qpsolver/a_asm.cpp
     src/qpsolver/a_quass.cpp
     src/qpsolver/basis.cpp
@@ -231,7 +217,6 @@ set(highs_sources
     src/qpsolver/quass.cpp
     src/qpsolver/ratiotest.cpp
     src/qpsolver/scaling.cpp
-    
     src/simplex/HEkk.cpp
     src/simplex/HEkkControl.cpp
     src/simplex/HEkkDebug.cpp
@@ -249,10 +234,8 @@ set(highs_sources
     src/simplex/HSimplexNlaFreeze.cpp
     src/simplex/HSimplexNlaProductForm.cpp
     src/simplex/HSimplexReport.cpp
-
-    src/test/KktCh2.cpp
-    src/test/DevKkt.cpp
-
+    test/KktCh2.cpp
+    test/DevKkt.cpp
     src/util/HFactor.cpp
     src/util/HFactorDebug.cpp
     src/util/HFactorExtend.cpp
@@ -267,40 +250,40 @@ set(highs_sources
     src/util/HighsUtils.cpp
     src/util/HSet.cpp
     src/util/HVectorBase.cpp
-    src/util/stringutil.cpp)
+    src/util/stringutil.cpp
+    ../extern/filereaderlp/reader.cpp)
 
-
-set(headers_fast_build_
+set(highs_headers
     ../extern/filereaderlp/builder.hpp
     ../extern/filereaderlp/model.hpp
     ../extern/filereaderlp/reader.hpp
-    io/Filereader.h
-    io/FilereaderLp.h
-    io/FilereaderEms.h
-    io/FilereaderMps.h
-    io/HMpsFF.h
-    io/HMPSIO.h
-    io/HighsIO.h
-    io/LoadOptions.h
-    lp_data/HConst.h
-    lp_data/HStruct.h
-    lp_data/HighsAnalysis.h
-    lp_data/HighsCallback.h
-    lp_data/HighsCallbackStruct.h
-    lp_data/HighsDebug.h
-    lp_data/HighsInfo.h
-    lp_data/HighsInfoDebug.h
-    lp_data/HighsLp.h
-    lp_data/HighsLpSolverObject.h
-    lp_data/HighsLpUtils.h
-    lp_data/HighsModelUtils.h
-    lp_data/HighsOptions.h
-    lp_data/HighsRanging.h
-    lp_data/HighsRuntimeOptions.h
-    lp_data/HighsSolution.h
-    lp_data/HighsSolutionDebug.h
-    lp_data/HighsSolve.h
-    lp_data/HighsStatus.h
+    src/io/Filereader.h
+    src/io/FilereaderLp.h
+    src/io/FilereaderEms.h
+    src/io/FilereaderMps.h
+    src/io/HMpsFF.h
+    src/io/HMPSIO.h
+    src/io/HighsIO.h
+    src/io/LoadOptions.h
+    src/lp_data/HConst.h
+    src/lp_data/HStruct.h
+    src/lp_data/HighsAnalysis.h
+    src/lp_data/HighsCallback.h
+    src/lp_data/HighsCallbackStruct.h
+    src/lp_data/HighsDebug.h
+    src/lp_data/HighsInfo.h
+    src/lp_data/HighsInfoDebug.h
+    src/lp_data/HighsLp.h
+    src/lp_data/HighsLpSolverObject.h
+    src/lp_data/HighsLpUtils.h
+    src/lp_data/HighsModelUtils.h
+    src/lp_data/HighsOptions.h
+    src/lp_data/HighsRanging.h
+    src/lp_data/HighsRuntimeOptions.h
+    src/lp_data/HighsSolution.h
+    src/lp_data/HighsSolutionDebug.h
+    src/lp_data/HighsSolve.h
+    src/lp_data/HighsStatus.h
     src/mip/HighsCliqueTable.h
     src/mip/HighsCutGeneration.h
     src/mip/HighsConflictPool.h
@@ -403,14 +386,10 @@ set(headers_fast_build_
     src/interfaces/highs_c_api.h
   )
 
-#   set(headers_fast_build_ ${headers_fast_build_} ipm/IpxWrapper.h ${basiclu_headers}
-#     ${ipx_headers})
-
 # todo: see which headers you need 
+# set_target_properties(highs PROPERTIES PUBLIC_HEADER "Highs.h;src/lp_data/HighsLp.h;src/lp_data/HighsLpSolverObject.h")
 
-  # set_target_properties(highs PROPERTIES PUBLIC_HEADER "src/Highs.h;src/lp_data/HighsLp.h;src/lp_data/HighsLpSolverObject.h")
-
-  # install the header files of highs
+# install the header files of highs
 #   foreach(file ${headers_fast_build_})
 #     get_filename_component(dir ${file} DIRECTORY)
 
@@ -422,30 +401,28 @@ set(headers_fast_build_
 #   endforeach()
 #   install(FILES ${HIGHS_BINARY_DIR}/HConfig.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/highs)
 
-  set(include_dirs
+set(include_dirs
     ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src/interfaces
-    ${CMAKE_SOURCE_DIR}/src/io
-    ${CMAKE_SOURCE_DIR}/src/ipm
+    ${CMAKE_SOURCE_DIR}/interfaces
+    ${CMAKE_SOURCE_DIR}/io
+    ${CMAKE_SOURCE_DIR}/ipm
     ${CMAKE_SOURCE_DIR}/src/ipm/ipx
     ${CMAKE_SOURCE_DIR}/src/ipm/basiclu
-    ${CMAKE_SOURCE_DIR}/src/lp_data
-    ${CMAKE_SOURCE_DIR}/src/mip
-    ${CMAKE_SOURCE_DIR}/src/model
-    ${CMAKE_SOURCE_DIR}/src/parallel
-    ${CMAKE_SOURCE_DIR}/src/pdlp
+    ${CMAKE_SOURCE_DIR}/lp_data
+    ${CMAKE_SOURCE_DIR}/mip
+    ${CMAKE_SOURCE_DIR}/model
+    ${CMAKE_SOURCE_DIR}/parallel
+    ${CMAKE_SOURCE_DIR}/pdlp
     ${CMAKE_SOURCE_DIR}/src/pdlp/cupdlp
-    ${CMAKE_SOURCE_DIR}/src/presolve
-    ${CMAKE_SOURCE_DIR}/src/qpsolver
-    ${CMAKE_SOURCE_DIR}/src/simplex
-    ${CMAKE_SOURCE_DIR}/src/util
-    ${CMAKE_SOURCE_DIR}/src/test
+    ${CMAKE_SOURCE_DIR}/presolve
+    ${CMAKE_SOURCE_DIR}/qpsolver
+    ${CMAKE_SOURCE_DIR}/simplex
+    ${CMAKE_SOURCE_DIR}/util
+    ${CMAKE_SOURCE_DIR}/test
     ${CMAKE_SOURCE_DIR}/extern
     ${CMAKE_SOURCE_DIR}/extern/filereader
     ${CMAKE_SOURCE_DIR}/extern/pdqsort
-    $<BUILD_INTERFACE:${HIGHS_BINARY_DIR}>
-    
-  )
+    $<BUILD_INTERFACE:${HIGHS_BINARY_DIR}>)
     
     # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     # $<BUILD_INTERFACE:${HIGHS_BINARY_DIR}>
@@ -453,8 +430,8 @@ set(headers_fast_build_
     # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/interfaces>
     # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/io>
     # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/ipm>
-    # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/ipm/ipx>
-    # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/ipm/basiclu>
+    # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/ipm/ipx>
+    # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/ipm/basiclu>
     # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lp_data>
     # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/mip>
     # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/model>
