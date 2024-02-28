@@ -358,6 +358,7 @@ void LpSolver::ClearSolution() {
 }
 
 void LpSolver::InteriorPointSolve() {
+    control_.hLog("hLog(\"Interior Point Solve\\n\")\n");
     control_.Log() << "Interior Point Solve\n";
 
     // Allocate new iterate and set tolerances for IPM termination test.
