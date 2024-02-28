@@ -43,7 +43,7 @@ void Control::hLog(std::stringstream& logging) const {
 void Control::hLog(const char* str) const {
   if (parameters_.highs_logging) {
     highsLogUser(parameters_.log_options, HighsLogType::kInfo, "%s", str);
-    output_ << "output_ << " << str;
+    //    output_ << str;
   } else {
     output_ << str;
   }
