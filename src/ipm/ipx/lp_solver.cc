@@ -57,9 +57,7 @@ Int LpSolver::Solve() {
     h_logging_stream.str(std::string());
     h_logging_stream << "IPX version 1.0\n";
     //    control_.hLog("IPX version 1.0\n");
-    /*
-    control_.hLog(h_logging_stream);
-    */
+    //    control_.hLog(h_logging_stream);
     control_.Log() << "IPX version 1.0\n";
     try {
         InteriorPointSolve();
@@ -358,7 +356,7 @@ void LpSolver::ClearSolution() {
 }
 
 void LpSolver::InteriorPointSolve() {
-    control_.hLog("hLog(\"Interior Point Solve\\n\")\n");
+    control_.hLog("Interior Point Solve\n");
     control_.Log() << "Interior Point Solve\n";
 
     // Allocate new iterate and set tolerances for IPM termination test.

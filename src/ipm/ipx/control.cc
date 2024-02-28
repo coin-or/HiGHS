@@ -40,12 +40,12 @@ void Control::hLog(std::stringstream& logging) const {
   logging.str(std::string());
 }
 
-void Control::hLog(const char* str) const {
+void Control::hLog(const std::string& str) const {
   if (parameters_.highs_logging) {
-    highsLogUser(parameters_.log_options, HighsLogType::kInfo, "%s", *str);
+    highsLogUser(parameters_.log_options, HighsLogType::kInfo, "%s", str.c_str());
     //    output_ << str;
   } else {
-    output_ << str;
+    //    output_ << str;
   }
 }
 
