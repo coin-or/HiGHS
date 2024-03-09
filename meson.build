@@ -1,5 +1,5 @@
 project('highs', 'cpp',
-  version : '1.6.0',
+  version : '1.7.0',
   meson_version: '>= 1.1.0',
   default_options : ['warning_level=1',
                      'cpp_std=c++17',
@@ -152,12 +152,15 @@ endif
 # --------------------- Library
 
 subdir('src') # defines highslib
+if get_option('with_cpp')
+
 _linkto += highslib
 
 highs_dep = declare_dependency(link_with: _linkto,
                                dependencies: _deps,
                                include_directories: _incdirs,
                                )
+endif
 
 # --------------------- Tests
 

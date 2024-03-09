@@ -51,7 +51,8 @@ if (not meson.is_subproject())
     build_date_str = build_date.strftime('%Y-%m-%d')
     print(build_date_str)
     '''
-    today_cmd = run_command('python3', '-c',
+    python_exe = find_program('python3', 'python')
+    today_cmd = run_command(python_exe, '-c',
                             python_getdate,
                            check: false)
     today_str = today_cmd.stdout().strip()
@@ -110,6 +111,8 @@ configure_file(
   output: 'HConfig.h',
   configuration: conf_data
 )
+
+if get_option('with_cpp')
 
 _incdirs += include_directories('.')
 
@@ -369,4 +372,6 @@ if get_option('with_c')
                         include_directories: _incdirs,
                         pic: true,
                         install: true)
+endif
+
 endif

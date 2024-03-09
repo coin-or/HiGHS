@@ -1,5 +1,25 @@
-# Booleans
+# Languages
+option('with_cpp',
+       type : 'boolean',
+       value : true)
+option('with_c',
+       type : 'boolean',
+       value : false) # false
+option('with_python',
+       type : 'boolean',
+       value : true) 
+option('with_csharp',
+       type : 'boolean',
+       value : false)
+option('with_fortran',
+       type : 'boolean',
+       value : false)
+
+# Build options
 option('fast_build',
+       type : 'boolean',
+       value : true)
+option('with_pybind11',
        type : 'boolean',
        value : false)
 option('highsint64',
@@ -7,15 +27,6 @@ option('highsint64',
        value : true)
 option('use_zlib',
        type : 'feature')
-option('with_fortran',
-       type : 'boolean',
-       value : false)
-option('with_csharp',
-       type : 'boolean',
-       value : false)
-option('with_c',
-       type : 'boolean',
-       value : false)
 option('debug_sol',
       type: 'boolean',
       value: false)
@@ -23,9 +34,8 @@ option('with_stdcall',
       type: 'boolean',
       description: 'Build highs with the __stdcall convention',
       value: false)
+
+# Tests
 option('with_tests',
       type: 'boolean',
-      value: false)
-option('with_pybind11',
-       type : 'boolean',
-       value : false)
+      value: false) # false
