@@ -1,6 +1,7 @@
 // mcs -out:cstest call_highs_from_csharp.cs -r:highscslib.dll
 
 using System;
+using Highs;
 
 class Program {
    static void Main(string[] args) {
