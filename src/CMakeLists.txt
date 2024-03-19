@@ -8,7 +8,7 @@ set(sources ${highs_sources} ${cupdlp_sources} ${ipx_sources} ${basiclu_sources}
 set(headers ${highs_headers} ${cupdlp_headers} ${ipx_headers} ${basiclu_headers})
 
 # Configure the config windows version file
-if(MSVC)
+if(WIN32)
   string(REPLACE "." ","  PROJECT_RC_VERSION "${PROJECT_VERSION}")
   configure_file(${HIGHS_SOURCE_DIR}/version.rc.in
     "${HIGHS_BINARY_DIR}/version.rc" @ONLY)
@@ -135,7 +135,8 @@ else()
     # put version information into shared library file
     set_target_properties(highs PROPERTIES
       VERSION
-      ${HIGHS_VERSION_MAJOR}.${HIGHS_VERSION_MINOR}.${HIGHS_VERSION_PATCH}
+      # ${HIGHS_VERSION_MAJOR}.${HIGHS_VERSION_MINOR}.${HIGHS_VERSION_PATCH}
+      1.7.0
       SOVERSION ${HIGHS_VERSION_MAJOR}.${HIGHS_VERSION_MINOR})
   endif()
 
@@ -177,7 +178,7 @@ else()
   target_sources(highs PRIVATE ${sources} ${headers} ${win_version_file})
   target_include_directories(highs PRIVATE ${include_dirs})
 
-  if(MSVC)
+  if(WIN32)
     list(APPEND highs_compile_opts
       "/bigobj" # Allow big object
       "/DNOMINMAX"
@@ -257,7 +258,7 @@ else()
   # target_compile_options(highs PRIVATE "-Wall")
   # target_compile_options(highs PRIVATE "-Wunused")
   
-  if (UNIX)
+  if (NOT NUGET_CC AND UNIX)
     target_compile_options(highs PRIVATE "-Wno-unused-variable")
     target_compile_options(highs PRIVATE "-Wno-unused-const-variable")
   endif()
@@ -306,7 +307,7 @@ if(FORTRAN_FOUND)
     RUNTIME
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/highs
     MODULES DESTINATION modules)
-  if(NOT MSVC)
+  if(NOT WIN32)
     install(FILES ${HIGHS_BINARY_DIR}/modules/highs_fortran_api.mod DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/highs/fortran)
   else()
     install(FILES ${HIGHS_BINARY_DIR}/modules/${CMAKE_BUILD_TYPE}/highs_fortran_api.mod DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/highs/fortran)
@@ -339,10 +340,10 @@ if(Threads_FOUND)
       target_link_libraries(libhighs atomic)
     endif()
   endif()
+  if(FAST_BUILD)
+    target_link_libraries(highs Threads::Threads)
+  else()
+    target_link_libraries(libhighs Threads::Threads)
+  endif()
 endif()
 
-if(FAST_BUILD)
-  target_link_libraries(highs Threads::Threads)
-else()
-  target_link_libraries(libhighs Threads::Threads)
-endif()

@@ -4,7 +4,7 @@ if(FAST_BUILD)
     add_executable(highs-bin)
 
     # Configure the config windows version file
-    if(MSVC)
+    if(WIN32)
       string(REPLACE "." ","  PROJECT_RC_VERSION "${PROJECT_VERSION}")
       configure_file(${HIGHS_SOURCE_DIR}/version.rc.in
         "${HIGHS_BINARY_DIR}/version.rc" @ONLY)
@@ -19,7 +19,7 @@ if(FAST_BUILD)
       $<BUILD_INTERFACE:${HIGHS_SOURCE_DIR}/app>
     )
 
-    if(UNIX)
+    if (NOT NUGET_CC AND UNIX)
       target_compile_options(highs-bin PUBLIC "-Wno-unused-variable")
       target_compile_options(highs-bin PUBLIC "-Wno-unused-const-variable")
     endif()

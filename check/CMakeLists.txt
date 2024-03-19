@@ -86,7 +86,8 @@ if (NOT FAST_BUILD OR ALL_TESTS)
   endif()
 
   add_executable(unit_tests ${TEST_SOURCES})
-  if (UNIX)
+
+  if (NOT NUGET_CC AND UNIX)
       target_compile_options(unit_tests PRIVATE "-Wno-unused-variable")
       target_compile_options(unit_tests PRIVATE "-Wno-unused-const-variable")
   endif()

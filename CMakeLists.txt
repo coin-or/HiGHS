@@ -6,19 +6,28 @@
 # policies up to CMake 3.27
 cmake_minimum_required(VERSION 3.15...3.27)
 
-# set preference for clang compiler and intel compiler over gcc and other compilers
-include(Platform/${CMAKE_SYSTEM_NAME}-Determine-C OPTIONAL)
-include(Platform/${CMAKE_SYSTEM_NAME}-C OPTIONAL)
-set(CMAKE_C_COMPILER_NAMES clang icc cc ${CMAKE_C_COMPILER_NAMES})
+option(NUGET_CC OFF)
 
-include(Platform/${CMAKE_SYSTEM_NAME}-Determine-CXX OPTIONAL)
-include(Platform/${CMAKE_SYSTEM_NAME}-CXX OPTIONAL)
-set(CMAKE_CXX_COMPILER_NAMES clang++ icpc c++ ${CMAKE_CXX_COMPILER_NAMES})
+if (NUGET_CC)
+  set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/nuget/arm-toolchain.cmake")
+else()
+  # default:
+  # set preference for clang compiler and intel compiler over gcc and other compilers
+  include(Platform/${CMAKE_SYSTEM_NAME}-Determine-C OPTIONAL)
+  include(Platform/${CMAKE_SYSTEM_NAME}-C OPTIONAL)
+  set(CMAKE_C_COMPILER_NAMES clang icc cc ${CMAKE_C_COMPILER_NAMES})
+
+  include(Platform/${CMAKE_SYSTEM_NAME}-Determine-CXX OPTIONAL)
+  include(Platform/${CMAKE_SYSTEM_NAME}-CXX OPTIONAL)
+  set(CMAKE_CXX_COMPILER_NAMES clang++ icpc c++ ${CMAKE_CXX_COMPILER_NAMES})
+endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
 include(set-version)
 set_version(VERSION)
+
+if (NUGET_CC)
+endif()
 
 project(HIGHS VERSION ${VERSION} LANGUAGES CXX C)
 
@@ -108,10 +117,10 @@ if (BUILD_CXX)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
     # for multi-config build system (e.g. xcode)
     foreach(OUTPUTCONFIG IN LISTS CMAKE_CONFIGURATION_TYPES)
-      string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
-      set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/${OUTPUTCONFIG}/${CMAKE_INSTALL_LIBDIR})
-      set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/${OUTPUTCONFIG}/${CMAKE_INSTALL_LIBDIR})
-      set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/${OUTPUTCONFIG}/${CMAKE_INSTALL_BINDIR})
+      string(TOLOWER ${OUTPUTCONFIG} OUTPUTCONFIG)
+      set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/${OUTPUTCONFIG})
+      set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/${OUTPUTCONFIG})
+      set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}/${OUTPUTCONFIG})
     endforeach()
   else()
     option(BUILD_SHARED_LIBS "Build shared libraries (.dll)." OFF)
@@ -130,7 +139,7 @@ if (BUILD_CXX)
     endforeach()
   endif()
 
-  if(BUILD_SHARED_LIBS AND MSVC)
+  if(BUILD_SHARED_LIBS AND WIN32)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
   endif()
 
@@ -138,7 +147,7 @@ if (BUILD_CXX)
     include(CTest)
   endif()
 
-  if(MSVC)
+  if(WIN32)
     # This option is only available when building with MSVC. By default, highs
     # is build using the cdecl calling convention, which is useful if you're
     # writing C. However, the CLR and Win32 API both expect stdcall.
@@ -173,7 +182,7 @@ if (BUILD_CXX)
 
   # Use current CMAKE_C_FLAGS and CMAKE_CXX_FLAGS when checking for IPO support,
   # instead of defaults: https://cmake.org/cmake/help/latest/policy/CMP0138.html
-  if(MSVC AND BUILD_SHARED_LIBS)
+  if(WIN32 AND BUILD_SHARED_LIBS)
     # MSVC does support LTO, but WINDOWS_EXPORT_ALL_SYMBOLS does not work if
     # LTO is enabled.
     set(ipo_supported NO)
@@ -232,7 +241,7 @@ check_cxx_source_compiles(
     }"
   HIGHS_HAVE_MM_PAUSE)
 
-if(MSVC)
+if(WIN32)
   check_cxx_source_compiles(
     "#include <intrin.h>
         #pragma intrinsic(_BitScanReverse)
@@ -306,7 +315,7 @@ if(NOT(${HIGHS_NO_DEFAULT_THREADS} STREQUAL "OFF"))
 endif()
 
 # If Visual Studio targets are being built.
-if(MSVC)
+if(WIN32)
   # add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:/W0>")
   # add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:/wd4018 /wd4061 /wd4100 /wd4101 /wd4127 /wd4189 /wd4244 /wd4245 /wd4267 /wd4324 /wd4365 /wd4389 /wd4456 /wd4457 /wd4458 /wd4459 /wd4514 /wd4701 /wd4820>")
   # add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:/MP>")
