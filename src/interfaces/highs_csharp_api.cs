@@ -3,7 +3,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace highs
+namespace Highs
 {
     // mcs -out:highscslib.dll -t:library highs_csharp_api.cs -unsafe
 
