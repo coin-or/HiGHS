@@ -153,8 +153,9 @@ publish/
 *.publishproj
 
 # NuGet Packages Directory
-## TODO: If you have NuGet Package Restore enabled, uncomment the next line
 #packages/
+nuget/runtimes
+
 
 # Windows Azure Build Output
 csx
@@ -218,6 +219,8 @@ $RECYCLE.BIN/
 *.egg-info
 dist/
 build/
+buildcc/
+buildx64/
 eggs/
 parts/
 var/

@@ -1,3 +1,7 @@
+if (NUGET_CC)
+  return()
+endif()
+
 include(CTest)
 
 if (FORTRAN)

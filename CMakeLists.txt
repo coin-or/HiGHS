@@ -7,9 +7,14 @@
 cmake_minimum_required(VERSION 3.15...3.27)
 
 option(NUGET_CC OFF)
+option(NUGET_LINUX_X64 OFF)
 
 if (NUGET_CC)
-  set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/nuget/arm-toolchain.cmake")
+  if (NOT NUGET_LINUX_X64)
+    set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/nuget/arm-toolchain.cmake")
+  else()
+    set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/nuget/x64-toolchain.cmake")
+  endif()
 else()
   # default:
   # set preference for clang compiler and intel compiler over gcc and other compilers

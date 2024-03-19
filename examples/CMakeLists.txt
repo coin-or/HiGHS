@@ -1,4 +1,4 @@
-if(NOT BUILD_EXAMPLES)
+if(NOT BUILD_EXAMPLES OR NUGET_CC)
   return()
 endif()
 
