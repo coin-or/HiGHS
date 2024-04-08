@@ -108,7 +108,7 @@ class Highs(_Highs):
         if current_batch_size > 0:
             names = [self._vars[i].name for i in range(current_batch_size)]
 
-            super().addVars(int(current_batch_size), self._batch.lb, self._batch.ub)
+            super()._addVars(int(current_batch_size), self._batch.lb, self._batch.ub)
             super().changeColsCost(current_batch_size, self._batch.idx, self._batch.obj)
 
             # only set integrality if we have non-continuous variables
