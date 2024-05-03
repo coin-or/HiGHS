@@ -44,8 +44,8 @@ cc_library(
         "extern/filereaderlp/*.hpp",
         "extern/zstr/*.hpp"]),
     copts = [
-        "-Wno-unused-variable",
-        "-Wno-unused-but-set-variable",
+        # "-Wno-unused-variable",
+        # "-Wno-unused-but-set-variable",
     ],
     includes = [
         "extern",
@@ -162,8 +162,8 @@ TEST_NAMES = [
     srcs = ["check/%s.cpp" % name],
     copts = [
         "-Iextern",
-        "-Wno-unused-variable",
-        "-Wno-unused-but-set-variable",
+        # "-Wno-unused-variable",
+        # "-Wno-unused-but-set-variable",
     ],
     deps = [
         ":highs",
