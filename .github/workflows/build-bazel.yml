@@ -7,7 +7,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [macos-latest, ubuntu-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -29,6 +29,37 @@ jobs:
       
       - name: test example binary
         run: ./bazel-bin/call-highs-example
+
+      - name: bazel test
+        run: |
+          bazel test //...
+      
+  bazel_win:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: bazelbuild/setup-bazelisk@v2
+
+      - name: Mount bazel cache # Optional
+        uses: actions/cache@v3
+        with:
+          path: "~/.cache/bazel"
+          key: bazel
+
+      - name: bazel clean
+        run: bazel clean
+      
+      - name: build bazel
+        run: |
+          bazel build //...
+      
+      - name: test example binary
+        run: .\\bazel-bin\\call-highs-example
 
       - name: bazel test
         run: |
