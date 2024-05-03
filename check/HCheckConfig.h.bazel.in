@@ -1,6 +1,6 @@
 #ifndef HCHECKCONFIG_H_
 #define HCHECKCONFIG_H_
 
-#define HIGHS_DIR "."
+#define HIGHS_DIR "C:\\Users\\galab\\source\\repos\\ERGO-Code\\HiGHS"
 
 #endif /* HCHECKCONFIG_H_ */

@@ -12,6 +12,8 @@ const double kOptimalQap04 = 32;
 // No commas in test case name.
 TEST_CASE("icrash-qap04", "[highs_presolve]") {
   std::string filename = std::string(HIGHS_DIR) + "/check/instances/qap04.mps";
+  std::cout << filename << std::endl;
+  std::cout << filename << std::endl;
 
   Highs highs;
   highs.setOptionValue("output_flag", dev_run);
