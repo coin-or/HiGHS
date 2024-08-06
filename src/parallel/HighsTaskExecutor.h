@@ -37,8 +37,21 @@ class HighsTaskExecutor {
 
  private:
 #ifdef _WIN32
-  static HighsSplitDeque*& threadLocalWorkerDeque();
-  static ExecutorHandle& threadLocalExecutorHandle();
+  
+  static thread_local HighsSplitDeque* threadLocalWorkerDequePtr;
+  static thread_local ExecutorHandle globalExecutorHandle;
+
+  // static HighsSplitDeque*& threadLocalWorkerDeque();
+  // static ExecutorHandle& threadLocalExecutorHandle();
+
+  static HighsSplitDeque*& threadLocalWorkerDeque() {
+    return threadLocalWorkerDequePtr;
+  }
+
+  static ExecutorHandle& threadLocalExecutorHandle() {
+    return globalExecutorHandle;
+  }
+
 #else
   static thread_local HighsSplitDeque* threadLocalWorkerDequePtr;
   static thread_local ExecutorHandle globalExecutorHandle;
@@ -204,6 +217,12 @@ class HighsTaskExecutor {
 
     localDeque->popStolen();
   }
+
+ public:
+  ~HighsTaskExecutor() { 
+     // shutdown(); 
+  }
+
 };
 
 #endif

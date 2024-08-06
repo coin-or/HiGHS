@@ -4340,7 +4340,7 @@ HighsStatus Highs::returnFromHighs(HighsStatus highs_return_status) {
     }
   }
 
-  resetGlobalScheduler(true);
+  // resetGlobalScheduler(true);
 
   return return_status;
 }
