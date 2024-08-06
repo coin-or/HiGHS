@@ -4339,6 +4339,9 @@ HighsStatus Highs::returnFromHighs(HighsStatus highs_return_status) {
       ekk_instance_.clear();
     }
   }
+
+  resetGlobalScheduler(true);
+
   return return_status;
 }
 
