@@ -44,7 +44,10 @@ struct cache_aligned {
                   sizeof(uintptr_t));
       ::operator delete(freeptr);
     }
+    // ::operator delete(aligned_ptr);
   }
+
+  // ~cache_aligned() {}
 
   template <typename T>
   struct Deleter {
@@ -56,7 +59,10 @@ struct cache_aligned {
 
   template <typename T>
   struct Deleter<T[]> {
-    void operator()(T* ptr) const { free(ptr); }
+    void operator()(T* ptr) const { 
+      ptr->~T();
+      free(ptr); }
+
   };
 
   template <typename T>

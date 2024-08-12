@@ -165,7 +165,9 @@ class HighsTaskExecutor {
           HighsSpinMutex::yieldProcessor();
       }
 
+      // 
       executorHandle.ptr.reset();
+      // delete executorHandle.ptr;
     }
   }
 
