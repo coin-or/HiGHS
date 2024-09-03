@@ -88,7 +88,7 @@ jobs:
   #   permissions:
   #     id-token: write  # IMPORTANT: mandatory for trusted publishing
   #   steps:
-  #     - uses: actions/download-artifact@v3
+  #     - uses: actions/download-artifact@v4
   #       with:
   #         # unpacks default artifact into dist/
   #         # if `name: artifact` is omitted, the action will create extra parent dir
@@ -117,7 +117,7 @@ jobs:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
 
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           # unpacks default artifact into dist/
           # if `name: artifact` is omitted, the action will create extra parent dir
