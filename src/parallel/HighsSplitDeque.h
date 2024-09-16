@@ -49,9 +49,6 @@ class HighsSplitDeque {
     int ownerId = -1;
     HighsTask* rootTask = nullptr;
     bool allStolenCopy = true;
-    ~OwnerData() {
-      workerBunk.reset();
-    }
   };
 
   struct StealerData {
@@ -170,9 +167,6 @@ class HighsSplitDeque {
       pushSleeper(localDeque);
       localDeque->stealerData.semaphore.acquire();
       return localDeque->stealerData.injectedTask;
-    }
-    ~WorkerBunk() {
-
     }
   };
 
@@ -583,10 +577,6 @@ class HighsSplitDeque {
 
   HighsSplitDeque* getWorkerById(int id) const {
     return ownerData.workers[id].get();
-  }
-
-  ~HighsSplitDeque() {
-
   }
 };
 

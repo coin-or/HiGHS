@@ -172,15 +172,9 @@ class HighsTaskExecutor {
   static void shutdown(bool blocking = false) {
     auto& executorHandle = threadLocalExecutorHandle();
 
-<<<<<<< HEAD
-      // 
-      executorHandle.ptr.reset();
-      // delete executorHandle.ptr;
-=======
     if (executorHandle.ptr != nullptr) {
       executorHandle.ptr->stopWorkerThreads(blocking);
       executorHandle.dispose();
->>>>>>> test-fix
     }
   }
 
