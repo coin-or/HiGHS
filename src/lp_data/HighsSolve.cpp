@@ -78,7 +78,7 @@ HighsStatus solveLp(HighsLpSolverObject& solver_object, const string message) {
     solver_object.highs_info_.objective_function_value =
         solver_object.lp_.objectiveValue(solver_object.solution_.col_value);
     getLpKktFailures(options, solver_object.lp_, solver_object.solution_,
-                     solver_object.basis_, solver_object.highs_info_);
+                     solver_object.basis_, solver_object.highs_info_, true);
     if (options.solver == kIpmString || options.run_centring) {
       // Setting the IPM-specific values of (highs_)info_ has been done in
       // solveLpIpx

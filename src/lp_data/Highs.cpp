@@ -4478,7 +4478,7 @@ HighsStatus Highs::crossover(const HighsSolution& user_solution) {
     // Get the objective and any KKT failures
     info_.objective_function_value =
         model_.lp_.objectiveValue(solution_.col_value);
-    getLpKktFailures(options_, model_.lp_, solution_, basis_, info_);
+    getLpKktFailures(options_, model_.lp_, solution_, basis_, info_, true);
   }
   return returnFromHighs(return_status);
 }

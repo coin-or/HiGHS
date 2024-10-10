@@ -35,8 +35,7 @@ void getKktFailures(const HighsOptions& options, const HighsModel& model,
 void getKktFailures(const HighsOptions& options, const HighsModel& model,
                     const HighsSolution& solution, const HighsBasis& basis,
                     HighsInfo& highs_info,
-                    HighsPrimalDualErrors& primal_dual_errors,
-                    const bool get_residuals) {
+                    HighsPrimalDualErrors& primal_dual_errors, const bool get_residuals) {
   vector<double> gradient;
   model.objectiveGradient(solution.col_value, gradient);
   getKktFailures(options, model.lp_, gradient, solution, basis, highs_info,
@@ -45,10 +44,11 @@ void getKktFailures(const HighsOptions& options, const HighsModel& model,
 
 void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
                       const HighsSolution& solution, const HighsBasis& basis,
-                      HighsInfo& highs_info) {
+                      HighsInfo& highs_info,
+		      const bool get_residuals) {
   HighsPrimalDualErrors primal_dual_errors;
   getLpKktFailures(options, lp, solution, basis, highs_info,
-                   primal_dual_errors);
+                   primal_dual_errors, get_residuals);
 }
 
 void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
