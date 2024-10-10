@@ -363,18 +363,30 @@ void getKktFailures(const HighsOptions& options, const HighsLp& lp,
       }
     }
   }
+  std::vector<double> dual_sum;
+  std::vector<double> primal_sum;
   if (get_residuals) {
-    // Compute pi^TN - c_N
-    std::vector<double> dual_sum;
-    lp.a_matrix_.productTransposeQuad(dual_sum, solution.row_dual);
-    double dual_delta_norm = 0;
-    for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
-      dual_sum[iCol] -= gradient[iCol];
-      double dual_delta = std::fabs(dual_positive_sum[iCol] - dual_negative_sum[iCol] + dual_sum[iCol]);
-      dual_delta_norm = std::max(dual_delta, dual_delta_norm);
+    lp.a_matrix_.productQuad(primal_sum, solution.col_value);
+    double primal_delta_norm = 0;
+    for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) {
+      double primal_delta = std::fabs(primal_positive_sum[iRow] - primal_negative_sum[iRow] - primal_sum[iRow]);
+      primal_delta_norm = std::max(primal_delta, primal_delta_norm);
     }
-    printf("getKktFailures: dual_delta_norm = %g\n", dual_delta_norm);
-    assert(dual_delta_norm <= 0);
+    printf("getKktFailures: primal_delta_norm = %g\n", primal_delta_norm);
+    assert(primal_delta_norm <= 0);
+    
+    if (have_dual_solution) {
+      // Compute pi^TN - c_N
+      lp.a_matrix_.productTransposeQuad(dual_sum, solution.row_dual);
+      double dual_delta_norm = 0;
+      for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
+	dual_sum[iCol] -= gradient[iCol];
+	double dual_delta = std::fabs(dual_positive_sum[iCol] - dual_negative_sum[iCol] + dual_sum[iCol]);
+	dual_delta_norm = std::max(dual_delta, dual_delta_norm);
+      }
+      printf("getKktFailures: dual_delta_norm = %g\n", dual_delta_norm);
+      assert(dual_delta_norm <= 0);
+    }
   }
       
   if (have_dual_solution) {
