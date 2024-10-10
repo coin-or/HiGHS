@@ -439,7 +439,7 @@ TEST_CASE("dual-objective-upper-bound", "[highs_lp_solver]") {
   REQUIRE(error < 1e-10);
 }
 
-TEST_CASE("2dlp", "[highs_lp_solver]") {
+TEST_CASE("blending-lp", "[highs_lp_solver]") {
   Highs highs;
   //  highs.setOptionValue("output_flag", dev_run);
   HighsLp lp;
