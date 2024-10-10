@@ -60,7 +60,7 @@ struct HighsPrimalDualErrors {
 
 void getKktFailures(const HighsOptions& options, const HighsModel& model,
                     const HighsSolution& solution, const HighsBasis& basis,
-                    HighsInfo& highs_info);
+                    HighsInfo& highs_info, const bool get_residuals = false);
 
 void getKktFailures(const HighsOptions& options, const HighsModel& model,
                     const HighsSolution& solution, const HighsBasis& basis,

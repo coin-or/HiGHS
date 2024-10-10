@@ -1174,6 +1174,32 @@ void HighsSparseMatrix::productQuad(vector<double>& result,
   }
 }
 
+void HighsSparseMatrix::productTransposeQuad(vector<double>& result,
+					     const vector<double>& row,
+					     const HighsInt debug_report) const {
+  assert(this->formatOk());
+  assert((int)row.size() >= this->num_row_);
+  result.assign(this->num_col_, 0.0);
+  if (this->isColwise()) {
+    for (HighsInt iRow = 0; iRow < this->num_row_; iRow++) {
+      HighsCDouble value = 0.0;
+      for (HighsInt iEl = this->start_[iRow]; iEl < this->start_[iRow + 1];
+           iEl++)
+        value += row[this->index_[iEl]] * this->value_[iEl];
+      result[iRow] = double(value);
+    }
+  } else {
+    std::vector<HighsCDouble> value(this->num_row_, 0);
+    for (HighsInt iCol = 0; iCol < this->num_col_; iCol++) {
+      for (HighsInt iEl = this->start_[iCol]; iEl < this->start_[iCol + 1];
+           iEl++)
+        value[this->index_[iEl]] += row[iCol] * this->value_[iEl];
+    }
+    for (HighsInt iRow = 0; iRow < this->num_row_; iRow++)
+      result[iRow] = double(value[iRow]);
+  }
+}
+
 void HighsSparseMatrix::productTransposeQuad(
     vector<double>& result_value, vector<HighsInt>& result_index,
     const HVector& column, const HighsInt debug_report) const {

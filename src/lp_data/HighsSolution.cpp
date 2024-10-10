@@ -26,10 +26,10 @@
 
 void getKktFailures(const HighsOptions& options, const HighsModel& model,
                     const HighsSolution& solution, const HighsBasis& basis,
-                    HighsInfo& highs_info) {
+                    HighsInfo& highs_info, const bool get_residuals) {
   HighsPrimalDualErrors primal_dual_errors;
   getKktFailures(options, model, solution, basis, highs_info,
-                 primal_dual_errors);
+                 primal_dual_errors, get_residuals);
 }
 
 void getKktFailures(const HighsOptions& options, const HighsModel& model,
@@ -363,7 +363,19 @@ void getKktFailures(const HighsOptions& options, const HighsLp& lp,
       }
     }
   }
-
+  if (get_residuals) {
+    std::vector<double> dual_sum;
+    lp.a_matrix_.productTransposeQuad(dual_sum, solution.row_dual);
+    double dual_delta_norm = 0;
+    for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
+      dual_sum[iCol] += gradient[iCol];
+      double dual_delta = std::fabs(dual_positive_sum[iCol] - dual_negative_sum[iCol] - dual_sum[iCol]);
+      dual_delta_norm = std::max(dual_delta, dual_delta_norm);
+    }
+    printf("getKktFailures: dual_delta_norm = %g\n", dual_delta_norm);
+    assert(dual_delta_norm <= 0);
+  }
+      
   if (have_dual_solution) {
     // Determine the sum of complementarity violations
     max_complementarity_violation = 0;
