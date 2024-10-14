@@ -582,6 +582,12 @@ else(FAST_BUILD)
 
   if(BUILD_CXX)
     add_subdirectory(app)
+
+  add_executable(test-scheduler)
+  target_sources(test-scheduler PRIVATE test_thread.cpp)
+
+  target_link_libraries(test-scheduler highs)
+
     if(BUILD_TESTING)
       enable_testing()
       add_subdirectory(check)
