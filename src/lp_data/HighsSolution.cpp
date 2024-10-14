@@ -35,7 +35,8 @@ void getKktFailures(const HighsOptions& options, const HighsModel& model,
 void getKktFailures(const HighsOptions& options, const HighsModel& model,
                     const HighsSolution& solution, const HighsBasis& basis,
                     HighsInfo& highs_info,
-                    HighsPrimalDualErrors& primal_dual_errors, const bool get_residuals) {
+                    HighsPrimalDualErrors& primal_dual_errors,
+                    const bool get_residuals) {
   vector<double> gradient;
   model.objectiveGradient(solution.col_value, gradient);
   getKktFailures(options, model.lp_, gradient, solution, basis, highs_info,
@@ -44,11 +45,10 @@ void getKktFailures(const HighsOptions& options, const HighsModel& model,
 
 void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
                       const HighsSolution& solution, const HighsBasis& basis,
-                      HighsInfo& highs_info,
-		      const bool get_residuals) {
+                      HighsInfo& highs_info, const bool get_residuals) {
   HighsPrimalDualErrors primal_dual_errors;
-  getLpKktFailures(options, lp, solution, basis, highs_info,
-                   primal_dual_errors, get_residuals);
+  getLpKktFailures(options, lp, solution, basis, highs_info, primal_dual_errors,
+                   get_residuals);
 }
 
 void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
@@ -225,6 +225,21 @@ void getKktFailures(const HighsOptions& options, const HighsLp& lp,
 
   // Without a primal solution, nothing can be done!
   if (!have_primal_solution) return;
+
+  std::vector<double> dual_sum;
+  std::vector<double> primal_sum;
+  if (get_residuals) {
+    // Compute Ax
+    lp.a_matrix_.productQuad(primal_sum, solution.col_value);
+    if (have_dual_solution) {
+      // Compute pi^TN - c_N
+      lp.a_matrix_.productTransposeQuad(dual_sum, solution.row_dual);
+      double dual_delta_norm = 0;
+      for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++)
+        dual_sum[iCol] -= gradient[iCol];
+    }
+  }
+
   std::vector<double> primal_positive_sum;
   std::vector<double> primal_negative_sum;
   std::vector<double> dual_positive_sum;
@@ -245,6 +260,8 @@ void getKktFailures(const HighsOptions& options, const HighsLp& lp,
   // entry of basis since this is const.
   const HighsBasisStatus* status_pointer = have_basis ? &status : NULL;
 
+  double norm_primal_correction = 0;
+  double norm_dual_correction = 0;
   double absolute_primal_infeasibility;
   double relative_primal_infeasibility;
   double dual_infeasibility;
@@ -255,7 +272,8 @@ void getKktFailures(const HighsOptions& options, const HighsLp& lp,
   double dual = 0;
   HighsVarType integrality = HighsVarType::kContinuous;
   for (HighsInt iVar = 0; iVar < lp.num_col_ + lp.num_row_; iVar++) {
-    if (iVar < lp.num_col_) {
+    const bool is_col = iVar < lp.num_col_;
+    if (is_col) {
       HighsInt iCol = iVar;
       lower = lp.col_lower_[iCol];
       upper = lp.col_upper_[iCol];
@@ -273,6 +291,30 @@ void getKktFailures(const HighsOptions& options, const HighsLp& lp,
       if (have_basis) status = basis.row_status[iRow];
       integrality = HighsVarType::kContinuous;
     }
+
+    if (get_residuals) {
+      const double use_primal_residual_tolerance =
+          options.primal_residual_tolerance;
+      const double use_dual_residual_tolerance =
+          options.dual_residual_tolerance;
+      if (!is_col) {
+        double primal_residual =
+            std::fabs(primal_sum[iVar - lp.num_col_] - value);
+        //	printf("Primal residual %d is %g\n", int(iVar-lp.num_col_),
+        // primal_residual);
+        if (primal_residual > use_primal_residual_tolerance) {
+          norm_primal_correction =
+              std::max(primal_residual, norm_primal_correction);
+        }
+      } else if (have_dual_solution) {
+        double dual_residual = std::fabs(dual_sum[iVar] + dual);
+        //	printf("Dual residual %d is %g\n", int(iVar), dual_residual);
+        if (dual_residual > use_dual_residual_tolerance) {
+          norm_dual_correction = std::max(dual_residual, norm_dual_correction);
+        }
+      }
+    }
+
     // Flip dual according to lp.sense_
     dual *= (HighsInt)lp.sense_;
 
@@ -284,9 +326,9 @@ void getKktFailures(const HighsOptions& options, const HighsLp& lp,
       highsLogUser(options.log_options, HighsLogType::kError,
                    "getKktFailures: %s %d status-value error: [%g; %g; %g] has "
                    "residual %g\n",
-                   iVar < lp.num_col_ ? "Column" : "Row   ",
-                   iVar < lp.num_col_ ? int(iVar) : int(iVar - lp.num_col_),
-                   lower, value, upper, value_residual);
+                   is_col ? "Column" : "Row   ",
+                   is_col ? int(iVar) : int(iVar - lp.num_col_), lower, value,
+                   upper, value_residual);
     assert(status_value_ok);
     // Accumulate primal infeasibilities
     if (absolute_primal_infeasibility > primal_feasibility_tolerance)
@@ -332,7 +374,7 @@ void getKktFailures(const HighsOptions& options, const HighsLp& lp,
         sum_off_bound_nonbasic += off_bound_nonbasic;
       }
     }
-    if (iVar < lp.num_col_ && get_residuals) {
+    if (is_col && get_residuals) {
       HighsInt iCol = iVar;
       if (have_dual_solution) {
         if (gradient[iCol] > 0) {
@@ -363,32 +405,36 @@ void getKktFailures(const HighsOptions& options, const HighsLp& lp,
       }
     }
   }
-  std::vector<double> dual_sum;
-  std::vector<double> primal_sum;
   if (get_residuals) {
-    lp.a_matrix_.productQuad(primal_sum, solution.col_value);
+    printf("|Primal correction| = %g", norm_primal_correction);
+    if (have_dual_solution) {
+      printf("; |Dual correction| = %g\n", norm_dual_correction);
+    } else {
+      printf("\n");
+    }
+  }
+  // Check primal/dual_positive/negative_sum against primal/dual_sum
+  if (get_residuals) {
     double primal_delta_norm = 0;
     for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) {
-      double primal_delta = std::fabs(primal_positive_sum[iRow] - primal_negative_sum[iRow] - primal_sum[iRow]);
+      double primal_delta =
+          std::fabs(primal_positive_sum[iRow] - primal_negative_sum[iRow] -
+                    primal_sum[iRow]);
       primal_delta_norm = std::max(primal_delta, primal_delta_norm);
     }
     printf("getKktFailures: primal_delta_norm = %g\n", primal_delta_norm);
-    assert(primal_delta_norm <= 0);
-    
+    assert(primal_delta_norm <= options.primal_residual_tolerance);
     if (have_dual_solution) {
-      // Compute pi^TN - c_N
-      lp.a_matrix_.productTransposeQuad(dual_sum, solution.row_dual);
       double dual_delta_norm = 0;
       for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
-	dual_sum[iCol] -= gradient[iCol];
-	double dual_delta = std::fabs(dual_positive_sum[iCol] - dual_negative_sum[iCol] + dual_sum[iCol]);
-	dual_delta_norm = std::max(dual_delta, dual_delta_norm);
+        double dual_delta = std::fabs(dual_positive_sum[iCol] -
+                                      dual_negative_sum[iCol] + dual_sum[iCol]);
+        dual_delta_norm = std::max(dual_delta, dual_delta_norm);
       }
       printf("getKktFailures: dual_delta_norm = %g\n", dual_delta_norm);
-      assert(dual_delta_norm <= 0);
+      assert(dual_delta_norm <= options.dual_residual_tolerance);
     }
   }
-      
   if (have_dual_solution) {
     // Determine the sum of complementarity violations
     max_complementarity_violation = 0;

@@ -95,8 +95,7 @@ class HighsSparseMatrix {
   void productQuad(vector<double>& result, const vector<double>& x,
                    const HighsInt debug_report = kDebugReportOff) const;
   void productTransposeQuad(
-      vector<double>& result_value, 
-      const vector<double>& x, 
+      vector<double>& result_value, const vector<double>& x,
       const HighsInt debug_report = kDebugReportOff) const;
   void productTransposeQuad(
       vector<double>& result_value, vector<HighsInt>& result_index,
