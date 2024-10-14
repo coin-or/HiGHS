@@ -75,16 +75,17 @@ if (NOT FAST_BUILD OR ALL_TESTS)
       TestThrow.cpp
       TestTspSolver.cpp
       TestUserScale.cpp
+      TestSpecialLps.cpp
+      TestMipSolver.cpp
       Avgas.cpp)
 
   # todo: IG
-  if (NOT APPLE)
-      # Bug with updated IPX code and gas11. Maybe somehow related to the rpath on 
-      # macOS (Lukas). Only triggered by gas11 with no presolve which is strange. 
-      # may be an interface related issue which will pop up soon. 
-      # works OK on linux. The test was added to doctest for macOS but still hanging.
-      set(TEST_SOURCES ${TEST_SOURCES} TestSpecialLps.cpp TestLpSolvers.cpp TestMipSolver.cpp)
-  endif()
+#   if (NOT APPLE)
+#     # iteration counts differ
+#     set(TEST_SOURCES ${TEST_SOURCES} TestLpSolvers.cpp)
+#   endif()
+
+set(TEST_SOURCES ${TEST_SOURCES} TestLpSolvers.cpp)
 
   add_executable(unit_tests ${TEST_SOURCES})
   if (UNIX)
