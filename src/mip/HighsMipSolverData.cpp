@@ -1033,8 +1033,12 @@ void HighsMipSolverData::performRestart() {
   upper_limit += mipsolver.model_->offset_;
   optimality_limit += mipsolver.model_->offset_;
 
+  double prev_lower_bound = lower_bound;
+  double prev_upper_bound = upper_bound;
   upper_bound += mipsolver.model_->offset_;
   lower_bound += mipsolver.model_->offset_;
+  printf(" HighsMipSolverData::performRestart() 0: lower bound changed from %g to %g using offset = %g \n", prev_lower_bound, lower_bound, mipsolver.model_->offset_);
+  printf(" HighsMipSolverData::performRestart() 0: upper bound changed from %g to %g using offset = %g \n", prev_upper_bound, upper_bound, mipsolver.model_->offset_);
 
   // remove the current incumbent. Any incumbent is already transformed into the
   // original space and kept there
@@ -1081,32 +1085,10 @@ void HighsMipSolverData::performRestart() {
       upper_bound -= mipsolver.model_->offset_;
     }
 
-    double prev_lower_bound = lower_bound;
-
     lower_bound = upper_bound;
-
-    if (!mipsolver.submip) {
-      printf(
-          "HighsMipSolverData::performRestart() After mipsolver.modelstatus_ "
-          "!= HighsModelStatus::kNotset\n");
-      assert(333 == 999);
-    }
-    bool bound_change = lower_bound != prev_lower_bound;
-    if (!mipsolver.submip && bound_change)
-      updatePrimaDualIntegral(prev_lower_bound, lower_bound, upper_bound,
-                              upper_bound);
-
     if (mipsolver.solution_objective_ != kHighsInf &&
         mipsolver.modelstatus_ == HighsModelStatus::kInfeasible)
       mipsolver.modelstatus_ = HighsModelStatus::kOptimal;
-    if (!mipsolver.submip) {
-      printf(
-          "HighsMipSolverData::performRestart() On exit lower_bound is "
-          "%16.10g\n",
-          lower_bound);
-      updatePrimaDualIntegral(lower_bound, lower_bound, upper_bound,
-                              upper_bound);
-    }
     return;
   }
   // Bounds are currently in the original space since presolve will have
@@ -1697,6 +1679,7 @@ restart:
                    fixingRate);
       tg.taskWait();
       performRestart();
+      printf("HighsMipSolverData::evaluateRootNode() return 0 from performRestart();\n");
       ++numRestartsRoot;
       if (mipsolver.modelstatus_ == HighsModelStatus::kNotset) goto restart;
 
@@ -1928,6 +1911,7 @@ restart:
         if (stall != -1) maxSepaRounds = std::min(maxSepaRounds, nseparounds);
         tg.taskWait();
         performRestart();
+	printf("HighsMipSolverData::evaluateRootNode() return 1 from performRestart() bounds are [%g, %g]\n", lower_bound, upper_bound);
         ++numRestartsRoot;
         if (mipsolver.modelstatus_ == HighsModelStatus::kNotset) goto restart;
 
