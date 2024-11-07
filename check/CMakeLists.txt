@@ -232,7 +232,6 @@ if (NOT FAST_BUILD OR ALL_TESTS)
 
   if (UNIX AND NOT APPLE)
     set(pdlpInstances
-<<<<<<< HEAD
             "25fv47\; 5.5018564\;"
             "adlittle\; 2.254950\;"
             "afiro\;-4.6475323\;"
@@ -277,53 +276,6 @@ if (NOT FAST_BUILD OR ALL_TESTS)
         "stair\;-2.512669\;"
         "standata\; 1.25769939\;"
         "standgub\; 1.25769939\;"
-=======
-        "25fv47\; 5.50184588\;"
-        "adlittle\; 2.254949631\;"
-        "afiro\;-4.64753142\;"
-        "avgas\;-7.749999999\;"
-        "blending\;-3.19999999\;"
-        "chip\;-9.000000001\;"
-        "e226\;-1.16389293\;"
-        "scrs8\; 9.042969511\;"
-        "sctest\; 5.749999936\;"
-        "shell\; 1.2088253460\;"
-        "stair\;-2.51266951\;"
-        "standata\; 1.257699499\;"
-        "standgub\; 1.25769949\;"
-        )
-  elseif(WIN32)
-    # on windows e226 model status is unknown, rel gap e00
-    set(pdlpInstances
-        "25fv47\; 5.50184588\;"
-        "adlittle\; 2.25494963\;"
-        "afiro\;-4.64753142\;"
-        "avgas\;-7.749999999\;"
-        "blending\;-3.19999999\;"
-        "chip\;-9.000000001\;"
-        "scrs8\; 9.0429695\;"
-        "sctest\; 5.749999936\;"
-        "shell\; 1.2088253460\;"
-        "stair\;-2.51266951\;"
-        "standata\; 1.2576995\;"
-        "standgub\; 1.2576995\;"
-        )
-  elseif(APPLE)
-    set(pdlpInstances
-        "25fv47\; 5.5018458\;"
-        "adlittle\; 2.25494963\;"
-        "afiro\;-4.64753142\;"
-        "avgas\;-7.749999999\;"
-        "blending\;-3.19999999\;"
-        "chip\;-8.9999988715\;"
-        "e226\;-1.163892\;"
-        "scrs8\; 9.04296953\;"
-        "sctest\; 5.749999936\;"
-        "shell\; 1.2088253460\;"
-        "stair\;-2.5126695\;"
-        "standata\; 1.25769950\;"
-        "standgub\; 1.25769950\;"
->>>>>>> latest
     )
   endif()
 
@@ -430,16 +382,6 @@ if (NOT FAST_BUILD OR ALL_TESTS)
 
         set(inst_pdlp "${HIGHS_SOURCE_DIR}/check/instances/${name_pdlp}.mps")
 
-<<<<<<< HEAD
-        add_test(NAME ${name_pdlp}--pdlp--no-presolve COMMAND $<TARGET_FILE:highs-bin> "--solver=pdlp"
-            "--presolve=off" ${inst_pdlp})
-
-        set_tests_properties (${name_pdlp}--pdlp--no-presolve PROPERTIES
-            PASS_REGULAR_EXPRESSION
-            "Model status        : Optimal")
-
-        set_tests_properties (${name_pdlp}--pdlp--no-presolve PROPERTIES
-=======
         add_test(NAME ${name_pdlp}-pdlp-no-presolve COMMAND $<TARGET_FILE:highs-bin> "--solver=pdlp"
             "--presolve=off" ${inst_pdlp})
 
@@ -448,7 +390,6 @@ if (NOT FAST_BUILD OR ALL_TESTS)
             "Model status        : Optimal")
 
         set_tests_properties (${name_pdlp}-pdlp-no-presolve PROPERTIES
->>>>>>> latest
             PASS_REGULAR_EXPRESSION
             "Objective value     : ${optval}")
     endforeach(instance_pdlp)
