@@ -3283,7 +3283,7 @@ HighsStatus Highs::readSolution(const std::string& filename,
 
 HighsStatus Highs::assessPrimalSolution(bool& valid, bool& integral,
                                         bool& feasible) const {
-  return assessLpPrimalSolution(options_, model_.lp_, solution_, valid,
+  return assessLpPrimalSolution("", options_, model_.lp_, solution_, valid,
                                 integral, feasible);
 }
 
@@ -3399,6 +3399,10 @@ HighsPresolveStatus Highs::runPresolve(const bool force_lp_presolve,
     // Presolved model is extracted now since it's part of solver,
     // which is lost on return
     HighsMipSolver solver(callback_, options_, original_lp, solution_);
+    // Start the MIP solver's total clock so that timeout in presolve
+    // can be identified
+    solver.timer_.start(timer_.total_clock);
+    // Only place that HighsMipSolver::runPresolve is called
     solver.runPresolve(options_.presolve_reduction_limit);
     presolve_return_status = solver.getPresolveStatus();
     // Assign values to data members of presolve_
@@ -3568,7 +3572,7 @@ HighsStatus Highs::completeSolutionFromDiscreteAssignment() {
     bool valid, integral, feasible;
     // Determine whether this solution is integer feasible
     HighsStatus return_status = assessLpPrimalSolution(
-        options_, lp, solution_, valid, integral, feasible);
+        "", options_, lp, solution_, valid, integral, feasible);
     assert(return_status != HighsStatus::kError);
     assert(valid);
     // If the current solution is integer feasible, then it can be
@@ -3934,6 +3938,7 @@ HighsStatus Highs::callSolveMip() {
   info_.mip_node_count = solver.node_count_;
   info_.mip_dual_bound = solver.dual_bound_;
   info_.mip_gap = solver.gap_;
+  info_.primal_dual_integral = solver.primal_dual_integral_;
   // Get the number of LP iterations, avoiding overflow if the int64_t
   // value is too large
   int64_t mip_total_lp_iterations = solver.total_lp_iterations_;
@@ -4498,6 +4503,7 @@ HighsStatus Highs::returnFromHighs(HighsStatus highs_return_status) {
 }
 
 void Highs::reportSolvedLpQpStats() {
+  if (!options_.output_flag) return;
   HighsLogOptions& log_options = options_.log_options;
   if (this->model_.lp_.model_name_.length())
     highsLogUser(log_options, HighsLogType::kInfo, "Model name          : %s\n",
@@ -4537,11 +4543,7 @@ void Highs::reportSolvedLpQpStats() {
         std::fabs(info_.objective_function_value - dual_objective_value) /
         std::max(1.0, std::fabs(info_.objective_function_value));
     highsLogUser(log_options, HighsLogType::kInfo,
-                 "Highs::reportSolvedLpQpStats Objective for %s: primal = "
-                 "%17.10e; dual = %17.10e; rel gap = %17.10e\n",
-                 this->model_.lp_.model_name_.c_str(),
-                 info_.objective_function_value, dual_objective_value,
-                 relative_primal_dual_gap);
+                 "Relative P-D gap    : %17.10e\n", relative_primal_dual_gap);
   }
   double run_time = timer_.readRunHighsClock();
   highsLogUser(log_options, HighsLogType::kInfo,
