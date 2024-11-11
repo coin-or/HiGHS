@@ -227,6 +227,15 @@ restart:
 
   double prev_lower_bound = mipdata_->lower_bound;
 
+  // Gets the best lower bound amongst the nodes on the queue,
+  // according to lower_bound values for the following settings of
+  // node IDs
+  //
+  // lowerMin: ?? WTF ??
+  //
+  // suboptimalMin: ?? WTF ??
+  //
+
   mipdata_->lower_bound = mipdata_->nodequeue.getBestLowerBound();
 
   bool bound_change = mipdata_->lower_bound != prev_lower_bound;
@@ -236,7 +245,10 @@ restart:
                                        mipdata_->upper_bound);
 
   mipdata_->printDisplayLine();
+
+  // Pops the node corresponding to lowerMin onto the search stack
   search.installNode(mipdata_->nodequeue.popBestBoundNode());
+  
   int64_t numStallNodes = 0;
   int64_t lastLbLeave = 0;
   int64_t numQueueLeaves = 0;
@@ -247,21 +259,24 @@ restart:
   double upperLimLastCheck = mipdata_->upper_limit;
   double lowerBoundLastCheck = mipdata_->lower_bound;
   analysis_.mipTimerStart(kMipClockSearch);
+  const bool search_logging = false;
   while (search.hasNode()) {
+    if (search_logging && !submip) {
+      printf("\nHighsMipSolver::run() Number of active nodes %d\n", int(mipdata_->nodequeue.numActiveNodes()));
+    }
     analysis_.mipTimerStart(kMipClockPerformAging1);
     mipdata_->conflictPool.performAging();
     analysis_.mipTimerStop(kMipClockPerformAging1);
-    // set iteration limit for each lp solve during the dive to 10 times the
-    // average nodes
 
+    // Set iteration limit for each lp solve during the dive to 10 times the
+    // average nodes
     HighsInt iterlimit = 10 * std::max(mipdata_->lp.getAvgSolveIters(),
                                        mipdata_->avgrootlpiters);
     iterlimit = std::max({HighsInt{10000}, iterlimit,
                           HighsInt((3 * mipdata_->firstrootlpiters) / 2)});
-
     mipdata_->lp.setIterationLimit(iterlimit);
 
-    // perform the dive and put the open nodes to the queue
+    // Perform the dive and put the open nodes to the queue
     size_t plungestart = mipdata_->num_nodes;
     bool limit_reached = false;
     bool considerHeuristics = true;
@@ -318,6 +333,9 @@ restart:
 
         ++mipdata_->num_leaves;
 
+	if (search_logging && !submip) {
+	  printf("HighsMipSolver::run() Dive nodes %5d; ", int(search.getNnodes()));
+	}
         search.flushStatistics();
       }
 
@@ -327,6 +345,10 @@ restart:
       }
 
       HighsInt numPlungeNodes = mipdata_->num_nodes - plungestart;
+      if (search_logging && !submip) {
+	const bool plunge_break = numPlungeNodes >= 100;
+	printf("plunge nodes%3d: break = %s\n", int(numPlungeNodes), highsBoolToString(plunge_break).c_str());
+      }
       if (numPlungeNodes >= 100) break;
 
       analysis_.mipTimerStart(kMipClockBacktrackPlunge);

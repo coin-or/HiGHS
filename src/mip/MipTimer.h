@@ -207,7 +207,7 @@ class MipTimer {
     const double tolerance_percent_report =
         tolerance_percent_report_ >= 0 ? tolerance_percent_report_ : 1e-8;
     return timer_pointer->reportOnTolerance(
-        grepStamp, clockList, ideal_sum_time, tolerance_percent_report);
+					    grepStamp, clockList, ideal_sum_time, 0);//tolerance_percent_report);
   };
 
   void csvMipClockList(const std::string model_name,
@@ -292,8 +292,10 @@ class MipTimer {
 
   void reportMipDiveClock(const HighsTimerClock& mip_timer_clock) {
     const std::vector<HighsInt> mip_clock_list{
-        kMipClockEvaluateNode, kMipClockPrimalHeuristics, kMipClockTheDive,
-        kMipClockBacktrackPlunge, kMipClockPerformAging2};
+      kMipClockEvaluateNode,
+      kMipClockRandomizedRounding0, kMipClockRens, kMipClockRins,
+      kMipClockTheDive,
+      kMipClockBacktrackPlunge, kMipClockPerformAging2};
     reportMipClockList("MipDive_", mip_clock_list, mip_timer_clock,
                        kMipClockDive, tolerance_percent_report);
   };
