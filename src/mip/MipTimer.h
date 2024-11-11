@@ -70,7 +70,7 @@ enum iClockMip {
   kMipClockNodeSearchSeparation,
   kMipClockStoreBasis,
   //  kMipClock@,
-  
+
   // Separation
   kMipClockSeparationRootSeparationRound,
   kMipClockSeparationFinishAnalyticCentreComputation,
@@ -181,12 +181,17 @@ class MipTimer {
         timer_pointer->clock_def("Evaluate root LP - s.");
 
     // Node search
-    clock[kMipClockCurrentNodeToQueue] = timer_pointer->clock_def("Current node to queue");
-    clock[kMipClockSearchBacktrack] = timer_pointer->clock_def("Search backtrack");
-    clock[kMipClockNodePrunedLoop] = timer_pointer->clock_def("Pruned loop search");
-    clock[kMipClockOpenNodesToQueue1] = timer_pointer->clock_def("Open nodes to queue 1");
+    clock[kMipClockCurrentNodeToQueue] =
+        timer_pointer->clock_def("Current node to queue");
+    clock[kMipClockSearchBacktrack] =
+        timer_pointer->clock_def("Search backtrack");
+    clock[kMipClockNodePrunedLoop] =
+        timer_pointer->clock_def("Pruned loop search");
+    clock[kMipClockOpenNodesToQueue1] =
+        timer_pointer->clock_def("Open nodes to queue 1");
     clock[kMipClockEvaluateNode1] = timer_pointer->clock_def("Evaluate node 1");
-    clock[kMipClockNodeSearchSeparation] = timer_pointer->clock_def("Node search separation");
+    clock[kMipClockNodeSearchSeparation] =
+        timer_pointer->clock_def("Node search separation");
     clock[kMipClockStoreBasis] = timer_pointer->clock_def("Store basis");
     //    clock[] = timer_pointer->clock_def("");
 
@@ -227,7 +232,7 @@ class MipTimer {
     const double tolerance_percent_report =
         tolerance_percent_report_ >= 0 ? tolerance_percent_report_ : 1e-8;
     return timer_pointer->reportOnTolerance(
-					    grepStamp, clockList, ideal_sum_time, 0);//tolerance_percent_report);
+        grepStamp, clockList, ideal_sum_time, 0);  // tolerance_percent_report);
   };
 
   void csvMipClockList(const std::string model_name,
@@ -301,7 +306,7 @@ class MipTimer {
   void reportMipSearchClock(const HighsTimerClock& mip_timer_clock) {
     const std::vector<HighsInt> mip_clock_list{
         kMipClockPerformAging1,        kMipClockDive,
-        kMipClockOpenNodesToQueue0,     kMipClockDomainPropgate,
+        kMipClockOpenNodesToQueue0,    kMipClockDomainPropgate,
         kMipClockPruneInfeasibleNodes, kMipClockUpdateLocalDomain,
         kMipClockNodeSearch,
         //	kMipClock@
@@ -312,10 +317,10 @@ class MipTimer {
 
   void reportMipDiveClock(const HighsTimerClock& mip_timer_clock) {
     const std::vector<HighsInt> mip_clock_list{
-      kMipClockEvaluateNode0,
-      kMipClockRandomizedRounding0, kMipClockRens, kMipClockRins,
-      kMipClockTheDive,
-      kMipClockBacktrackPlunge, kMipClockPerformAging2};
+        kMipClockEvaluateNode0, kMipClockRandomizedRounding0,
+        kMipClockRens,          kMipClockRins,
+        kMipClockTheDive,       kMipClockBacktrackPlunge,
+        kMipClockPerformAging2};
     reportMipClockList("MipDive_", mip_clock_list, mip_timer_clock,
                        kMipClockDive, tolerance_percent_report);
   };
@@ -356,13 +361,10 @@ class MipTimer {
 
   void reportMipNodeSearchClock(const HighsTimerClock& mip_timer_clock) {
     const std::vector<HighsInt> mip_clock_list{
-      kMipClockCurrentNodeToQueue,
-      kMipClockNodePrunedLoop,
-      //      kMipClockSearchBacktrack,
-      kMipClockOpenNodesToQueue1,
-      kMipClockEvaluateNode1,
-      kMipClockNodeSearchSeparation,
-      kMipClockStoreBasis};
+        kMipClockCurrentNodeToQueue, kMipClockNodePrunedLoop,
+        //      kMipClockSearchBacktrack,
+        kMipClockOpenNodesToQueue1, kMipClockEvaluateNode1,
+        kMipClockNodeSearchSeparation, kMipClockStoreBasis};
     reportMipClockList("MipNodeSearch", mip_clock_list, mip_timer_clock,
                        kMipClockNodeSearch);  //, tolerance_percent_report);
   };

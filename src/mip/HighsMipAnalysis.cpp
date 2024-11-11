@@ -147,9 +147,9 @@ void HighsMipAnalysis::reportMipTimer() {
   mip_timer.reportMipLevel1Clock(mip_clocks);
   //  mip_timer.reportMipSolveLpClock(mip_clocks);
   //  mip_timer.reportMipPresolveClock(mip_clocks);
-   mip_timer.reportMipSearchClock(mip_clocks);
-    mip_timer.reportMipDiveClock(mip_clocks);
-    mip_timer.reportMipNodeSearchClock(mip_clocks);
+  mip_timer.reportMipSearchClock(mip_clocks);
+  mip_timer.reportMipDiveClock(mip_clocks);
+  mip_timer.reportMipNodeSearchClock(mip_clocks);
   //  mip_timer.reportMipPrimalHeuristicsClock(mip_clocks);
   //  mip_timer.reportMipEvaluateRootNodeClock(mip_clocks);
   //  mip_timer.reportMipSeparationClock(mip_clocks);

@@ -240,7 +240,9 @@ class HighsSearch {
 
   void solveDepthFirst(int64_t maxbacktracks = 1);
 
-  HighsInt getNnodes() const { return nnodes; } // For parallel-tree-search study
+  HighsInt getNnodes() const {
+    return nnodes;
+  }  // For parallel-tree-search study
 };
 
 #endif

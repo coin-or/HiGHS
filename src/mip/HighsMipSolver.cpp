@@ -248,7 +248,7 @@ restart:
 
   // Pops the node corresponding to lowerMin onto the search stack
   search.installNode(mipdata_->nodequeue.popBestBoundNode());
-  
+
   int64_t numStallNodes = 0;
   int64_t lastLbLeave = 0;
   int64_t numQueueLeaves = 0;
@@ -263,7 +263,8 @@ restart:
   while (search.hasNode()) {
     if (!submip) {
       if (search_logging) {
-	printf("\nHighsMipSolver::run() Number of active nodes %d\n", int(mipdata_->nodequeue.numActiveNodes()));
+        printf("\nHighsMipSolver::run() Number of active nodes %d\n",
+               int(mipdata_->nodequeue.numActiveNodes()));
       }
     }
     analysis_.mipTimerStart(kMipClockPerformAging1);
@@ -335,11 +336,12 @@ restart:
 
         ++mipdata_->num_leaves;
 
-	if (!submip) {
-	  if (search_logging) {
-	    //	  printf("HighsMipSolver::run() Dive nodes %5d; ", int(search.getNnodes()));
-	  }
-	}
+        if (!submip) {
+          if (search_logging) {
+            //	  printf("HighsMipSolver::run() Dive nodes %5d; ",
+            //int(search.getNnodes()));
+          }
+        }
         search.flushStatistics();
       }
 
@@ -350,10 +352,11 @@ restart:
 
       HighsInt numPlungeNodes = mipdata_->num_nodes - plungestart;
       if (!submip) {
-	if (search_logging) {
-	  const bool plunge_break = numPlungeNodes >= 100;
-	  printf("plunge nodes%3d: break = %s\n", int(numPlungeNodes), highsBoolToString(plunge_break).c_str());
-	}
+        if (search_logging) {
+          const bool plunge_break = numPlungeNodes >= 100;
+          printf("plunge nodes%3d: break = %s\n", int(numPlungeNodes),
+                 highsBoolToString(plunge_break).c_str());
+        }
       }
       if (numPlungeNodes >= 100) break;
 
@@ -549,12 +552,13 @@ restart:
       assert(!search.hasNode());
 
       if (!submip) {
-	if (search_logging) {
-	  printf("HighsMipSolver::run() NodeSearch nodes %5d; numQueueLeaves %5d; "
-		 "lastLbLeave %d; numQueueLeaves - lastLbLeave %d\n",
-		 int(search.getNnodes()), int(numQueueLeaves),
-		 int(lastLbLeave), int(numQueueLeaves-lastLbLeave));
-	}
+        if (search_logging) {
+          printf(
+              "HighsMipSolver::run() NodeSearch nodes %5d; numQueueLeaves %5d; "
+              "lastLbLeave %d; numQueueLeaves - lastLbLeave %d\n",
+              int(search.getNnodes()), int(numQueueLeaves), int(lastLbLeave),
+              int(numQueueLeaves - lastLbLeave));
+        }
       }
       if (numQueueLeaves - lastLbLeave >= 10) {
         search.installNode(mipdata_->nodequeue.popBestBoundNode());
@@ -590,21 +594,21 @@ restart:
       // new global information before we perform separation rounds for the node
       analysis_.mipTimerStart(kMipClockEvaluateNode1);
       const HighsSearch::NodeResult evaluate_node_result =
-	search.evaluateNode();
+          search.evaluateNode();
       analysis_.mipTimerStop(kMipClockEvaluateNode1);
       if (evaluate_node_result == HighsSearch::NodeResult::kSubOptimal) {
-	analysis_.mipTimerStart(kMipClockCurrentNodeToQueue);
+        analysis_.mipTimerStart(kMipClockCurrentNodeToQueue);
         search.currentNodeToQueue(mipdata_->nodequeue);
-	analysis_.mipTimerStop(kMipClockCurrentNodeToQueue);
+        analysis_.mipTimerStop(kMipClockCurrentNodeToQueue);
       }
-      
+
       // if the node was pruned we remove it from the search and install the
       // next node from the queue
       analysis_.mipTimerStart(kMipClockNodePrunedLoop);
       if (search.currentNodePruned()) {
-	analysis_.mipTimerStart(kMipClockSearchBacktrack);
+        analysis_.mipTimerStart(kMipClockSearchBacktrack);
         search.backtrack();
-	analysis_.mipTimerStop(kMipClockSearchBacktrack);
+        analysis_.mipTimerStop(kMipClockSearchBacktrack);
         ++mipdata_->num_leaves;
         ++mipdata_->num_nodes;
         search.flushStatistics();
@@ -626,7 +630,7 @@ restart:
             mipdata_->updatePrimalDualIntegral(
                 prev_lower_bound, mipdata_->lower_bound, mipdata_->upper_bound,
                 mipdata_->upper_bound);
-	  analysis_.mipTimerStop(kMipClockNodePrunedLoop);
+          analysis_.mipTimerStop(kMipClockNodePrunedLoop);
           break;
         }
 
@@ -635,7 +639,7 @@ restart:
           break;
         }
 
-	analysis_.mipTimerStart(kMipClockStoreBasis);
+        analysis_.mipTimerStart(kMipClockStoreBasis);
         double prev_lower_bound = mipdata_->lower_bound;
 
         mipdata_->lower_bound = std::min(
@@ -663,9 +667,9 @@ restart:
           mipdata_->domain.clearChangedCols();
           mipdata_->removeFixedIndices();
         }
-	analysis_.mipTimerStop(kMipClockStoreBasis);
+        analysis_.mipTimerStop(kMipClockStoreBasis);
 
-	analysis_.mipTimerStop(kMipClockNodePrunedLoop);
+        analysis_.mipTimerStop(kMipClockNodePrunedLoop);
         continue;
       }
       analysis_.mipTimerStop(kMipClockNodePrunedLoop);
@@ -677,9 +681,9 @@ restart:
 
       if (mipdata_->domain.infeasible()) {
         search.cutoffNode();
-	analysis_.mipTimerStart(kMipClockOpenNodesToQueue1);
+        analysis_.mipTimerStart(kMipClockOpenNodesToQueue1);
         search.openNodesToQueue(mipdata_->nodequeue);
-	analysis_.mipTimerStop(kMipClockOpenNodesToQueue1);
+        analysis_.mipTimerStop(kMipClockOpenNodesToQueue1);
         mipdata_->nodequeue.clear();
         mipdata_->pruned_treeweight = 1.0;
 
