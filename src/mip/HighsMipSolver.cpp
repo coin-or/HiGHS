@@ -178,6 +178,7 @@ restart:
     // Apply the trivial heuristics
     analysis_.mipTimerStart(kMipClockTrivialHeuristics);
     HighsModelStatus model_status = mipdata_->trivialHeuristics();
+    analysis_.mipTimerStop(kMipClockTrivialHeuristics);
     if (modelstatus_ == HighsModelStatus::kNotset &&
         model_status == HighsModelStatus::kInfeasible) {
       // trivialHeuristics can spot trivial infeasibility, so act on it
@@ -185,7 +186,6 @@ restart:
       cleanupSolve();
       return;
     }
-    analysis_.mipTimerStop(kMipClockTrivialHeuristics);
     if (analysis_.analyse_mip_time & !submip)
       highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
                    "MIP-Timing: %11.2g - starting evaluate root node\n",
@@ -339,7 +339,7 @@ restart:
         if (!submip) {
           if (search_logging) {
             //	  printf("HighsMipSolver::run() Dive nodes %5d; ",
-            //int(search.getNnodes()));
+            // int(search.getNnodes()));
           }
         }
         search.flushStatistics();
