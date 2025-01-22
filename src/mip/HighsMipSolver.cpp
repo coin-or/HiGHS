@@ -223,11 +223,13 @@ restart:
   // HighsLpRelaxation for each concurrent search
   std::vector<HighsSearch> multiple_search;
   std::vector<HighsLpRelaxation> multiple_lp;
-  for (HighsInt iSearch = 0; iSearch < options_mip_->mip_search_concurrency;
+  // for (HighsInt iSearch = 0; iSearch < options_mip_->mip_search_concurrency;
+  //      iSearch++) {
+  for (HighsInt iSearch = 0; iSearch < 5;
        iSearch++) {
     multiple_search.push_back(HighsSearch{*this, mipdata_->pseudocost});
-    //    multiple_lp.push_back(HighsLpRelaxation{mipdata_->lp});
-    //    multiple_search[iSearch].setLpRelaxation(&multiple_lp[iSearch]);
+       multiple_lp.push_back(HighsLpRelaxation{mipdata_->lp});
+       multiple_search[iSearch].setLpRelaxation(&multiple_lp[iSearch]);
     multiple_search[iSearch].setLpRelaxation(&mipdata_->lp);
   }
   HighsSearch& search = multiple_search[0];
