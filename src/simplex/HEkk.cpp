@@ -1141,6 +1141,13 @@ HighsStatus HEkk::solve(const bool force_phase2) {
   reportSimplexPhaseIterations(options_->log_options, iteration_count_, info_);
   if (return_status == HighsStatus::kError)
     return returnFromEkkSolve(return_status);
+  printf("EKK max_primal_infeasibility   = %g\n",
+         info_.max_primal_infeasibility);
+  printf("EKK sum_primal_infeasibilities = %g\n",
+         info_.sum_primal_infeasibilities);
+  printf("EKK max_  dual_infeasibility   = %g\n", info_.max_dual_infeasibility);
+  printf("EKK sum_  dual_infeasibilities = %g\n",
+         info_.sum_dual_infeasibilities);
   highsLogDev(options_->log_options, HighsLogType::kInfo,
               "EKK %s simplex solver returns %" HIGHSINT_FORMAT
               " primal and %" HIGHSINT_FORMAT

@@ -4607,6 +4607,8 @@ void Highs::reportSolvedLpQpStats() {
     const double relative_primal_dual_gap =
         std::fabs(info_.objective_function_value - dual_objective_value) /
         std::max(1.0, std::fabs(info_.objective_function_value));
+    printf("P-D: primal objective = %g\n", info_.objective_function_value);
+    printf("P-D: dual   objective = %g\n", dual_objective_value);
     highsLogUser(log_options, HighsLogType::kInfo,
                  "Relative P-D gap    : %17.10e\n", relative_primal_dual_gap);
   }

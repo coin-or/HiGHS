@@ -625,6 +625,10 @@ bool computeDualObjectiveValue(const HighsLp& lp, const HighsSolution& solution,
 
   dual_objective_value = lp.offset_;
   double bound = 0;
+  assert(HighsInt(lp.col_lower_.size()) >= lp.num_col_);
+  assert(HighsInt(lp.col_upper_.size()) >= lp.num_col_);
+  assert(HighsInt(lp.row_lower_.size()) >= lp.num_row_);
+  assert(HighsInt(lp.row_upper_.size()) >= lp.num_row_);
   for (HighsInt iVar = 0; iVar < lp.num_col_ + lp.num_row_; iVar++) {
     const bool is_col = iVar < lp.num_col_;
     const HighsInt iRow = iVar - lp.num_col_;
@@ -634,6 +638,7 @@ bool computeDualObjectiveValue(const HighsLp& lp, const HighsSolution& solution,
         is_col ? solution.col_dual[iVar] : solution.row_dual[iRow];
     const double lower = is_col ? lp.col_lower_[iVar] : lp.row_lower_[iRow];
     const double upper = is_col ? lp.col_upper_[iVar] : lp.row_upper_[iRow];
+    if (!is_col) assert(iRow < lp.num_row_);
     if (lower <= -kHighsInf && upper >= kHighsInf) {
       // Free
       bound = 1;
@@ -642,6 +647,12 @@ bool computeDualObjectiveValue(const HighsLp& lp, const HighsSolution& solution,
       bound = primal < mid ? lower : upper;
     }
     dual_objective_value += bound * dual;
+    if (bound * dual)
+      printf(
+          "computeDualObjectiveValue: %s %6d:  bound = %11.5g; dual = %11.5g; "
+          "objective = %11.5g\n",
+          is_col ? "col" : "row", is_col ? int(iVar) : int(iRow), bound, dual,
+          dual_objective_value);
   }
   return true;
 }
