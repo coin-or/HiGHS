@@ -23,4 +23,12 @@ HighsStatus solveLpRaphael(const HighsOptions& options, HighsTimer& timer,
 			   HighsModelStatus& model_status, HighsInfo& highs_info,
 			   HighsCallback& callback);
 
+HighsStatus solveStandardFormLpSimplex(const HighsOptions& options,
+				       const double& standard_form_offset,
+				       const std::vector<double>& standard_form_cost,
+				       const std::vector<double>& standard_form_rhs,
+				       const HighsSparseMatrix& standard_form_matrix,
+				       HighsModelStatus& standard_form_model_status,
+				       double& standard_form_objective_function_value,
+				       HighsSolution& standard_form_solution);
 #endif

@@ -3299,7 +3299,7 @@ void formStandardFormLp(const HighsLp& lp, const HighsLogOptions& log_options,
   // boxed rows can be transformed to pairs of one-sided rows,
   // requiring the standard form matrix to be row-wise. The original
   // columns are assumed to come before any new columns, so their
-  // costs (as a minimization) must be defined befor costs of new
+  // costs (as a minimization) must be defined before costs of new
   // columns.
   // Determine the objective scaling, and apply it to any offset
   HighsInt sense = HighsInt(lp.sense_);
@@ -3311,6 +3311,8 @@ void formStandardFormLp(const HighsLp& lp, const HighsLogOptions& log_options,
   // Create a HighsSparseMatrix instance to store rows extracted from
   // the original constraint matrix
   HighsInt local_row_min_nnz = std::max(lp.num_col_, HighsInt(2));
+  // Use a HighsSparseMatrix instance to store each single row that is
+  // pulled from the constraint matrix
   HighsSparseMatrix local_row;
   local_row.ensureRowwise();
   local_row.num_row_ = 1;
@@ -3330,6 +3332,9 @@ void formStandardFormLp(const HighsLp& lp, const HighsLogOptions& log_options,
   HighsInt num_lower_col = 0;
   HighsInt num_upper_col = 0;
   HighsInt num_free_col = 0;
+  // Use slack_ix to accumulate index+1 of rows containing slacks,
+  // signed to indicate whether the matrix column will be plus or
+  // minus the identity column
   std::vector<HighsInt> slack_ix;
   for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) {
     double lower = lp.row_lower_[iRow];
@@ -3342,6 +3347,8 @@ void formStandardFormLp(const HighsLp& lp, const HighsLogOptions& log_options,
     }
     if (lower == upper) {
       // Equality row
+      //
+      // Represent as a^Tx = b
       num_fixed_row++;
       use_matrix_p->getRow(iRow, num_nz, local_row.index_.data(),
                            local_row.value_.data());
@@ -3350,6 +3357,8 @@ void formStandardFormLp(const HighsLp& lp, const HighsLogOptions& log_options,
       continue;
     } else if (lower <= -kHighsInf) {
       // Upper bounded row, so record the slack
+      //
+      // Represent as a^Tx + s = u, s >= 0
       num_upper_row++;
       assert(upper < kHighsInf);
       HighsInt standard_form_row = standard_form_rhs_.size();
@@ -3360,6 +3369,8 @@ void formStandardFormLp(const HighsLp& lp, const HighsLogOptions& log_options,
       standard_form_rhs_.push_back(upper);
     } else if (upper >= kHighsInf) {
       // Lower bounded row, so record the slack
+      //
+      // Represent as a^Tx - s = l, s >= 0
       num_lower_row++;
       assert(lower > -kHighsInf);
       HighsInt standard_form_row = standard_form_rhs_.size();
@@ -3370,6 +3381,8 @@ void formStandardFormLp(const HighsLp& lp, const HighsLogOptions& log_options,
       standard_form_rhs_.push_back(lower);
     } else {
       // Boxed row, so record the lower slack
+      //
+      // Represent as a^Tx - s0 = l, s0 >= 0; a^Tx + s1 = u, s1 >= 0
       assert(lower > -kHighsInf);
       assert(upper < kHighsInf);
       num_boxed_row++;
@@ -3465,7 +3478,7 @@ void formStandardFormLp(const HighsLp& lp, const HighsLogOptions& log_options,
     } else {
       // Free column
       num_free_col++;
-      // Represent as x = x+ - x-
+      // Represent as x = (x+) - (x-)
       //
       // where original column is now x+ >= 0
       //
@@ -3505,4 +3518,9 @@ void formStandardFormLp(const HighsLp& lp, const HighsLogOptions& log_options,
                int(num_boxed_col), int(num_fixed_col), int(num_free_row),
                int(num_lower_row), int(num_upper_row), int(num_boxed_row),
                int(num_fixed_row));
+}
+
+void standardFormSolutionToLpSolution(const HighsLp& lp,
+				      const HighsSolution& standard_form_solution,
+				      HighsSolution& lp_solution) {
 }

@@ -7,6 +7,7 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /**@file pdlp/raphael/Solver.cpp
  */
+#include "Highs.h"
 #include "pdlp/raphael/Solver.h"
 #include "lp_data/HighsLpUtils.h"
 
@@ -44,18 +45,67 @@ HighsStatus solveLpRaphael(const HighsOptions& options, HighsTimer& timer,
   const HighsInt num_row = standard_form_rhs.size();
   const HighsInt num_nz = standard_form_matrix.numNz();
   printf("Standard form LP has %d columns, %d rows and %d nonzeros\n",
-	 int(num_col), int(num_row), int(num_nz)); 
+	 int(num_col), int(num_row), int(num_nz));
 
+  HighsModelStatus standard_form_model_status = HighsModelStatus::kNotset;
+  double standard_form_objective_function_value = 0;
+  HighsSolution standard_form_solution;
+
+  HighsStatus status;
+  const bool solve_with_simplex = true;
+  if (solve_with_simplex) {
+    status =
+      solveStandardFormLpSimplex(options,
+				 standard_form_offset,
+				 standard_form_cost,
+				 standard_form_rhs,
+				 standard_form_matrix,
+				 standard_form_model_status,
+				 standard_form_objective_function_value,
+				 standard_form_solution);
+    if (status == HighsStatus::kError) return status;
+  }
   // Now solve the LP in standard form using PDLP
 
   // Once solved, the solution for the LP in standard form obtained
   // with PDLP needs to be converted to a solution to the original
-  // LP. Do this with a call in the following line to be written by
-  // Julian
-
+  // LP.
+  standardFormSolutionToLpSolution(lp,
+				   standard_form_solution,
+				   highs_solution);
   // For the moment, return the model status as kSolveError, and HiGHS
   // status as error, so HiGHS doesn't expect anything in terms of a
   // primal or dual solution
   model_status = HighsModelStatus::kSolveError;
   return HighsStatus::kError;
+}
+
+HighsStatus solveStandardFormLpSimplex(const HighsOptions& options,
+				       const double& standard_form_offset,
+				       const std::vector<double>& standard_form_cost,
+				       const std::vector<double>& standard_form_rhs,
+				       const HighsSparseMatrix& standard_form_matrix,
+				       HighsModelStatus& standard_form_model_status,
+				       double& standard_form_objective_function_value,
+				       HighsSolution& standard_form_solution) {
+  Highs h;
+  h.setOptionValue("output_flag", false);
+  HighsLp lp;
+  lp.num_col_ = standard_form_cost.size();
+  lp.num_row_ = standard_form_rhs.size();
+  lp.offset_ = standard_form_offset;
+  lp.col_cost_ = standard_form_cost;
+  lp.col_lower_.assign(lp.num_col_, 0);
+  lp.col_upper_.assign(lp.num_col_, kHighsInf);
+  lp.row_lower_ = standard_form_rhs;
+  lp.row_upper_ = standard_form_rhs;
+  lp.a_matrix_ = standard_form_matrix;
+  HighsStatus status = h.passModel(lp);
+  if (status == HighsStatus::kError) return status;
+  status = h.run();
+  if (status == HighsStatus::kError) return status;
+  standard_form_model_status = h.getModelStatus();
+  standard_form_solution = h.getSolution();
+  standard_form_objective_function_value = h.getInfo().objective_function_value;
+  return status;
 }
