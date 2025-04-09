@@ -178,115 +178,6 @@ set(ipx_sources_python
 
 set(highs_sources_python
     extern/filereaderlp/reader.cpp
-<<<<<<< HEAD
-    src/interfaces/highs_c_api.cpp
-    src/io/Filereader.cpp
-    src/io/FilereaderEms.cpp
-    src/io/FilereaderLp.cpp
-    src/io/FilereaderMps.cpp
-    src/io/HighsIO.cpp
-    src/io/HMpsFF.cpp
-    src/io/HMPSIO.cpp
-    src/io/LoadOptions.cpp
-    src/ipm/IpxWrapper.cpp
-    src/lp_data/Highs.cpp
-    src/lp_data/HighsCallback.cpp
-    src/lp_data/HighsDebug.cpp
-    src/lp_data/HighsIis.cpp
-    src/lp_data/HighsInfo.cpp
-    src/lp_data/HighsInfoDebug.cpp
-    src/lp_data/HighsInterface.cpp
-    src/lp_data/HighsLp.cpp
-    src/lp_data/HighsLpUtils.cpp
-    src/lp_data/HighsModelUtils.cpp
-    src/lp_data/HighsOptions.cpp
-    src/lp_data/HighsRanging.cpp
-    src/lp_data/HighsSolution.cpp
-    src/lp_data/HighsSolutionDebug.cpp
-    src/lp_data/HighsSolve.cpp
-    src/lp_data/HighsStatus.cpp
-    src/mip/HighsCliqueTable.cpp
-    src/mip/HighsConflictPool.cpp
-    src/mip/HighsCutGeneration.cpp
-    src/mip/HighsCutPool.cpp
-    src/mip/HighsDebugSol.cpp
-    src/mip/HighsDomain.cpp
-    src/mip/HighsDynamicRowMatrix.cpp
-    src/mip/HighsGFkSolve.cpp
-    src/mip/HighsImplications.cpp
-    src/mip/HighsLpAggregator.cpp
-    src/mip/HighsLpRelaxation.cpp
-    src/mip/HighsMipAnalysis.cpp
-    src/mip/HighsMipSolver.cpp
-    src/mip/HighsMipSolverData.cpp
-    src/mip/HighsModkSeparator.cpp
-    src/mip/HighsNodeQueue.cpp
-    src/mip/HighsObjectiveFunction.cpp
-    src/mip/HighsPathSeparator.cpp
-    src/mip/HighsPrimalHeuristics.cpp
-    src/mip/HighsPseudocost.cpp
-    src/mip/HighsRedcostFixing.cpp
-    src/mip/HighsSearch.cpp
-    src/mip/HighsSeparation.cpp
-    src/mip/HighsSeparator.cpp
-    src/mip/HighsTableauSeparator.cpp
-    src/mip/HighsTransformedLp.cpp
-    src/model/HighsHessian.cpp
-    src/model/HighsHessianUtils.cpp
-    src/model/HighsModel.cpp
-    src/parallel/HighsTaskExecutor.cpp
-    src/pdlp/CupdlpWrapper.cpp
-    src/pdlp/raphael/Solver.cpp
-    src/presolve/HighsPostsolveStack.cpp
-    src/presolve/HighsSymmetry.cpp
-    src/presolve/HPresolve.cpp
-    src/presolve/HPresolveAnalysis.cpp
-    src/presolve/ICrash.cpp
-    src/presolve/ICrashUtil.cpp
-    src/presolve/ICrashX.cpp
-    src/presolve/PresolveComponent.cpp
-    src/qpsolver/a_asm.cpp
-    src/qpsolver/a_quass.cpp
-    src/qpsolver/basis.cpp
-    src/qpsolver/perturbation.cpp
-    src/qpsolver/quass.cpp
-    src/qpsolver/ratiotest.cpp
-    src/qpsolver/scaling.cpp
-    src/simplex/HEkk.cpp
-    src/simplex/HEkkControl.cpp
-    src/simplex/HEkkDebug.cpp
-    src/simplex/HEkkDual.cpp
-    src/simplex/HEkkDualMulti.cpp
-    src/simplex/HEkkDualRHS.cpp
-    src/simplex/HEkkDualRow.cpp
-    src/simplex/HEkkInterface.cpp
-    src/simplex/HEkkPrimal.cpp
-    src/simplex/HighsSimplexAnalysis.cpp
-    src/simplex/HSimplex.cpp
-    src/simplex/HSimplexDebug.cpp
-    src/simplex/HSimplexNla.cpp
-    src/simplex/HSimplexNlaDebug.cpp
-    src/simplex/HSimplexNlaFreeze.cpp
-    src/simplex/HSimplexNlaProductForm.cpp
-    src/simplex/HSimplexReport.cpp
-    src/test/KktCh2.cpp
-    src/test/DevKkt.cpp
-    src/util/HFactor.cpp
-    src/util/HFactorDebug.cpp
-    src/util/HFactorExtend.cpp
-    src/util/HFactorRefactor.cpp
-    src/util/HFactorUtils.cpp
-    src/util/HighsHash.cpp
-    src/util/HighsLinearSumBounds.cpp
-    src/util/HighsMatrixPic.cpp
-    src/util/HighsMatrixUtils.cpp
-    src/util/HighsSort.cpp
-    src/util/HighsSparseMatrix.cpp
-    src/util/HighsUtils.cpp
-    src/util/HSet.cpp
-    src/util/HVectorBase.cpp
-    src/util/stringutil.cpp)
-=======
     highs/interfaces/highs_c_api.cpp
     highs/io/Filereader.cpp
     highs/io/FilereaderEms.cpp
@@ -344,6 +235,7 @@ set(highs_sources_python
     highs/model/HighsModel.cpp
     highs/parallel/HighsTaskExecutor.cpp
     highs/pdlp/CupdlpWrapper.cpp
+    highs/pdlp/raphael/Solver.cpp
     highs/presolve/HighsPostsolveStack.cpp
     highs/presolve/HighsSymmetry.cpp
     highs/presolve/HPresolve.cpp
@@ -393,7 +285,6 @@ set(highs_sources_python
     highs/util/HSet.cpp
     highs/util/HVectorBase.cpp
     highs/util/stringutil.cpp)
->>>>>>> latest
 
 set(highs_headers_python
     extern/filereaderlp/builder.hpp
@@ -401,161 +292,6 @@ set(highs_headers_python
     extern/filereaderlp/model.hpp
     extern/filereaderlp/reader.hpp
     extern/pdqsort/pdqsort.h
-<<<<<<< HEAD
-    src/interfaces/highs_c_api.h
-    src/io/Filereader.h
-    src/io/FilereaderEms.h
-    src/io/FilereaderLp.h
-    src/io/FilereaderMps.h
-    src/io/HighsIO.h
-    src/io/HMpsFF.h
-    src/io/HMPSIO.h
-    src/io/LoadOptions.h
-    src/ipm/IpxSolution.h
-    src/ipm/IpxWrapper.h
-    src/lp_data/HConst.h
-    src/lp_data/HighsAnalysis.h
-    src/lp_data/HighsCallback.h
-    src/lp_data/HighsCallbackStruct.h
-    src/lp_data/HighsDebug.h
-    src/lp_data/HighsIis.h
-    src/lp_data/HighsInfo.h
-    src/lp_data/HighsInfoDebug.h
-    src/lp_data/HighsLp.h
-    src/lp_data/HighsLpSolverObject.h
-    src/lp_data/HighsLpUtils.h
-    src/lp_data/HighsModelUtils.h
-    src/lp_data/HighsOptions.h
-    src/lp_data/HighsRanging.h
-    src/lp_data/HighsSolution.h
-    src/lp_data/HighsSolutionDebug.h
-    src/lp_data/HighsSolve.h
-    src/lp_data/HighsStatus.h
-    src/lp_data/HStruct.h
-    src/mip/HighsCliqueTable.h
-    src/mip/HighsConflictPool.h
-    src/mip/HighsCutGeneration.h
-    src/mip/HighsCutPool.h
-    src/mip/HighsDebugSol.h
-    src/mip/HighsDomain.h
-    src/mip/HighsDomainChange.h
-    src/mip/HighsDynamicRowMatrix.h
-    src/mip/HighsGFkSolve.h
-    src/mip/HighsImplications.h
-    src/mip/HighsLpAggregator.h
-    src/mip/HighsLpRelaxation.h
-    src/mip/HighsMipAnalysis.h
-    src/mip/HighsMipSolver.h
-    src/mip/HighsMipSolverData.h
-    src/mip/HighsModkSeparator.h
-    src/mip/HighsNodeQueue.h
-    src/mip/HighsObjectiveFunction.h
-    src/mip/HighsPathSeparator.h
-    src/mip/HighsPrimalHeuristics.h
-    src/mip/HighsPseudocost.h
-    src/mip/HighsRedcostFixing.h
-    src/mip/HighsSearch.h
-    src/mip/HighsSeparation.h
-    src/mip/HighsSeparator.h
-    src/mip/HighsTableauSeparator.h
-    src/mip/HighsTransformedLp.h
-    src/mip/MipTimer.h
-    src/model/HighsHessian.h
-    src/model/HighsHessianUtils.h
-    src/model/HighsModel.h
-    src/parallel/HighsBinarySemaphore.h
-    src/parallel/HighsCacheAlign.h
-    src/parallel/HighsCombinable.h
-    src/parallel/HighsMutex.h
-    src/parallel/HighsParallel.h
-    src/parallel/HighsRaceTimer.h
-    src/parallel/HighsSchedulerConstants.h
-    src/parallel/HighsSpinMutex.h
-    src/parallel/HighsSplitDeque.h
-    src/parallel/HighsTask.h
-    src/parallel/HighsTaskExecutor.h
-    src/pdlp/CupdlpWrapper.h
-    src/pdlp/raphael/Solver.h
-    src/presolve/HighsPostsolveStack.h
-    src/presolve/HighsSymmetry.h
-    src/presolve/HPresolve.h
-    src/presolve/HPresolveAnalysis.h
-    src/presolve/ICrash.h
-    src/presolve/ICrashUtil.h
-    src/presolve/ICrashX.h
-    src/presolve/PresolveComponent.h
-    src/qpsolver/a_asm.hpp
-    src/qpsolver/a_quass.hpp
-    src/qpsolver/basis.hpp
-    src/qpsolver/crashsolution.hpp
-    src/qpsolver/dantzigpricing.hpp
-    src/qpsolver/devexpricing.hpp
-    src/qpsolver/eventhandler.hpp
-    src/qpsolver/factor.hpp
-    src/qpsolver/feasibility_bounded.hpp
-    src/qpsolver/feasibility_highs.hpp
-    src/qpsolver/gradient.hpp
-    src/qpsolver/instance.hpp
-    src/qpsolver/matrix.hpp
-    src/qpsolver/perturbation.hpp
-    src/qpsolver/pricing.hpp
-    src/qpsolver/qpconst.hpp
-    src/qpsolver/qpvector.hpp
-    src/qpsolver/quass.hpp
-    src/qpsolver/ratiotest.hpp
-    src/qpsolver/runtime.hpp
-    src/qpsolver/scaling.hpp
-    src/qpsolver/settings.hpp
-    src/qpsolver/snippets.hpp
-    src/qpsolver/statistics.hpp
-    src/qpsolver/steepestedgepricing.hpp
-    src/simplex/HApp.h
-    src/simplex/HEkk.h
-    src/simplex/HEkkDual.h
-    src/simplex/HEkkDualRHS.h
-    src/simplex/HEkkDualRow.h
-    src/simplex/HEkkPrimal.h
-    src/simplex/HighsSimplexAnalysis.h
-    src/simplex/HSimplex.h
-    src/simplex/HSimplexDebug.h
-    src/simplex/HSimplexNla.h
-    src/simplex/HSimplexReport.h
-    src/simplex/SimplexConst.h
-    src/simplex/SimplexStruct.h
-    src/simplex/SimplexTimer.h
-    src/test/DevKkt.h
-    src/test/KktCh2.h
-    src/util/FactorTimer.h
-    src/util/HFactor.h
-    src/util/HFactorConst.h
-    src/util/HFactorDebug.h
-    src/util/HighsCDouble.h
-    src/util/HighsComponent.h
-    src/util/HighsDataStack.h
-    src/util/HighsDisjointSets.h
-    src/util/HighsHash.h
-    src/util/HighsHashTree.h
-    src/util/HighsInt.h
-    src/util/HighsIntegers.h
-    src/util/HighsLinearSumBounds.h
-    src/util/HighsMatrixPic.h
-    src/util/HighsMatrixSlice.h
-    src/util/HighsMatrixUtils.h
-    src/util/HighsMemoryAllocation.h
-    src/util/HighsRandom.h
-    src/util/HighsRbTree.h
-    src/util/HighsSort.h
-    src/util/HighsSparseMatrix.h
-    src/util/HighsSparseVectorSum.h
-    src/util/HighsSplay.h
-    src/util/HighsTimer.h
-    src/util/HighsUtils.h
-    src/util/HSet.h
-    src/util/HVector.h
-    src/util/HVectorBase.h
-    src/util/stringutil.h
-    src/Highs.h
-=======
     highs/interfaces/highs_c_api.h
     highs/io/Filereader.h
     highs/io/FilereaderEms.h
@@ -629,6 +365,7 @@ set(highs_headers_python
     highs/parallel/HighsTask.h
     highs/parallel/HighsTaskExecutor.h
     highs/pdlp/CupdlpWrapper.h
+    highs/pdlp/raphael/Solver.h
     highs/presolve/HighsPostsolveStack.h
     highs/presolve/HighsSymmetry.h
     highs/presolve/HPresolve.h
@@ -708,5 +445,4 @@ set(highs_headers_python
     highs/util/HVectorBase.h
     highs/util/stringutil.h
     highs/Highs.h
->>>>>>> latest
   )
