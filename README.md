@@ -143,7 +143,7 @@ When HiGHS is run from the command line, some fundamental option values may be
 specified directly. Many more may be specified via a file. Formally, the usage
 is:
 
-```
+```shell
 $ bin/highs --help
 usage:
       ./bin/highs [options] [file]
@@ -152,7 +152,11 @@ options:
       --model_file file          File of model to solve.
       --options_file file        File containing HiGHS options.
       --read_solution_file file  File of solution to read.
-      --presolve text            Set presolve option to: 
+      --read_basis_file text     File of initial basis to read. 
+      --write_model_file text    File for writing out model.
+      --solution_file text       File for writing out solution.
+      --write_basis_file text    File for writing out final basis.
+      --presolve text            Set presolve option to:
                                    "choose" * default 
                                    "on"
                                    "off"
@@ -169,13 +173,11 @@ options:
                                    "on" * default 
                                    "off" 
       --time_limit float         Run time limit (seconds - double).
-      --solution_file text       File for writing out model solution.
-      --write_model_file text    File for writing out model.
       --random_seed int          Seed to initialize random number 
                                  generation.
       --ranging text             Compute cost, bound, RHS and basic 
                                  solution ranging:
-                                   "on"
+                                   "on" 
                                    "off" * default 
   -v, --version                  Print version.
   -h, --help                     Print help. 
@@ -185,7 +187,7 @@ For a full list of options, see the [options page](https://ergo-code.github.io/H
 
 ## Interfaces
 
-There are HiGHS interfaces for C, C#, FORTRAN, and Python in `HiGHS/src/interfaces`, with example driver files in `HiGHS/examples/`. More on language and modelling interfaces can be found at https://ergo-code.github.io/HiGHS/stable/interfaces/other/.
+There are HiGHS interfaces for C, C#, FORTRAN, and Python in `HiGHS/highs/interfaces`, with example driver files in `HiGHS/examples/`. More on language and modelling interfaces can be found at https://ergo-code.github.io/HiGHS/stable/interfaces/other/.
 
 We are happy to give a reasonable level of support via email sent to highsopt@gmail.com.
 
@@ -211,7 +213,7 @@ The installation can be tested using the small example `HiGHS/examples/call_high
 The [Google Colab Example Notebook](https://colab.research.google.com/drive/1JmHF53OYfU-0Sp9bzLw-D2TQyRABSjHb?usp=sharing) also demonstrates how to call `highspy`.
 
 ### C 
-The C API is in `HiGHS/src/interfaces/highs_c_api.h`. It is included in the default build. For more details, check out the documentation website https://ergo-code.github.io/HiGHS/.
+The C API is in `HiGHS/highs/interfaces/highs_c_api.h`. It is included in the default build. For more details, check out the documentation website https://ergo-code.github.io/HiGHS/.
 
 ### CSharp
 
@@ -220,7 +222,7 @@ The nuget package Highs.Native is on https://www.nuget.org, at https://www.nuget
 It can be added to your C# project with `dotnet`
 
 ```shell
-dotnet add package Highs.Native --version 1.9.0
+dotnet add package Highs.Native --version 1.10.0
 ```
 
 The nuget package contains runtime libraries for 
@@ -236,7 +238,7 @@ Details for building locally can be found in `nuget/README.md`.
 
 ### Fortran 
 
-The Fortran API is in `HiGHS/src/interfaces/highs_fortran_api.f90`. It is *not* included in the default build. For more details, check out the documentation website https://ergo-code.github.io/HiGHS/.
+The Fortran API is in `HiGHS/highs/interfaces/highs_fortran_api.f90`. It is *not* included in the default build. For more details, check out the documentation website https://ergo-code.github.io/HiGHS/.
 
 
 ## Reference
