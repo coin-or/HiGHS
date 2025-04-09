@@ -110,7 +110,7 @@ HighsStatus solveLpCupdlp(const HighsOptions& options, HighsTimer& timer,
   if (local_log_level) cupdlp_printf("Solving with cuPDLP-C\n");
 
   Init_Scaling(local_log_level, options.pdlp_scaling_mode, scaling, nCols,
-                 nRows, cost, rhs);
+               nRows, cost, rhs);
   cupdlp_int ifScaling = intParam[IF_SCALING];
 
   CUPDLPwork* w = cupdlp_NULL;
@@ -737,7 +737,7 @@ void getUserParamsFromOptions(const HighsOptions& options,
                  "PDLP: Restart off\n");
     //
 
-  // for the moment only native termination is allowed with GPU
+    // for the moment only native termination is allowed with GPU
 #ifdef CUPDLP_CPU
 #ifdef CUPDLP_FORCE_NATIVE
   ifChangeIntParam[I_INF_NORM_ABS_LOCAL_TERMINATION] = false;

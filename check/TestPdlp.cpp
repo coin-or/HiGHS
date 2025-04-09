@@ -96,7 +96,7 @@ TEST_CASE("pdlp-distillation-lp", "[pdlp]") {
   //     optimal = false;
   //   }
 
-  optimal = false; //???
+  optimal = false;  //???
 
   run_status = highs.run();
   if (dev_run) highs.writeSolution("", 1);

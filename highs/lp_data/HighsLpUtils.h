@@ -301,7 +301,7 @@ void formStandardFormLp(const HighsLp& lp, const HighsLogOptions& log_options,
                         std::vector<double>& standard_form_rhs,
                         HighsSparseMatrix& standard_form_matrix);
 
-void standardFormSolutionToLpSolution(const HighsLp& lp,
-				      const HighsSolution& standard_form_solution,
-				      HighsSolution& lp_solution);
+void standardFormSolutionToLpSolution(
+    const HighsLp& lp, const HighsSolution& standard_form_solution,
+    HighsSolution& lp_solution);
 #endif  // LP_DATA_HIGHSLPUTILS_H_

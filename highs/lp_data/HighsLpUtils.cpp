@@ -3524,15 +3524,16 @@ void formStandardFormLp(const HighsLp& lp, const HighsLogOptions& log_options,
                int(num_fixed_row));
 }
 
-void standardFormSolutionToLpSolution(const HighsLp& lp,
-				      const HighsSolution& standard_form_solution,
-				      HighsSolution& lp_solution) {
+void standardFormSolutionToLpSolution(
+    const HighsLp& lp, const HighsSolution& standard_form_solution,
+    HighsSolution& lp_solution) {
   // Need to know where the slack variables start, and that's after
   // the original columns and the additional columns for original
   // columns that are free, so count the free columns
   HighsInt num_free_col = 0;
   for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++)
-    if (lp.col_lower_[iCol] <= -kHighsInf && lp.col_upper_[iCol] >= kHighsInf) num_free_col++;
+    if (lp.col_lower_[iCol] <= -kHighsInf && lp.col_upper_[iCol] >= kHighsInf)
+      num_free_col++;
 
   HighsInt slack_col = lp.num_col_ + num_free_col;
 
@@ -3546,16 +3547,19 @@ void standardFormSolutionToLpSolution(const HighsLp& lp,
       lp_solution.row_dual.push_back(0);
     } else if (lower == upper) {
       // Equality row
-      lp_solution.row_dual.push_back(standard_form_solution.row_dual[standard_form_row]);
+      lp_solution.row_dual.push_back(
+          standard_form_solution.row_dual[standard_form_row]);
       standard_form_row++;
     } else if (lower <= -kHighsInf) {
       // Upper bounded row
-      lp_solution.row_dual.push_back(standard_form_solution.row_dual[standard_form_row]);
+      lp_solution.row_dual.push_back(
+          standard_form_solution.row_dual[standard_form_row]);
       standard_form_row++;
       slack_col++;
     } else if (upper >= kHighsInf) {
       // Lower bounded row
-      lp_solution.row_dual.push_back(-standard_form_solution.row_dual[standard_form_row]);
+      lp_solution.row_dual.push_back(
+          -standard_form_solution.row_dual[standard_form_row]);
       standard_form_row++;
       slack_col++;
     } else {
@@ -3563,18 +3567,20 @@ void standardFormSolutionToLpSolution(const HighsLp& lp,
       assert(lower > -kHighsInf);
       assert(upper < kHighsInf);
       double slack_lo = standard_form_solution.col_value[slack_col];
-      double slack_up = standard_form_solution.col_value[slack_col+1];
+      double slack_up = standard_form_solution.col_value[slack_col + 1];
       if (slack_lo < slack_up) {
-	// Closer to lower bound so take dual corresponding to lower bound
-	lp_solution.row_dual.push_back(-standard_form_solution.row_dual[standard_form_row]);
+        // Closer to lower bound so take dual corresponding to lower bound
+        lp_solution.row_dual.push_back(
+            -standard_form_solution.row_dual[standard_form_row]);
       } else {
-	// Closer to upper bound so take dual corresponding to upper bound
-	lp_solution.row_dual.push_back(standard_form_solution.row_dual[standard_form_row+1]);
+        // Closer to upper bound so take dual corresponding to upper bound
+        lp_solution.row_dual.push_back(
+            standard_form_solution.row_dual[standard_form_row + 1]);
       }
       standard_form_row += 2;
       slack_col += 2;
     }
   }
   // Now look at columns
-  assert(111==678);
+  assert(111 == 678);
 }
