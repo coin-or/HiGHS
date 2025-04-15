@@ -63,4 +63,13 @@ jobs:
       - name: Test
         working-directory: ${{runner.workspace}}/build
         shell: bash
-        run: valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes -s ctest -E unit.* --timeout 1000 --output-on-failure 
+        run: |
+          valgrind \
+            --leak-check=full \
+            --show-leak-kinds=all \
+            --track-origins=yes \
+            -s ctest -E unit.* \
+            --timeout 1000 \
+            --output-on-failure \
+            --error-exitcode=1
+  
