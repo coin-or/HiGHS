@@ -101,7 +101,7 @@ jobs:
       - name: Test
         working-directory: ${{runner.workspace}}/build
         shell: bash
-        run: 
+        run: |
           valgrind \
           --leak-check=full \
           --show-leak-kinds=all \
