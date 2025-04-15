@@ -52,7 +52,14 @@ jobs:
       - name: Test
         working-directory: ${{runner.workspace}}/build
         shell: bash
-        run: valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes -s ./bin/unit_tests multi-objective | tee logfile
+        run: |
+          valgrind \
+          --leak-check=full \
+          --show-leak-kinds=all \
+          --track-origins=yes \
+          -s \
+          ./bin/unit_tests multi-objective \
+          2>&1 | tee logfile
 
       - name: Check log for Errors
         working-directory: ${{runner.workspace}}/build
@@ -94,7 +101,16 @@ jobs:
       - name: Test
         working-directory: ${{runner.workspace}}/build
         shell: bash
-        run: valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes -s ctest -E unit.* --timeout 1000 --output-on-failure | tee logfile2
+        run: 
+          valgrind \
+          --leak-check=full \
+          --show-leak-kinds=all \
+          --track-origins=yes \
+          -s \
+          ctest -E unit.* \
+          --timeout 1000 \
+          --output-on-failure \
+          2>&1 | tee logfile2
 
       - name: Check log for Errors
         working-directory: ${{runner.workspace}}/build
