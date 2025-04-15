@@ -12,6 +12,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: test fail 
+        shell: bash
+        run: |
+          echo "ASDF" > logfile
+          OUTPUT='ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)'
+          if grep -q "$OUTPUT" logfile; then
+            exit(0)
+          fi
+          exit(1)
+
       - name: Install Valgrind
         run: sudo apt-get update && sudo apt-get install valgrind
 
