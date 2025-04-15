@@ -32,7 +32,7 @@ jobs:
       - name: Test
         working-directory: ${{runner.workspace}}/build
         shell: bash
-        run: valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes -s ./bin/unit_tests 
+        run: valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes -s ./bin/unit_tests multi-objective
 
   instance_tests:
     runs-on: ${{ matrix.os }}
