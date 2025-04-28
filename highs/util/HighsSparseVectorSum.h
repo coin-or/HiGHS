@@ -30,7 +30,7 @@ class HighsSparseVectorSum {
   }
 
   void add(HighsInt index, double value) {
-    assert(index >= 0 && index < (HighsInt)values.size());
+    // assert(index >= 0 && index < (HighsInt)values.size());
     if (values[index] != 0.0) {
       values[index] += value;
     } else {

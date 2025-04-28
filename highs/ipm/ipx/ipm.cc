@@ -59,6 +59,11 @@ void IPM::Driver(KKTSolver* kkt, Iterate* iterate, Info* info) {
         }
         if (num_bad_iter_ >= 5 ||
             iterate_->complementarity() > kDivergeTol * best_complementarity_) {
+
+        // if (num_bad_iter_ >= 5 || 
+        //     (best_complementarity_ > 0.0 && iterate_->complementarity() > kDivergeTol * best_complementarity_))
+        // {
+
             // No progress in reducing the complementarity gap.
             // Check if model seems to be primal or dual infeasible.
             bool dualized = iterate_->model().dualized();
