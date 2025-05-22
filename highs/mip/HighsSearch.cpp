@@ -243,12 +243,14 @@ void HighsSearch::addInfeasibleConflict() {
 }
 
 HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
-                             double& downNodeLb,
-                             double& upNodeLb) {
+                                               double degeneracyFac,
+                                               double& downNodeLb,
+                                               double& upNodeLb) {
   assert(!lp->getFractionalIntegers().empty());
 
   std::vector<double> upscore;
   std::vector<double> downscore;
+  std::vector<double> shadowscore;
   std::vector<uint8_t> upscorereliable;
   std::vector<uint8_t> downscorereliable;
   std::vector<double> upbound;
@@ -284,6 +286,7 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
 
   upscore.resize(numfrac, kHighsInf);
   downscore.resize(numfrac, kHighsInf);
+  shadowscore.resize(numfrac, 0.0);
   upbound.resize(numfrac, getCurrentLowerBound());
   downbound.resize(numfrac, getCurrentLowerBound());
   upscorereliable.resize(numfrac, 0);
@@ -341,6 +344,25 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
         downscore[i] = pseudocost.getPseudocostDown(col, fracval);
         downscorereliable[i] = true;
       }
+    }
+    // estimate branching score based on partitioning reduced cost
+    if (pseudocost.getMinReliable() > 0) {
+      double shadowupcost = lp->getLp().col_cost_[col];
+      double shadowdowncost = lp->getLp().col_cost_[col];
+      HighsInt start = lp->getLp().a_matrix_.start_[col];
+      HighsInt end = lp->getLp().a_matrix_.start_[col + 1];
+      for (HighsInt j = start; j != end; ++j) {
+        double s = lp->getSolution().row_dual[lp->getLp().a_matrix_.index_[j]] *
+          lp->getLp().a_matrix_.value_[j];
+        if (s < 0) {
+          shadowdowncost -= s;
+        }
+        else if (s > 0) {
+          shadowupcost += s;
+        }
+      }
+      shadowscore[i] = std::max(1e-6, shadowdowncost) *
+        std::max(1e-6, shadowupcost);
     }
   }
 
@@ -663,39 +685,27 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
     }
   };
 
-  for (HighsInt i = 0; i != numcands; ++i) {
-    if (downscorereliable[order[i]] && upscorereliable[order[i]]) {
-      score[order[i]] = pseudocost.getScore(
-        fracints[order[i]].first,upscore[order[i]],downscore[order[i]]);
-    }
-    else {
-      score[order[i]] = 0.0;
-    }
-  }
-  sortCandidates();
-
-  // TODO: This accesses the last LP solution (not the current nodes)
-  for (HighsInt i = 0; i != numcands; ++i) {
-    HighsInt col = fracints[order[i]].first;
-    double shadowupcost = lp->getLp().col_cost_[col];
-    double shadowdowncost = lp->getLp().col_cost_[col];
-    HighsInt start = lp->getLp().a_matrix_.start_[col];
-    HighsInt end = lp->getLp().a_matrix_.start_[col + 1];
-    for (HighsInt j = start; j != end; ++j) {
-      double s = lp->getSolution().row_dual[lp->getLp().a_matrix_.index_[j]] *
-        lp->getLp().a_matrix_.value_[j];
-      if (s < 0) {
-        shadowdowncost -= s;
+  if (degeneracyFac < 10.0) {
+    for (HighsInt i = 0; i != numcands; ++i) {
+      if (downscorereliable[order[i]] && upscorereliable[order[i]]) {
+        score[order[i]] =  std::max(upscore[order[i]], 1e-6) *
+          std::max(downscore[order[i]], 1e-6) /
+            std::max(1e-6, pseudocost.getAvgPseudocost() *
+              pseudocost.getAvgPseudocost());
       }
-      else if (s > 0) {
-        shadowupcost += s;
+      else {
+        score[order[i]] = 0.0;
       }
     }
-    score[order[i]] = std::max(1e-6, shadowdowncost) *
-      std::max(1e-6, shadowupcost);
+    sortCandidates();
   }
 
-  sortCandidates();
+  if (pseudocost.getMinReliable() > 0) {
+    for (HighsInt i = 0; i != numcands; ++i) {
+      score[order[i]] = shadowscore[order[i]];
+    }
+    sortCandidates();
+  }
 
   for (HighsInt i = 0; i != numcands; ++i) {
     if (downscorereliable[order[i]] && upscorereliable[order[i]]) {
@@ -704,10 +714,10 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
                                             downscore[order[i]]);
     }
     else {
-      score[order[i]] = 0.0;
+      score[order[i]] = pseudocost.getScore(fracints[order[i]].first,
+                                            fracints[order[i]].second);
     }
   }
-
   sortCandidates();
 
   return order[0];
@@ -1116,7 +1126,7 @@ HighsSearch::NodeResult HighsSearch::branch() {
     }
 
     double degeneracyFac = lp->computeLPDegneracy(localdom);
-    pseudocost.setDegeneracyFactor(degeneracyFac);
+    pseudocost.setDegeneracyFactor(std::min(100.0, degeneracyFac));
     if (degeneracyFac >= 10.0) pseudocost.setMinReliable(0);
     // if (!mipsolver.submip)
     //  printf("selecting branching cand with minrel=%d\n",
@@ -1124,7 +1134,7 @@ HighsSearch::NodeResult HighsSearch::branch() {
     double downNodeLb = getCurrentLowerBound();
     double upNodeLb = getCurrentLowerBound();
     HighsInt branchcand =
-        selectBranchingCandidate(sbmaxiters, downNodeLb, upNodeLb);
+        selectBranchingCandidate(sbmaxiters, degeneracyFac, downNodeLb, upNodeLb);
     // if (!mipsolver.submip)
     //   printf("branching cand returned as %d\n", branchcand);
     NodeData& currnode = nodestack.back();
