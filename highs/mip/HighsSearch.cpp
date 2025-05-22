@@ -9,6 +9,7 @@
 
 #include <numeric>
 
+#include "../extern/pdqsort/pdqsort.h"
 #include "lp_data/HConst.h"
 #include "mip/HighsCutGeneration.h"
 #include "mip/HighsDomainChange.h"
@@ -242,8 +243,8 @@ void HighsSearch::addInfeasibleConflict() {
 }
 
 HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
-                                               double& downNodeLb,
-                                               double& upNodeLb) {
+                             double& downNodeLb,
+                             double& upNodeLb) {
   assert(!lp->getFractionalIntegers().empty());
 
   std::vector<double> upscore;
@@ -254,21 +255,45 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
   std::vector<double> downbound;
 
   HighsInt numfrac = lp->getFractionalIntegers().size();
-  const auto& fracints = lp->getFractionalIntegers();
+  auto& fracints = lp->getFractionalIntegers();
+
+  if (numfrac == 1) return 0;
+
+  auto numNodesUp = [&](HighsInt k) {
+    return mipsolver.mipdata_->nodequeue.numNodesUp(k);
+  };
+
+  auto numNodesDown = [&](HighsInt k) {
+    return mipsolver.mipdata_->nodequeue.numNodesDown(k);
+  };
+
+  auto estimateScore = [&](HighsInt k, double fracval) {
+    int64_t upnodes = numNodesUp(k);
+    int64_t downnodes = numNodesDown(k);
+    int64_t numnodes = upnodes + downnodes;
+    double s = pseudocost.getScore(k, fracval);
+    if (s <= 1e-5) s = 0;
+    return std::make_pair(s, numnodes);
+  };
+
+  pdqsort(fracints.begin(), fracints.end(),
+    [&](const std::pair<HighsInt, double>& a,
+      const std::pair<HighsInt, double>& b) {
+      return estimateScore(a.first, a.second) > estimateScore(b.first, b.second);
+  });
 
   upscore.resize(numfrac, kHighsInf);
   downscore.resize(numfrac, kHighsInf);
   upbound.resize(numfrac, getCurrentLowerBound());
   downbound.resize(numfrac, getCurrentLowerBound());
-
   upscorereliable.resize(numfrac, 0);
   downscorereliable.resize(numfrac, 0);
 
   // initialize up and down scores of variables that have a
   // reliable pseudocost so that they do not get evaluated
-  for (HighsInt k = 0; k != numfrac; ++k) {
-    HighsInt col = fracints[k].first;
-    double fracval = fracints[k].second;
+  for (HighsInt i = 0; i != numfrac; ++i) {
+    HighsInt col = fracints[i].first;
+    double fracval = fracints[i].second;
 
     const double lower_residual =
         (fracval - localdom.col_lower_[col]) - mipsolver.mipdata_->feastol;
@@ -300,117 +325,39 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
 
     assert(lower_residual > -1e-12 && upper_residual > -1e-12);
 
-    //    assert(fracval > localdom.col_lower_[col] +
-    //    mipsolver.mipdata_->feastol); assert(fracval <
-    //    localdom.col_upper_[col] - mipsolver.mipdata_->feastol);
-
     if (pseudocost.isReliable(col)) {
-      upscore[k] = pseudocost.getPseudocostUp(col, fracval);
-      downscore[k] = pseudocost.getPseudocostDown(col, fracval);
-      upscorereliable[k] = true;
-      downscorereliable[k] = true;
+      upscore[i] = pseudocost.getPseudocostUp(col, fracval);
+      downscore[i] = pseudocost.getPseudocostDown(col, fracval);
+      upscorereliable[i] = true;
+      downscorereliable[i] = true;
     } else {
       int flags = branchingVarReliableAtNodeFlags(col);
       if (flags & kUpReliable) {
-        upscore[k] = pseudocost.getPseudocostUp(col, fracval);
-        upscorereliable[k] = true;
+        upscore[i] = pseudocost.getPseudocostUp(col, fracval);
+        upscorereliable[i] = true;
       }
 
       if (flags & kDownReliable) {
-        downscore[k] = pseudocost.getPseudocostDown(col, fracval);
-        downscorereliable[k] = true;
+        downscore[i] = pseudocost.getPseudocostDown(col, fracval);
+        downscorereliable[i] = true;
       }
     }
   }
 
-  std::vector<HighsInt> evalqueue;
-  evalqueue.resize(numfrac);
-  std::iota(evalqueue.begin(), evalqueue.end(), 0);
-
-  auto numNodesUp = [&](HighsInt k) {
-    return mipsolver.mipdata_->nodequeue.numNodesUp(fracints[k].first);
-  };
-
-  auto numNodesDown = [&](HighsInt k) {
-    return mipsolver.mipdata_->nodequeue.numNodesDown(fracints[k].first);
-  };
-
-  double minScore = mipsolver.mipdata_->feastol;
-
-  auto selectBestScore = [&](bool finalSelection) {
-    HighsInt best = -1;
-    double bestscore = -1.0;
-    double bestnodes = -1.0;
-    int64_t bestnumnodes = 0;
-
-    double oldminscore = minScore;
-    for (HighsInt k : evalqueue) {
-      double score;
-
-      if (upscore[k] <= oldminscore) upscorereliable[k] = true;
-      if (downscore[k] <= oldminscore) downscorereliable[k] = true;
-
-      double s = 1e-3 * std::min(upscorereliable[k] ? upscore[k] : 0,
-                                 downscorereliable[k] ? downscore[k] : 0);
-      minScore = std::max(s, minScore);
-
-      if (upscore[k] <= oldminscore || downscore[k] <= oldminscore)
-        score = pseudocost.getScore(fracints[k].first,
-                                    std::min(upscore[k], oldminscore),
-                                    std::min(downscore[k], oldminscore));
-      else {
-        score = upscore[k] == kHighsInf || downscore[k] == kHighsInf
-                    ? finalSelection ? pseudocost.getScore(fracints[k].first,
-                                                           fracints[k].second)
-                                     : kHighsInf
-                    : pseudocost.getScore(fracints[k].first, upscore[k],
-                                          downscore[k]);
-      }
-
-      assert(score >= 0.0);
-      int64_t upnodes = numNodesUp(k);
-      int64_t downnodes = numNodesDown(k);
-      double nodes = 0;
-      int64_t numnodes = upnodes + downnodes;
-      if (upnodes != 0 || downnodes != 0)
-        nodes =
-            (downnodes / (double)(numnodes)) * (upnodes / (double)(numnodes));
-      if (score > bestscore ||
-          (score > bestscore - mipsolver.mipdata_->feastol &&
-           std::make_pair(nodes, numnodes) >
-               std::make_pair(bestnodes, bestnumnodes))) {
-        bestscore = score;
-        best = k;
-        bestnodes = nodes;
-        bestnumnodes = numnodes;
-      }
-    }
-
-    return best;
-  };
-
   HighsLpRelaxation::Playground playground = lp->playground();
-
-  while (true) {
-    bool mustStop = getStrongBranchingLpIterations() >= maxSbIters ||
-                    mipsolver.mipdata_->checkLimits();
-
-    HighsInt candidate = selectBestScore(mustStop);
-
-    if ((upscorereliable[candidate] && downscorereliable[candidate]) ||
-        mustStop) {
-      downNodeLb = downbound[candidate];
-      upNodeLb = upbound[candidate];
-      return candidate;
-    }
+  for (HighsInt i = 0; i < numfrac; ++i) {
+    if (pseudocost.getMinReliable() <= 0) break;
+    if (getStrongBranchingLpIterations() >= maxSbIters ||
+      mipsolver.mipdata_->checkLimits()) break;
 
     lp->setObjectiveLimit(mipsolver.mipdata_->upper_limit);
 
-    HighsInt col = fracints[candidate].first;
-    double fracval = fracints[candidate].second;
+    HighsInt col = fracints[i].first;
+    double fracval = fracints[i].second;
     double upval = std::ceil(fracval);
     double downval = std::floor(fracval);
 
+    // See if branching information can be inferred for other variables
     auto analyzeSolution = [&](double objdelta,
                                const std::vector<double>& sol) {
       HighsInt numChangedCols = localdom.getChangedCols().size();
@@ -422,12 +369,27 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
         double otherfracval = fracints[k].second;
         double otherdownval = std::floor(fracints[k].second);
         double otherupval = std::ceil(fracints[k].second);
-        if (sol[fracints[k].first] <=
-            otherdownval + mipsolver.mipdata_->feastol) {
-          if (localdom.col_upper_[fracints[k].first] >
-              otherdownval + mipsolver.mipdata_->feastol) {
-            localdom.changeBound(HighsBoundType::kUpper, fracints[k].first,
-                                 otherdownval);
+        bool otherindownbranch = (sol[fracints[k].first] <=
+            otherdownval + mipsolver.mipdata_->feastol);
+        bool otherinupbranch = (sol[fracints[k].first] >=
+                   otherupval - mipsolver.mipdata_->feastol);
+        if (otherindownbranch || otherinupbranch) {
+          bool otherloose = false;
+          if ((otherindownbranch && (localdom.col_upper_[fracints[k].first] >
+          otherdownval + mipsolver.mipdata_->feastol)) || (otherinupbranch &&
+            (localdom.col_lower_[fracints[k].first] < otherupval -
+              mipsolver.mipdata_->feastol))) {
+            otherloose = true;
+          }
+          if (otherloose) {
+            if (otherindownbranch) {
+              localdom.changeBound(HighsBoundType::kUpper,
+                                   fracints[k].first, otherdownval);
+            }
+            else if (otherinupbranch) {
+              localdom.changeBound(HighsBoundType::kLower,
+                                   fracints[k].first, otherupval);
+            }
             if (localdom.infeasible()) {
               localdom.conflictAnalysis(mipsolver.mipdata_->conflictPool);
               localdom.backtrack();
@@ -451,65 +413,13 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
                     sol[domchgstack[j].column] + mipsolver.mipdata_->feastol) {
                   solutionValid = false;
                   break;
-                }
+                    }
               } else {
                 if (domchgstack[j].boundval <
                     sol[domchgstack[j].column] - mipsolver.mipdata_->feastol) {
                   solutionValid = false;
                   break;
-                }
-              }
-            }
-
-            localdom.backtrack();
-            localdom.clearChangedCols(numChangedCols);
-            if (!solutionValid) continue;
-          }
-
-          if (objdelta <= mipsolver.mipdata_->feastol) {
-            pseudocost.addObservation(fracints[k].first,
-                                      otherdownval - otherfracval, objdelta);
-            markBranchingVarDownReliableAtNode(fracints[k].first);
-          }
-
-          downscore[k] = std::min(downscore[k], objdelta);
-        } else if (sol[fracints[k].first] >=
-                   otherupval - mipsolver.mipdata_->feastol) {
-          if (localdom.col_lower_[fracints[k].first] <
-              otherupval - mipsolver.mipdata_->feastol) {
-            localdom.changeBound(HighsBoundType::kLower, fracints[k].first,
-                                 otherupval);
-
-            if (localdom.infeasible()) {
-              localdom.conflictAnalysis(mipsolver.mipdata_->conflictPool);
-              localdom.backtrack();
-              localdom.clearChangedCols(numChangedCols);
-              continue;
-            }
-            localdom.propagate();
-            if (localdom.infeasible()) {
-              localdom.conflictAnalysis(mipsolver.mipdata_->conflictPool);
-              localdom.backtrack();
-              localdom.clearChangedCols(numChangedCols);
-              continue;
-            }
-
-            HighsInt newStackSize = localdom.getDomainChangeStack().size();
-
-            bool solutionValid = true;
-            for (HighsInt j = domchgStackSize + 1; j < newStackSize; ++j) {
-              if (domchgstack[j].boundtype == HighsBoundType::kLower) {
-                if (domchgstack[j].boundval >
-                    sol[domchgstack[j].column] + mipsolver.mipdata_->feastol) {
-                  solutionValid = false;
-                  break;
-                }
-              } else {
-                if (domchgstack[j].boundval <
-                    sol[domchgstack[j].column] - mipsolver.mipdata_->feastol) {
-                  solutionValid = false;
-                  break;
-                }
+                    }
               }
             }
 
@@ -518,30 +428,42 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
 
             if (!solutionValid) continue;
           }
-
+          // objdelta will also have to be small in other branch in this case
           if (objdelta <= mipsolver.mipdata_->feastol) {
-            pseudocost.addObservation(fracints[k].first,
-                                      otherupval - otherfracval, objdelta);
-            markBranchingVarUpReliableAtNode(fracints[k].first);
-          }
+            if (otherindownbranch) {
+              pseudocost.addObservation(fracints[k].first,
+                                        otherdownval - otherfracval,
+                                        objdelta);
+              // TODO: down / upscorereliable were not set to true here before
+              downscorereliable[k] = true;
+              markBranchingVarDownReliableAtNode(fracints[k].first);
+              }
+            else {
+              pseudocost.addObservation(fracints[k].first,
+                          otherupval - otherfracval, objdelta);
+              upscorereliable[k] = true;
+              markBranchingVarUpReliableAtNode(fracints[k].first);
 
-          upscore[k] = std::min(upscore[k], objdelta);
+            }
+          }
+          if (otherindownbranch) {
+            downscore[k] = std::min(downscore[k],objdelta);
+          }
+          else {
+            upscore[k] = std::min(upscore[k], objdelta);
+          }
         }
       }
     };
 
-    if (!downscorereliable[candidate] &&
-        (upscorereliable[candidate] ||
-         std::make_pair(downscore[candidate],
-                        pseudocost.getAvgInferencesDown(col)) >=
-             std::make_pair(upscore[candidate],
-                            pseudocost.getAvgInferencesUp(col)))) {
-      // evaluate down branch
-      // if (!mipsolver.submip)
-      //   printf("down eval col=%d fracval=%g\n", col, fracval);
+    // Strong branch in a single direction
+    auto strongBranch = [&](bool upbranch) {
       int64_t inferences = -(int64_t)localdom.getDomainChangeStack().size() - 1;
+      HighsBoundType boundtype = upbranch ? HighsBoundType::kLower
+                                      : HighsBoundType::kUpper;
+      double boundval = upbranch ? upval : downval;
+      HighsDomainChange domchg{boundval, col, boundtype};
 
-      HighsDomainChange domchg{downval, col, HighsBoundType::kUpper};
       bool orbitalFixing =
           nodestack.back().stabilizerOrbits && orbitsValidInChildNode(domchg);
       localdom.changeBound(domchg);
@@ -557,19 +479,24 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
       inferences += localdom.getDomainChangeStack().size();
       if (localdom.infeasible()) {
         localdom.conflictAnalysis(mipsolver.mipdata_->conflictPool);
-        pseudocost.addCutoffObservation(col, false);
+        pseudocost.addCutoffObservation(col, upbranch);
         localdom.backtrack();
         localdom.clearChangedCols();
 
-        branchUpwards(col, upval, fracval);
+        if (upbranch) {
+          branchDownwards(col, downval, fracval);
+        }
+        else {
+          branchUpwards(col, upval, fracval);
+        }
         nodestack[nodestack.size() - 2].opensubtrees = 0;
         nodestack[nodestack.size() - 2].skipDepthCount = 1;
         depthoffset -= 1;
 
-        return -1;
+        return true;
       }
 
-      pseudocost.addInferenceObservation(col, inferences, false);
+      pseudocost.addInferenceObservation(col, inferences, upbranch);
 
       int64_t numiters = lp->getNumLpIterations();
       HighsLpRelaxation::Status status = playground.solveLp(localdom);
@@ -580,7 +507,7 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
       if (lp->scaledOptimal(status)) {
         lp->performAging();
 
-        double delta = downval - fracval;
+        double delta = upbranch ? upval - fracval : downval - fracval;
         bool integerfeasible;
         const std::vector<double>& sol = lp->getSolution().col_value;
         double solobj = checkSol(sol, integerfeasible);
@@ -588,10 +515,16 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
         double objdelta = std::max(solobj - lp->getObjective(), 0.0);
         if (objdelta <= mipsolver.mipdata_->epsilon) objdelta = 0.0;
 
-        downscore[candidate] = objdelta;
-        downscorereliable[candidate] = true;
-
-        markBranchingVarDownReliableAtNode(col);
+        if (upbranch) {
+          upscore[i] = objdelta;
+          upscorereliable[i] = true;
+          markBranchingVarUpReliableAtNode(col);
+        }
+        else {
+          downscore[i] = objdelta;
+          downscorereliable[i] = true;
+          markBranchingVarDownReliableAtNode(col);
+        }
         pseudocost.addObservation(col, delta, objdelta);
         analyzeSolution(objdelta, sol);
 
@@ -607,7 +540,12 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
         }
 
         if (lp->unscaledDualFeasible(status)) {
-          downbound[candidate] = solobj;
+          if (upbranch) {
+            upbound[i] = solobj;
+          }
+          else {
+            downbound[i] = solobj;
+          }
           if (solobj > mipsolver.mipdata_->optimality_limit) {
             addBoundExceedingConflict();
 
@@ -617,13 +555,18 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
             localdom.backtrack();
             lp->flushDomain(localdom);
 
-            branchUpwards(col, upval, fracval);
+            if (upbranch) {
+              branchDownwards(col, downval, fracval);
+            }
+            else {
+              branchUpwards(col, upval, fracval);
+            }
             nodestack[nodestack.size() - 2].opensubtrees = pruned ? 0 : 1;
             nodestack[nodestack.size() - 2].other_child_lb = solobj;
             nodestack[nodestack.size() - 2].skipDepthCount = 1;
             depthoffset -= 1;
 
-            return -1;
+            return true;
           }
         } else if (solobj > getCutoffBound()) {
           addBoundExceedingConflict();
@@ -633,177 +576,141 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
             localdom.backtrack();
             lp->flushDomain(localdom);
 
-            branchUpwards(col, upval, fracval);
+            if (upbranch) {
+              branchDownwards(col, downval, fracval);
+            }
+            else {
+              branchUpwards(col, upval, fracval);
+            }
             nodestack[nodestack.size() - 2].opensubtrees = 0;
             nodestack[nodestack.size() - 2].skipDepthCount = 1;
             depthoffset -= 1;
 
-            return -1;
+            return true;
           }
         }
       } else if (status == HighsLpRelaxation::Status::kInfeasible) {
         mipsolver.mipdata_->debugSolution.nodePruned(localdom);
         addInfeasibleConflict();
-        pseudocost.addCutoffObservation(col, false);
+        pseudocost.addCutoffObservation(col, upbranch);
         localdom.backtrack();
         lp->flushDomain(localdom);
 
-        branchUpwards(col, upval, fracval);
+        if (upbranch) {
+          branchDownwards(col, downval, fracval);
+        }
+        else {
+          branchUpwards(col, upval, fracval);
+        }
         nodestack[nodestack.size() - 2].opensubtrees = 0;
         nodestack[nodestack.size() - 2].skipDepthCount = 1;
         depthoffset -= 1;
 
-        return -1;
+        return true;
       } else {
         // printf("todo2\n");
         // in case of an LP error we set the score of this variable to zero to
         // avoid choosing it as branching candidate if possible
-        downscore[candidate] = 0.0;
-        upscore[candidate] = 0.0;
-        downscorereliable[candidate] = 1;
-        upscorereliable[candidate] = 1;
+        downscore[i] = 0.0;
+        upscore[i] = 0.0;
+        downscorereliable[i] = 1;
+        upscorereliable[i] = 1;
         markBranchingVarUpReliableAtNode(col);
         markBranchingVarDownReliableAtNode(col);
       }
 
       localdom.backtrack();
       lp->flushDomain(localdom);
-    } else {
-      // if (!mipsolver.submip)
-      //  printf("up eval col=%d fracval=%g\n", col, fracval);
-      // evaluate up branch
-      int64_t inferences = -(int64_t)localdom.getDomainChangeStack().size() - 1;
-      HighsDomainChange domchg{upval, col, HighsBoundType::kLower};
-      bool orbitalFixing =
-          nodestack.back().stabilizerOrbits && orbitsValidInChildNode(domchg);
-      localdom.changeBound(domchg);
-      localdom.propagate();
+      return false;
+    };
 
-      if (!localdom.infeasible()) {
-        if (orbitalFixing)
-          nodestack.back().stabilizerOrbits->orbitalFixing(localdom);
-        else
-          mipsolver.mipdata_->symmetries.propagateOrbitopes(localdom);
-      }
+    bool branched = false;
+    // Branch in up direction first
+    if (!upscorereliable[i]) {
+      branched = strongBranch(true);
+      if (branched) return -1;
+    }
 
-      inferences += localdom.getDomainChangeStack().size();
-      if (localdom.infeasible()) {
-        localdom.conflictAnalysis(mipsolver.mipdata_->conflictPool);
-        pseudocost.addCutoffObservation(col, true);
-        localdom.backtrack();
-        localdom.clearChangedCols();
+    if (getStrongBranchingLpIterations() >= maxSbIters ||
+      mipsolver.mipdata_->checkLimits()) break;
 
-        branchDownwards(col, downval, fracval);
-        nodestack[nodestack.size() - 2].opensubtrees = 0;
-        nodestack[nodestack.size() - 2].skipDepthCount = 1;
-        depthoffset -= 1;
-
-        return -1;
-      }
-
-      pseudocost.addInferenceObservation(col, inferences, true);
-
-      int64_t numiters = lp->getNumLpIterations();
-      HighsLpRelaxation::Status status = playground.solveLp(localdom);
-      numiters = lp->getNumLpIterations() - numiters;
-      lpiterations += numiters;
-      sblpiterations += numiters;
-
-      if (lp->scaledOptimal(status)) {
-        lp->performAging();
-
-        double delta = upval - fracval;
-        bool integerfeasible;
-
-        const std::vector<double>& sol =
-            lp->getLpSolver().getSolution().col_value;
-        double solobj = checkSol(sol, integerfeasible);
-
-        double objdelta = std::max(solobj - lp->getObjective(), 0.0);
-        if (objdelta <= mipsolver.mipdata_->epsilon) objdelta = 0.0;
-
-        upscore[candidate] = objdelta;
-        upscorereliable[candidate] = true;
-
-        markBranchingVarUpReliableAtNode(col);
-        pseudocost.addObservation(col, delta, objdelta);
-        analyzeSolution(objdelta, sol);
-
-        if (lp->unscaledPrimalFeasible(status) && integerfeasible) {
-          double cutoffbnd = getCutoffBound();
-          mipsolver.mipdata_->addIncumbent(
-              lp->getLpSolver().getSolution().col_value, solobj,
-              inheuristic ? kSolutionSourceHeuristic
-                          : kSolutionSourceBranching);
-
-          if (mipsolver.mipdata_->upper_limit < cutoffbnd)
-            lp->setObjectiveLimit(mipsolver.mipdata_->upper_limit);
-        }
-
-        if (lp->unscaledDualFeasible(status)) {
-          upbound[candidate] = solobj;
-          if (solobj > mipsolver.mipdata_->optimality_limit) {
-            addBoundExceedingConflict();
-
-            bool pruned = solobj > getCutoffBound();
-            if (pruned) mipsolver.mipdata_->debugSolution.nodePruned(localdom);
-
-            localdom.backtrack();
-            lp->flushDomain(localdom);
-
-            branchDownwards(col, downval, fracval);
-            nodestack[nodestack.size() - 2].opensubtrees = pruned ? 0 : 1;
-            nodestack[nodestack.size() - 2].other_child_lb = solobj;
-            nodestack[nodestack.size() - 2].skipDepthCount = 1;
-            depthoffset -= 1;
-
-            return -1;
-          }
-        } else if (solobj > getCutoffBound()) {
-          addBoundExceedingConflict();
-          localdom.propagate();
-          bool infeas = localdom.infeasible();
-          if (infeas) {
-            localdom.backtrack();
-            lp->flushDomain(localdom);
-
-            branchDownwards(col, downval, fracval);
-            nodestack[nodestack.size() - 2].opensubtrees = 0;
-            nodestack[nodestack.size() - 2].skipDepthCount = 1;
-            depthoffset -= 1;
-
-            return -1;
-          }
-        }
-      } else if (status == HighsLpRelaxation::Status::kInfeasible) {
-        mipsolver.mipdata_->debugSolution.nodePruned(localdom);
-        addInfeasibleConflict();
-        pseudocost.addCutoffObservation(col, true);
-        localdom.backtrack();
-        lp->flushDomain(localdom);
-
-        branchDownwards(col, downval, fracval);
-        nodestack[nodestack.size() - 2].opensubtrees = 0;
-        nodestack[nodestack.size() - 2].skipDepthCount = 1;
-        depthoffset -= 1;
-
-        return -1;
-      } else {
-        // printf("todo2\n");
-        // in case of an LP error we set the score of this variable to zero to
-        // avoid choosing it as branching candidate if possible
-        downscore[candidate] = 0.0;
-        upscore[candidate] = 0.0;
-        downscorereliable[candidate] = 1;
-        upscorereliable[candidate] = 1;
-        markBranchingVarUpReliableAtNode(col);
-        markBranchingVarDownReliableAtNode(col);
-      }
-
-      localdom.backtrack();
-      lp->flushDomain(localdom);
+    // Branch in down direction
+    if (!downscorereliable[i]) {
+      branched = strongBranch(false);
+      if (branched) return -1;
     }
   }
+
+  // Score candidates and select best one
+  HighsInt numcands = numfrac;
+  std::vector<double> score;
+  std::vector<HighsInt> order;
+  score.resize(numfrac, 0.0);
+  order.resize(numfrac);
+  std::iota(order.begin(), order.end(), 0);
+
+  auto sortCandidates = [&] {
+    pdqsort(order.begin(), order.begin() + numcands,
+      [&](const HighsInt a, const HighsInt b) {
+        return score[a] > score[b];
+    });
+    for (HighsInt j = 0; j != numcands; j++) {
+      if ((score[order[j]] <= score[order[0]] * 0.8) &&
+          (score[order[j]] <= score[order[0]] - 1e-6)) {
+        numcands = j;
+        break;
+      }
+    }
+  };
+
+  for (HighsInt i = 0; i != numcands; ++i) {
+    if (downscorereliable[order[i]] && upscorereliable[order[i]]) {
+      score[order[i]] = pseudocost.getScore(
+        fracints[order[i]].first,upscore[order[i]],downscore[order[i]]);
+    }
+    else {
+      score[order[i]] = 0.0;
+    }
+  }
+  sortCandidates();
+
+  // TODO: This accesses the last LP solution (not the current nodes)
+  for (HighsInt i = 0; i != numcands; ++i) {
+    HighsInt col = fracints[order[i]].first;
+    double shadowupcost = lp->getLp().col_cost_[col];
+    double shadowdowncost = lp->getLp().col_cost_[col];
+    HighsInt start = lp->getLp().a_matrix_.start_[col];
+    HighsInt end = lp->getLp().a_matrix_.start_[col + 1];
+    for (HighsInt j = start; j != end; ++j) {
+      double s = lp->getSolution().row_dual[lp->getLp().a_matrix_.index_[j]] *
+        lp->getLp().a_matrix_.value_[j];
+      if (s < 0) {
+        shadowdowncost -= s;
+      }
+      else if (s > 0) {
+        shadowupcost += s;
+      }
+    }
+    score[order[i]] = std::max(1e-6, shadowdowncost) *
+      std::max(1e-6, shadowupcost);
+  }
+
+  sortCandidates();
+
+  for (HighsInt i = 0; i != numcands; ++i) {
+    if (downscorereliable[order[i]] && upscorereliable[order[i]]) {
+      score[order[i]] = pseudocost.getScore(fracints[order[i]].first,
+                                            upscore[order[i]],
+                                            downscore[order[i]]);
+    }
+    else {
+      score[order[i]] = 0.0;
+    }
+  }
+
+  sortCandidates();
+
+  return order[0];
 }
 
 const HighsSearch::NodeData* HighsSearch::getParentNodeData() const {
