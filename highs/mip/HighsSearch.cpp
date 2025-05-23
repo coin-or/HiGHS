@@ -346,7 +346,7 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
       }
     }
     // estimate branching score based on partitioning reduced cost
-    if (pseudocost.getMinReliable() > 0) {
+    if (!mipsolver.submip) {
       double shadowupcost = lp->getLp().col_cost_[col];
       double shadowdowncost = lp->getLp().col_cost_[col];
       HighsInt start = lp->getLp().a_matrix_.start_[col];
@@ -685,22 +685,50 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
     }
   };
 
-  if (degeneracyFac < 10.0) {
-    for (HighsInt i = 0; i != numcands; ++i) {
+  auto pseudocostScore = [&](const HighsInt k) {
+    return std::max(upscore[k], 1e-6) * std::max(downscore[k], 1e-6) /
+      std::max(1e-6, pseudocost.getAvgPseudocost() * pseudocost.getAvgPseudocost());
+  };
+
+  for (HighsInt i = 0; i != numcands; ++i) {
+    if (degeneracyFac < 10.0) {
       if (downscorereliable[order[i]] && upscorereliable[order[i]]) {
-        score[order[i]] =  std::max(upscore[order[i]], 1e-6) *
-          std::max(downscore[order[i]], 1e-6) /
-            std::max(1e-6, pseudocost.getAvgPseudocost() *
-              pseudocost.getAvgPseudocost());
+        score[order[i]] = pseudocostScore(order[i]);
+      }
+      else if ((downscore[order[i]] != kHighsInf) && (upscore[order[i]] != kHighsInf)){
+        score[order[i]] = pseudocostScore(order[i]) * 0.5;
       }
       else {
         score[order[i]] = 0.0;
       }
     }
+    else {
+      if (downscorereliable[order[i]] && upscorereliable[order[i]]) {
+        score[order[i]] = pseudocost.getScore(fracints[order[i]].first,
+                                              upscore[order[i]],
+                                              downscore[order[i]]);
+      }
+      else if ((downscore[order[i]] != kHighsInf) && (upscore[order[i]] != kHighsInf)) {
+        score[order[i]] = pseudocost.getScore(fracints[order[i]].first,
+                                              upscore[order[i]],
+                                              downscore[order[i]]) * 0.5;
+      }
+      else {
+        score[order[i]] = 0.0;
+      }
+    }
+  }
+  sortCandidates();
+
+  if (score[order[0]] == 0.0) {
+    for (HighsInt i = 0; i != numcands; ++i) {
+      score[order[i]] = pseudocost.getScore(fracints[order[i]].first,
+                                            fracints[order[i]].second);
+    }
     sortCandidates();
   }
 
-  if (pseudocost.getMinReliable() > 0) {
+  if (!mipsolver.submip) {
     for (HighsInt i = 0; i != numcands; ++i) {
       score[order[i]] = shadowscore[order[i]];
     }
