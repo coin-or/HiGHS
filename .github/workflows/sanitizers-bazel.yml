@@ -24,6 +24,7 @@ jobs:
         run: bazel test -c dbg --config=asan --runs_per_test 100 //...
 
       - name: Upload bazel-testlogs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: bazel-testlogs-asan
@@ -47,12 +48,40 @@ jobs:
         run: bazel build -c dbg --config=tsan //...
       
       - name: Bazel test
-        run: bazel test -c dbg --config=tsan --runs_per_test 100 //...
+        run: bazel test -c dbg --config=tsan --runs_per_test 500 //:TestMipSolver
 
       - name: Upload bazel-testlogs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: bazel-testlogs-tsan
+          name: bazel-testlogs-tsan-1
+          path: bazel-testlogs/
+
+  tsan_2:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: bazelbuild/setup-bazelisk@v3
+
+      - name: Bazel clean
+        run: bazel clean
+      
+      - name: Bazel build
+        run: bazel build -c dbg --config=tsan //...
+      
+      - name: Bazel test
+        run: bazel test -c dbg --config=tsan --runs_per_test 500 //:TestHighsParallel
+
+      - name: Upload bazel-testlogs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bazel-testlogs-tsan-2
           path: bazel-testlogs/
           
   lsan:
@@ -76,6 +105,7 @@ jobs:
         run: bazel test -c dbg --config=lsan --runs_per_test 100 //...
 
       - name: Upload bazel-testlogs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: bazel-testlogs-lsan
@@ -102,6 +132,7 @@ jobs:
         run: bazel test -c dbg --config=ubsan --runs_per_test 100 //...
 
       - name: Upload bazel-testlogs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: bazel-testlogs-ubsan
