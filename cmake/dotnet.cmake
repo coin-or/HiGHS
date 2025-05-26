@@ -49,9 +49,13 @@ endif()
 # if(USE_DOTNET_CORE_31)
 #   list(APPEND TFM "netcoreapp3.1")
 # endif()
-if(USE_DOTNET_6)
-  list(APPEND TFM "net6.0")
-endif()
+
+list(APPEND TFM "net2.0")
+
+# if(USE_DOTNET_6)
+#   list(APPEND TFM "net6.0")
+# endif()
+
 # if(USE_DOTNET_7)
 #   list(APPEND TFM "net7.0")
 # endif()
