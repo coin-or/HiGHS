@@ -215,6 +215,12 @@ void matrix_multiplication(const std::string& model, const unsigned num_threads,
       std::cout << std::setw(12) << N << std::setw(12)
                 << runtime / num_rounds / 1e3 << std::endl;
 
+    for (int i = 0; i < N; ++i) 
+      TSAN_ANNOTATE_HAPPENS_BEFORE(&(c[i]));
+
+    for (int i = 0; i < N; ++i) 
+      TSAN_ANNOTATE_HAPPENS_AFTER(&(c[i]));
+
     deallocate_matrix();
   }
 }
