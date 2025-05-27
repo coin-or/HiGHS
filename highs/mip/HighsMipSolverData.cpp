@@ -370,14 +370,14 @@ void HighsMipSolverData::startAnalyticCenterComputation(
     analyticCenterStatus = ipm.getModelStatus();
     analyticCenter = sol;
   });
+
   TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenterStatus);
   TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenter);
+  TSAN_ANNOTATE_HAPPENS_BEFORE(mipsolver.model_);
 }
 
 void HighsMipSolverData::finishAnalyticCenterComputation(
     const highs::parallel::TaskGroup& taskGroup) {
-  TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenterStatus);
-  TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenter);
 
   if (mipsolver.analysis_.analyse_mip_time) {
     highsLogUser(mipsolver.options_mip_->log_options, HighsLogType::kInfo,
@@ -392,6 +392,8 @@ void HighsMipSolverData::finishAnalyticCenterComputation(
                  mipsolver.analysis_.mipTimerRead());
     fflush(stdout);
   }
+  TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenterStatus);
+  TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenter);
   analyticCenterComputed = true;
   if (analyticCenterStatus == HighsModelStatus::kOptimal) {
     HighsInt nfixed = 0;
@@ -1214,6 +1216,8 @@ void HighsMipSolverData::performRestart() {
   presolvedModel.offset_ = offset;
   presolvedModel.integrality_ = std::move(integrality);
 
+  // TSAN_ANNOTATE_HAPPENS_BEFORE(&presolvedModel.integrality_)
+
   const HighsBasis& basis = firstrootbasis;
   if (basis.valid) {
     // if we have a basis after solving the root LP, we expand it to the
@@ -1867,6 +1871,8 @@ restart:
     analysis.mipTimerStart(kMipClockStartAnalyticCentreComputation);
     startAnalyticCenterComputation(tg);
     analysis.mipTimerStop(kMipClockStartAnalyticCentreComputation);
+    
+    TSAN_ANNOTATE_HAPPENS_AFTER(mipsolver.model_);
   }
 
   // lp.getLpSolver().setOptionValue(
