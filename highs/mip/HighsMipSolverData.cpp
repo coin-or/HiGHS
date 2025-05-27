@@ -353,7 +353,13 @@ void HighsMipSolverData::startAnalyticCenterComputation(
     // ipm.setOptionValue("output_flag", !mipsolver.submip);
     ipm.setOptionValue("ipm_iteration_limit", 200);
     HighsLp lpmodel(*mipsolver.model_);
+
+    TSAN_ANNOTATE_HAPPENS_BEFORE(&lpmodel);
+
     lpmodel.col_cost_.assign(lpmodel.num_col_, 0.0);
+
+    TSAN_ANNOTATE_HAPPENS_AFTER(&lpmodel);
+
     ipm.passModel(std::move(lpmodel));
 
     //    if (!mipsolver.submip) {
