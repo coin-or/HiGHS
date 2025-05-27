@@ -369,11 +369,12 @@ void HighsMipSolverData::startAnalyticCenterComputation(
     if (HighsInt(sol.size()) != mipsolver.numCol()) return;
     analyticCenterStatus = ipm.getModelStatus();
     analyticCenter = sol;
+    TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenterStatus);
+    TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenter);
+    TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.getPresolvedModel());
+    TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.model_);
   });
 
-  TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenterStatus);
-  TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenter);
-  TSAN_ANNOTATE_HAPPENS_BEFORE(mipsolver.model_);
 }
 
 void HighsMipSolverData::finishAnalyticCenterComputation(
@@ -393,6 +394,8 @@ void HighsMipSolverData::finishAnalyticCenterComputation(
   }
   TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenterStatus);
   TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenter);
+  TSAN_ANNOTATE_HAPPENS_AFTER(&mipsolver.getPresolvedModel());
+  TSAN_ANNOTATE_HAPPENS_AFTER(&mipsolver.model_);
   analyticCenterComputed = true;
   if (analyticCenterStatus == HighsModelStatus::kOptimal) {
     HighsInt nfixed = 0;
@@ -1215,7 +1218,7 @@ void HighsMipSolverData::performRestart() {
   presolvedModel.offset_ = offset;
   presolvedModel.integrality_ = std::move(integrality);
 
-  // TSAN_ANNOTATE_HAPPENS_BEFORE(&presolvedModel.integrality_)
+  //  TSAN_ANNOTATE_HAPPENS_BEFORE(&presolvedModel.integrality_)
 
   const HighsBasis& basis = firstrootbasis;
   if (basis.valid) {
@@ -1871,7 +1874,6 @@ restart:
     startAnalyticCenterComputation(tg);
     analysis.mipTimerStop(kMipClockStartAnalyticCentreComputation);
 
-    TSAN_ANNOTATE_HAPPENS_AFTER(mipsolver.model_);
   }
 
   // lp.getLpSolver().setOptionValue(
