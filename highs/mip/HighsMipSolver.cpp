@@ -65,8 +65,8 @@ HighsMipSolver::HighsMipSolver(HighsCallback& callback,
 }
 
 HighsMipSolver::~HighsMipSolver() {
-  TSAN_ANNOTATE_HAPPENS_AFTER(&mipdata_);
-  TSAN_ANNOTATE_HAPPENS_AFTER(model_);
+  // TSAN_ANNOTATE_HAPPENS_AFTER(&mipdata_);
+  // TSAN_ANNOTATE_HAPPENS_AFTER(model_);
 }
 
 void HighsMipSolver::run() {
@@ -86,7 +86,7 @@ void HighsMipSolver::run() {
         fopen(options_mip_->mip_improving_solution_file.c_str(), "w");
 
   mipdata_ = decltype(mipdata_)(new HighsMipSolverData(*this));
-  TSAN_ANNOTATE_HAPPENS_BEFORE(&mipdata_);
+  // TSAN_ANNOTATE_HAPPENS_BEFORE(&mipdata_);
   analysis_.mipTimerStart(kMipClockPresolve);
   analysis_.mipTimerStart(kMipClockInit);
   mipdata_->init();

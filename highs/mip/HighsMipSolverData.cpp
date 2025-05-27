@@ -354,11 +354,11 @@ void HighsMipSolverData::startAnalyticCenterComputation(
     ipm.setOptionValue("ipm_iteration_limit", 200);
     HighsLp lpmodel(*mipsolver.model_);
 
-    TSAN_ANNOTATE_HAPPENS_BEFORE(&lpmodel);
+    // TSAN_ANNOTATE_HAPPENS_BEFORE(&lpmodel);
 
     lpmodel.col_cost_.assign(lpmodel.num_col_, 0.0);
 
-    TSAN_ANNOTATE_HAPPENS_AFTER(&lpmodel);
+    // TSAN_ANNOTATE_HAPPENS_AFTER(&lpmodel);
 
     ipm.passModel(std::move(lpmodel));
 
@@ -375,10 +375,10 @@ void HighsMipSolverData::startAnalyticCenterComputation(
     if (HighsInt(sol.size()) != mipsolver.numCol()) return;
     analyticCenterStatus = ipm.getModelStatus();
     analyticCenter = sol;
-    TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenterStatus);
-    TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenter);
-    TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.getPresolvedModel());
-    TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.model_);
+    // TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenterStatus);
+    // TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenter);
+    // TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.getPresolvedModel());
+    // TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.model_);
   });
 
 }
@@ -398,10 +398,10 @@ void HighsMipSolverData::finishAnalyticCenterComputation(
                  mipsolver.analysis_.mipTimerRead());
     fflush(stdout);
   }
-  TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenterStatus);
-  TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenter);
-  TSAN_ANNOTATE_HAPPENS_AFTER(&mipsolver.getPresolvedModel());
-  TSAN_ANNOTATE_HAPPENS_AFTER(&mipsolver.model_);
+  // TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenterStatus);
+  // TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenter);
+  // TSAN_ANNOTATE_HAPPENS_AFTER(&mipsolver.getPresolvedModel());
+  // TSAN_ANNOTATE_HAPPENS_AFTER(&mipsolver.model_);
   analyticCenterComputed = true;
   if (analyticCenterStatus == HighsModelStatus::kOptimal) {
     HighsInt nfixed = 0;
@@ -1224,7 +1224,7 @@ void HighsMipSolverData::performRestart() {
   presolvedModel.offset_ = offset;
   presolvedModel.integrality_ = std::move(integrality);
 
-  //  TSAN_ANNOTATE_HAPPENS_BEFORE(&presolvedModel.integrality_)
+  //  // TSAN_ANNOTATE_HAPPENS_BEFORE(&presolvedModel.integrality_)
 
   const HighsBasis& basis = firstrootbasis;
   if (basis.valid) {
@@ -2087,11 +2087,11 @@ restart:
       analysis.mipTimerStop(
           kMipClockRootSeparationFinishAnalyticCentreComputation);
 
-      TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenter);
+      // TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenter);
       analysis.mipTimerStart(kMipClockRootSeparationCentralRounding);
       heuristics.centralRounding();
       analysis.mipTimerStop(kMipClockRootSeparationCentralRounding);
-      TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenter);
+      // TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenter);
 
       heuristics.flushStatistics();
 
