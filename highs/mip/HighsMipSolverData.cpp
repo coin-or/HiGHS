@@ -2081,9 +2081,11 @@ restart:
       analysis.mipTimerStop(
           kMipClockRootSeparationFinishAnalyticCentreComputation);
 
+      TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenter);
       analysis.mipTimerStart(kMipClockRootSeparationCentralRounding);
       heuristics.centralRounding();
       analysis.mipTimerStop(kMipClockRootSeparationCentralRounding);
+      TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenter);
 
       heuristics.flushStatistics();
 
