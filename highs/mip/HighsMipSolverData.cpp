@@ -378,7 +378,6 @@ void HighsMipSolverData::startAnalyticCenterComputation(
 
 void HighsMipSolverData::finishAnalyticCenterComputation(
     const highs::parallel::TaskGroup& taskGroup) {
-
   if (mipsolver.analysis_.analyse_mip_time) {
     highsLogUser(mipsolver.options_mip_->log_options, HighsLogType::kInfo,
                  "MIP-Timing: %11.2g - starting  analytic centre synch\n",
@@ -1871,7 +1870,7 @@ restart:
     analysis.mipTimerStart(kMipClockStartAnalyticCentreComputation);
     startAnalyticCenterComputation(tg);
     analysis.mipTimerStop(kMipClockStartAnalyticCentreComputation);
-    
+
     TSAN_ANNOTATE_HAPPENS_AFTER(mipsolver.model_);
   }
 

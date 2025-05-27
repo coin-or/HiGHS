@@ -64,9 +64,7 @@ HighsMipSolver::HighsMipSolver(HighsCallback& callback,
   }
 }
 
-HighsMipSolver::~HighsMipSolver() {
-    TSAN_ANNOTATE_HAPPENS_AFTER(&mipdata_);
-  }
+HighsMipSolver::~HighsMipSolver() { TSAN_ANNOTATE_HAPPENS_AFTER(&mipdata_); }
 
 void HighsMipSolver::run() {
   modelstatus_ = HighsModelStatus::kNotset;
