@@ -370,10 +370,16 @@ void HighsMipSolverData::startAnalyticCenterComputation(
     analyticCenterStatus = ipm.getModelStatus();
     analyticCenter = sol;
   });
+  TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenterStatus);
+  TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenter);
 }
 
 void HighsMipSolverData::finishAnalyticCenterComputation(
     const highs::parallel::TaskGroup& taskGroup) {
+
+  TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenterStatus);
+  TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenter);
+
   if (mipsolver.analysis_.analyse_mip_time) {
     highsLogUser(mipsolver.options_mip_->log_options, HighsLogType::kInfo,
                  "MIP-Timing: %11.2g - starting  analytic centre synch\n",
