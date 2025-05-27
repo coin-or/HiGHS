@@ -376,7 +376,6 @@ void HighsMipSolverData::startAnalyticCenterComputation(
 
 void HighsMipSolverData::finishAnalyticCenterComputation(
     const highs::parallel::TaskGroup& taskGroup) {
-
   TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenterStatus);
   TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenter);
 
