@@ -65,7 +65,8 @@ HighsMipSolver::HighsMipSolver(HighsCallback& callback,
 }
 
 HighsMipSolver::~HighsMipSolver() {
-  // TSAN_ANNOTATE_HAPPENS_AFTER(&mipdata_);
+  TSAN_ANNOTATE_HAPPENS_AFTER(&mipdata_);
+  TSAN_ANNOTATE_HAPPENS_AFTER(&mipdata_->analyticCenter);
   // TSAN_ANNOTATE_HAPPENS_AFTER(model_);
 }
 
@@ -86,7 +87,7 @@ void HighsMipSolver::run() {
         fopen(options_mip_->mip_improving_solution_file.c_str(), "w");
 
   mipdata_ = decltype(mipdata_)(new HighsMipSolverData(*this));
-  // TSAN_ANNOTATE_HAPPENS_BEFORE(&mipdata_);
+  TSAN_ANNOTATE_HAPPENS_BEFORE(&mipdata_);
   analysis_.mipTimerStart(kMipClockPresolve);
   analysis_.mipTimerStart(kMipClockInit);
   mipdata_->init();
@@ -691,6 +692,18 @@ restart:
   analysis_.mipTimerStop(kMipClockSearch);
 
   cleanupSolve();
+  TSAN_ANNOTATE_HAPPENS_AFTER(&mipdata_);
+  TSAN_ANNOTATE_HAPPENS_AFTER(&mipdata_->analyticCenter);
+    for (int i=0;i<mipdata_->analyticCenter.size();i++)
+      TSAN_ANNOTATE_HAPPENS_AFTER(&mipdata_->analyticCenter[i]);
+  // TSAN_ANNOTATE_HAPPENS_AFTER(&mipsolver.getPresolvedModel());
+  TSAN_ANNOTATE_HAPPENS_AFTER(model_);
+  TSAN_ANNOTATE_HAPPENS_AFTER(&analysis_);
+  // TSAN_ANNOTATE_HAPPENS_AFTER(&(analysis_.analyse_mip_time));
+
+  TSAN_ANNOTATE_HAPPENS_AFTER(&(model_->col_hash_));
+  TSAN_ANNOTATE_HAPPENS_AFTER(&(model_->row_hash_));
+  TSAN_ANNOTATE_HAPPENS_AFTER(&(model_->a_matrix_));
 }
 
 void HighsMipSolver::cleanupSolve() {

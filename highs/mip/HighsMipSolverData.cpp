@@ -352,15 +352,35 @@ void HighsMipSolverData::startAnalyticCenterComputation(
     ipm.setOptionValue("output_flag", false);
     // ipm.setOptionValue("output_flag", !mipsolver.submip);
     ipm.setOptionValue("ipm_iteration_limit", 200);
-    HighsLp lpmodel(*mipsolver.model_);
+    // HighsLp lpmodel(*mipsolver.model_);
 
-    // TSAN_ANNOTATE_HAPPENS_BEFORE(&lpmodel);
+    // TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.model_->col_hash_);
+    // TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.model_->row_hash_);
+    // TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.model_->a_matrix_);
+    // TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.model_->a_matrix_.start_);
+    // TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.model_->a_matrix_.p_end_);
+    // TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.model_->a_matrix_.value_);
 
-    lpmodel.col_cost_.assign(lpmodel.num_col_, 0.0);
+    // // const HighsSparseMatrix& matrix =  mipsolver.model_->a_matrix_;
+    // // for (int i=0;i<matrix.startanalyticCenter.size();i++)
+    // //   TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenter[i]);
+    // lpmodel.col_cost_.assign(lpmodel.num_col_, 0.0);
 
     // TSAN_ANNOTATE_HAPPENS_AFTER(&lpmodel);
 
-    ipm.passModel(std::move(lpmodel));
+    // ipm.passModel(std::move(lpmodel));
+    ipm.passModel(*mipsolver.model_);
+
+    TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.model_->col_hash_);
+    TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.model_->row_hash_);
+    TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.model_->a_matrix_);
+    TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.model_->a_matrix_.start_);
+    TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.model_->a_matrix_.p_end_);
+    TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.model_->a_matrix_.value_);
+
+
+    for (int i=0;i< mipsolver.model_->col_cost_.size(); i++)
+      ipm.changeColCost(i, 0.0);
 
     //    if (!mipsolver.submip) {
     //      const std::string file_name = mipsolver.model_->model_name_ +
@@ -376,9 +396,14 @@ void HighsMipSolverData::startAnalyticCenterComputation(
     analyticCenterStatus = ipm.getModelStatus();
     analyticCenter = sol;
     // TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenterStatus);
-    // TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenter);
+    TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenter);
+    for (int i=0;i<analyticCenter.size();i++)
+      TSAN_ANNOTATE_HAPPENS_BEFORE(&analyticCenter[i]);
     // TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.getPresolvedModel());
-    // TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.model_);
+    // TSAN_ANNOTATE_HAPPENS_BEFORE(mipsolver.model_);
+    TSAN_ANNOTATE_HAPPENS_BEFORE(&mipsolver.analysis_);
+    // TSAN_ANNOTATE_HAPPENS_BEFORE(&(mipsolver.analysis_.analyse_mip_time));
+
   });
 
 }
@@ -398,10 +423,22 @@ void HighsMipSolverData::finishAnalyticCenterComputation(
                  mipsolver.analysis_.mipTimerRead());
     fflush(stdout);
   }
-  // TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenterStatus);
-  // TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenter);
+  TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenterStatus);
+  TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenter);
+    for (int i=0;i<analyticCenter.size();i++)
+      TSAN_ANNOTATE_HAPPENS_AFTER(&analyticCenter[i]);
   // TSAN_ANNOTATE_HAPPENS_AFTER(&mipsolver.getPresolvedModel());
-  // TSAN_ANNOTATE_HAPPENS_AFTER(&mipsolver.model_);
+  // TSAN_ANNOTATE_HAPPENS_AFTER(mipsolver.model_);
+  TSAN_ANNOTATE_HAPPENS_AFTER(&mipsolver.analysis_);
+  // TSAN_ANNOTATE_HAPPENS_AFTER(&mipsolver.analysis_.analyse_mip_time);
+  // TSAN_ANNOTATE_HAPPENS_AFTER(&mipsolver.model_->col_hash_);
+  // TSAN_ANNOTATE_HAPPENS_AFTER(&mipsolver.model_->row_hash_);
+  // TSAN_ANNOTATE_HAPPENS_AFTER(&mipsolver.model_->a_matrix_);
+
+  // TSAN_ANNOTATE_HAPPENS_AFTER(&mipsolver.model_->a_matrix_.start_);
+  // TSAN_ANNOTATE_HAPPENS_AFTER(&mipsolver.model_->a_matrix_.p_end_);
+  // TSAN_ANNOTATE_HAPPENS_AFTER(&mipsolver.model_->a_matrix_.value_);
+
   analyticCenterComputed = true;
   if (analyticCenterStatus == HighsModelStatus::kOptimal) {
     HighsInt nfixed = 0;
