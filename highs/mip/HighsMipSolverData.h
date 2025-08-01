@@ -30,6 +30,19 @@
 #include "presolve/HighsSymmetry.h"
 #include "util/HighsTimer.h"
 
+enum class HighsMipProblemType { kKnapsack = 0, kInes, kOther };
+
+struct HighsMipProblemData {
+  HighsInt submip_level;
+  HighsInt num_continuous;
+  HighsInt num_binary;
+  HighsInt num_general_integer;
+  HighsInt num_implied_integer;
+  HighsInt num_row;
+  HighsMipProblemType type;
+  void clear();
+};
+
 struct HighsKnapsackData {
   HighsInt num_problem;
   int64_t sum_variables;
@@ -174,6 +187,8 @@ struct HighsMipSolverData {
   HighsInt knapsack_integral_scale_;
 
   HighsInesData ines_data_;
+
+  std::vector<HighsMipProblemData> mip_problem_data_;
 
   HighsMipSolverData(HighsMipSolver& mipsolver)
       : mipsolver(mipsolver),
@@ -325,6 +340,7 @@ struct HighsMipSolverData {
       const userMipSolutionCallbackOrigin user_solution_callback_origin);
   bool mipIsKnapsack(const bool silent = false);
   bool mipIsInes(const bool silent = false);
+  void mipIsOther();
 };
 
 #endif

@@ -1114,6 +1114,7 @@ TEST_CASE("ines", "[highs_test_mip_solver]") {
   const std::vector<double> value = {10, 20, 25, 40, 60, 70};
   const std::vector<double> weight = {1, 2, 3, 6, 7, 4};
   HighsLp lp;
+  lp.model_name_ = "ines";
   lp.sense_ = ObjSense::kMaximize;
   lp.num_col_ = 6;
   lp.num_row_ = 2;

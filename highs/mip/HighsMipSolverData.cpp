@@ -688,6 +688,7 @@ void HighsMipSolverData::init() {
   knapsack_capacity_ = 0;
   knapsack_integral_scale_ = 0;
   ines_data_.initialise();
+  mip_problem_data_.clear();
 
   if (mipsolver.options_mip_->mip_report_level == 0)
     dispfreq = 0;
@@ -743,7 +744,7 @@ void HighsMipSolverData::runSetup() {
     incumbent = postSolveStack.getReducedPrimalSolution(mipsolver.solution_);
     // return the objective value in the transformed space
     double solobj =
-        mipsolver.solution_objective_ * (int)mipsolver.orig_model_->sense_ -
+        mipsolver.solution_objective_ * int(mipsolver.orig_model_->sense_) -
         mipsolver.model_->offset_;
     bool feasible = mipsolver.bound_violation_ <=
                         mipsolver.options_mip_->mip_feasibility_tolerance &&
@@ -2690,6 +2691,13 @@ bool HighsMipSolverData::mipIsKnapsack(const bool silent) {
     this->knapsack_data_.num_problem++;
     this->knapsack_data_.sum_variables += lp.num_col_;
     this->knapsack_data_.sum_capacity += this->knapsack_capacity_;
+    HighsMipProblemData mip_problem_data;
+    mip_problem_data.clear();
+    mip_problem_data.submip_level = mipsolver.submip_level;
+    mip_problem_data.num_binary = lp.num_col_;
+    mip_problem_data.num_row = lp.num_row_;
+    mip_problem_data.type = HighsMipProblemType::kKnapsack;
+    this->mip_problem_data_.push_back(mip_problem_data);
   }
   return true;
 }
@@ -2715,8 +2723,40 @@ bool HighsMipSolverData::mipIsInes(const bool silent) {
     this->ines_data_.num_problem++;
     this->ines_data_.sum_col += lp.num_col_;
     this->ines_data_.sum_row += lp.num_row_;
+    HighsMipProblemData mip_problem_data;
+    mip_problem_data.clear();
+    mip_problem_data.submip_level = mipsolver.submip_level;
+    mip_problem_data.num_binary = lp.num_col_;
+    mip_problem_data.num_row = lp.num_row_;
+    mip_problem_data.type = HighsMipProblemType::kInes;
+    this->mip_problem_data_.push_back(mip_problem_data);
   }
   return true;
+}
+
+void HighsMipSolverData::mipIsOther() {
+  const HighsLp& lp = *(mipsolver.model_);
+  HighsMipProblemData mip_problem_data;
+  mip_problem_data.clear();
+  mip_problem_data.submip_level = mipsolver.submip_level;
+  for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
+    if (lp.integrality_[iCol] == HighsVarType::kContinuous) {
+      mip_problem_data.num_continuous++;
+    } else if (lp.integrality_[iCol] == HighsVarType::kInteger) {
+      if (lp.col_lower_[iCol] == 0 && lp.col_upper_[iCol] == 1) {
+	mip_problem_data.num_binary++;
+      } else {
+	mip_problem_data.num_general_integer++;
+      }
+    } else if (lp.integrality_[iCol] == HighsVarType::kImplicitInteger) {
+      mip_problem_data.num_implied_integer++;
+    } else {
+      assert(111==234);
+    }
+  }
+  mip_problem_data.num_row = lp.num_row_;
+  mip_problem_data.type = HighsMipProblemType::kOther;
+  this->mip_problem_data_.push_back(mip_problem_data);
 }
 
 static double possInfRelDiff(const double v0, const double v1,
@@ -2854,6 +2894,16 @@ void HighsMipSolverData::updatePrimalDualIntegral(const double from_lower_bound,
 }
 
 void HighsPrimaDualIntegral::initialise() { this->value = -kHighsInf; }
+
+void HighsMipProblemData::clear() {
+  this->submip_level = -1;
+  this->num_continuous = 0;
+  this->num_binary = 0;
+  this->num_implied_integer = 0;
+  this->num_general_integer = 0;
+  this->num_row = 0;
+  this->type = HighsMipProblemType::kOther;
+}
 
 void HighsKnapsackData::initialise() {
   num_problem = 0;

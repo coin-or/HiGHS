@@ -152,8 +152,9 @@ void HighsMipSolver::run() {
     }
     analysis_.mipTimerStop(kMipClockKnapsack);
   }
-  // See whether the presolved problem is suitable for Ines
-  mipdata_->mipIsInes();
+  // If the presolved problem is not suitable for Ines, then it's
+  // recorded as "other"
+  if (!mipdata_->mipIsInes()) mipdata_->mipIsOther();  
 
   analysis_.mipTimerStart(kMipClockSolve);
 
@@ -875,14 +876,13 @@ void HighsMipSolver::cleanupSolve(const bool mip_logging) {
                  analysis_.mipTimerRead(kMipClockSolve),
                  analysis_.mipTimerRead(kMipClockPostsolve));
   highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
-               "  Max sub-MIP depth %d\n"
                "  Nodes             %llu\n"
                "  Repair LPs        %llu (%llu feasible; %llu iterations)\n"
                "  LP iterations     %llu (total)\n"
                "                    %llu (strong br.)\n"
                "                    %llu (separation)\n"
                "                    %llu (heuristics)\n",
-               int(max_submip_level), (long long unsigned)mipdata_->num_nodes,
+               (long long unsigned)mipdata_->num_nodes,
                (long long unsigned)mipdata_->total_repair_lp,
                (long long unsigned)mipdata_->total_repair_lp_feasible,
                (long long unsigned)mipdata_->total_repair_lp_iterations,
@@ -923,6 +923,68 @@ void HighsMipSolver::cleanupSolve(const bool mip_logging) {
                  knapsack_data.sum_capacity, ines_data.num_problem,
                  ines_data.sum_col, ines_data.sum_row);
 
+  const std::vector<HighsMipProblemData>& mip_problem_data = this->mipdata_->mip_problem_data_;
+  HighsInt num_mip = static_cast<HighsInt>(mip_problem_data.size());
+  HighsInt num_knapsack_mip = 0;
+  size_t sum_knapsack_num_col = 0;
+  HighsInt num_ines_mip = 0;
+  size_t sum_ines_num_col = 0;
+  size_t sum_ines_num_row = 0;
+  HighsInt lc_max_submip_level = -1;
+  HighsInt min_submip_num_col = kHighsIInf;
+  HighsInt min_submip_num_row = kHighsIInf;
+  for (HighsInt iMip = 0; iMip < num_mip; iMip++) {
+    switch (mip_problem_data[iMip].type) {
+    case HighsMipProblemType::kKnapsack:
+      num_knapsack_mip++;
+      sum_knapsack_num_col += mip_problem_data[iMip].num_binary;
+      break;
+    case HighsMipProblemType::kInes:
+      num_ines_mip++;
+      sum_ines_num_col += mip_problem_data[iMip].num_binary;
+      sum_ines_num_row += mip_problem_data[iMip].num_row;
+      break;
+    case HighsMipProblemType::kOther:
+    default:
+      break;
+    }
+    lc_max_submip_level = std::max(mip_problem_data[iMip].submip_level, lc_max_submip_level);
+    HighsInt submip_num_col =
+      mip_problem_data[iMip].num_continuous +
+      mip_problem_data[iMip].num_binary +
+      mip_problem_data[iMip].num_general_integer +
+      mip_problem_data[iMip].num_implied_integer;
+    
+    min_submip_num_col = std::min(submip_num_col, min_submip_num_col);
+    min_submip_num_row = std::min(mip_problem_data[iMip].num_row, min_submip_num_row);
+  }
+  highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
+	       "  MIPs              %d (%d knapsack; %d Ines)\n",
+	       int(num_mip),
+	       int(num_knapsack_mip),
+	       int(num_ines_mip));
+  
+  ss.str(std::string());
+  ss << highsFormatToString("  Max sub-MIP depth %d", int(max_submip_level));
+  if (max_submip_level > 0) 
+    ss << highsFormatToString(" min cols/rows = %d/%d\n");
+  highsLogUser(options_mip_->log_options, HighsLogType::kInfo, "%s\n",
+               ss.str().c_str());
+
+  if (num_knapsack_mip > 0 || num_ines_mip > 0)
+    highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
+                 "grep-knapsack-ines,%s,%s,%d,%" PRId64 "%d,%" PRId64 ",%" PRId64 "\n",
+                 model_->model_name_.c_str(), options_mip_->presolve.c_str(),
+                 num_knapsack_mip, sum_knapsack_num_col, 
+                 num_ines_mip, sum_ines_num_col, sum_ines_num_row);
+
+  if (max_submip_level > 0) {
+  }
+  
+  
+  
+     
+	      
   if (!timeless_log) analysis_.reportMipTimer();
 
   assert(modelstatus_ != HighsModelStatus::kNotset);
