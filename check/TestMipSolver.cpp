@@ -1109,3 +1109,32 @@ TEST_CASE("knapsack", "[highs_test_mip_solver]") {
 
   h.resetGlobalScheduler(true);
 }
+
+TEST_CASE("ines", "[highs_test_mip_solver]") {
+  const std::vector<double> value = {10, 20, 25, 40, 60, 70};
+  const std::vector<double> weight = {1, 2, 3, 6, 7, 4};
+  HighsLp lp;
+  lp.sense_ = ObjSense::kMaximize;
+  lp.num_col_ = 6;
+  lp.num_row_ = 2;
+  lp.col_cost_ = value;
+  lp.col_lower_.assign(lp.num_col_, 0);
+  lp.col_upper_.assign(lp.num_col_, 1);
+  lp.integrality_.assign(lp.num_col_, HighsVarType::kInteger);
+  lp.row_lower_ = {-kHighsInf, -4};
+  lp.row_upper_ = {6, kHighsInf};
+  lp.a_matrix_.format_ = MatrixFormat::kRowwise;
+  lp.a_matrix_.start_ = {0, 6, 12};
+  lp.a_matrix_.index_ = {0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5};
+  lp.a_matrix_.value_ = {1, -2, 3, -6, 7, 4, -6, 7, -4, -1, 2, -3};
+  double required_objective_value = 215;
+  Highs h;
+  //  h.setOptionValue("output_flag", dev_run);
+  h.setOptionValue("presolve", kHighsOffString);
+  REQUIRE(h.passModel(lp) == HighsStatus::kOk);
+  REQUIRE(h.run() == HighsStatus::kOk);
+  if (dev_run) h.writeSolution("", 1);
+  REQUIRE(h.getInfo().objective_function_value == required_objective_value);
+
+  h.resetGlobalScheduler(true);
+}

@@ -152,6 +152,8 @@ void HighsMipSolver::run() {
     }
     analysis_.mipTimerStop(kMipClockKnapsack);
   }
+  // See whether the presolved problem is suitable for Ines
+  mipdata_->mipIsInes();
 
   analysis_.mipTimerStart(kMipClockSolve);
 
@@ -900,6 +902,27 @@ void HighsMipSolver::cleanupSolve(const bool mip_logging) {
         int((1.0 * knapsack_data.sum_capacity) / knapsack_data.num_problem));
   highsLogUser(options_mip_->log_options, HighsLogType::kInfo, "%s\n",
                ss.str().c_str());
+  const HighsInesData& ines_data = this->mipdata_->ines_data_;
+  ss.str(std::string());
+  ss << highsFormatToString("  Ines MIPs         %d",
+                            int(ines_data.num_problem));
+  if (ines_data.num_problem > 0)
+    ss << highsFormatToString(
+        " (mean columns %d; mean rows %d)",
+        int((1.0 * ines_data.sum_col) / ines_data.num_problem),
+        int((1.0 * ines_data.sum_row) / ines_data.num_problem));
+  highsLogUser(options_mip_->log_options, HighsLogType::kInfo, "%s\n",
+               ss.str().c_str());
+
+  if (knapsack_data.num_problem > 0 || ines_data.num_problem > 0)
+    highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
+                 "grep-knapsack-ines,%s,%s,%d,%" PRId64 ",%" PRId64
+                 ",%d,%" PRId64 ",%" PRId64 "\n",
+                 model_->model_name_.c_str(), options_mip_->presolve.c_str(),
+                 knapsack_data.num_problem, knapsack_data.sum_variables,
+                 knapsack_data.sum_capacity, ines_data.num_problem,
+                 ines_data.sum_col, ines_data.sum_row);
+
   if (!timeless_log) analysis_.reportMipTimer();
 
   assert(modelstatus_ != HighsModelStatus::kNotset);

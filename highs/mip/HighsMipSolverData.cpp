@@ -687,6 +687,7 @@ void HighsMipSolverData::init() {
   knapsack_data_.initialise();
   knapsack_capacity_ = 0;
   knapsack_integral_scale_ = 0;
+  ines_data_.initialise();
 
   if (mipsolver.options_mip_->mip_report_level == 0)
     dispfreq = 0;
@@ -2693,6 +2694,31 @@ bool HighsMipSolverData::mipIsKnapsack(const bool silent) {
   return true;
 }
 
+bool HighsMipSolverData::mipIsInes(const bool silent) {
+  // Silent is to prevent duplicate logging and data collection when
+  // using assert(mipIsInes(true));
+  const HighsLp& lp = *(mipsolver.model_);
+  // Has to have at least one constraint
+  if (lp.num_row_ < 1) return false;
+  // Has to be a binary integer programming problem
+  if (!lp.isBip()) return false;
+  // Origin must be feasible
+  const double ines_feas_tol = 0;
+  for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) {
+    if (lp.row_lower_[0] - ines_feas_tol > 0 ||
+        lp.row_upper_[0] + ines_feas_tol < 0)
+      return false;
+  }
+  if (!silent) {
+    highsLogUser(mipsolver.options_mip_->log_options, HighsLogType::kInfo,
+                 "MIP is an Ines problem\n");
+    this->ines_data_.num_problem++;
+    this->ines_data_.sum_col += lp.num_col_;
+    this->ines_data_.sum_row += lp.num_row_;
+  }
+  return true;
+}
+
 static double possInfRelDiff(const double v0, const double v1,
                              const double den) {
   double rel_diff;
@@ -2839,4 +2865,16 @@ void HighsKnapsackData::add(const HighsKnapsackData& knapsack_data) {
   this->num_problem += knapsack_data.num_problem;
   this->sum_variables += knapsack_data.sum_variables;
   this->sum_capacity += knapsack_data.sum_capacity;
+}
+
+void HighsInesData::initialise() {
+  num_problem = 0;
+  sum_col = 0;
+  sum_row = 0;
+}
+
+void HighsInesData::add(const HighsInesData& ines_data) {
+  this->num_problem += ines_data.num_problem;
+  this->sum_col += ines_data.sum_col;
+  this->sum_row += ines_data.sum_row;
 }
