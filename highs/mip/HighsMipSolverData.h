@@ -43,22 +43,6 @@ struct HighsMipProblemData {
   void clear();
 };
 
-struct HighsKnapsackData {
-  HighsInt num_problem;
-  int64_t sum_variables;
-  int64_t sum_capacity;
-  void initialise();
-  void add(const HighsKnapsackData& knapsack_data);
-};
-
-struct HighsInesData {
-  HighsInt num_problem;
-  int64_t sum_col;
-  int64_t sum_row;
-  void initialise();
-  void add(const HighsInesData& ines_data);
-};
-
 struct HighsPrimaDualIntegral {
   double value;
   double prev_lb;
@@ -182,11 +166,8 @@ struct HighsMipSolverData {
 
   HighsDebugSol debugSolution;
 
-  HighsKnapsackData knapsack_data_;
   HighsInt knapsack_capacity_;
   HighsInt knapsack_integral_scale_;
-
-  HighsInesData ines_data_;
 
   std::vector<HighsMipProblemData> mip_problem_data_;
 

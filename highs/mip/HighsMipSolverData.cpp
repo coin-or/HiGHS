@@ -684,10 +684,8 @@ void HighsMipSolverData::init() {
   upper_limit = mipsolver.options_mip_->objective_bound;
   optimality_limit = mipsolver.options_mip_->objective_bound;
   primal_dual_integral.initialise();
-  knapsack_data_.initialise();
   knapsack_capacity_ = 0;
   knapsack_integral_scale_ = 0;
-  ines_data_.initialise();
   mip_problem_data_.clear();
 
   if (mipsolver.options_mip_->mip_report_level == 0)
@@ -2688,9 +2686,6 @@ bool HighsMipSolverData::mipIsKnapsack(const bool silent) {
   this->knapsack_capacity_ = std::floor(double_capacity + capacity_margin);
   // Problem is knapsack!
   if (!silent) {
-    this->knapsack_data_.num_problem++;
-    this->knapsack_data_.sum_variables += lp.num_col_;
-    this->knapsack_data_.sum_capacity += this->knapsack_capacity_;
     HighsMipProblemData mip_problem_data;
     mip_problem_data.clear();
     mip_problem_data.submip_level = mipsolver.submip_level;
@@ -2720,9 +2715,6 @@ bool HighsMipSolverData::mipIsInes(const bool silent) {
   if (!silent) {
     highsLogUser(mipsolver.options_mip_->log_options, HighsLogType::kInfo,
                  "MIP is an Ines problem\n");
-    this->ines_data_.num_problem++;
-    this->ines_data_.sum_col += lp.num_col_;
-    this->ines_data_.sum_row += lp.num_row_;
     HighsMipProblemData mip_problem_data;
     mip_problem_data.clear();
     mip_problem_data.submip_level = mipsolver.submip_level;
@@ -2744,14 +2736,14 @@ void HighsMipSolverData::mipIsOther() {
       mip_problem_data.num_continuous++;
     } else if (lp.integrality_[iCol] == HighsVarType::kInteger) {
       if (lp.col_lower_[iCol] == 0 && lp.col_upper_[iCol] == 1) {
-	mip_problem_data.num_binary++;
+        mip_problem_data.num_binary++;
       } else {
-	mip_problem_data.num_general_integer++;
+        mip_problem_data.num_general_integer++;
       }
     } else if (lp.integrality_[iCol] == HighsVarType::kImplicitInteger) {
       mip_problem_data.num_implied_integer++;
     } else {
-      assert(111==234);
+      assert(111 == 234);
     }
   }
   mip_problem_data.num_row = lp.num_row_;
@@ -2903,28 +2895,4 @@ void HighsMipProblemData::clear() {
   this->num_general_integer = 0;
   this->num_row = 0;
   this->type = HighsMipProblemType::kOther;
-}
-
-void HighsKnapsackData::initialise() {
-  num_problem = 0;
-  sum_variables = 0;
-  sum_capacity = 0;
-}
-
-void HighsKnapsackData::add(const HighsKnapsackData& knapsack_data) {
-  this->num_problem += knapsack_data.num_problem;
-  this->sum_variables += knapsack_data.sum_variables;
-  this->sum_capacity += knapsack_data.sum_capacity;
-}
-
-void HighsInesData::initialise() {
-  num_problem = 0;
-  sum_col = 0;
-  sum_row = 0;
-}
-
-void HighsInesData::add(const HighsInesData& ines_data) {
-  this->num_problem += ines_data.num_problem;
-  this->sum_col += ines_data.sum_col;
-  this->sum_row += ines_data.sum_row;
 }

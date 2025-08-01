@@ -154,7 +154,7 @@ void HighsMipSolver::run() {
   }
   // If the presolved problem is not suitable for Ines, then it's
   // recorded as "other"
-  if (!mipdata_->mipIsInes()) mipdata_->mipIsOther();  
+  if (!mipdata_->mipIsInes()) mipdata_->mipIsOther();
 
   analysis_.mipTimerStart(kMipClockSolve);
 
@@ -890,40 +890,9 @@ void HighsMipSolver::cleanupSolve(const bool mip_logging) {
                (long long unsigned)mipdata_->sb_lp_iterations,
                (long long unsigned)mipdata_->sepa_lp_iterations,
                (long long unsigned)mipdata_->heuristic_lp_iterations);
-  const HighsKnapsackData& knapsack_data = this->mipdata_->knapsack_data_;
-  std::stringstream ss;
-  ss.str(std::string());
-  ss << highsFormatToString("  Knapsack MIPs     %d",
-                            int(knapsack_data.num_problem));
-  if (knapsack_data.num_problem > 0)
-    ss << highsFormatToString(
-        " (mean items %d; mean capacity %d)",
-        int((1.0 * knapsack_data.sum_variables) / knapsack_data.num_problem),
-        int((1.0 * knapsack_data.sum_capacity) / knapsack_data.num_problem));
-  highsLogUser(options_mip_->log_options, HighsLogType::kInfo, "%s\n",
-               ss.str().c_str());
-  const HighsInesData& ines_data = this->mipdata_->ines_data_;
-  ss.str(std::string());
-  ss << highsFormatToString("  Ines MIPs         %d",
-                            int(ines_data.num_problem));
-  if (ines_data.num_problem > 0)
-    ss << highsFormatToString(
-        " (mean columns %d; mean rows %d)",
-        int((1.0 * ines_data.sum_col) / ines_data.num_problem),
-        int((1.0 * ines_data.sum_row) / ines_data.num_problem));
-  highsLogUser(options_mip_->log_options, HighsLogType::kInfo, "%s\n",
-               ss.str().c_str());
 
-  if (knapsack_data.num_problem > 0 || ines_data.num_problem > 0)
-    highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
-                 "grep-knapsack-ines,%s,%s,%d,%" PRId64 ",%" PRId64
-                 ",%d,%" PRId64 ",%" PRId64 "\n",
-                 model_->model_name_.c_str(), options_mip_->presolve.c_str(),
-                 knapsack_data.num_problem, knapsack_data.sum_variables,
-                 knapsack_data.sum_capacity, ines_data.num_problem,
-                 ines_data.sum_col, ines_data.sum_row);
-
-  const std::vector<HighsMipProblemData>& mip_problem_data = this->mipdata_->mip_problem_data_;
+  const std::vector<HighsMipProblemData>& mip_problem_data =
+      this->mipdata_->mip_problem_data_;
   HighsInt num_mip = static_cast<HighsInt>(mip_problem_data.size());
   HighsInt num_knapsack_mip = 0;
   size_t sum_knapsack_num_col = 0;
@@ -931,60 +900,80 @@ void HighsMipSolver::cleanupSolve(const bool mip_logging) {
   size_t sum_ines_num_col = 0;
   size_t sum_ines_num_row = 0;
   HighsInt lc_max_submip_level = -1;
+  HighsInt min_submip_sum_dim = kHighsIInf;
   HighsInt min_submip_num_col = kHighsIInf;
   HighsInt min_submip_num_row = kHighsIInf;
+  const bool full_submip_logging = true;
   for (HighsInt iMip = 0; iMip < num_mip; iMip++) {
     switch (mip_problem_data[iMip].type) {
-    case HighsMipProblemType::kKnapsack:
-      num_knapsack_mip++;
-      sum_knapsack_num_col += mip_problem_data[iMip].num_binary;
-      break;
-    case HighsMipProblemType::kInes:
-      num_ines_mip++;
-      sum_ines_num_col += mip_problem_data[iMip].num_binary;
-      sum_ines_num_row += mip_problem_data[iMip].num_row;
-      break;
-    case HighsMipProblemType::kOther:
-    default:
-      break;
+      case HighsMipProblemType::kKnapsack:
+        num_knapsack_mip++;
+        sum_knapsack_num_col += mip_problem_data[iMip].num_binary;
+        break;
+      case HighsMipProblemType::kInes:
+        num_ines_mip++;
+        sum_ines_num_col += mip_problem_data[iMip].num_binary;
+        sum_ines_num_row += mip_problem_data[iMip].num_row;
+        break;
+      case HighsMipProblemType::kOther:
+      default:
+        break;
     }
-    lc_max_submip_level = std::max(mip_problem_data[iMip].submip_level, lc_max_submip_level);
-    HighsInt submip_num_col =
-      mip_problem_data[iMip].num_continuous +
-      mip_problem_data[iMip].num_binary +
-      mip_problem_data[iMip].num_general_integer +
-      mip_problem_data[iMip].num_implied_integer;
-    
-    min_submip_num_col = std::min(submip_num_col, min_submip_num_col);
-    min_submip_num_row = std::min(mip_problem_data[iMip].num_row, min_submip_num_row);
+    HighsInt lc_submip_level = mip_problem_data[iMip].submip_level;
+
+    lc_max_submip_level = std::max(lc_submip_level, lc_max_submip_level);
+    HighsInt submip_num_col = mip_problem_data[iMip].num_continuous +
+                              mip_problem_data[iMip].num_binary +
+                              mip_problem_data[iMip].num_general_integer +
+                              mip_problem_data[iMip].num_implied_integer;
+    HighsInt submip_num_row = mip_problem_data[iMip].num_row;
+    HighsInt submip_sum_dim = submip_num_col + submip_num_row;
+    if (min_submip_sum_dim > submip_sum_dim) {
+      min_submip_sum_dim = submip_sum_dim;
+      min_submip_num_col = submip_num_col;
+      min_submip_num_row = submip_num_row;
+    }
+    if (full_submip_logging)
+      highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
+                   "  MIP               %3d (level = %2d; %3d conts; %3d bin; "
+                   "%3d gen; %3d impl; cols / rows: %3d / %3d; type %s)\n",
+                   int(iMip), int(lc_submip_level),
+                   int(mip_problem_data[iMip].num_continuous),
+                   int(mip_problem_data[iMip].num_binary),
+                   int(mip_problem_data[iMip].num_general_integer),
+                   int(mip_problem_data[iMip].num_implied_integer),
+                   int(submip_num_col), int(submip_num_row),
+                   mip_problem_data[iMip].type == HighsMipProblemType::kKnapsack
+                       ? "Knapsack"
+                   : mip_problem_data[iMip].type == HighsMipProblemType::kInes
+                       ? "Ines"
+                       : "Other");
   }
   highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
-	       "  MIPs              %d (%d knapsack; %d Ines)\n",
-	       int(num_mip),
-	       int(num_knapsack_mip),
-	       int(num_ines_mip));
-  
+               "  MIPs              %d (%d knapsack; %d Ines)\n", int(num_mip),
+               int(num_knapsack_mip), int(num_ines_mip));
+
+  std::stringstream ss;
   ss.str(std::string());
   ss << highsFormatToString("  Max sub-MIP depth %d", int(max_submip_level));
-  if (max_submip_level > 0) 
-    ss << highsFormatToString(" min cols/rows = %d/%d\n");
+  if (max_submip_level > 0)
+    ss << highsFormatToString(" (min cols/rows: %d/%d)\n",
+                              int(min_submip_num_col), int(min_submip_num_row));
   highsLogUser(options_mip_->log_options, HighsLogType::kInfo, "%s\n",
-               ss.str().c_str());
+               ss.str().c_str(), int(min_submip_num_col),
+               int(min_submip_num_row));
 
   if (num_knapsack_mip > 0 || num_ines_mip > 0)
     highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
-                 "grep-knapsack-ines,%s,%s,%d,%" PRId64 "%d,%" PRId64 ",%" PRId64 "\n",
+                 "grep-knapsack-ines,%s,%s,%d,%" PRId64 ",%d,%" PRId64
+                 ",%" PRId64 "\n",
                  model_->model_name_.c_str(), options_mip_->presolve.c_str(),
-                 num_knapsack_mip, sum_knapsack_num_col, 
-                 num_ines_mip, sum_ines_num_col, sum_ines_num_row);
+                 num_knapsack_mip, sum_knapsack_num_col, num_ines_mip,
+                 sum_ines_num_col, sum_ines_num_row);
 
   if (max_submip_level > 0) {
   }
-  
-  
-  
-     
-	      
+
   if (!timeless_log) analysis_.reportMipTimer();
 
   assert(modelstatus_ != HighsModelStatus::kNotset);
