@@ -134,6 +134,9 @@ void HighsMipSolver::run() {
       mipdata_->transformNewIntegerFeasibleSolution(std::vector<double>());
       mipdata_->saveReportMipSolution();
     }
+    if (!mipdata_->mipIsKnapsack()) {
+      if (!mipdata_->mipIsInes()) mipdata_->mipIsOther();
+    }
     cleanupSolve();
     return;
   }
@@ -899,7 +902,7 @@ void HighsMipSolver::cleanupSolve(const bool mip_logging) {
   HighsInt num_ines_mip = 0;
   size_t sum_ines_num_col = 0;
   size_t sum_ines_num_row = 0;
-  HighsInt lc_max_submip_level = -1;
+  HighsInt max_global_submip_level = -1;
   HighsInt min_submip_sum_dim = kHighsIInf;
   HighsInt min_submip_num_col = kHighsIInf;
   HighsInt min_submip_num_row = kHighsIInf;
@@ -919,9 +922,8 @@ void HighsMipSolver::cleanupSolve(const bool mip_logging) {
       default:
         break;
     }
-    HighsInt lc_submip_level = mip_problem_data[iMip].submip_level;
-
-    lc_max_submip_level = std::max(lc_submip_level, lc_max_submip_level);
+    HighsInt global_submip_level = mip_problem_data[iMip].submip_level;
+    max_global_submip_level = std::max(global_submip_level, max_global_submip_level);
     HighsInt submip_num_col = mip_problem_data[iMip].num_continuous +
                               mip_problem_data[iMip].num_binary +
                               mip_problem_data[iMip].num_general_integer +
@@ -935,9 +937,9 @@ void HighsMipSolver::cleanupSolve(const bool mip_logging) {
     }
     if (full_submip_logging)
       highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
-                   "  MIP               %3d (level = %2d; %3d conts; %3d bin; "
-                   "%3d gen; %3d impl; cols / rows: %3d / %3d; type %s)\n",
-                   int(iMip), int(lc_submip_level),
+                   "  MIP               %3d (level = %2d; %6d conts; %6d bin; "
+                   "%6d gen; %6d impl; cols / rows: %6d / %6d; type %s)\n",
+                   int(iMip), int(global_submip_level),
                    int(mip_problem_data[iMip].num_continuous),
                    int(mip_problem_data[iMip].num_binary),
                    int(mip_problem_data[iMip].num_general_integer),
@@ -955,7 +957,8 @@ void HighsMipSolver::cleanupSolve(const bool mip_logging) {
 
   std::stringstream ss;
   ss.str(std::string());
-  ss << highsFormatToString("  Max sub-MIP depth %d", int(max_submip_level));
+  assert(submip_level + max_submip_level == max_global_submip_level);
+  ss << highsFormatToString("  Max sub-MIP level %d", int(submip_level + max_submip_level));
   if (max_submip_level > 0)
     ss << highsFormatToString(" (min cols/rows: %d/%d)\n",
                               int(min_submip_num_col), int(min_submip_num_row));

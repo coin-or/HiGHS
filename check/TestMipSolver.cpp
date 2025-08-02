@@ -1130,7 +1130,7 @@ TEST_CASE("ines", "[highs_test_mip_solver]") {
   lp.a_matrix_.value_ = {1, -2, 3, -6, 7, 4, -6, 7, -4, -1, 2, -3};
   double required_objective_value = 215;
   Highs h;
-  //  h.setOptionValue("output_flag", dev_run);
+  h.setOptionValue("output_flag", dev_run);
   h.setOptionValue("presolve", kHighsOffString);
   REQUIRE(h.passModel(lp) == HighsStatus::kOk);
   REQUIRE(h.run() == HighsStatus::kOk);

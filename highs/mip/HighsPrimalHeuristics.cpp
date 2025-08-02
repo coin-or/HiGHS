@@ -150,19 +150,15 @@ bool HighsPrimalHeuristics::solveSubMip(
   submipsolver.implicinit = &mipsolver.mipdata_->implications;
   // Solve the sub-MIP
   submipsolver.run();
+  // Update the local max_submip_level for the MIP solver
   mipsolver.max_submip_level =
-      std::max(submipsolver.max_submip_level + 1, mipsolver.max_submip_level);
+      std::max(1 + submipsolver.max_submip_level, mipsolver.max_submip_level);
 
   // Append the sub-MIP problem data to this MIP problem data
-  std::vector<HighsMipProblemData> mipsolver_mip_data =
-      mipsolver.mipdata_->mip_problem_data_;
-  std::vector<HighsMipProblemData> submipsolver_mip_data =
-      submipsolver.mipdata_->mip_problem_data_;
   mipsolver.mipdata_->mip_problem_data_.insert(
       mipsolver.mipdata_->mip_problem_data_.end(),
       submipsolver.mipdata_->mip_problem_data_.begin(),
       submipsolver.mipdata_->mip_problem_data_.end());
-  mipsolver_mip_data = mipsolver.mipdata_->mip_problem_data_;
 
   if (!mipsolver.submip) mipsolver.analysis_.mipTimerStop(kMipClockSubMipSolve);
   if (submipsolver.mipdata_) {
