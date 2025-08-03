@@ -15,6 +15,7 @@
 
 #include "HConfig.h"
 #include "io/Filereader.h"
+#include "io/FilereaderMps.h"
 #include "io/HMPSIO.h"
 #include "io/HighsIO.h"
 #include "lp_data/HighsModelUtils.h"
@@ -3512,4 +3513,14 @@ void getSubVectorsTranspose(const HighsIndexCollection& index_collection,
       }
     }
   }
+}
+
+HighsStatus writeLpToMps(const HighsOptions& options, const HighsLp& lp,
+                         const std::string& file_name_prefix) {
+  HighsModel model;
+  model.lp_ = lp;
+  HighsStatus call_status = normaliseNames(options.log_options, model.lp_);
+  if (call_status == HighsStatus::kError) return call_status;
+  const std::string file_name = file_name_prefix + ".mps";
+  return FilereaderMps().writeModelToFile(options, file_name, model);
 }

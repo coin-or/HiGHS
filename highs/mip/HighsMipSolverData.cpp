@@ -2686,13 +2686,15 @@ bool HighsMipSolverData::mipIsKnapsack(const bool silent) {
   this->knapsack_capacity_ = std::floor(double_capacity + capacity_margin);
   // Problem is knapsack!
   if (!silent) {
-    HighsMipProblemData mip_problem_data;
-    mip_problem_data.clear();
-    mip_problem_data.submip_level = mipsolver.submip_level;
-    mip_problem_data.num_binary = lp.num_col_;
-    mip_problem_data.num_row = lp.num_row_;
-    mip_problem_data.type = HighsMipProblemType::kKnapsack;
-    this->mip_problem_data_.push_back(mip_problem_data);
+    HighsMipProblemRecord mip_problem_record;
+    mip_problem_record.clear();
+    mip_problem_record.global_submip_level = mipsolver.global_submip_level;
+    mip_problem_record.num_binary = lp.num_col_;
+    mip_problem_record.num_row = lp.num_row_;
+    mip_problem_record.type = HighsMipProblemType::kKnapsack;
+    this->mip_problem_data_.record.push_back(mip_problem_record);
+    if (this->mip_problem_data_.knapsack_mip.num_col_ == 0)
+      this->mip_problem_data_.knapsack_mip = lp;
   }
   return true;
 }
@@ -2708,47 +2710,49 @@ bool HighsMipSolverData::mipIsInes(const bool silent) {
   // Origin must be feasible
   const double ines_feas_tol = 0;
   for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) {
-    if (lp.row_lower_[0] - ines_feas_tol > 0 ||
-        lp.row_upper_[0] + ines_feas_tol < 0)
+    if (lp.row_lower_[iRow] - ines_feas_tol > 0 ||
+        lp.row_upper_[iRow] + ines_feas_tol < 0)
       return false;
   }
   if (!silent) {
     highsLogUser(mipsolver.options_mip_->log_options, HighsLogType::kInfo,
                  "MIP is an Ines problem\n");
-    HighsMipProblemData mip_problem_data;
-    mip_problem_data.clear();
-    mip_problem_data.submip_level = mipsolver.submip_level;
-    mip_problem_data.num_binary = lp.num_col_;
-    mip_problem_data.num_row = lp.num_row_;
-    mip_problem_data.type = HighsMipProblemType::kInes;
-    this->mip_problem_data_.push_back(mip_problem_data);
+    HighsMipProblemRecord mip_problem_record;
+    mip_problem_record.clear();
+    mip_problem_record.global_submip_level = mipsolver.global_submip_level;
+    mip_problem_record.num_binary = lp.num_col_;
+    mip_problem_record.num_row = lp.num_row_;
+    mip_problem_record.type = HighsMipProblemType::kInes;
+    this->mip_problem_data_.record.push_back(mip_problem_record);
+    if (this->mip_problem_data_.ines_mip.num_col_ == 0)
+      this->mip_problem_data_.ines_mip = lp;
   }
   return true;
 }
 
 void HighsMipSolverData::mipIsOther() {
   const HighsLp& lp = *(mipsolver.model_);
-  HighsMipProblemData mip_problem_data;
-  mip_problem_data.clear();
-  mip_problem_data.submip_level = mipsolver.submip_level;
+  HighsMipProblemRecord mip_problem_record;
+  mip_problem_record.clear();
+  mip_problem_record.global_submip_level = mipsolver.global_submip_level;
   for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
     if (lp.integrality_[iCol] == HighsVarType::kContinuous) {
-      mip_problem_data.num_continuous++;
+      mip_problem_record.num_continuous++;
     } else if (lp.integrality_[iCol] == HighsVarType::kInteger) {
       if (lp.col_lower_[iCol] == 0 && lp.col_upper_[iCol] == 1) {
-        mip_problem_data.num_binary++;
+        mip_problem_record.num_binary++;
       } else {
-        mip_problem_data.num_general_integer++;
+        mip_problem_record.num_general_integer++;
       }
     } else if (lp.integrality_[iCol] == HighsVarType::kImplicitInteger) {
-      mip_problem_data.num_implied_integer++;
+      mip_problem_record.num_implied_integer++;
     } else {
       assert(111 == 234);
     }
   }
-  mip_problem_data.num_row = lp.num_row_;
-  mip_problem_data.type = HighsMipProblemType::kOther;
-  this->mip_problem_data_.push_back(mip_problem_data);
+  mip_problem_record.num_row = lp.num_row_;
+  mip_problem_record.type = HighsMipProblemType::kOther;
+  this->mip_problem_data_.record.push_back(mip_problem_record);
 }
 
 static double possInfRelDiff(const double v0, const double v1,
@@ -2887,12 +2891,48 @@ void HighsMipSolverData::updatePrimalDualIntegral(const double from_lower_bound,
 
 void HighsPrimaDualIntegral::initialise() { this->value = -kHighsInf; }
 
-void HighsMipProblemData::clear() {
-  this->submip_level = -1;
+void HighsMipProblemRecord::clear() {
+  this->global_submip_level = -1;
   this->num_continuous = 0;
   this->num_binary = 0;
   this->num_implied_integer = 0;
   this->num_general_integer = 0;
   this->num_row = 0;
   this->type = HighsMipProblemType::kOther;
+}
+
+void HighsMipProblemData::clear() { this->record.clear(); }
+
+void HighsMipProblemData::append(const HighsMipProblemData& mip_problem_data) {
+  this->record.insert(this->record.end(), mip_problem_data.record.begin(),
+                      mip_problem_data.record.end());
+  HighsInt current_sum =
+      this->knapsack_mip.num_col_ + this->knapsack_mip.num_row_;
+  HighsInt append_sum = mip_problem_data.knapsack_mip.num_col_ +
+                        mip_problem_data.knapsack_mip.num_row_;
+  if (current_sum < append_sum)
+    this->knapsack_mip = mip_problem_data.knapsack_mip;
+  current_sum = this->ines_mip.num_col_ + this->ines_mip.num_row_;
+  append_sum =
+      mip_problem_data.ines_mip.num_col_ + mip_problem_data.ines_mip.num_row_;
+  if (current_sum < append_sum) this->ines_mip = mip_problem_data.ines_mip;
+}
+
+HighsInt HighsMipProblemData::numRecord() {
+  return static_cast<HighsInt>(record.size());
+}
+
+HighsInt HighsMipProblemData::numKnapsack() {
+  HighsInt num_knapsack = 0;
+  for (HighsInt iMip = 0; iMip < this->numRecord(); iMip++)
+    if (this->record[iMip].type == HighsMipProblemType::kKnapsack)
+      num_knapsack++;
+  return num_knapsack;
+}
+
+HighsInt HighsMipProblemData::numInes() {
+  HighsInt num_ines = 0;
+  for (HighsInt iMip = 0; iMip < this->numRecord(); iMip++)
+    if (this->record[iMip].type == HighsMipProblemType::kInes) num_ines++;
+  return num_ines;
 }

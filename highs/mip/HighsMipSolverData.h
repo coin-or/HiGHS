@@ -32,8 +32,8 @@
 
 enum class HighsMipProblemType { kKnapsack = 0, kInes, kOther };
 
-struct HighsMipProblemData {
-  HighsInt submip_level;
+struct HighsMipProblemRecord {
+  HighsInt global_submip_level;
   HighsInt num_continuous;
   HighsInt num_binary;
   HighsInt num_general_integer;
@@ -41,6 +41,17 @@ struct HighsMipProblemData {
   HighsInt num_row;
   HighsMipProblemType type;
   void clear();
+};
+
+struct HighsMipProblemData {
+  std::vector<HighsMipProblemRecord> record;
+  HighsLp ines_mip;
+  HighsLp knapsack_mip;
+  void clear();
+  void append(const HighsMipProblemData& mip_problem_data);
+  HighsInt numRecord();
+  HighsInt numKnapsack();
+  HighsInt numInes();
 };
 
 struct HighsPrimaDualIntegral {
@@ -169,7 +180,7 @@ struct HighsMipSolverData {
   HighsInt knapsack_capacity_;
   HighsInt knapsack_integral_scale_;
 
-  std::vector<HighsMipProblemData> mip_problem_data_;
+  HighsMipProblemData mip_problem_data_;
 
   HighsMipSolverData(HighsMipSolver& mipsolver)
       : mipsolver(mipsolver),

@@ -142,7 +142,8 @@ bool HighsPrimalHeuristics::solveSubMip(
   if (!mipsolver.submip)
     mipsolver.analysis_.mipTimerStart(kMipClockSubMipSolve);
   HighsMipSolver submipsolver(*mipsolver.callback_, submipoptions, submip,
-                              solution, true, mipsolver.submip_level + 1);
+                              solution, true,
+                              mipsolver.global_submip_level + 1);
   submipsolver.rootbasis = &basis;
   HighsPseudocostInitialization pscostinit(mipsolver.mipdata_->pseudocost, 1);
   submipsolver.pscostinit = &pscostinit;
@@ -150,15 +151,14 @@ bool HighsPrimalHeuristics::solveSubMip(
   submipsolver.implicinit = &mipsolver.mipdata_->implications;
   // Solve the sub-MIP
   submipsolver.run();
-  // Update the local max_submip_level for the MIP solver
-  mipsolver.max_submip_level =
-      std::max(1 + submipsolver.max_submip_level, mipsolver.max_submip_level);
+  // Update the max_local_submip_level for the MIP solver
+  mipsolver.max_local_submip_level =
+      std::max(1 + submipsolver.max_local_submip_level,
+               mipsolver.max_local_submip_level);
 
   // Append the sub-MIP problem data to this MIP problem data
-  mipsolver.mipdata_->mip_problem_data_.insert(
-      mipsolver.mipdata_->mip_problem_data_.end(),
-      submipsolver.mipdata_->mip_problem_data_.begin(),
-      submipsolver.mipdata_->mip_problem_data_.end());
+  mipsolver.mipdata_->mip_problem_data_.append(
+      submipsolver.mipdata_->mip_problem_data_);
 
   if (!mipsolver.submip) mipsolver.analysis_.mipTimerStop(kMipClockSubMipSolve);
   if (submipsolver.mipdata_) {

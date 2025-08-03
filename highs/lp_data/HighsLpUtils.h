@@ -305,4 +305,6 @@ void getSubVectorsTranspose(const HighsIndexCollection& index_collection,
                             HighsInt* sub_matrix_index,
                             double* sub_matrix_value);
 
+HighsStatus writeLpToMps(const HighsOptions& options, const HighsLp& lp,
+                         const std::string& file_name_prefix);
 #endif  // LP_DATA_HIGHSLPUTILS_H_

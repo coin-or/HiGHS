@@ -30,20 +30,20 @@ using std::fabs;
 HighsMipSolver::HighsMipSolver(HighsCallback& callback,
                                const HighsOptions& options, const HighsLp& lp,
                                const HighsSolution& solution, bool submip,
-                               HighsInt submip_level)
+                               HighsInt global_submip_level)
     : callback_(&callback),
       options_mip_(&options),
       model_(&lp),
       orig_model_(&lp),
       solution_objective_(kHighsInf),
       submip(submip),
-      submip_level(submip_level),
+      global_submip_level(global_submip_level),
       rootbasis(nullptr),
       pscostinit(nullptr),
       clqtableinit(nullptr),
       implicinit(nullptr) {
-  assert(!submip || submip_level > 0);
-  this->max_submip_level = 0;
+  assert(!submip || global_submip_level > 0);
+  this->max_local_submip_level = 0;
   if (solution.value_valid) {
 #ifndef NDEBUG
     // MIP solver doesn't check row residuals, but they should be OK
@@ -894,9 +894,9 @@ void HighsMipSolver::cleanupSolve(const bool mip_logging) {
                (long long unsigned)mipdata_->sepa_lp_iterations,
                (long long unsigned)mipdata_->heuristic_lp_iterations);
 
-  const std::vector<HighsMipProblemData>& mip_problem_data =
-      this->mipdata_->mip_problem_data_;
-  HighsInt num_mip = static_cast<HighsInt>(mip_problem_data.size());
+  const std::vector<HighsMipProblemRecord>& record =
+      this->mipdata_->mip_problem_data_.record;
+  HighsInt num_mip = static_cast<HighsInt>(record.size());
   HighsInt num_knapsack_mip = 0;
   size_t sum_knapsack_num_col = 0;
   HighsInt num_ines_mip = 0;
@@ -907,49 +907,48 @@ void HighsMipSolver::cleanupSolve(const bool mip_logging) {
   HighsInt min_submip_num_col = kHighsIInf;
   HighsInt min_submip_num_row = kHighsIInf;
   const bool full_submip_logging = true;
+  // Must at least have a record for the MIP itself
+  assert(num_mip > 0);
   for (HighsInt iMip = 0; iMip < num_mip; iMip++) {
-    switch (mip_problem_data[iMip].type) {
+    switch (record[iMip].type) {
       case HighsMipProblemType::kKnapsack:
         num_knapsack_mip++;
-        sum_knapsack_num_col += mip_problem_data[iMip].num_binary;
+        sum_knapsack_num_col += record[iMip].num_binary;
         break;
       case HighsMipProblemType::kInes:
         num_ines_mip++;
-        sum_ines_num_col += mip_problem_data[iMip].num_binary;
-        sum_ines_num_row += mip_problem_data[iMip].num_row;
+        sum_ines_num_col += record[iMip].num_binary;
+        sum_ines_num_row += record[iMip].num_row;
         break;
       case HighsMipProblemType::kOther:
       default:
         break;
     }
-    HighsInt global_submip_level = mip_problem_data[iMip].submip_level;
-    max_global_submip_level = std::max(global_submip_level, max_global_submip_level);
-    HighsInt submip_num_col = mip_problem_data[iMip].num_continuous +
-                              mip_problem_data[iMip].num_binary +
-                              mip_problem_data[iMip].num_general_integer +
-                              mip_problem_data[iMip].num_implied_integer;
-    HighsInt submip_num_row = mip_problem_data[iMip].num_row;
+    HighsInt global_submip_level = record[iMip].global_submip_level;
+    max_global_submip_level =
+        std::max(global_submip_level, max_global_submip_level);
+    HighsInt submip_num_col =
+        record[iMip].num_continuous + record[iMip].num_binary +
+        record[iMip].num_general_integer + record[iMip].num_implied_integer;
+    HighsInt submip_num_row = record[iMip].num_row;
     HighsInt submip_sum_dim = submip_num_col + submip_num_row;
-    if (min_submip_sum_dim > submip_sum_dim) {
+    if (min_submip_sum_dim > submip_sum_dim && submip_sum_dim > 0) {
       min_submip_sum_dim = submip_sum_dim;
       min_submip_num_col = submip_num_col;
       min_submip_num_row = submip_num_row;
     }
-    if (full_submip_logging)
-      highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
-                   "  MIP               %3d (level = %2d; %6d conts; %6d bin; "
-                   "%6d gen; %6d impl; cols / rows: %6d / %6d; type %s)\n",
-                   int(iMip), int(global_submip_level),
-                   int(mip_problem_data[iMip].num_continuous),
-                   int(mip_problem_data[iMip].num_binary),
-                   int(mip_problem_data[iMip].num_general_integer),
-                   int(mip_problem_data[iMip].num_implied_integer),
-                   int(submip_num_col), int(submip_num_row),
-                   mip_problem_data[iMip].type == HighsMipProblemType::kKnapsack
-                       ? "Knapsack"
-                   : mip_problem_data[iMip].type == HighsMipProblemType::kInes
-                       ? "Ines"
-                       : "Other");
+    if (full_submip_logging && record[iMip].type != HighsMipProblemType::kOther)
+      highsLogUser(
+          options_mip_->log_options, HighsLogType::kInfo,
+          "  MIP               %3d (level = %2d; %6d conts; %6d bin; "
+          "%6d gen; %6d impl; cols / rows: %6d / %6d; type %s)\n",
+          int(iMip), int(global_submip_level), int(record[iMip].num_continuous),
+          int(record[iMip].num_binary), int(record[iMip].num_general_integer),
+          int(record[iMip].num_implied_integer), int(submip_num_col),
+          int(submip_num_row),
+          record[iMip].type == HighsMipProblemType::kKnapsack ? "Knapsack"
+          : record[iMip].type == HighsMipProblemType::kInes   ? "Ines"
+                                                              : "Other");
   }
   highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
                "  MIPs              %d (%d knapsack; %d Ines)\n", int(num_mip),
@@ -957,9 +956,11 @@ void HighsMipSolver::cleanupSolve(const bool mip_logging) {
 
   std::stringstream ss;
   ss.str(std::string());
-  assert(submip_level + max_submip_level == max_global_submip_level);
-  ss << highsFormatToString("  Max sub-MIP level %d", int(submip_level + max_submip_level));
-  if (max_submip_level > 0)
+  assert(global_submip_level + max_local_submip_level ==
+         max_global_submip_level);
+  ss << highsFormatToString("  Max sub-MIP level %d",
+                            int(global_submip_level + max_local_submip_level));
+  if (max_local_submip_level > 0)
     ss << highsFormatToString(" (min cols/rows: %d/%d)\n",
                               int(min_submip_num_col), int(min_submip_num_row));
   highsLogUser(options_mip_->log_options, HighsLogType::kInfo, "%s\n",
@@ -974,9 +975,21 @@ void HighsMipSolver::cleanupSolve(const bool mip_logging) {
                  num_knapsack_mip, sum_knapsack_num_col, num_ines_mip,
                  sum_ines_num_col, sum_ines_num_row);
 
-  if (max_submip_level > 0) {
+  const bool write_ines_model = false;
+  if (write_ines_model) {
+    if (!submip && mipdata_->mip_problem_data_.ines_mip.num_col_ > 0) {
+      const std::string file_name_prefix = model_->model_name_ + "_ines";
+      highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
+                   "Generating MPS file %s.mps for Ines MIP with %d columns "
+                   "and %d rows\n",
+                   file_name_prefix.c_str(),
+                   int(mipdata_->mip_problem_data_.ines_mip.num_col_),
+                   int(mipdata_->mip_problem_data_.ines_mip.num_row_));
+      HighsStatus call_status =
+          writeLpToMps(*options_mip_, mipdata_->mip_problem_data_.ines_mip,
+                       file_name_prefix);
+    }
   }
-
   if (!timeless_log) analysis_.reportMipTimer();
 
   assert(modelstatus_ != HighsModelStatus::kNotset);
