@@ -183,6 +183,14 @@ restart:
       mipdata_->callbackUserSolution(solution_objective_,
                                      kUserMipSolutionCallbackOriginAfterSetup);
 
+    const bool mip_heuristic_run_ines = false;
+    const bool ines_silent = true;
+    if (mipdata_->mipIsInes(ines_silent)) {
+      if (mip_heuristic_run_ines) {
+        HighsStatus ines_status = mipdata_->heuristics.mipHeuristicInes();
+      }
+    }
+
     if (options_mip_->mip_heuristic_run_feasibility_jump) {
       // Apply the feasibility jump before evaluating the root node
       analysis_.mipTimerStart(kMipClockFeasibilityJump);

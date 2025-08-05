@@ -1863,3 +1863,412 @@ HighsStatus HighsPrimalHeuristics::solveMipKnapsack() {
   assert(mipsolver.modelstatus_ == HighsModelStatus::kOptimal);
   return solveMipKnapsackReturn(HighsStatus::kOk);
 }
+
+HighsStatus HighsPrimalHeuristics::mipHeuristicInes() {
+  std::vector<double>& solution = mipsolver.solution_;
+  const HighsLp& lp = *mipsolver.model_;
+  HighsInt num_col = lp.num_col_;
+  HighsInt min_max = lp.sense_ == ObjSense::kMinimize ? -1 : 1;
+  assert(min_max == -1);
+  vector<double> cost = lp.col_cost_;
+  HighsInt num_row = 0;
+  vector<double> rhs;
+  HighsSparseMatrix mip_matrix = lp.a_matrix_;
+  mip_matrix.ensureRowwise();
+  HighsSparseMatrix ines_matrix;
+  ines_matrix.format_ = MatrixFormat::kRowwise;
+  ines_matrix.num_col_ = num_col;
+  HighsSparseMatrix row;
+  row.format_ = MatrixFormat::kRowwise;
+  row.num_row_ = 1;
+  row.num_col_ = num_col;
+  row.start_.resize(2);
+  row.index_.resize(num_col);
+  row.value_.resize(num_col);
+  for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) {
+    double lower = lp.row_lower_[iRow];
+    double upper = lp.row_upper_[iRow];
+    if (lower > 0 || upper < 0) {
+      printf("Incorrect LP format: row %d bounds are [%g, %g]\n", int(iRow),
+             lower, upper);
+      return HighsStatus::kError;
+    }
+    if (lower <= -kHighsInf && upper >= kHighsInf) {
+      printf("Incorrect LP format: row %d bounds are [%g, %g]\n", int(iRow),
+             lower, upper);
+      return HighsStatus::kError;
+    }
+    HighsInt num_nz;
+    mip_matrix.getRow(iRow, row.start_[1], row.index_.data(),
+                      row.value_.data());
+    if (upper < kHighsInf) {
+      // Add the row
+      ines_matrix.addRows(row);
+      rhs.push_back(upper);
+      num_row++;
+    }
+    if (lower > -kHighsInf) {
+      // Add the row as a negation
+      for (HighsInt iEl = 0; iEl < row.start_[1]; iEl++) row.value_[iEl] *= -1;
+      ines_matrix.addRows(row);
+      rhs.push_back(-lower);
+      num_row++;
+    }
+  }
+  vector<HighsInt> integer_solution(num_col);
+  HighsInt algoNumber = 0;
+  vector<HighsInt> indices(num_col);
+  HighsInt checkR = 0;
+  HighsInt goingBack = 0;
+
+  simpleOnlineAlgo(integer_solution, ines_matrix, rhs, cost, num_row, num_col,
+                   algoNumber, min_max, indices, checkR, goingBack);
+
+  double ines_objective = lp.offset_;
+  solution.resize(lp.num_col_);
+  for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
+    solution[iCol] = double(integer_solution[iCol]);
+    ines_objective += solution[iCol] * lp.col_cost_[iCol];
+  }
+  printf("simpleOnlineAlgo:: completed with objective %g!\n", ines_objective);
+  return HighsStatus::kError;
+}
+
+void dotProduct(const vector<HighsInt>& index, const vector<double>& value,
+                const vector<double>& p, const HighsInt nonZero, double& sum);
+void updatePt(vector<double>& p, const HighsInt nonZero,
+              const vector<HighsInt>& index, const vector<double>& value,
+              double gamma, HighsInt xt, HighsInt nRows, HighsInt nVariables,
+              vector<double> bVector);
+HighsInt computeSumAXi(HighsInt start, HighsInt end, HighsSparseMatrix& AMatrix,
+                       vector<HighsInt>& solution, vector<HighsInt>& order);
+HighsInt findIndex(const vector<HighsInt>& order, HighsInt val);
+HighsInt computeSumRFromiToj(vector<double>& rVector, vector<HighsInt>& order,
+                             HighsInt start, HighsInt end,
+                             vector<HighsInt>& solution);
+void swapXis(vector<HighsInt>& solution, HighsInt indexJ, HighsInt indexT,
+             vector<HighsInt>& order);
+void runGoingBackAlgo(HighsInt t, vector<double>& rVector,
+                      vector<HighsInt>& order, vector<HighsInt>& solution,
+                      HighsSparseMatrix& AMatrix, vector<double> bVector,
+                      HighsInt nConstraints);
+HighsInt checkConstraintsForSwap(HighsInt indexJ, HighsInt indexT,
+                                 HighsSparseMatrix& AMatrix,
+                                 vector<double>& bVector, HighsInt nConstraints,
+                                 vector<HighsInt>& order,
+                                 vector<HighsInt>& solution);
+void checkProblemFeasability(HighsInt& constraintsNotRespected, HighsInt end,
+                             HighsSparseMatrix& AMatrix,
+                             vector<double>& bVector, HighsInt nConstraints,
+                             vector<HighsInt>& solution,
+                             vector<HighsInt>& order);
+
+void HighsPrimalHeuristics::simpleOnlineAlgo(
+    vector<HighsInt>& solution, HighsSparseMatrix& AMatrix,
+    vector<double> bVector, vector<double> rVector, HighsInt nRows,
+    HighsInt nVariables, HighsInt checkConstraints, HighsInt minOrMax,
+    vector<HighsInt>& order, HighsInt checkR, HighsInt goingBack) {
+  // initialise p1
+  vector<double> p(nRows, 0);
+
+  // set step size
+  double gamma = 1.0 / sqrt(nVariables);
+
+  // current iteration solution
+  HighsInt xt;
+
+  // dot product at each iteration
+  double dotResult = 0.0;
+
+  // to check constraints violation
+  vector<double> constraintsChecker(nRows, 0);
+  AMatrix.ensureColwise();
+
+  // allocate space for values and their indexees for current column of A
+  vector<HighsInt> index;
+  vector<double> value;
+  // iterate
+  for (HighsInt t : order) {
+    // retrieve column t of A
+    AMatrix.ensureColwise();
+    HighsInt nonZero = AMatrix.start_[t + 1] - AMatrix.start_[t];
+    index.resize(nonZero);
+    value.resize(nonZero);
+    AMatrix.getCol(t, nonZero, index.data(), value.data());
+
+    // compute dot product <a_t,p>
+    dotProduct(index, value, p, nonZero, dotResult);
+
+    // assign value to xt
+    HighsInt xt_candidate = 0;
+
+    if (checkR) {
+      if (minOrMax == 1) {  // max
+        xt_candidate = ((rVector[t] > dotResult) && (rVector[t] > 0));
+      } else {
+        xt_candidate = ((rVector[t] < dotResult) && (rVector[t] < 0));
+      }
+    } else {
+      if (minOrMax == 1) {
+        xt_candidate = (rVector[t] > dotResult);
+      } else {
+        xt_candidate = (rVector[t] < dotResult);
+      }
+    }
+
+    // check constraint violation
+    HighsInt constraintsNotRespected = 0;
+    xt = xt_candidate;
+
+    // update dual variable p
+    updatePt(p, nonZero, index, value, gamma, xt, nRows, nVariables, bVector);
+
+    if (checkConstraints == 5 && xt) {
+      // check if constraints are still respected if xt is 1
+      solution[t] = xt;
+      checkProblemFeasability(constraintsNotRespected, t, AMatrix, bVector,
+                              nRows, solution, order);
+
+      // if not set xt to 0
+      if (constraintsNotRespected) {
+        xt = 0;
+      }
+    }
+    solution[t] = xt;
+    // goBack only if original xt_candidate was 1, but set to 0 because of
+    // constraints
+    if (goingBack && xt_candidate && constraintsNotRespected) {
+      runGoingBackAlgo(t, rVector, order, solution, AMatrix, bVector, nRows);
+    }
+  }
+}
+
+void checkProblemFeasability(HighsInt& constraintsNotRespected, HighsInt end,
+                             HighsSparseMatrix& AMatrix,
+                             vector<double>& bVector, HighsInt nConstraints,
+                             vector<HighsInt>& solution,
+                             vector<HighsInt>& order) {
+  vector<HighsInt> constr(nConstraints, 0);
+  AMatrix.ensureRowwise();
+  for (HighsInt i = 0; i < nConstraints; i++) {
+    HighsInt nonZero = AMatrix.start_[i + 1] - AMatrix.start_[i];
+    vector<HighsInt> index(nonZero);
+    vector<double> value(nonZero);
+    AMatrix.getRow(i, nonZero, index.data(), value.data());
+
+    for (HighsInt j = 0; j < nonZero; j++) {
+      constr[i] += value[j] * solution[index[j]];
+    }
+    if (constr[i] > bVector[i]) {
+      constraintsNotRespected = 1;
+    }
+  }
+  AMatrix.ensureColwise();
+}
+
+void runGoingBackAlgo(HighsInt t, vector<double>& rVector,
+                      vector<HighsInt>& order, vector<HighsInt>& solution,
+                      HighsSparseMatrix& AMatrix, vector<double> bVector,
+                      HighsInt nConstraints) {
+  // initialisation
+  HighsInt windowSize = 100;  // look at most at the 100 previous xi's
+  HighsInt Rt = rVector[t];
+  HighsInt indexT = findIndex(order, t);
+  solution[t] = 1;  // so we suppose swap possible for computing Axt
+  HighsInt Axt = computeSumAXi(indexT, indexT, AMatrix, solution, order);
+  solution[t] = 0;
+
+  // iterate
+  for (HighsInt j = indexT - 1; j >= max(0, indexT - windowSize); j--) {
+    // does x_t reward more than x_j+...+x_{t-1} ?
+    HighsInt rFromjToTMinusOne =
+        computeSumRFromiToj(rVector, order, j, indexT - 1, solution);
+    if (rFromjToTMinusOne < Rt) {  // min problems
+      continue;
+    }
+
+    // does x_t cost less than x_j+...+x_{t-1} ?
+    HighsInt AFromjToTMinusOne = computeSumAXi(j, indexT - 1, AMatrix, solution,
+                                               order);  // computes norm 1
+    if (AFromjToTMinusOne < Axt) {
+      continue;
+    }
+
+    // does swapping x_t for x_j + ... +x_{t-1} still respect the constraints ?
+    if (checkConstraintsForSwap(j, indexT, AMatrix, bVector, nConstraints,
+                                order, solution)) {
+      continue;
+    }
+
+    // swap !
+    swapXis(solution, j, indexT, order);
+    // cout<<"swap done ! between j = "<<j<<" and t = "<<indexT<<" now r is :
+    // "<<computeSumRFromiToj(rVector,order,0,indexT,solution)<<" before was :
+    // "<<rFromjToTMinusOne+computeSumRFromiToj(rVector,order,0,j-1,solution)<<endl;
+    return;  // one swap at most
+  }
+  solution[t] = 0;
+}
+
+void swapXis(vector<HighsInt>& solution, HighsInt indexJ, HighsInt indexT,
+             vector<HighsInt>& order) {
+  for (HighsInt i = indexJ; i < indexT; i++) {
+    solution[order[i]] = 0;
+  }
+  solution[order[indexT]] = 1;
+}
+
+/**
+ * @brief helper function that checks that x0+x1+...+x_{j-1}+x_t is feasible in
+ * order to perform swap
+ *
+ * @param indexJ        index of j in order vector
+ * @param indext        index of t in order vector
+ * @param AMatrix       constraints matrix (A)
+ * @param rVector       vector of coefficients (r)
+ * @param bVector       right-hand side vector (b)
+ * @param nConstraints  number of constraints
+ * @param order      vector representing the index ordering to use when
+ * accessing rVector and solution.
+ */
+HighsInt checkConstraintsForSwap(HighsInt indexJ, HighsInt indexT,
+                                 HighsSparseMatrix& AMatrix,
+                                 vector<double>& bVector, HighsInt nConstraints,
+                                 vector<HighsInt>& order,
+                                 vector<HighsInt>& solution) {
+  // init
+  vector<HighsInt> constr(nConstraints, 0);
+  AMatrix.ensureRowwise();
+
+  // iterate over rows
+  for (HighsInt i = 0; i < nConstraints; i++) {
+    // rettreve row i
+    HighsInt nonZero = AMatrix.start_[i + 1] - AMatrix.start_[i];
+    vector<HighsInt> index(nonZero);
+    vector<double> value(nonZero);
+    AMatrix.getRow(i, nonZero, index.data(), value.data());
+
+    for (HighsInt j = 0; j < nonZero; j++) {
+      if (index[j] < indexJ || index[j] == indexT) {
+        if (index[j] == indexT) {
+          constr[i] += value[j];
+        } else {
+          constr[i] += value[j] * solution[order[index[j]]];
+        }
+      }
+    }
+    if (constr[i] > bVector[i]) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/**
+ * @brief helper function that computes the sum of ri for i between start and
+ * end (both included), the indexes are used inside the order vector
+ *
+ * @param rVector    vector of coefficients (r)
+ * @param order      vector representing the index ordering to use when
+ * accessing rVector and solution.
+ * @param start      the start index in the order vector (included).
+ * @param end        the final index in the order vector (included).
+ * @param solution   vector of solution values
+ * @return HighsInt  The computed sum over the specified range:
+ * sum_{i=start}^{end} r[order[i]] * solution[order[i]].
+ */
+HighsInt computeSumRFromiToj(vector<double>& rVector, vector<HighsInt>& order,
+                             HighsInt start, HighsInt end,
+                             vector<HighsInt>& solution) {
+  HighsInt sum = 0;
+  for (HighsInt i = start; i <= end; i++) {
+    sum += rVector[order[i]] * solution[order[i]];
+  }
+  return sum;
+}
+
+/**
+ * @brief helper function that finds the index of a given element in the order
+ * vector
+ *
+ * @param order     vector representing the index ordering to use when accessing
+ * rVector and solution.
+ * @param val       the element to look for
+ * @return HighsInt the index of the given element
+ */
+HighsInt findIndex(const vector<HighsInt>& order, HighsInt val) {
+  for (HighsInt i = 0; i < order.size(); i++) {
+    if (order[i] == val) return i;
+  }
+  return -1;
+}
+
+/**
+ * @brief computes A(x_order[start] + x_order[start]+1 ... + x_order[end])
+ * included
+ */
+HighsInt computeSumAXi(HighsInt start, HighsInt end, HighsSparseMatrix& AMatrix,
+                       vector<HighsInt>& solution, vector<HighsInt>& order) {
+  HighsInt result = 0;
+  AMatrix.ensureColwise();
+  for (HighsInt i = start; i <= end; i++) {
+    HighsInt col = order[i];
+    HighsInt nonZero = AMatrix.start_[col + 1] - AMatrix.start_[col];
+    vector<HighsInt> index(nonZero);
+    vector<double> value(nonZero);
+    AMatrix.getCol(col, nonZero, index.data(), value.data());
+    for (HighsInt row = 0; row < nonZero; row++) {
+      result += value[row] * solution[col];
+    }
+  }
+  return result;
+}
+
+/**
+ * @brief at iteration t, updates dual vector p_t.
+ *        Consists of step 5 in algorithms 1 and 5 from LiSunYe23 paper.
+ *
+ * @param p dual vector p_t
+ * @param nonZero number of non zero values in column t of A
+ * @param index the vector containing the indexes of non zero value in row t of
+ * A
+ * @param value the vector containing the non zero values in row t of A.
+ * @param gamma step size. corresponds to 1/sqrt(nVariables)
+ * @param xt current candidate at step t
+ * @param nRows number of constraints
+ * @param nVariables number of variables
+ * @param bVector the right-hand side vector of the constraints (b_i)
+ */
+void updatePt(vector<double>& p, const HighsInt nonZero,
+              const vector<HighsInt>& index, const vector<double>& value,
+              double gamma, HighsInt xt, HighsInt nRows, HighsInt nVariables,
+              vector<double> bVector) {
+  // first add non zero values from column t of A
+  for (HighsInt i = 0; i < nonZero; i++) {
+    p[index[i]] += gamma * value[i] * xt;
+  }
+  // then add the rest
+  for (HighsInt i = 0; i < nRows; i++) {
+    p[i] -= 1.0 / nVariables * gamma * bVector[i];
+    p[i] = max(p[i], 0.0);
+  }
+}
+
+/**
+ * @brief computes dot product between a column t of A and dual vector p
+ *        used in step 4 of algorithms 1 and 5 in LiSunYe23 paper
+ * @param index the vector containing the indexes of non zero value in row t of
+ * A
+ * @param value the vector containing the non zero values in row t of A.
+ * @param p dual vector p_t
+ * @param nonZero number of non zero values in column t of A
+ * @param sum where to store the dot product
+ *
+ */
+void dotProduct(const vector<HighsInt>& index, const vector<double>& value,
+                const vector<double>& p, const HighsInt nonZero, double& sum) {
+  sum = 0.0;
+  for (HighsInt i = 0; i < nonZero; i++) {
+    sum += value[i] * p[index[i]];
+  }
+}
