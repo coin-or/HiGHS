@@ -439,6 +439,7 @@ struct HighsOptionsStruct {
   double mip_rel_gap;
   double mip_abs_gap;
   double mip_heuristic_effort;
+  bool mip_heuristic_run_ines;
   bool mip_heuristic_run_feasibility_jump;
   bool mip_heuristic_run_rins;
   bool mip_heuristic_run_rens;
@@ -590,6 +591,7 @@ struct HighsOptionsStruct {
         mip_rel_gap(0.0),
         mip_abs_gap(0.0),
         mip_heuristic_effort(0.0),
+        mip_heuristic_run_ines(false),
         mip_heuristic_run_feasibility_jump(false),
         mip_heuristic_run_rins(false),
         mip_heuristic_run_rens(false),
@@ -1135,6 +1137,11 @@ class HighsOptions : public HighsOptionsStruct {
         "mip_heuristic_effort", "Effort spent for MIP heuristics", advanced,
         &mip_heuristic_effort, 0.0, 0.05, 1.0);
     records.push_back(record_double);
+
+    record_bool =
+        new OptionRecordBool("mip_heuristic_run_ines", "Use Ines' heuristic",
+                             advanced, &mip_heuristic_run_ines, true);
+    records.push_back(record_bool);
 
     record_bool =
         new OptionRecordBool("mip_heuristic_run_feasibility_jump",

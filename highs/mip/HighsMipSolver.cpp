@@ -183,11 +183,31 @@ restart:
       mipdata_->callbackUserSolution(solution_objective_,
                                      kUserMipSolutionCallbackOriginAfterSetup);
 
-    const bool mip_heuristic_run_ines = false;
+    // Apply the trivial heuristics
+    analysis_.mipTimerStart(kMipClockTrivialHeuristics);
+    HighsModelStatus returned_model_status = mipdata_->trivialHeuristics();
+    analysis_.mipTimerStop(kMipClockTrivialHeuristics);
+    if (modelstatus_ == HighsModelStatus::kNotset &&
+        returned_model_status == HighsModelStatus::kInfeasible) {
+      // trivialHeuristics can spot trivial infeasibility, so act on it
+      modelstatus_ = returned_model_status;
+      cleanupSolve();
+      return;
+    }
+
+    // Don't report on this MIP type, or re-record the MIP
     const bool ines_silent = true;
     if (mipdata_->mipIsInes(ines_silent)) {
-      if (mip_heuristic_run_ines) {
+      assert(mipdata_->mipIsInesLookup());
+      if (options_mip_->mip_heuristic_run_ines) {
+        analysis_.mipTimerStart(kMipClockInes);
         HighsStatus ines_status = mipdata_->heuristics.mipHeuristicInes();
+        analysis_.mipTimerStop(kMipClockInes);
+        if (ines_status == HighsStatus::kError) {
+          modelstatus_ = HighsModelStatus::kSolveError;
+          cleanupSolve();
+          return;
+        }
       }
     }
 
@@ -203,25 +223,27 @@ restart:
         cleanupSolve();
         return;
       }
-      const bool bailout_after_feasibility_jump = false;
-      if (bailout_after_feasibility_jump) {
-        highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
-                     "HighsMipSolver: Bailing out after Feasibility Jump with "
-                     "model status = %s\n",
-                     utilModelStatusToString(returned_model_status).c_str());
-        modelstatus_ = HighsModelStatus::kInterrupt;
+      if (returned_model_status == HighsModelStatus::kSolveError) {
+        modelstatus_ = returned_model_status;
         cleanupSolve();
         return;
       }
     }
-    // Apply the trivial heuristics
-    analysis_.mipTimerStart(kMipClockTrivialHeuristics);
-    HighsModelStatus returned_model_status = mipdata_->trivialHeuristics();
-    analysis_.mipTimerStop(kMipClockTrivialHeuristics);
-    if (modelstatus_ == HighsModelStatus::kNotset &&
-        returned_model_status == HighsModelStatus::kInfeasible) {
-      // trivialHeuristics can spot trivial infeasibility, so act on it
-      modelstatus_ = returned_model_status;
+    if (!submip && mipdata_->mipIsInesLookup()) {
+      printf("grepInesFJ,%s,%d,%d,%g,%d,%g,%g,%g,%g\n",
+             model_->model_name_.c_str(), int(model_->num_col_),
+             int(model_->num_row_), model_->offset_,
+             mipdata_->ines_zero_solution_, mipdata_->ines_objective_,
+             mipdata_->ines_time_, mipdata_->feasibility_jump_objective_,
+             mipdata_->feasibility_jump_time_);
+    }
+    const bool bailout_after_feasibility_jump = false;
+    if (bailout_after_feasibility_jump) {
+      highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
+                   "HighsMipSolver: Bailing out after Feasibility Jump with "
+                   "model status = %s\n",
+                   utilModelStatusToString(returned_model_status).c_str());
+      modelstatus_ = HighsModelStatus::kInterrupt;
       cleanupSolve();
       return;
     }

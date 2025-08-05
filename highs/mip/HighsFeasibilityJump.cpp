@@ -10,6 +10,7 @@
 #include "util/HighsSparseMatrix.h"
 
 HighsModelStatus HighsMipSolverData::feasibilityJump() {
+  this->feasibility_jump_time_ = -mipsolver.timer_.read();
   // This is the (presolved) model being solved
   const HighsLp* model = this->mipsolver.model_;
   const HighsLogOptions& log_options = mipsolver.options_mip_->log_options;
@@ -34,6 +35,9 @@ HighsModelStatus HighsMipSolverData::feasibilityJump() {
       /* verbosity = */ verbosity,
       /* equalityTolerance = */ epsilon,
       /* violationTolerance = */ feastol);
+
+  bool have_solution = this->mipsolver.solution_.size() > 0;
+  if (have_solution) col_value = this->mipsolver.solution_;
 
   for (HighsInt col = 0; col < model->num_col_; ++col) {
     double lower = model->col_lower_[col];
@@ -66,13 +70,23 @@ HighsModelStatus HighsMipSolverData::feasibilityJump() {
     solver.addVar(fjVarType, lower, upper,
                   sense_multiplier * model->col_cost_[col]);
 
-    double initial_assignment = 0.0;
-    if (std::isfinite(lower)) {
-      initial_assignment = lower;
-    } else if (std::isfinite(upper)) {
-      initial_assignment = upper;
+    if (have_solution) {
+      if (col_value[col] < lower || col_value[col] > upper) {
+        highsLogUser(log_options, HighsLogType::kError,
+                     "HighsMipSolverData::feasibilityJump() incumbent solution "
+                     "for column %d is %g, not in [%g, %g]\n",
+                     int(col), col_value[col], lower, upper);
+        return HighsModelStatus::kSolveError;
+      }
+    } else {
+      double initial_assignment = 0.0;
+      if (std::isfinite(lower)) {
+        initial_assignment = lower;
+      } else if (std::isfinite(upper)) {
+        initial_assignment = upper;
+      }
+      col_value[col] = initial_assignment;
     }
-    col_value[col] = initial_assignment;
   }
 
   HighsSparseMatrix a_matrix;
@@ -129,6 +143,8 @@ HighsModelStatus HighsMipSolverData::feasibilityJump() {
     // use trySolution rather than addIncumbent for an explicit check.
     trySolution(col_value, kSolutionSourceFeasibilityJump);
   }
+  this->feasibility_jump_time_ += mipsolver.timer_.read();
+  this->feasibility_jump_objective_ = objective_function_value;
   return HighsModelStatus::kNotset;
 #endif
 }

@@ -81,6 +81,9 @@ std::string HighsMipSolverData::solutionSourceToString(
   } else if (solution_source == kSolutionSourceUserSolution) {
     if (code) return "X";
     return "User solution";
+  } else if (solution_source == kSolutionSourceInes) {
+    if (code) return "i";
+    return "Ines";
   } else if (solution_source == kSolutionSourceCleanup) {
     if (code) return " ";
     return "";
@@ -687,6 +690,11 @@ void HighsMipSolverData::init() {
   knapsack_capacity_ = 0;
   knapsack_integral_scale_ = 0;
   mip_problem_data_.clear();
+  ines_time_ = 0;
+  ines_objective_ = 0;
+  ines_zero_solution_ = false;
+  feasibility_jump_time_ = 0;
+  feasibility_jump_objective_ = 0;
 
   if (mipsolver.options_mip_->mip_report_level == 0)
     dispfreq = 0;
@@ -2728,6 +2736,13 @@ bool HighsMipSolverData::mipIsInes(const bool silent) {
       this->mip_problem_data_.ines_mip = lp;
   }
   return true;
+}
+
+bool HighsMipSolverData::mipIsInesLookup() const {
+  HighsInt num_mip = static_cast<HighsInt>(mip_problem_data_.record.size());
+  if (num_mip == 0) return false;
+  return mip_problem_data_.record[num_mip - 1].type ==
+         HighsMipProblemType::kInes;
 }
 
 void HighsMipSolverData::mipIsOther() {

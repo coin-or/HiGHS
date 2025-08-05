@@ -239,13 +239,15 @@ void HighsSparseMatrix::addVec(const HighsInt num_nz, const HighsInt* index,
 void HighsSparseMatrix::scaleCols(const double* scale) {
   if (this->isColwise()) {
     for (HighsInt iCol = 0; iCol < this->num_col_; iCol++) {
-      for (HighsInt iEl = this->start_[iCol]; iCol < this->start_[iCol+1]; iEl++)
-	this->value_[iEl] *= scale[iCol];
+      for (HighsInt iEl = this->start_[iCol]; iCol < this->start_[iCol + 1];
+           iEl++)
+        this->value_[iEl] *= scale[iCol];
     }
   } else {
     for (HighsInt iRow = 0; iRow < this->num_row_; iRow++) {
-      for (HighsInt iEl = this->start_[iRow]; iRow < this->start_[iRow+1]; iEl++)
-	this->value_[iEl] *= scale[this->index_[iEl]];
+      for (HighsInt iEl = this->start_[iRow]; iRow < this->start_[iRow + 1];
+           iEl++)
+        this->value_[iEl] *= scale[this->index_[iEl]];
     }
   }
 }
@@ -253,13 +255,15 @@ void HighsSparseMatrix::scaleCols(const double* scale) {
 void HighsSparseMatrix::scaleRows(const double* scale) {
   if (this->isColwise()) {
     for (HighsInt iCol = 0; iCol < this->num_col_; iCol++) {
-      for (HighsInt iEl = this->start_[iCol]; iCol < this->start_[iCol+1]; iEl++)
-	this->value_[iEl] *= scale[this->index_[iEl]];
+      for (HighsInt iEl = this->start_[iCol]; iCol < this->start_[iCol + 1];
+           iEl++)
+        this->value_[iEl] *= scale[this->index_[iEl]];
     }
   } else {
     for (HighsInt iRow = 0; iRow < this->num_row_; iRow++) {
-      for (HighsInt iEl = this->start_[iRow]; iRow < this->start_[iRow+1]; iEl++)
-	this->value_[iEl] *= scale[iRow];
+      for (HighsInt iEl = this->start_[iRow]; iRow < this->start_[iRow + 1];
+           iEl++)
+        this->value_[iEl] *= scale[iRow];
     }
   }
 }
@@ -553,17 +557,20 @@ void HighsSparseMatrix::addRows(const HighsSparseMatrix new_rows,
   this->num_row_ += num_new_row;
 }
 
-void HighsSparseMatrix::getCol(const HighsInt iCol, HighsSparseMatrix& col) const {
+void HighsSparseMatrix::getCol(const HighsInt iCol,
+                               HighsSparseMatrix& col) const {
+  col.format_ = MatrixFormat::kColwise;
   col.num_row_ = this->num_row_;
   col.num_col_ = 1;
   col.start_.resize(2);
   col.index_.resize(this->num_row_);
   col.value_.resize(this->num_row_);
   this->getCol(iCol, col.start_[1], col.index_.data(), col.value_.data());
-  
 }
 
-void HighsSparseMatrix::getRow(const HighsInt iRow, HighsSparseMatrix& row) const {
+void HighsSparseMatrix::getRow(const HighsInt iRow,
+                               HighsSparseMatrix& row) const {
+  row.format_ = MatrixFormat::kRowwise;
   row.num_row_ = 1;
   row.num_col_ = this->num_col_;
   row.start_.resize(2);

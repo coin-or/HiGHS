@@ -1864,7 +1864,18 @@ HighsStatus HighsPrimalHeuristics::solveMipKnapsack() {
   return solveMipKnapsackReturn(HighsStatus::kOk);
 }
 
+void sortOrder(HighsSparseMatrix& AMatrix, vector<double>& rVector,
+               HighsInt nVariables, vector<HighsInt>& indices,
+               HighsInt sortNumber, vector<double>& bVector, HighsInt nRows);
+void simpleOnlineAlgo(vector<HighsInt>& solution, HighsSparseMatrix& AMatrix,
+                      vector<double> bVector, vector<double> rVector,
+                      HighsInt nRows, HighsInt nVariables,
+                      HighsInt checkConstraints, HighsInt minOrMax,
+                      vector<HighsInt>& order, HighsInt checkR,
+                      HighsInt goingBack);
+
 HighsStatus HighsPrimalHeuristics::mipHeuristicInes() {
+  mipsolver.mipdata_->ines_time_ = -mipsolver.timer_.read();
   std::vector<double>& solution = mipsolver.solution_;
   const HighsLp& lp = *mipsolver.model_;
   HighsInt num_col = lp.num_col_;
@@ -1879,12 +1890,6 @@ HighsStatus HighsPrimalHeuristics::mipHeuristicInes() {
   ines_matrix.format_ = MatrixFormat::kRowwise;
   ines_matrix.num_col_ = num_col;
   HighsSparseMatrix row;
-  row.format_ = MatrixFormat::kRowwise;
-  row.num_row_ = 1;
-  row.num_col_ = num_col;
-  row.start_.resize(2);
-  row.index_.resize(num_col);
-  row.value_.resize(num_col);
   for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) {
     double lower = lp.row_lower_[iRow];
     double upper = lp.row_upper_[iRow];
@@ -1899,8 +1904,7 @@ HighsStatus HighsPrimalHeuristics::mipHeuristicInes() {
       return HighsStatus::kError;
     }
     HighsInt num_nz;
-    mip_matrix.getRow(iRow, row.start_[1], row.index_.data(),
-                      row.value_.data());
+    mip_matrix.getRow(iRow, row);
     if (upper < kHighsInf) {
       // Add the row
       ines_matrix.addRows(row);
@@ -1909,29 +1913,48 @@ HighsStatus HighsPrimalHeuristics::mipHeuristicInes() {
     }
     if (lower > -kHighsInf) {
       // Add the row as a negation
-      for (HighsInt iEl = 0; iEl < row.start_[1]; iEl++) row.value_[iEl] *= -1;
+      row.scaleRow(0, -1);
       ines_matrix.addRows(row);
       rhs.push_back(-lower);
       num_row++;
     }
   }
   vector<HighsInt> integer_solution(num_col);
-  HighsInt algoNumber = 0;
   vector<HighsInt> indices(num_col);
+  // Check that costs are still attractive despite contribution from
+  // pseudo-duals
   HighsInt checkR = 0;
+  // Bool controlling the back-tracking algorithm
   HighsInt goingBack = 0;
+  // Choice of ordering merit
+  HighsInt sortFunction = 1;
+  // Determines whether feasibility is checked when considering
+  // setting a column value to 1
+  HighsInt algoNumber = 5;
+  sortOrder(ines_matrix, cost, num_col, indices, sortFunction, rhs, num_row);
 
   simpleOnlineAlgo(integer_solution, ines_matrix, rhs, cost, num_row, num_col,
                    algoNumber, min_max, indices, checkR, goingBack);
 
   double ines_objective = lp.offset_;
   solution.resize(lp.num_col_);
+  bool all_zero_solution = true;
   for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
+    if (integer_solution[iCol]) all_zero_solution = false;
     solution[iCol] = double(integer_solution[iCol]);
     ines_objective += solution[iCol] * lp.col_cost_[iCol];
   }
-  printf("simpleOnlineAlgo:: completed with objective %g!\n", ines_objective);
-  return HighsStatus::kError;
+  /*
+  printf("simpleOnlineAlgo:: completed with %szero solution and objective = %g +
+  %g = %g\n", all_zero_solution ? "all-" : "non-", lp.offset_,
+  ines_objective-lp.offset_, ines_objective);
+  */
+  mipsolver.mipdata_->addIncumbent(solution, ines_objective,
+                                   kSolutionSourceInes);
+  mipsolver.mipdata_->ines_time_ += mipsolver.timer_.read();
+  mipsolver.mipdata_->ines_objective_ = ines_objective;
+  mipsolver.mipdata_->ines_zero_solution_ = all_zero_solution;
+  return HighsStatus::kOk;
 }
 
 void dotProduct(const vector<HighsInt>& index, const vector<double>& value,
@@ -1963,11 +1986,176 @@ void checkProblemFeasability(HighsInt& constraintsNotRespected, HighsInt end,
                              vector<HighsInt>& solution,
                              vector<HighsInt>& order);
 
-void HighsPrimalHeuristics::simpleOnlineAlgo(
-    vector<HighsInt>& solution, HighsSparseMatrix& AMatrix,
-    vector<double> bVector, vector<double> rVector, HighsInt nRows,
-    HighsInt nVariables, HighsInt checkConstraints, HighsInt minOrMax,
-    vector<HighsInt>& order, HighsInt checkR, HighsInt goingBack) {
+/**
+ * @brief sorts the order in which the xi's will be considered according to a
+ * sortNumber sortNumber = 1 : sorted w.r.t ri/norm_1(a_i) descending
+ *
+ */
+void sortOrder(HighsSparseMatrix& AMatrix, vector<double>& rVector,
+               HighsInt nVariables, vector<HighsInt>& indices,
+               HighsInt sortNumber, vector<double>& bVector, HighsInt nRows) {
+  vector<double> ROverA(nVariables, 0);
+  vector<double> Num(nVariables, 0);
+  AMatrix.ensureColwise();
+
+  if (sortNumber == 1) {
+    for (HighsInt t = 0; t < nVariables; t++) {  // ri / norm 1 of column i of A
+      for (HighsInt i = AMatrix.start_[t]; i < AMatrix.start_[t + 1]; i++) {
+        if (AMatrix.value_[i] > 0) {
+          ROverA[t] += AMatrix.value_[i];
+        }
+      }
+      ROverA[t] = -1 * rVector[t] / (1 + ROverA[t]);
+    }
+  } else if (sortNumber == 2) {  // take ri/euclidian norm of column i of A
+    for (HighsInt t = 0; t < nVariables; t++) {
+      for (HighsInt i = AMatrix.start_[t]; i < AMatrix.start_[t + 1]; i++) {
+        if (AMatrix.value_[i] > 0) {
+          ROverA[t] += pow(AMatrix.value_[i], 2);
+        }
+      }
+      ROverA[t] = -1 * rVector[t] / sqrt(1 + ROverA[t]);
+    }
+  } else if (sortNumber == 3) {  // take ri/max(aij)j
+    for (HighsInt t = 0; t < nVariables; t++) {
+      HighsInt max = 0;  // all A entries are >=0
+      for (HighsInt i = AMatrix.start_[t]; i < AMatrix.start_[t + 1]; i++) {
+        if (AMatrix.value_[i] > max) {
+          max = AMatrix.value_[i];
+        }
+      }
+      ROverA[t] = -1 * rVector[t] / max;
+    }
+  }
+
+  else if (sortNumber == 4) {  // sort by ri desc
+    for (HighsInt t = 0; t < nVariables; t++) {
+      ROverA[t] = -1 * rVector[t];
+    }
+  }
+
+  else if (sortNumber == 5) {  // for inputs that can have non negative values
+    for (HighsInt t = 0; t < nVariables;
+         t++) {  // ri * abs (sum of ais<0) /sum of ai>0
+      for (HighsInt i = AMatrix.start_[t]; i < AMatrix.start_[t + 1]; i++) {
+        if (AMatrix.value_[i] > 0) {
+          ROverA[t] += AMatrix.value_[i];
+        } else {
+          Num[t] += AMatrix.value_[i];
+        }
+      }
+      ROverA[t] = rVector[t] * Num[t] / ROverA[t];
+    }
+  }
+
+  else if (sortNumber == 6) {  // for inputs that can have non negative values
+    for (HighsInt t = 0; t < nVariables;
+         t++) {  // ri * abs (sum of ais<0) /sum of ai>0
+      for (HighsInt i = AMatrix.start_[t]; i < AMatrix.start_[t + 1]; i++) {
+        if (AMatrix.value_[i] > 0) {
+          ROverA[t] += AMatrix.value_[i];
+        } else {
+          ROverA[t] -= AMatrix.value_[i];
+        }
+      }
+      ROverA[t] = rVector[t] / ROverA[t];
+    }
+  }
+
+  else if (sortNumber == 7) {
+    // sorting manually
+    // at each step t, which remaining xi has greatest ri-aipt
+    // corresponding i becomes t
+
+    vector<double> p(nRows, 0);
+
+    // all indexes at beginning
+    vector<HighsInt> oldIndexes(nVariables);
+    iota(oldIndexes.begin(), oldIndexes.end(), 0);
+
+    // step size
+    double gamma = 1 / sqrt(nVariables);
+    for (HighsInt t = 0; t < nVariables; t++) {
+      vector<double> RMinusAP;
+      // cout<<" For iteration t= "<<t<<" has values ";
+
+      // for each remaining index, compute ri-<ai,pt>
+      for (auto index : oldIndexes) {
+        double dotResult;
+        HighsInt nonZero = AMatrix.start_[index + 1] - AMatrix.start_[index];
+        vector<HighsInt> indexA(nonZero);
+        vector<double> value(nonZero);
+        AMatrix.getCol(index, nonZero, indexA.data(), value.data());
+        dotProduct(indexA, value, p, nonZero, dotResult);
+
+        double entry = rVector[index] - dotResult;
+        RMinusAP.push_back(entry);
+        // cout<<" "<<index<<" : "<<entry;
+      }
+      // cout<<endl;
+
+      // compute max index of ri-<ai,pt>
+      int maxIndex = distance(RMinusAP.begin(),
+                              max_element(RMinusAP.begin(), RMinusAP.end()));
+      auto maxEl = max_element(RMinusAP.begin(), RMinusAP.end());
+      HighsInt chosenIndex = oldIndexes[maxIndex];
+      indices[t] = chosenIndex;
+
+      // remove said index from future iterations
+      oldIndexes.erase(oldIndexes.begin() + maxIndex);
+
+      // update p_{t+1}
+      HighsInt nonZero =
+          AMatrix.start_[chosenIndex + 1] - AMatrix.start_[chosenIndex];
+      vector<HighsInt> indexV(nonZero);
+      vector<double> value(nonZero);
+      AMatrix.getCol(chosenIndex, nonZero, indexV.data(), value.data());
+      HighsInt xt = (*maxEl > 0);
+      for (HighsInt i = 0; i < nonZero; i++) {
+        p[indexV[i]] += gamma * value[i] * xt;
+      }
+      for (HighsInt i = 0; i < nRows; i++) {
+        p[i] -= 1.0 / nVariables * gamma * bVector[i];
+        p[i] = max(p[i], 0.0);
+      }
+    }
+
+    return;
+  } else if (sortNumber == 8) {  // ri ascending (for going back)
+    for (HighsInt t = 0; t < nVariables; t++) {
+      ROverA[t] = -1 * rVector[t];
+    }
+    iota(indices.begin(), indices.end(), 0);
+    sort(indices.begin(), indices.end(), [&ROverA](int a, int b) {
+      return ROverA[a] < ROverA[b];  // asc
+    });
+    return;
+  } else if (sortNumber == 9) {
+    for (HighsInt t = 0; t < nVariables; t++) {  // norm 1 of column i of A desc
+      for (HighsInt i = AMatrix.start_[t]; i < AMatrix.start_[t + 1]; i++) {
+        if (AMatrix.value_[i] > 0) {
+          ROverA[t] += AMatrix.value_[i];
+        }
+      }
+    }
+    iota(indices.begin(), indices.end(), 0);
+    sort(indices.begin(), indices.end(), [&ROverA](int a, int b) {
+      return ROverA[a] > ROverA[b];  // desc
+    });
+  }
+
+  iota(indices.begin(), indices.end(), 0);
+  sort(indices.begin(), indices.end(), [&ROverA](int a, int b) {
+    return ROverA[a] > ROverA[b];  // desc
+  });
+}
+
+void simpleOnlineAlgo(vector<HighsInt>& solution, HighsSparseMatrix& AMatrix,
+                      vector<double> bVector, vector<double> rVector,
+                      HighsInt nRows, HighsInt nVariables,
+                      HighsInt checkConstraints, HighsInt minOrMax,
+                      vector<HighsInt>& order, HighsInt checkR,
+                      HighsInt goingBack) {
   // initialise p1
   vector<double> p(nRows, 0);
 

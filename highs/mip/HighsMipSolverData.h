@@ -85,6 +85,7 @@ enum MipSolutionSource : int {
   kSolutionSourceTrivialL,
   kSolutionSourceTrivialU,
   kSolutionSourceTrivialP,
+  kSolutionSourceInes,
   kSolutionSourceCleanup,
   kSolutionSourceCount
 };
@@ -181,6 +182,11 @@ struct HighsMipSolverData {
   HighsInt knapsack_integral_scale_;
 
   HighsMipProblemData mip_problem_data_;
+  double ines_time_;
+  double ines_objective_;
+  bool ines_zero_solution_;
+  double feasibility_jump_time_;
+  double feasibility_jump_objective_;
 
   HighsMipSolverData(HighsMipSolver& mipsolver)
       : mipsolver(mipsolver),
@@ -331,6 +337,7 @@ struct HighsMipSolverData {
       const double mipsolver_objective_value,
       const userMipSolutionCallbackOrigin user_solution_callback_origin);
   bool mipIsKnapsack(const bool silent = false);
+  bool mipIsInesLookup() const;
   bool mipIsInes(const bool silent = false);
   void mipIsOther();
 };

@@ -75,12 +75,14 @@ class HighsPrimalHeuristics {
 
   HighsStatus mipHeuristicInes();
 
+  /*
   void simpleOnlineAlgo(vector<HighsInt>& solution, HighsSparseMatrix& AMatrix,
                         vector<double> bVector, vector<double> rVector,
                         HighsInt nRows, HighsInt nVariables,
                         HighsInt checkConstraints, HighsInt minOrMax,
                         vector<HighsInt>& order, HighsInt checkR,
                         HighsInt goingBack);
+  */
 };
 
 #endif
