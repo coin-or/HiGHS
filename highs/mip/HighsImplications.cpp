@@ -295,6 +295,123 @@ std::pair<HighsInt, HighsImplications::VarBound> HighsImplications::getBestVlb(
   return bestVlb;
 }
 
+std::pair<HighsInt, HighsImplications::VarBound> HighsImplications::getBestVub(
+    const HighsInt col, const HighsSolution& lpSolution,
+    const HighsSparseVectorSum& vectorsum, const double bestSimpleLb,
+    const double coef, double& bestUb) const {
+  std::pair<HighsInt, VarBound> bestVub =
+      std::make_pair(-1, VarBound{0.0, kHighsInf});
+  double minbestUb = bestUb;
+  double bestUbDist = kHighsInf;
+
+  auto isVubBetter = [&](double ubDist, double minVubVal) {
+    if (ubDist < bestUbDist - mipsolver.mipdata_->feastol) return true;
+    if (minVubVal < minbestUb - mipsolver.mipdata_->feastol) return true;
+    return false;
+  };
+
+  double scale = mipsolver.mipdata_->domain.col_upper_[col] -
+                 mipsolver.mipdata_->domain.col_lower_[col];
+  if (scale == kHighsInf)
+    scale = 1.0;
+  else
+    scale = 1.0 / scale;
+
+  vubs[col].for_each([&](HighsInt vubCol, const VarBound& vub) {
+    if (vub.coef == kHighsInf) return;
+    if (abs(vub.coef) >= 1e+6) return;
+    if (bestSimpleLb < vub.constant) return;
+    if (mipsolver.mipdata_->domain.isFixed(vubCol)) return;
+    assert(mipsolver.mipdata_->domain.isBinary(vubCol));
+    const double sign = coef >= 0 ? 1 : -1;
+    double val = sign * ((coef * vub.coef) + vectorsum.getValue(vubCol));
+    if (val < 0 || val > kHighsInf) return;
+    val = sign *
+          ((coef * (bestSimpleLb - vub.constant)) + vectorsum.getValue(vubCol));
+    if (val < 0) return;
+    double vubval = lpSolution.col_value[vubCol] * vub.coef + vub.constant;
+    double ubDist = std::max(0.0, vubval - lpSolution.col_value[col]);
+    double yDist = mipsolver.mipdata_->feastol +
+                   (vub.coef > 0 ? 1 - lpSolution.col_value[vubCol]
+                                 : lpSolution.col_value[vubCol]);
+    double norm2 = 1.0 + vub.coef * vub.coef;
+    if (ubDist * ubDist > yDist * yDist * norm2) return;
+
+    assert(vubCol >= 0 && vubCol < mipsolver.numCol());
+    ubDist *= scale;
+    if (ubDist <= bestUbDist) {
+      double minvubval = vub.minValue();
+      if (isVubBetter(ubDist, minvubval)) {
+        bestUb = vubval;
+        minbestUb = minvubval;
+        bestVub = std::make_pair(vubCol, vub);
+        bestUbDist = ubDist;
+      }
+    }
+  });
+
+  return bestVub;
+}
+
+std::pair<HighsInt, HighsImplications::VarBound> HighsImplications::getBestVlb(
+    const HighsInt col, const HighsSolution& lpSolution,
+    const HighsSparseVectorSum& vectorsum, const double bestSimpleUb,
+    const double coef, double& bestLb) const {
+  std::pair<HighsInt, VarBound> bestVlb =
+      std::make_pair(-1, VarBound{0.0, -kHighsInf});
+  double maxbestlb = bestLb;
+  double bestLbDist = kHighsInf;
+
+  auto isVlbBetter = [&](double lbDist, double maxVlbVal) {
+    if (lbDist < bestLbDist - mipsolver.mipdata_->feastol) return true;
+    if (maxVlbVal > maxbestlb + mipsolver.mipdata_->feastol) return true;
+    return false;
+  };
+
+  double scale = mipsolver.mipdata_->domain.col_upper_[col] -
+                 mipsolver.mipdata_->domain.col_lower_[col];
+  if (scale == kHighsInf)
+    scale = 1.0;
+  else
+    scale = 1.0 / scale;
+
+  vlbs[col].for_each([&](HighsInt vlbCol, const VarBound& vlb) {
+    if (vlb.coef == -kHighsInf) return;
+    if (abs(vlb.coef) >= 1e+6) return;
+    if (bestSimpleUb > vlb.constant) return;
+    if (mipsolver.mipdata_->domain.isFixed(vlbCol)) return;
+    assert(mipsolver.mipdata_->domain.isBinary(vlbCol));
+    assert(vlbCol >= 0 && vlbCol < mipsolver.numCol());
+    const double sign = coef >= 0 ? 1 : -1;
+    double val = sign * ((coef * vlb.coef) + vectorsum.getValue(vlbCol));
+    if (val > 0 || -val > kHighsInf) return;
+    val = sign *
+          ((coef * (bestSimpleUb - vlb.constant)) + vectorsum.getValue(vlbCol));
+    if (val > 0) return;
+    double vlbval = lpSolution.col_value[vlbCol] * vlb.coef + vlb.constant;
+    double lbDist = std::max(0.0, lpSolution.col_value[col] - vlbval);
+    double yDist = mipsolver.mipdata_->feastol +
+                   (vlb.coef > 0 ? lpSolution.col_value[vlbCol]
+                                 : 1 - lpSolution.col_value[vlbCol]);
+    double norm2 = 1.0 + vlb.coef * vlb.coef;
+    if (lbDist * lbDist > yDist * yDist * norm2) return;
+
+    lbDist *= scale;
+    if (lbDist <= bestLbDist) {
+      double maxvlbval = vlb.maxValue();
+
+      if (isVlbBetter(lbDist, maxvlbval)) {
+        bestLb = vlbval;
+        maxbestlb = maxvlbval;
+        bestVlb = std::make_pair(vlbCol, vlb);
+        bestLbDist = lbDist;
+      }
+    }
+  });
+
+  return bestVlb;
+}
+
 bool HighsImplications::runProbing(HighsInt col, HighsInt& numReductions) {
   HighsDomain& globaldomain = mipsolver.mipdata_->domain;
   if (globaldomain.isBinary(col) && !implicationsCached(col, 1) &&

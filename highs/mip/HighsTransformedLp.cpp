@@ -726,36 +726,6 @@ bool HighsTransformedLp::transformSNFRelaxation(
       return false;
     }
 
-    // the code below uses the difference between the column upper and lower
-    // bounds as the upper bound for the slack from the variable upper bound
-    // constraint (upper[j] = ub - lb) and thus assumes that the variable upper
-    // bound constraints are tight. this assumption may not be satisfied when
-    // new bound changes were derived during cut generation and, therefore, we
-    // tighten the best variable upper bound.
-    if (bestVub[col].first != -1 &&
-        bestVub[col].second.maxValue() > ub + mip.mipdata_->feastol) {
-      bool redundant = false;
-      bool infeasible = false;
-      mip.mipdata_->implications.cleanupVub(col, bestVub[col].first,
-                                            bestVub[col].second, ub, redundant,
-                                            infeasible, false);
-    }
-
-    // the code below uses the difference between the column upper and lower
-    // bounds as the upper bound for the slack from the variable lower bound
-    // constraint (upper[j] = ub - lb) and thus assumes that the variable lower
-    // bound constraints are tight. this assumption may not be satisfied when
-    // new bound changes were derived during cut generation and, therefore, we
-    // tighten the best variable lower bound.
-    if (bestVlb[col].first != -1 &&
-        bestVlb[col].second.minValue() < lb - mip.mipdata_->feastol) {
-      bool redundant = false;
-      bool infeasible = false;
-      mip.mipdata_->implications.cleanupVlb(col, bestVlb[col].first,
-                                            bestVlb[col].second, lb, redundant,
-                                            infeasible, false);
-    }
-
     // Transform entry into the SNFR
     if (colIsBinary(col, lb, ub)) {
       // Binary columns can be added directly to the SNFR
@@ -768,45 +738,39 @@ bool HighsTransformedLp::transformSNFRelaxation(
       }
     } else {
       // Decide whether to use {simple, variable} {lower, upper} bound
-      if (lbDist[col] < ubDist[col] - mip.mipdata_->feastol) {
-        if (!checkValidityVB(bestVlb[col].first, bestVlb[col].second, vals[i],
-                             bestVlb[col].first == -1
-                                 ? 0
-                                 : vectorsum.getValue(bestVlb[col].first),
-                             lb, ub, false)) {
-          boundTypes[col] = BoundType::kSimpleLb;
-        } else if (simpleLbDist[col] > lbDist[col] + mip.mipdata_->feastol) {
+      // TODO: Do we still need to call cleanupVUb????
+      double bestLb = lb;
+      double bestUb = ub;
+      std::pair<HighsInt, HighsImplications::VarBound> vlb = std::make_pair(-1, HighsImplications::VarBound());
+      std::pair<HighsInt, HighsImplications::VarBound> vub = std::make_pair(-1, HighsImplications::VarBound());
+      if (col < slackOffset) {
+        vlb = mip.mipdata_->implications.getBestVlb(col, lpSolution, vectorsum, ub, vals[i], bestLb);
+        vub = mip.mipdata_->implications.getBestVub(col, lpSolution, vectorsum, lb, vals[i], bestUb);
+      }
+      double localLbDist = lpSolution.col_value[col] - bestLb;
+      if (localLbDist <= mip.mipdata_->feastol) localLbDist = 0.0;
+      double localUbDist = bestUb - lpSolution.col_value[col];
+      if (localUbDist <= mip.mipdata_->feastol) localUbDist = 0.0;
+      if (localLbDist < localUbDist - mip.mipdata_->feastol) {
+        if (vlb.first != -1) {
           boundTypes[col] = BoundType::kVariableLb;
-        } else
+        } else {
           boundTypes[col] = BoundType::kSimpleLb;
-      } else if (ubDist[col] < lbDist[col] - mip.mipdata_->feastol) {
-        if (!checkValidityVB(bestVub[col].first, bestVub[col].second, vals[i],
-                             bestVub[col].first == -1
-                                 ? 0
-                                 : vectorsum.getValue(bestVub[col].first),
-                             lb, ub, true)) {
-          boundTypes[col] = BoundType::kSimpleUb;
-        } else if (simpleUbDist[col] > ubDist[col] + mip.mipdata_->feastol) {
+        }
+      } else if (localUbDist < localLbDist - mip.mipdata_->feastol) {
+        if (vub.first != -1) {
           boundTypes[col] = BoundType::kVariableUb;
         } else {
           boundTypes[col] = BoundType::kSimpleUb;
         }
       } else if (vals[i] > 0) {
-        if (checkValidityVB(bestVlb[col].first, bestVlb[col].second, vals[i],
-                            bestVlb[col].first == -1
-                                ? 0
-                                : vectorsum.getValue(bestVlb[col].first),
-                            lb, ub, false)) {
+        if (vlb.first != -1) {
           boundTypes[col] = BoundType::kVariableLb;
         } else {
           boundTypes[col] = BoundType::kSimpleLb;
         }
       } else {
-        if (checkValidityVB(bestVub[col].first, bestVub[col].second, vals[i],
-                            bestVub[col].first == -1
-                                ? 0
-                                : vectorsum.getValue(bestVub[col].first),
-                            lb, ub, true)) {
+        if (vub.first != -1) {
           boundTypes[col] = BoundType::kVariableUb;
         } else {
           boundTypes[col] = BoundType::kSimpleUb;
@@ -863,17 +827,17 @@ bool HighsTransformedLp::transformSNFRelaxation(
           // (2) y'_j = a_j(y_j - d_j) + c_j * x_j,
           // 0 <= y'_j <= (a_j l'_j + c_j)x_j
           // rhs -= a_j * d_j
-          vbcol = bestVlb[col].first;
+          vbcol = vlb.first;
           substsolval =
               static_cast<double>(vals[i] * (HighsCDouble(getLpSolution(col)) -
-                                             bestVlb[col].second.constant) +
+                                             vlb.second.constant) +
                                   (HighsCDouble(lpSolution.col_value[vbcol]) *
                                    vectorsum.getValue(vbcol)));
           vbcoef = static_cast<double>(HighsCDouble(vals[i]) *
-                                           bestVlb[col].second.coef +
+                                           vlb.second.coef +
                                        vectorsum.getValue(vbcol));
           aggrconstant = static_cast<double>(HighsCDouble(vals[i]) *
-                                             bestVlb[col].second.constant);
+                                             vlb.second.constant);
           if (vals[i] >= 0) {
             addSNFRentry(vbcol, col, lpSolution.col_value[vbcol], -substsolval,
                          -1, -vbcoef, aggrconstant, -vectorsum.getValue(vbcol),
@@ -894,17 +858,17 @@ bool HighsTransformedLp::transformSNFRelaxation(
           // (2) y'_j = -(a_j(y_j - d_j) + c_j * x_j),
           // 0 <= y'_j <= -(a_j u'_j + c_j)x_j
           // rhs -= a_j * d_j
-          vbcol = bestVub[col].first;
+          vbcol = vub.first;
           substsolval =
               static_cast<double>(vals[i] * (HighsCDouble(getLpSolution(col)) -
-                                             bestVub[col].second.constant) +
+                                             vub.second.constant) +
                                   (HighsCDouble(lpSolution.col_value[vbcol]) *
                                    vectorsum.getValue(vbcol)));
           vbcoef = static_cast<double>(HighsCDouble(vals[i]) *
-                                           bestVub[col].second.coef +
+                                           vub.second.coef +
                                        vectorsum.getValue(vbcol));
           aggrconstant = static_cast<double>(HighsCDouble(vals[i]) *
-                                             bestVub[col].second.constant);
+                                             vub.second.constant);
           if (vals[i] >= 0) {
             addSNFRentry(vbcol, col, lpSolution.col_value[vbcol], substsolval,
                          1, vbcoef, -aggrconstant, vectorsum.getValue(vbcol),
