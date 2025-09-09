@@ -19,6 +19,8 @@ jobs:
       - name: Install GKlib via Conda
         run: |
           conda install -y -c conda-forge gklib
+          dir "%CONDA_PREFIX%\Library\share\cmake\GKlib"
+          dir "%CONDA_PREFIX%\Library\lib\cmake\GKlib
 
       # - name: Check installs 
       #   working-directory: ${{runner.workspace}}
@@ -53,7 +55,8 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         run: |
           cmake $GITHUB_WORKSPACE \
-          -DHIPO=ON
+          -DHIPO=ON \
+          -DCMAKE_FIND_LIBRARY_PREFIXES=";lib"
 
       - name: Build 
         shell: bash
