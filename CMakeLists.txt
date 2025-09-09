@@ -189,9 +189,9 @@ endif()
 
 # HiPO deps 
 if(HIPO)
-  if (WIN32)
-    set(BUILD_SHARED_LIBS ON)
-  endif()
+  # if (WIN32)
+  #   set(BUILD_SHARED_LIBS ON)
+  # endif()
   # find_package(METIS REQUIRED)
   # find_package(GKlib REQUIRED)
   # does not work with outdated CMake 

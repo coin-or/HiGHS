@@ -192,7 +192,7 @@ else()
     elseif(WIN32)
         target_link_libraries(highs OpenBLAS::OpenBLAS)
         target_link_libraries(highs metis)
-        target_link_libraries(highs gklib)
+        # target_link_libraries(highs gklib)
     else() 
         # LINUX
         if(BLAS_LIB)
@@ -213,8 +213,8 @@ else()
       target_link_libraries(highs "${METIS_LIB}")
 
       # GKlib
-      target_include_directories(highs PRIVATE "${GKLIB_PATH}")
-      target_link_libraries(highs "${GKLIB_LIB}")
+      # target_include_directories(highs PRIVATE "${GKLIB_PATH}")
+      # target_link_libraries(highs "${GKLIB_LIB}")
     endif()
 
   endif()
