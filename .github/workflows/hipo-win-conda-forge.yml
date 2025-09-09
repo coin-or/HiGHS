@@ -45,13 +45,13 @@ jobs:
       # - name: Create build dir
       #   run: cmake -E make_directory ${{runner.workspace}}/build
 
-      # - name: Configure cmake
-      #   shell: bash
-      #   working-directory: ${{runner.workspace}}/build
-      #   run: |
-      #     cmake $GITHUB_WORKSPACE \
-      #     -DHIPO=ON \
-      #     -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+      - name: Configure cmake
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          cmake $GITHUB_WORKSPACE \
+          -DHIPO=ON \
+          -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
 
       # - name: Build 
       #   shell: bash
