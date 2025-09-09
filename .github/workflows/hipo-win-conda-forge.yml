@@ -24,7 +24,7 @@ jobs:
       - name: LS
         shell: bash
         run: |
-          ls C:\Users\runneradmin\conda_pkgs_dir
+          ls C:\\Users\\runneradmin\\conda_pkgs_dir
 
       # - name: Check installs 
       #   working-directory: ${{runner.workspace}}
