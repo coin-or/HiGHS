@@ -36,7 +36,7 @@ jobs:
       - name: Install GKLIB
         run: |
           cd GKlib
-          cmake -S. -B build -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/installs
+          cmake -S. -B build -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/installs -DCMAKE_C_FLAGS="-I .\include\win32"
           cmake --build build --parallel --config Release
           cmake --install --build
 
