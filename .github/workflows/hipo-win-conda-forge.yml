@@ -44,8 +44,9 @@ jobs:
           conda install -y -c conda-forge openblas
 
       - name: Create build dir
+        working-directory: ${{runner.workspace}}
         shell: bash
-        run: cmake -E make_directory ${{runner.workspace}}/build
+        run: mkdir build
 
       - name: Configure cmake
         shell: bash
