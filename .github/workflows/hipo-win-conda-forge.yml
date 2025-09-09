@@ -39,36 +39,37 @@ jobs:
         run: |
           conda install -y -c conda-forge metis
 
-      # - name: Install OpenBLAS
-      #   run: vcpkg install openblas
+      - name: Install OpenBLAS
+        run: |
+          conda install -y -c conda-forge openblas
 
-      # - name: Create build dir
-      #   run: cmake -E make_directory ${{runner.workspace}}/build
+      - name: Create build dir
+        shell: bash
+        run: cmake -E make_directory ${{runner.workspace}}/build
 
       - name: Configure cmake
         shell: bash
         working-directory: ${{runner.workspace}}/build
         run: |
           cmake $GITHUB_WORKSPACE \
-          -DHIPO=ON \
-          -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DHIPO=ON
 
-      # - name: Build 
-      #   shell: bash
-      #   working-directory: ${{runner.workspace}}/build
-      #   run: |
-      #     cmake --build . --parallel --config Release
+      - name: Build 
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          cmake --build . --parallel --config Release
 
-      # - name: Test executable 
-      #   shell: bash
-      #   working-directory: ${{runner.workspace}}/build
-      #   run: ./Release/bin/highs --solver=hipo $GITHUB_WORKSPACE/check/instances/afiro.mps
+      - name: Test executable 
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: ./Release/bin/highs --solver=hipo $GITHUB_WORKSPACE/check/instances/afiro.mps
 
-      # - name: Ctest
-      #   shell: bash
-      #   working-directory: ${{runner.workspace}}/build
-      #   run: |
-      #     ctest --parallel --timeout 300 --output-on-failure -C Release
+      - name: Ctest
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          ctest --parallel --timeout 300 --output-on-failure -C Release
 
   # debug:
   #   runs-on: ${{ matrix.os }}
