@@ -19,8 +19,7 @@ jobs:
       - name: Install GKlib via Conda
         run: |
           conda install -y -c conda-forge gklib
-          dir "%CONDA_PREFIX%\Library\share\cmake\GKlib"
-          dir "%CONDA_PREFIX%\Library\lib\cmake\GKlib"
+          conda activate test
 
       # - name: Check installs 
       #   working-directory: ${{runner.workspace}}
@@ -39,10 +38,12 @@ jobs:
 
       - name: Install METIS
         run: |
+          conda activate test
           conda install -y -c conda-forge metis
 
       - name: Install OpenBLAS
         run: |
+          conda activate test
           conda install -y -c conda-forge openblas
 
       - name: Create build dir
@@ -54,6 +55,7 @@ jobs:
         shell: bash
         working-directory: ${{runner.workspace}}/build
         run: |
+          conda activate test
           cmake $GITHUB_WORKSPACE \
           -DHIPO=ON \
           -DCMAKE_FIND_LIBRARY_PREFIXES=";lib"
