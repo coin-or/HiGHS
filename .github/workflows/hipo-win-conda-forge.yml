@@ -20,7 +20,7 @@ jobs:
         run: |
           conda install -y -c conda-forge gklib
           dir "%CONDA_PREFIX%\Library\share\cmake\GKlib"
-          dir "%CONDA_PREFIX%\Library\lib\cmake\GKlib
+          dir "%CONDA_PREFIX%\Library\lib\cmake\GKlib"
 
       # - name: Check installs 
       #   working-directory: ${{runner.workspace}}
