@@ -53,10 +53,9 @@ jobs:
 
       - name: Configure cmake
         shell: bash
-        working-directory: ${{runner.workspace}}/build
         run: |
           conda activate test
-          cmake $GITHUB_WORKSPACE \
+          cmake -S $GITHUB_WORKSPACE -B ${{runner.workspace}}/build 
           -DHIPO=ON \
           -DCMAKE_FIND_LIBRARY_PREFIXES=";lib"
 
