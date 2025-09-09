@@ -230,6 +230,7 @@ else()
       "/MP" # Build with multiple processes
       "/Zc:preprocessor" # Enable preprocessor conformance mode
       "/fp:precise"
+      "/EHsc"
       )
     if (CMAKE_BUILD_TYPE STREQUAL Release)
       list(APPEND highs_compile_opts
