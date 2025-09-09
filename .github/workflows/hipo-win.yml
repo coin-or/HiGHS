@@ -18,7 +18,6 @@ jobs:
         with:
           repository: KarypisLab/GKlib
           ref: master
-          path: ${{runner.workspace}}/GKlib
 
       - name: Checkout METIS
         uses: actions/checkout@v4
@@ -39,7 +38,7 @@ jobs:
         run: |
           pwd
           cd GKlib
-          cmake -S. -B build -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/installs -DCMAKE_C_FLAGS="-I ${{runner.workspace}}/GKlib/include/win32"
+          cmake -S. -B build -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/installs -DCMAKE_C_FLAGS="-I ${{runner.workspace}}/HiGHS/GKlib/include/win32"
           cmake --build build --parallel --config Release
           cmake --install --build
 
