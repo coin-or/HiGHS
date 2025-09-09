@@ -1,4 +1,4 @@
-name: hipo-win-vcpkg-copy
+name: hipo-win-vcpkg
 
 on: [push, pull_request]
 
@@ -51,7 +51,6 @@ jobs:
           cmake $GITHUB_WORKSPACE \
           -DHIPO=ON \
           -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
-          -DCMAKE_CXX_FLAGS="-I C:/vcpkg/packages/gklib_x64-windows/include/GKlib"
 
       - name: Build 
         shell: bash
