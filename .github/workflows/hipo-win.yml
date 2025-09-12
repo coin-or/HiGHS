@@ -13,86 +13,63 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Checkout GKlib
-        uses: actions/checkout@v4
+      # 2. Set up caching for vcpkg
+      - name: Cache vcpkg
+        uses: actions/cache@v3
         with:
-          repository: KarypisLab/GKlib
-          ref: master
+          path: |
+            ./vcpkg/installed
+            ./vcpkg/downloads
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-
 
-      - name: Checkout METIS
-        uses: actions/checkout@v4
-        with:
-          repository: KarypisLab/METIS
-          ref: master
-          path: METIS
+      - name: Install GKlib
+        run: vcpkg install gklib
 
-      - name: Create installs dir
-        working-directory: ${{runner.workspace}}
-        run: | 
-          mkdir installs
-          ls
+      - name: ls
+        run: ls C:/vcpkg/packages/gklib_x64-windows/share/gklib
 
-      - name: Install GKLIB
+      - name: Install METIS
+        run: vcpkg install metis
+
+        # run: ls C:/vcpkg/packages/metis_x64-windows/
+        # run: ls C:/vcpkg/packages/metis_x64-windows/lib
+        # run: ls C:/vcpkg/packages/metis_x64-windows/share
+        # run: ls C:/vcpkg/packages/gklib_x64-windows/share/gklib
+
+      - name: Install OpenBLAS
+        run: vcpkg install openblas
+
+      - name: Create build dir
+        run: cmake -E make_directory ${{runner.workspace}}/build
+
+      - name: Configure cmake
         shell: bash
+        working-directory: ${{runner.workspace}}/build
         run: |
-          pwd
-          cd GKlib
-          cmake -S. -B build -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/installs -DCMAKE_C_FLAGS="-I ${{runner.workspace}}/HiGHS/GKlib/include/win32"
-          cmake --build build --parallel --config Release
-          cmake --install --build
+          cmake $GITHUB_WORKSPACE \
+          -DHIPO=ON \
+          -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake \
 
-      # - name: Check installs 
-      #   working-directory: ${{runner.workspace}}
-      #   run: |
-      #     cd installs
-      #     ls 
-      #     ls lib
+         # -DCMAKE_CXX_FLAGS="-I C:/vcpkg/packages/gklib_x64-windows/include/GKlib"
 
-      # - name: Copy GKlib shared (bug)
-      #   working-directory: ${{runner.workspace}}
-      #   run: |
-      #     cd installs
-      #     cd lib
-      #     ln libGKlib.so.0 libGKlib.so
-      #     ls 
+      - name: Build 
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          cmake --build . --parallel --config Release
 
-      # - name: Install METIS
-      #   run: |
-      #     cd METIS
-      #     make config shared=1 prefix=${{runner.workspace}}/installs 
-      #     make
-      #     make install
+      - name: Test executable 
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: ./Release/bin/highs --solver=hipo $GITHUB_WORKSPACE/check/instances/afiro.mps
 
-      # - name: Install OpenBLAS
-      #   run: vcpkg install openblas
-
-      # - name: Create build dir
-      #   run: cmake -E make_directory ${{runner.workspace}}/build
-
-      # - name: Configure cmake
-      #   shell: bash
-      #   working-directory: ${{runner.workspace}}/build
-      #   run: |
-      #     cmake $GITHUB_WORKSPACE \
-      #     -DHIPO=ON \
-      #     -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
-
-      # - name: Build 
-      #   shell: bash
-      #   working-directory: ${{runner.workspace}}/build
-      #   run: |
-      #     cmake --build . --parallel --config Release
-
-      # - name: Test executable 
-      #   shell: bash
-      #   working-directory: ${{runner.workspace}}/build
-      #   run: ./Release/bin/highs --solver=hipo $GITHUB_WORKSPACE/check/instances/afiro.mps
-
-      # - name: Ctest
-      #   shell: bash
-      #   working-directory: ${{runner.workspace}}/build
-      #   run: |
-      #     ctest --parallel --timeout 300 --output-on-failure -C Release
+      - name: Ctest
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          ctest --parallel --timeout 300 --output-on-failure -C Release
 
   # debug:
   #   runs-on: ${{ matrix.os }}
