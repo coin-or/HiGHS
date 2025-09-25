@@ -85,8 +85,9 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         run: |
           cmake $GITHUB_WORKSPACE -DHIPO=ON \
-          -DMETIS_ROOT=${{runner.workspace}}/installs \
-          -DGKLIB_ROOT=${{runner.workspace}}/installs
+          -DMETIS_ROOT=${{runner.workspace}}/installs
+
+        # -DGKLIB_ROOT=${{runner.workspace}}/installs
 
       - name: Build 
         working-directory: ${{runner.workspace}}/build
@@ -177,8 +178,9 @@ jobs:
         run: |
           cmake $GITHUB_WORKSPACE -DHIPO=ON \
           -DMETIS_ROOT=${{runner.workspace}}/installs \
-          -DGKLIB_ROOT=${{runner.workspace}}/installs \
           -DCMAKE_BUILD_TYPE=Debug
+
+        # -DGKLIB_ROOT=${{runner.workspace}}/installs \
 
       - name: Build 
         working-directory: ${{runner.workspace}}/build
@@ -276,8 +278,9 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         run: |
           cmake $GITHUB_WORKSPACE -DHIPO=ON -DALL_TESTS=ON \
-          -DMETIS_ROOT=${{runner.workspace}}/installs \
-          -DGKLIB_ROOT=${{runner.workspace}}/installs
+          -DMETIS_ROOT=${{runner.workspace}}/installs
+
+        # -DGKLIB_ROOT=${{runner.workspace}}/installs
 
       - name: Build 
         working-directory: ${{runner.workspace}}/build
@@ -368,8 +371,9 @@ jobs:
         run: |
           cmake $GITHUB_WORKSPACE -DHIPO=ON -DALL_TESTS=ON \
           -DMETIS_ROOT=${{runner.workspace}}/installs \
-          -DGKLIB_ROOT=${{runner.workspace}}/installs \
           -DCMAKE_BUILD_TYPE=Debug
+
+        # -DGKLIB_ROOT=${{runner.workspace}}/installs \
 
       - name: Build 
         working-directory: ${{runner.workspace}}/build

@@ -211,10 +211,12 @@ else()
       # Metis
       target_include_directories(highs PRIVATE "${METIS_PATH}")
       target_link_libraries(highs "${METIS_LIB}")
+      # target_link_directories(highs PRIVATE "${METIS_ROOT}/lib")
 
-      # GKlib
-      target_include_directories(highs PRIVATE "${GKLIB_PATH}")
-      target_link_libraries(highs "${GKLIB_LIB}")
+      # # GKlib
+      # target_include_directories(highs PRIVATE "${GKLIB_PATH}")
+      # target_link_libraries(highs "${GKLIB_LIB}")
+
     endif()
 
   endif()

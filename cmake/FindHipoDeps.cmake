@@ -54,20 +54,20 @@ if (NOT WIN32)
         HINTS "${METIS_ROOT}/lib")
     message("Found Metis library at ${METIS_LIB}")
 
-    # GKlib
-    option(GKLIB_ROOT "Root directory of GKlib" "")
-    message(STATUS "GKLIB_ROOT is " ${GKLIB_ROOT})
+    # # GKlib
+    # option(GKLIB_ROOT "Root directory of GKlib" "")
+    # message(STATUS "GKLIB_ROOT is " ${GKLIB_ROOT})
 
-    find_path(GKLIB_PATH 
-        NAMES "GKlib.h" REQUIRED
-        HINTS "${GKLIB_ROOT}/include")
+    # find_path(GKLIB_PATH 
+    #     NAMES "GKlib.h" REQUIRED
+    #     HINTS "${GKLIB_ROOT}/include")
 
-    message("Found GKlib header at ${GKLIB_PATH}")
+    # message("Found GKlib header at ${GKLIB_PATH}")
 
-    find_library(GKLIB_LIB 
-        NAMES GKlib
-        REQUIRED
-        HINTS "${GKLIB_ROOT}/lib")
+    # find_library(GKLIB_LIB 
+    #     NAMES GKlib
+    #     REQUIRED
+    #     HINTS "${GKLIB_ROOT}/lib")
 
-    message("Found GKlib library at ${GKLIB_LIB}")
+    # message("Found GKlib library at ${GKLIB_LIB}")
 endif()
