@@ -60,124 +60,129 @@ jobs:
         run: |
           cmake --build . --parallel --config RelWithDebInfo
 
+      - name: GDB executable 
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: gdb --ex run --ex quit --args ./RelWithDebInfo/bin/highs --solver=hipo $GITHUB_WORKSPACE/check/instances/afiro.mps
+
       - name: Test executable 
         shell: bash
         working-directory: ${{runner.workspace}}/build
         run: ./RelWithDebInfo/bin/highs --solver=hipo $GITHUB_WORKSPACE/check/instances/afiro.mps
 
-  release:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest]
+  # release:
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       os: [windows-latest]
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      # 2. Set up caching for vcpkg
-      - name: Cache vcpkg
-        uses: actions/cache@v3
-        with:
-          path: |
-            ./vcpkg/installed
-            ./vcpkg/downloads
-          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
-          restore-keys: |
-            vcpkg-${{ runner.os }}-
+  #     # 2. Set up caching for vcpkg
+  #     - name: Cache vcpkg
+  #       uses: actions/cache@v3
+  #       with:
+  #         path: |
+  #           ./vcpkg/installed
+  #           ./vcpkg/downloads
+  #         key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+  #         restore-keys: |
+  #           vcpkg-${{ runner.os }}-
 
-      # - name: Install GKlib
-      #   run: vcpkg install gklib
+  #     # - name: Install GKlib
+  #     #   run: vcpkg install gklib
 
-      # - name: ls
-      #   run: ls C:/vcpkg/packages/gklib_x64-windows/share/gklib
+  #     # - name: ls
+  #     #   run: ls C:/vcpkg/packages/gklib_x64-windows/share/gklib
 
-      - name: Install METIS
-        run: vcpkg install metis
+  #     - name: Install METIS
+  #       run: vcpkg install metis
 
-        # run: ls C:/vcpkg/packages/metis_x64-windows/
-        # run: ls C:/vcpkg/packages/metis_x64-windows/lib
-        # run: ls C:/vcpkg/packages/metis_x64-windows/share
-        # run: ls C:/vcpkg/packages/gklib_x64-windows/share/gklib
+  #       # run: ls C:/vcpkg/packages/metis_x64-windows/
+  #       # run: ls C:/vcpkg/packages/metis_x64-windows/lib
+  #       # run: ls C:/vcpkg/packages/metis_x64-windows/share
+  #       # run: ls C:/vcpkg/packages/gklib_x64-windows/share/gklib
 
-      - name: Install OpenBLAS
-        run: vcpkg install openblas
+  #     - name: Install OpenBLAS
+  #       run: vcpkg install openblas
 
-      - name: Create build dir
-        run: cmake -E make_directory ${{runner.workspace}}/build
+  #     - name: Create build dir
+  #       run: cmake -E make_directory ${{runner.workspace}}/build
 
-      - name: Configure cmake
-        shell: bash
-        working-directory: ${{runner.workspace}}/build
-        run: |
-          cmake $GITHUB_WORKSPACE \
-          -DHIPO=ON \
-          -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+  #     - name: Configure cmake
+  #       shell: bash
+  #       working-directory: ${{runner.workspace}}/build
+  #       run: |
+  #         cmake $GITHUB_WORKSPACE \
+  #         -DHIPO=ON \
+  #         -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
 
-         # -DCMAKE_CXX_FLAGS="-I C:/vcpkg/packages/gklib_x64-windows/include/GKlib"
+  #        # -DCMAKE_CXX_FLAGS="-I C:/vcpkg/packages/gklib_x64-windows/include/GKlib"
 
-      - name: Build 
-        shell: bash
-        working-directory: ${{runner.workspace}}/build
-        run: |
-          cmake --build . --parallel --config Release
+  #     - name: Build 
+  #       shell: bash
+  #       working-directory: ${{runner.workspace}}/build
+  #       run: |
+  #         cmake --build . --parallel --config Release
 
-      - name: Test executable 
-        shell: bash
-        working-directory: ${{runner.workspace}}/build
-        run: ./Release/bin/highs --solver=hipo $GITHUB_WORKSPACE/check/instances/afiro.mps
+  #     - name: Test executable 
+  #       shell: bash
+  #       working-directory: ${{runner.workspace}}/build
+  #       run: ./Release/bin/highs --solver=hipo $GITHUB_WORKSPACE/check/instances/afiro.mps
 
-  debug:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest]
+  # debug:
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       os: [windows-latest]
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      # 2. Set up caching for vcpkg
-      - name: Cache vcpkg
-        uses: actions/cache@v3
-        with:
-          path: |
-            ./vcpkg/installed
-            ./vcpkg/downloads
-          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
-          restore-keys: |
-            vcpkg-${{ runner.os }}-
+  #     # 2. Set up caching for vcpkg
+  #     - name: Cache vcpkg
+  #       uses: actions/cache@v3
+  #       with:
+  #         path: |
+  #           ./vcpkg/installed
+  #           ./vcpkg/downloads
+  #         key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+  #         restore-keys: |
+  #           vcpkg-${{ runner.os }}-
 
-      - name: Install METIS
-        run: vcpkg install metis
+  #     - name: Install METIS
+  #       run: vcpkg install metis
 
-      - name: Install OpenBLAS
-        run: vcpkg install openblas
+  #     - name: Install OpenBLAS
+  #       run: vcpkg install openblas
 
-      - name: Create build dir
-        run: cmake -E make_directory ${{runner.workspace}}/build
+  #     - name: Create build dir
+  #       run: cmake -E make_directory ${{runner.workspace}}/build
 
-      - name: Configure cmake
-        shell: bash
-        working-directory: ${{runner.workspace}}/build
-        run: |
-          cmake $GITHUB_WORKSPACE \
-          -DHIPO=ON \
-          -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+  #     - name: Configure cmake
+  #       shell: bash
+  #       working-directory: ${{runner.workspace}}/build
+  #       run: |
+  #         cmake $GITHUB_WORKSPACE \
+  #         -DHIPO=ON \
+  #         -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
 
-      - name: Build 
-        shell: bash
-        working-directory: ${{runner.workspace}}/build
-        run: |
-          cmake --build . --parallel --config Debug
+  #     - name: Build 
+  #       shell: bash
+  #       working-directory: ${{runner.workspace}}/build
+  #       run: |
+  #         cmake --build . --parallel --config Debug
 
-      - name: Test executable 
-        shell: bash
-        working-directory: ${{runner.workspace}}/build
-        run: ./Debug/bin/highs --solver=hipo $GITHUB_WORKSPACE/check/instances/afiro.mps
+  #     - name: Test executable 
+  #       shell: bash
+  #       working-directory: ${{runner.workspace}}/build
+  #       run: ./Debug/bin/highs --solver=hipo $GITHUB_WORKSPACE/check/instances/afiro.mps
 
-      - name: Ctest
-        shell: bash
-        working-directory: ${{runner.workspace}}/build
-        run: |
-          ctest --parallel --timeout 300 --output-on-failure -C Debug
+  #     - name: Ctest
+  #       shell: bash
+  #       working-directory: ${{runner.workspace}}/build
+  #       run: |
+  #         ctest --parallel --timeout 300 --output-on-failure -C Debug
