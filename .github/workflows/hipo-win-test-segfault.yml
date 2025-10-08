@@ -63,7 +63,7 @@ jobs:
       - name: GDB executable 
         shell: bash
         working-directory: ${{runner.workspace}}/build
-        run: gdb --ex run --ex quit --args ./RelWithDebInfo/bin/highs --solver=hipo $GITHUB_WORKSPACE/check/instances/afiro.mps
+        run: gdb --ex run --ex bt --args ./RelWithDebInfo/bin/highs --solver=hipo $GITHUB_WORKSPACE/check/instances/afiro.mps
 
       - name: Test executable 
         shell: bash
