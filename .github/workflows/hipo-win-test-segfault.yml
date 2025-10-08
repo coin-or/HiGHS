@@ -1,4 +1,4 @@
-name: hipo-win
+name: hipo-win-test-segfault
 
 on: [push, pull_request]
 
