@@ -58,15 +58,23 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
   }
 
   std::vector<HighsInt> numContinuous(lp.num_row_);
-
+  // Score will be used for deciding order in which rows get aggregated
+  // TODO: The second entry is currently a hacky way to store the norm
+  std::vector<std::pair<double, double>> rowscore(lp.num_row_,
+                                                  std::make_pair(0.0, 0.0));
   size_t maxAggrRowSize = 0;
   for (HighsInt col : mip.mipdata_->continuous_cols) {
     if (transLp.boundDistance(col) == 0.0) continue;
 
     maxAggrRowSize += lp.a_matrix_.start_[col + 1] - lp.a_matrix_.start_[col];
     for (HighsInt i = lp.a_matrix_.start_[col];
-         i != lp.a_matrix_.start_[col + 1]; ++i)
+         i != lp.a_matrix_.start_[col + 1]; ++i) {
       ++numContinuous[lp.a_matrix_.index_[i]];
+      // Add the fractional score of the row
+      rowscore[i].first +=
+          lp.a_matrix_.value_[i] * transLp.getFracVbEstimate(col);
+      rowscore[i].second += lp.a_matrix_.value_[i];
+    }
   }
 
   std::vector<std::pair<HighsInt, double>> colSubstitutions(
