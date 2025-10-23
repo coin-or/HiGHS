@@ -3524,3 +3524,113 @@ void getSubVectorsTranspose(const HighsIndexCollection& index_collection,
     }
   }
 }
+
+void initialiseUserScaleData(const HighsOptions& options,
+                             HighsUserScaleData& user_scale_data) {
+  user_scale_data.initialise(options.user_objective_scale,
+                             options.user_bound_scale, options.infinite_cost,
+                             options.infinite_bound, options.small_matrix_value,
+                             options.large_matrix_value);
+}
+
+void HighsUserScaleData::initialise(const HighsInt& user_objective_scale_,
+                                    const HighsInt& user_bound_scale_,
+                                    const double& infinite_cost_,
+                                    const double& infinite_bound_,
+                                    const double& small_matrix_value_,
+                                    const double& large_matrix_value_) {
+  this->user_objective_scale = user_objective_scale_;
+  this->user_bound_scale = user_bound_scale_;
+  this->infinite_cost = infinite_cost_;
+  this->infinite_bound = infinite_bound_;
+  this->small_matrix_value = small_matrix_value_;
+  this->large_matrix_value = large_matrix_value_;
+  this->num_infinite_costs = 0;
+  this->num_infinite_hessian_values = 0;
+  this->num_infinite_col_bounds = 0;
+  this->num_infinite_row_bounds = 0;
+  this->num_small_matrix_values = 0;
+  this->num_large_matrix_values = 0;
+  this->suggested_user_objective_scale = 0;
+  this->suggested_user_bound_scale = 0;
+  this->applied = false;
+}
+
+bool HighsUserScaleData::scaleError(std::string& message) const {
+  if (this->num_infinite_costs + this->num_infinite_hessian_values +
+          this->num_infinite_col_bounds + this->num_infinite_row_bounds +
+          this->num_large_matrix_values ==
+      0)
+    return false;
+  assert(this->user_objective_scale != 0 || this->user_bound_scale != 0);
+  std::stringstream ss;
+  ss.str(std::string());
+  ss << "User scaling of";
+  if (this->user_objective_scale != 0) {
+    ss << " 2**(" << this->user_objective_scale << ") for costs";
+  }
+  if (this->user_bound_scale != 0) {
+    if (this->user_objective_scale != 0) ss << " and";
+    ss << " 2**(" << this->user_bound_scale << ") for bounds";
+  }
+  ss << " yields";
+  if (this->num_infinite_costs) {
+    ss << " " << this->num_infinite_costs << " infinite cost";
+    if (this->num_infinite_costs > 1) ss << "s";
+  }
+  if (this->num_infinite_hessian_values) {
+    if (this->num_infinite_costs) {
+      if (this->num_infinite_col_bounds || this->num_infinite_row_bounds) {
+        ss << ",";
+      } else {
+        ss << " and";
+      }
+    }
+    ss << " " << this->num_infinite_hessian_values
+       << " infinite Hessian values";
+    if (this->num_infinite_hessian_values > 1) ss << "s";
+  }
+  if (this->num_infinite_col_bounds) {
+    if (this->num_infinite_costs || this->num_infinite_hessian_values) {
+      if (this->num_infinite_row_bounds) {
+        ss << ",";
+      } else {
+        ss << " and";
+      }
+    }
+    ss << " " << this->num_infinite_col_bounds << " infinite column bound";
+    if (this->num_infinite_col_bounds > 1) ss << "s";
+  }
+  if (this->num_infinite_row_bounds) {
+    if (this->num_infinite_costs || this->num_infinite_hessian_values ||
+        this->num_infinite_col_bounds)
+      ss << " and";
+    ss << " " << this->num_infinite_row_bounds << " infinite row bound";
+    if (this->num_infinite_row_bounds > 1) ss << "s";
+  }
+  if (this->num_large_matrix_values) {
+    if (this->num_infinite_costs + this->num_infinite_hessian_values +
+            this->num_infinite_col_bounds + this->num_infinite_row_bounds >
+        0)
+      ss << ", and";
+    ss << " " << this->num_large_matrix_values << " large matrix value";
+    if (this->num_large_matrix_values > 1) ss << "s";
+  }
+  ss << "\n";
+  message = ss.str();
+  return true;
+}
+
+bool HighsUserScaleData::scaleWarning(std::string& message) const {
+  if (this->num_small_matrix_values == 0) return false;
+  assert(this->user_bound_scale != 0);
+  std::stringstream ss;
+  ss.str(std::string());
+  ss << "User scaling of 2**(" << this->user_bound_scale
+     << ") for bounds yields " << this->num_small_matrix_values
+     << " small matrix value";
+  if (this->num_small_matrix_values > 1) ss << "s";
+  ss << "\n";
+  message = ss.str();
+  return true;
+}

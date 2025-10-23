@@ -382,8 +382,38 @@ HighsStatus solveUnconstrainedLp(const HighsOptions& options, const HighsLp& lp,
   return HighsStatus::kOk;
 }
 
-void assessExcessiveBoundCost(const HighsLogOptions log_options,
-                              const HighsModel& model) {
+// Assuming that any user scaling in user_scale_data has been applied,
+// determine the model coefficient ranges, assess it for values
+// outside the [small, large] range, and give appropriate scaling
+// recommendations
+void assessExcessiveObjectiveBoundScaling(const HighsLogOptions log_options,
+                                          const HighsModel& model,
+                                          HighsUserScaleData& user_scale_data) {
+  const HighsLp& lp = model.lp_;
+  if (lp.num_col_ == 0 || lp.num_row_ == 0) return;
+  const bool user_cost_or_bound_scale =
+      user_scale_data.user_objective_scale || user_scale_data.user_bound_scale;
+  const double small_objective_coefficient =
+      kExcessivelySmallObjectiveCoefficient;
+  const double large_objective_coefficient =
+      kExcessivelyLargeObjectiveCoefficient;
+  const double small_bound = kExcessivelySmallBoundValue;
+  const double large_bound = kExcessivelyLargeBoundValue;
+  std::stringstream message;
+  if (user_cost_or_bound_scale) {
+    if (user_scale_data.user_objective_scale)
+      message << highsFormatToString(" user_objective_scale option value of %d",
+                                     user_scale_data.user_objective_scale);
+    if (user_scale_data.user_bound_scale) {
+      if (user_scale_data.user_objective_scale) message << " and";
+      message << highsFormatToString(" user_bound_scale option value of %d",
+                                     user_scale_data.user_bound_scale);
+    }
+    highsLogUser(log_options, HighsLogType::kInfo,
+                 "Assessing costs and bounds after applying%s\n",
+                 message.str().c_str());
+  }
+  // Lambda for assessing a finite nonzero
   auto assessFiniteNonzero = [&](const double value, double& min_value,
                                  double& max_value) {
     double abs_value = std::abs(value);
@@ -556,6 +586,9 @@ void assessExcessiveBoundCost(const HighsLogOptions log_options,
           lp.user_bound_scale_ ? "User-scaled problem" : "Problem",
           int(suggested_bound_scale_exponent), int(suggested_user_bound_scale));
     }
+    message << highsFormatToString(
+        " setting the user_objective_scale option to %d",
+        int(user_scale_data.suggested_user_objective_scale));
   }
   if (max_finite_row_bound > 0 &&
       max_finite_row_bound < kExcessivelySmallBoundValue) {

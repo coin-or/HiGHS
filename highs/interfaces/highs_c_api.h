@@ -2448,6 +2448,23 @@ HighsInt Highs_getIis(void* highs, HighsInt* iis_num_col, HighsInt* iis_num_row,
                       HighsInt* col_bound, HighsInt* row_bound,
                       HighsInt* col_status, HighsInt* row_status);
 /**
+ * Identify suggested values of the options user_objective_scale and
+ * user_bound_scale to address extremely large or small objective
+ * coefficients and bound values
+ *
+ * @param highs                                A pointer to the Highs instance.
+ * @param HighsInt* suggested_objective_scale  The suggested value of
+ * user_objective_scale
+ * @param HighsInt* suggested_bound_scale      The suggested value of
+ * user_bound_scale
+ *
+ * @returns A `kHighsStatus` constant indicating whether the call succeeded.
+ */
+HighsInt Highs_getObjectiveBoundScaling(void* highs,
+                                        HighsInt* suggested_objective_scale,
+                                        HighsInt* suggested_bound_scale);
+
+/**
  * Releases all resources held by the global scheduler instance.
  *
  * It is not thread-safe to call this function while calling `Highs_run` or one
