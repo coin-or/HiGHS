@@ -504,7 +504,7 @@ HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
 
   // Potentially control if ipx is used for refinement and if it is displayed
   // hipo_options.refine_with_ipx = true;
-  // hipo_options.display_ipx = true;
+  hipo_options.display_ipx = true;
 
   // if option parallel is on, it can be refined by option hipo_parallel_type
   if (options.parallel == kHighsOnString) {
