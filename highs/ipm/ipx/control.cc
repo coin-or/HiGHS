@@ -79,7 +79,8 @@ void Control::ResetPrintInterval() const {
 }
 
 double Control::Elapsed() const {
-    return timer_.Elapsed();
+  printf(" Control::Elapsed() timer_.offset_ = %g\n", timer_.offset_);
+    return timer_.offset_ + timer_.Elapsed();
 }
 
 const Parameters& Control::parameters() const {
