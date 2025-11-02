@@ -187,7 +187,7 @@ bool Solver::prepareIpx() {
   ipx_param.ipm_feasibility_tol = options_.feasibility_tol;
   ipx_param.ipm_optimality_tol = options_.optimality_tol;
   ipx_param.start_crossover_tol = options_.crossover_tol;
-  ipx_param.time_limit = options_.time_limit - control_.elapsed();
+  ipx_param.time_limit = options_.time_limit;
   ipx_param.ipm_maxiter = options_.max_iter - iter_;
   ipx_lps_.SetParameters(ipx_param);
 
