@@ -13,7 +13,7 @@ Control::Control() {
 Int Control::InterruptCheck(const Int ipm_iteration_count) const {
     HighsTaskExecutor::getThisWorkerDeque()->checkInterrupt();
     if (parameters_.time_limit >= 0.0 &&
-        parameters_.time_limit < timer_.Elapsed())
+        parameters_.time_limit < this->Elapsed())
         return IPX_ERROR_time_interrupt;
     // The pointer callback_ should not be null, since that indicates
     // that it's not been set
@@ -79,7 +79,6 @@ void Control::ResetPrintInterval() const {
 }
 
 double Control::Elapsed() const {
-  printf(" Control::Elapsed() timer_.offset_ = %g\n", timer_.offset_);
     return timer_.offset_ + timer_.Elapsed();
 }
 
