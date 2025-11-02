@@ -7,26 +7,10 @@ Timer::Timer(const double offset)
     Reset(true);
 }
 
-double Timer::Elapsed() const {
-    return toc(t0_);
-}
-
 void Timer::Reset(const bool first) {
-    if (!first)
-      offset_ -= duration_cast<duration<double>>(t0_.time_since_epoch()).count();    
-    t0_ = tic();
-    if (!first) 
-      offset_ += duration_cast<duration<double>>(t0_.time_since_epoch()).count();
-}
-
-Timer::TimePoint Timer::tic() {
-    return high_resolution_clock::now();
-}
-
-double Timer::toc(TimePoint start) {
-    TimePoint end = tic();
-    duration<double> diff = end-start;
-    return diff.count();
+  if (!first) offset_ -= t0_;
+  t0_ = read();
+  if (!first) offset_ += t0_;
 }
 
 }  // namespace ipx
