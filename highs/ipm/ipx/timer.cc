@@ -12,13 +12,10 @@ double Timer::Elapsed() const {
 }
 
 void Timer::Reset(const bool first) {
-    using namespace std::chrono;
     double prev_offset = offset_;
-    if (!first)
-      offset_ -= duration_cast<duration<double>>(t0_.time_since_epoch()).count();    
+    if (!first) offset_ -= this->read();
     t0_ = tic();
-    if (!first) 
-      offset_ += duration_cast<duration<double>>(t0_.time_since_epoch()).count();
+    if (!first) offset_ += this->read();
 }
 
 Timer::TimePoint Timer::tic() {
