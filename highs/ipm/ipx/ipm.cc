@@ -828,7 +828,6 @@ void IPM::PrintHeader() {
     << "  " << Format("pinf", 9)
     << "  " << Format("dinf", 9)
     << "  " << Format("gap", 8);
-    //  h_logging_stream << "  " << Format("mu", 8);
   if (!control_.timelessLog())
     h_logging_stream << "   " << Format("time", 7);
   control_.hLog(h_logging_stream);
