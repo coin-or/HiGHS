@@ -4,6 +4,7 @@
 #include <chrono>
 
 namespace ipx {
+    using namespace std::chrono;
 
 class Timer {
 public:
@@ -12,8 +13,7 @@ public:
     void Reset(const bool first = false);
 
 private:
-    typedef std::chrono::time_point<std::chrono::high_resolution_clock>
-        TimePoint;
+    typedef time_point<high_resolution_clock> TimePoint;
     static TimePoint tic();
     static double toc(TimePoint start);
     TimePoint t0_;
