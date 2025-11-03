@@ -5,6 +5,11 @@ if (NOT BLAS_ROOT STREQUAL "")
 endif()
 
 set(USE_CMAKE_FIND_BLAS ON)
+if (WIN32 AND (
+    NOT BLA_VENDOR OR BLA_VENDOR STREQUAL "OpenBLAS"))
+    set(USE_CMAKE_FIND_BLAS OFF)
+endif()
+
 
 # Optionally set the vendor:
 # set(BLA_VENDOR libblastrampoline)
@@ -28,7 +33,7 @@ if (NOT USE_CMAKE_FIND_BLAS)
             # (NOT OpenBLAS_FOUND AND NOT BLAS_FOUND))
             message(STATUS "Looking for blas")
 
-            find_package(OpenBLAS REQUIRED)
+            find_package(OpenBLAS CONFIG REQUIRED)
 
             if(OpenBLAS_FOUND)
                 if(TARGET OpenBLAS::OpenBLAS)
