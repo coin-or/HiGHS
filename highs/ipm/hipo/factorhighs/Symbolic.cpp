@@ -97,6 +97,10 @@ void Symbolic::print(const Log& log, bool verbose) const {
                << '\n';
     log_stream << textline("Number of tasks:")
                << integer(tree_splitting_.size()) << '\n';
+    log_stream << textline("Number of single nodes:") << integer(num_single_)
+               << '\n';
+    log_stream << textline("Number of subtrees:") << integer(num_subtrees_)
+               << '\n';
     log_stream << textline("Artificial nz:") << sci(artificial_nz_, 0, 1)
                << '\n';
     log_stream << textline("Artificial ops:") << sci(artificial_ops_, 0, 1)

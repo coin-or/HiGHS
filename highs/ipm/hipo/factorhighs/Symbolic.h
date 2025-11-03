@@ -46,6 +46,7 @@ class Symbolic {
   Int sn_size_10_{};
   Int sn_size_100_{};
   int64_t max_stack_size_{};
+  Int num_single_, num_subtrees_;
 
   // Inverse permutation
   std::vector<Int> iperm_{};

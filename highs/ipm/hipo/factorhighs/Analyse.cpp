@@ -1286,6 +1286,7 @@ void Analyse::findTreeSplitting() {
       auto res_insert = tree_splitting_.insert({sn, {}});
       is_in_tree_splitting_[sn] = true;
       res_insert.first->second.type = NodeType::single;
+      num_single_++;
 
       // The children of this sn are either single nodes or head of subtrees.
       // Divide the head of subtrees in groups, so that each group has 1% to 2%
@@ -1299,6 +1300,8 @@ void Analyse::findTreeSplitting() {
         bool is_small = subtree_ops[child] <= small_thresh;
 
         if (is_small) {
+          num_subtrees_++;
+
           if (!current_nodedata) {
             auto res_insert = tree_splitting_.insert({child, {}});
             is_in_tree_splitting_[child] = true;
@@ -1489,6 +1492,8 @@ Int Analyse::run(Symbolic& S) {
   S.flops_ = dense_ops_;
   S.block_size_ = nb_;
   S.max_stack_size_ = max_stack_size_;
+  S.num_single_ = num_single_;
+  S.num_subtrees_ = num_subtrees_;
 
   // compute largest supernode
   std::vector<Int> sn_size(sn_start_.begin() + 1, sn_start_.end());

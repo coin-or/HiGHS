@@ -79,6 +79,8 @@ class Analyse {
 
   std::map<Int, NodeData> tree_splitting_;
   std::vector<bool> is_in_tree_splitting_;
+  Int num_single_{};
+  Int num_subtrees_{};
 
   std::vector<int64_t> stack_subtrees_{};
   int64_t max_stack_size_{};
