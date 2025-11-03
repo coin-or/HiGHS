@@ -6,15 +6,28 @@ endif()
 
 include(sources-python)
 
-set(sources_python ${highs_sources_python} 
-                   ${cupdlp_sources_python} 
-                   ${ipx_sources_python} 
+set(sources_python ${highs_sources_python}
+                   ${cupdlp_sources_python}
+                   ${ipx_sources_python}
                    ${basiclu_sources_python})
 
-set(headers_python ${highs_headers_python} 
-                   ${cupdlp_headers_python} 
-                   ${ipx_headers_python} 
+set(headers_python ${highs_headers_python}
+                   ${cupdlp_headers_python}
+                   ${ipx_headers_python}
                    ${basiclu_headers_python})
+
+if(HIPO)
+  set(sources_python ${sources}
+                     ${hipo_sources_python}
+                     ${factor_highs_sources_python}
+                     ${hipo_util_sources_python})
+
+  set(headers_python ${headers}
+                     ${hipo_headers_python}
+                     ${factor_highs_headers_python}
+                     ${hipo_util_headers_python})
+
+endif()
 
 # Find Python 3
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
@@ -42,10 +55,16 @@ python_add_library(_core MODULE highs/highs_bindings.cpp WITH_SOABI)
 
 target_link_libraries(_core PRIVATE pybind11::headers)
 
-# sources for python 
+if (HIPO)
+  target_include_directories(_core PRIVATE ${METIS_DST_DIR}/include)
+  target_link_libraries(_core PRIVATE OpenBLAS::OpenBLAS)
+  target_link_libraries(_core PRIVATE ${METIS_DST_DIR}/lib/metis.lib)
+endif()
+
+# sources for python
 target_sources(_core PUBLIC ${sources_python} ${headers_python})
 
-# include directories for python 
+# include directories for python
 target_include_directories(_core PUBLIC ${include_dirs_python})
 
 # This is passing in the version as a define just as an example
@@ -55,12 +74,12 @@ if(MSVC)
   target_compile_options(_core PRIVATE "/bigobj")
 endif()
 
-if (NOT MSVC) 
+if (NOT MSVC)
   target_compile_options(_core PRIVATE "-ftemplate-depth=2048")
 endif()
 
 # if(MSVC)
-#   # Try to split large pdb files into objects. 
+#   # Try to split large pdb files into objects.
 #   # https://github.com/tensorflow/tensorflow/issues/31610
 #   add_compile_options("/Z7")
 #   add_link_options("/DEBUG:FASTLINK")

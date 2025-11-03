@@ -134,7 +134,7 @@ set(ipx_sources_python
   highs/ipm/ipx/symbolic_invert.cc
   highs/ipm/ipx/timer.cc
   highs/ipm/ipx/utils.cc)
-  
+
   set(ipx_headers_python
   highs/ipm/ipx/basiclu_kernel.h
   highs/ipm/ipx/basiclu_wrapper.h
@@ -174,6 +174,85 @@ set(ipx_sources_python
   highs/ipm/ipx/symbolic_invert.h
   highs/ipm/ipx/timer.h
   highs/ipm/ipx/utils.h)
+
+set(hipo_sources_python
+    highs/ipm/hipo/ipm/CurtisReidScaling.cpp
+    highs/ipm/hipo/ipm/IpmData.cpp
+    highs/ipm/hipo/ipm/FactorHiGHSSolver.cpp
+    highs/ipm/hipo/ipm/Control.cpp
+    highs/ipm/hipo/ipm/Iterate.cpp
+    highs/ipm/hipo/ipm/LogHighs.cpp
+    highs/ipm/hipo/ipm/Model.cpp
+    highs/ipm/hipo/ipm/Solver.cpp)
+
+set(hipo_headers_python
+    highs/ipm/hipo/ipm/CurtisReidScaling.h
+    highs/ipm/hipo/ipm/IpmData.h
+    highs/ipm/hipo/ipm/FactorHiGHSSolver.h
+    highs/ipm/hipo/ipm/Parameters.h
+    highs/ipm/hipo/ipm/Control.h
+    highs/ipm/hipo/ipm/Info.h
+    highs/ipm/hipo/ipm/Iterate.h
+    highs/ipm/hipo/ipm/LinearSolver.h
+    highs/ipm/hipo/ipm/LogHighs.h
+    highs/ipm/hipo/ipm/Model.h
+    highs/ipm/hipo/ipm/Options.h
+    highs/ipm/hipo/ipm/Solver.h
+    highs/ipm/hipo/ipm/Status.h)
+
+set(factor_highs_sources_python
+    highs/ipm/hipo/factorhighs/Analyse.cpp
+    highs/ipm/hipo/factorhighs/CallAndTimeBlas.cpp
+    highs/ipm/hipo/factorhighs/DataCollector.cpp
+    highs/ipm/hipo/factorhighs/DenseFactHybrid.cpp
+    highs/ipm/hipo/factorhighs/DenseFactKernel.cpp
+    highs/ipm/hipo/factorhighs/DgemmParallel.cpp
+    highs/ipm/hipo/factorhighs/FactorHiGHS.cpp
+    highs/ipm/hipo/factorhighs/Factorise.cpp
+    highs/ipm/hipo/factorhighs/FormatHandler.cpp
+    highs/ipm/hipo/factorhighs/HybridHybridFormatHandler.cpp
+    highs/ipm/hipo/factorhighs/HybridSolveHandler.cpp
+    highs/ipm/hipo/factorhighs/KrylovMethodsIpm.cpp
+    highs/ipm/hipo/factorhighs/Numeric.cpp
+    highs/ipm/hipo/factorhighs/SolveHandler.cpp
+    highs/ipm/hipo/factorhighs/Swaps.cpp
+    highs/ipm/hipo/factorhighs/SymScaling.cpp
+    highs/ipm/hipo/factorhighs/Symbolic.cpp)
+
+set(factor_highs_headers_python
+    highs/ipm/hipo/factorhighs/Analyse.h
+    highs/ipm/hipo/factorhighs/CallAndTimeBlas.h
+    highs/ipm/hipo/factorhighs/DataCollector.h
+    highs/ipm/hipo/factorhighs/DenseFact.h
+    highs/ipm/hipo/factorhighs/DgemmParallel.h
+    highs/ipm/hipo/factorhighs/FactorHiGHS.h
+    highs/ipm/hipo/factorhighs/FactorHiGHSSettings.h
+    highs/ipm/hipo/factorhighs/Factorise.h
+    highs/ipm/hipo/factorhighs/FormatHandler.h
+    highs/ipm/hipo/factorhighs/HybridHybridFormatHandler.h
+    highs/ipm/hipo/factorhighs/HybridSolveHandler.h
+    highs/ipm/hipo/factorhighs/KrylovMethodsIpm.h
+    highs/ipm/hipo/factorhighs/Numeric.h
+    highs/ipm/hipo/factorhighs/ReturnValues.h
+    highs/ipm/hipo/factorhighs/SolveHandler.h
+    highs/ipm/hipo/factorhighs/Swaps.h
+    highs/ipm/hipo/factorhighs/SymScaling.h
+    highs/ipm/hipo/factorhighs/Symbolic.h
+    highs/ipm/hipo/factorhighs/Timing.h)
+
+set(hipo_util_sources_python
+    highs/ipm/hipo/auxiliary/Auxiliary.cpp
+    highs/ipm/hipo/auxiliary/KrylovMethods.cpp
+    highs/ipm/hipo/auxiliary/Log.cpp
+    highs/ipm/hipo/auxiliary/VectorOperations.cpp)
+
+set(hipo_util_headers_python
+    highs/ipm/hipo/auxiliary/Auxiliary.h
+    highs/ipm/hipo/auxiliary/IntConfig.h
+    highs/ipm/hipo/auxiliary/KrylovMethods.h
+    highs/ipm/hipo/auxiliary/Log.h
+    highs/ipm/hipo/auxiliary/mycblas.h
+    highs/ipm/hipo/auxiliary/VectorOperations.h)
 
 set(highs_sources_python
     extern/filereaderlp/reader.cpp
