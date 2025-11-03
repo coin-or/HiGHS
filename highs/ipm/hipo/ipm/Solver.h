@@ -121,6 +121,9 @@ class Solver {
   bool stopped() const;
   bool failed() const;
 
+  // Set the IPX timer offset
+  void setIpxTimerOffset(const double offset) { this->ipx_lps_.setTimerOffset(offset); }
+
  private:
   // Functions to run the various stages of the ipm
   void runIpm();

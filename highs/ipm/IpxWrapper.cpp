@@ -63,6 +63,10 @@ HighsStatus solveLpIpx(const HighsOptions& options, HighsTimer& timer,
   resetModelStatusAndHighsInfo(model_status, highs_info);
   // Create the LpSolver instance
   ipx::LpSolver lps;
+  // Use the current HiGHS time as an offset for the lps.control_
+  // elapsed time
+  lps.setTimerOffset(timer.read());
+
   // Set IPX parameters
   //
   // Cannot set internal IPX parameters directly since they are
@@ -125,8 +129,9 @@ HighsStatus solveLpIpx(const HighsOptions& options, HighsTimer& timer,
 
   parameters.analyse_basis_data =
       kHighsAnalysisLevelNlaData & options.highs_analysis_level;
-  // Determine the run time allowed for IPX
-  parameters.time_limit = options.time_limit - timer.read();
+  // Now that the lps.control_ elapsed time includes the HiGHS time,
+  // can use the HiGHS time limit
+  parameters.time_limit = options.time_limit;
   parameters.ipm_maxiter =
       options.ipm_iteration_limit - highs_info.ipm_iteration_count;
   // Determine if crossover is to be run or not
@@ -458,6 +463,10 @@ HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
 
   // Create solver instance
   hipo::Solver hipo{};
+  // This creates ipx::LpSolver ipx_lps_, in case HiPO has to switch
+  // to IPX, so use the current HiGHS time as an offset for the
+  // ipx_lps.control_ elapsed time
+  hipo.setIpxTimerOffset(timer.read());
 
   hipo::Options hipo_options{};
 
@@ -504,7 +513,7 @@ HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
 
   // Potentially control if ipx is used for refinement and if it is displayed
   // hipo_options.refine_with_ipx = true;
-  // hipo_options.display_ipx = true;
+  hipo_options.display_ipx = true;
 
   // if option parallel is on, it can be refined by option hipo_parallel_type
   if (options.parallel == kHighsOnString) {
