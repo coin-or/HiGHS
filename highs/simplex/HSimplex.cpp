@@ -498,39 +498,39 @@ void simplexScaleLp(const HighsOptions& options, HighsLp& lp,
     }
   }
   if (allow_matrix_scaling) {
-    // Consider matrix scalig
-    //
-    // Find out range of matrix values and skip matrix scaling if all
-    // |values| are in [0.2, 5]
+    // Consider matrix scaling, and determine which type to use
+    const bool equilibration_scaling =
+      use_scale_strategy == kSimplexScaleStrategyEquilibration ||
+      use_scale_strategy == kSimplexScaleStrategyForcedEquilibration;
+    // Find out range of matrix values
+    lp.a_matrix_.range(original_matrix_min_value, original_matrix_max_value);
     const double no_scaling_original_matrix_min_value = 0.2;
     const double no_scaling_original_matrix_max_value = 5.0;
-    lp.a_matrix_.range(original_matrix_min_value, original_matrix_max_value);
-    // Possibly force scaling, otherwise base the decision on the range
-    // of values in the matrix, values that will be used later for
-    // reporting
-    const bool no_scaling = force_scaling
-                                ? false
-                                : (original_matrix_min_value >=
-                                   no_scaling_original_matrix_min_value) &&
-                                      (original_matrix_max_value <=
-                                       no_scaling_original_matrix_max_value);
-    if (no_scaling) {
+    bool use_scaling = true;
+    if (equilibration_scaling) {
+      // Skip if |values| are in [0.2, 5]
+      if (original_matrix_min_value >=
+	  no_scaling_original_matrix_min_value &&
+	original_matrix_max_value <=
+	  no_scaling_original_matrix_max_value) use_scaling = false;
+    } else {
+      // Skip if |values| are in [0, 5]
+      if (original_matrix_max_value <=
+	  no_scaling_original_matrix_max_value) use_scaling = false;
+    }
+    // Possibly force scaling
+    if (force_scaling) use_scaling = true;
+    if (!use_scaling) {
       // No matrix scaling
       highsLogDev(options.log_options, HighsLogType::kInfo,
-                  "Scaling: Matrix has [min, max] values of [%g, %g] within "
-                  "[%g, %g] so no scaling performed\n",
-                  original_matrix_min_value, original_matrix_max_value,
-                  no_scaling_original_matrix_min_value,
-                  no_scaling_original_matrix_max_value);
+                  "Scaling: Matrix has [min, max] values of [%g, %g] so no scaling performed\n",
+                  original_matrix_min_value, original_matrix_max_value);
     } else {
       // Try scaling, so assign unit factors - partly because initial
       // factors may be assumed by the scaling method, but also because
       // scaling factors may not be computed for empty rows/columns
       scale.col.assign(numCol, 1);
       scale.row.assign(numRow, 1);
-      const bool equilibration_scaling =
-          use_scale_strategy == kSimplexScaleStrategyEquilibration ||
-          use_scale_strategy == kSimplexScaleStrategyForcedEquilibration;
       // Try scaling. Value of scaled_matrix indicates whether scaling
       // was considered valuable (and performed). If it's not valuable
       // then the matrix remains unscaled
@@ -596,14 +596,24 @@ void simplexScaleLp(const HighsOptions& options, HighsLp& lp,
     if (allow_matrix_scaling) {
       printf(
           "grepSimplexRangeTxt HighsScale: "
-          "Original costs in [%g, %g] and matrix in [%g, %g];"
-          "Scaled costs in [%g, %g] and matrix in [%g, %g];"
-          "Final costs in [%g, %g];"
+          "Original costs in [%11.4g, %11.4g] and matrix in [%11.4g, %11.4g]"
           " %s: %s\n",
-          original_min_cost, original_max_cost, original_matrix_min_value,
-          original_matrix_max_value, col_scaled_min_cost, col_scaled_max_cost,
-          scaled_matrix_min_value, scaled_matrix_max_value, final_min_cost,
-          final_max_cost, lp.model_name_.c_str(), lp.origin_name_.c_str());
+          original_min_cost, original_max_cost,
+	  original_matrix_min_value, original_matrix_max_value, 
+	  lp.model_name_.c_str(), lp.origin_name_.c_str());
+      printf(
+          "grepSimplexRangeTxt HighsScale: "
+          "Scaled   costs in [%11.4g, %11.4g] and matrix in [%11.4g, %11.4g]"
+          " %s: %s\n",
+          col_scaled_min_cost, col_scaled_max_cost,
+          scaled_matrix_min_value, scaled_matrix_max_value,
+	  lp.model_name_.c_str(), lp.origin_name_.c_str());
+      printf(
+          "grepSimplexRangeTxt HighsScale: "
+          "Final    costs in [%11.4g, %11.4g]                                         "
+          " %s: %s\n",
+          final_min_cost, final_max_cost,
+	  lp.model_name_.c_str(), lp.origin_name_.c_str());
       printf("grepSimplexRangeCsv,%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,%s,%s\n",
              original_min_cost, original_max_cost, original_matrix_min_value,
              original_matrix_max_value, col_scaled_min_cost,
@@ -1032,6 +1042,7 @@ bool maxValueScaleMatrix(const HighsOptions& options, HighsLp& lp,
       }
     }
   }
+  /*
   const double matrix_value_ratio = matrix_max_value / matrix_min_value;
   const double original_matrix_value_ratio =
       original_matrix_max_value / original_matrix_min_value;
@@ -1039,7 +1050,10 @@ bool maxValueScaleMatrix(const HighsOptions& options, HighsLp& lp,
       original_matrix_value_ratio / matrix_value_ratio;
 
   const double improvement_factor = matrix_value_ratio_improvement;
-
+  */
+  // Seems unlikely that max value scaling has increased the maximum
+  // matrix value, but may as well check for it
+  const double improvement_factor = original_matrix_max_value / matrix_max_value;
   const double improvement_factor_required = 1.0;
   const bool poor_improvement =
       improvement_factor <= improvement_factor_required;
@@ -1064,6 +1078,7 @@ bool maxValueScaleMatrix(const HighsOptions& options, HighsLp& lp,
                   "Scaling: Factors are in [%0.4g, %0.4g] for columns and in "
                   "[%0.4g, %0.4g] for rows\n",
                   min_col_scale, max_col_scale, min_row_scale, max_row_scale);
+      /*
       highsLogDev(
           options.log_options, HighsLogType::kInfo,
           "Scaling: Yields [min, max, ratio] matrix values of [%0.4g, %0.4g, "
@@ -1071,6 +1086,11 @@ bool maxValueScaleMatrix(const HighsOptions& options, HighsLp& lp,
           matrix_min_value, matrix_max_value, matrix_value_ratio,
           original_matrix_min_value, original_matrix_max_value,
           original_matrix_value_ratio, matrix_value_ratio_improvement);
+      */
+      highsLogDev(
+          options.log_options, HighsLogType::kInfo,
+          "Scaling: Yields max matrix value of %0.4g; Originally %0.4g: Improvement of %0.4g\n",
+          matrix_max_value, original_matrix_max_value, improvement_factor);
     }
     return true;
   }
