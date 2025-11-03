@@ -12,15 +12,16 @@ CliqueStack::CliqueStack(Int stack_size) {
   worksize_ = 0;
 }
 
-double* CliqueStack::setup(Int clique_size) {
+double* CliqueStack::setup(Int clique_size, bool& reallocation) {
   // Clear workspace
 
   assert(!workspace_ && !worksize_);
+  reallocation = false;
 
   // This should not trigger reallocation, because the reserve in init is done
   // with the maximum possible size of a clique.
   if (top_ + clique_size > stack_.size()) {
-    printf("=== Warning, reallocation of workspace\n");
+    reallocation = true;
     stack_.resize(top_ + clique_size, 0.0);
   }
 

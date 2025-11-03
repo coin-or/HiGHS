@@ -40,7 +40,7 @@ class CliqueStack {
 
  public:
   CliqueStack(Int size);
-  double* setup(Int clique_size);
+  double* setup(Int clique_size, bool& reallocation);
   const double* getChild(Int& child_sn) const;
   void popChild();
   void pushWork(Int sn);

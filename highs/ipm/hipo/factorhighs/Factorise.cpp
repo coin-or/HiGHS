@@ -244,7 +244,11 @@ void Factorise::processSupernode(Int sn, CliqueStack* cliquestack,
   const Int sn_size = sn_end - sn_begin;
 
   double* clique_ptr = nullptr;
-  if (cliquestack) clique_ptr = cliquestack->setup(S_.cliqueSize(sn));
+  if (cliquestack) {
+    bool reallocation = false;
+    clique_ptr = cliquestack->setup(S_.cliqueSize(sn), reallocation);
+    if (reallocation && log_) log_->printw("Reallocation of CliqueStack\n");
+  }
 
   // initialise the format handler
   // this also allocates space for the frontal matrix and schur complement
