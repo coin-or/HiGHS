@@ -195,11 +195,13 @@ void Factorise::processSupernode(Int sn, bool parallelise) {
 
   if (flag_stop_) return;
 
-  if (parallelise) {
+  bool do_parallelise = parallelise;
+
+  if (do_parallelise) {
     // if there is only one child, do not parallelise
     if (first_child_[sn] != -1 && next_child_[first_child_[sn]] == -1) {
       spawnNode(first_child_[sn], tg, false);
-      parallelise = false;
+      do_parallelise = false;
     } else {
       // spawn children of this supernode in reverse order
       Int child_to_spawn = first_child_reverse_[sn];
@@ -266,7 +268,7 @@ void Factorise::processSupernode(Int sn, bool parallelise) {
     // Schur contribution of the current child
     std::vector<double>& child_clique = schur_contribution_[child_sn];
 
-    if (parallelise) {
+    if (do_parallelise) {
       // sync with spawned child, apart from the first one
       if (child_sn != first_child_[sn]) syncNode(child_sn, tg);
 
@@ -351,7 +353,10 @@ void Factorise::processSupernode(Int sn, bool parallelise) {
   // const double reg_thresh = max_diag_ * kDynamicDiagCoeff;
   const double reg_thresh = A_norm1_ * kDynamicDiagCoeff;
 
-  if (Int flag = FH->denseFactorise(reg_thresh)) {
+  // Node-level parallelism is off if in a subtree
+  bool node_parallel = parallelise && S_.parNode();
+
+  if (Int flag = FH->denseFactorise(reg_thresh, node_parallel)) {
     flag_stop_ = true;
 
     if (log_ && flag == kRetInvalidInput)

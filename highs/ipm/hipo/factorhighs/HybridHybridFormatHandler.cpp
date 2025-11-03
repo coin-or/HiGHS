@@ -57,7 +57,8 @@ void HybridHybridFormatHandler::assembleFrontalMultiple(
                     &frontal_[diag_start_[block] + ii + ldb * jj], 1, data_);
 }
 
-Int HybridHybridFormatHandler::denseFactorise(double reg_thresh) {
+Int HybridHybridFormatHandler::denseFactorise(double reg_thresh,
+                                              bool parallelise) {
   Int status;
 
   status = denseFactFP2FH(frontal_.data(), ldf_, sn_size_, nb_, data_);
@@ -70,7 +71,7 @@ Int HybridHybridFormatHandler::denseFactorise(double reg_thresh) {
   status = denseFactFH('H', ldf_, sn_size_, S_->blockSize(), frontal_.data(),
                        clique_.data(), pivot_sign, reg_thresh, regul_,
                        local_reg_.data(), swaps_.data(), pivot_2x2_.data(),
-                       S_->parNode(), data_);
+                       parallelise, data_);
 
   return status;
 }

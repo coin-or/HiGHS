@@ -16,7 +16,7 @@ class HybridHybridFormatHandler : public FormatHandler {
   void assembleFrontalMultiple(Int num, const std::vector<double>& child,
                                Int nc, Int child_sn, Int row, Int col, Int i,
                                Int j) override;
-  Int denseFactorise(double reg_thresh) override;
+  Int denseFactorise(double reg_thresh, bool parallelise) override;
   void assembleClique(const std::vector<double>& child, Int nc,
                       Int child_sn) override;
   void extremeEntries() override;

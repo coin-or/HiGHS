@@ -80,7 +80,7 @@ class FormatHandler {
                                        Int j) = 0;
   virtual void assembleClique(const std::vector<double>& child, Int nc,
                               Int child_sn) = 0;
-  virtual Int denseFactorise(double reg_thresh) = 0;
+  virtual Int denseFactorise(double reg_thresh, bool parallelise) = 0;
 
   // =================================================================
   // Virtual functions.
