@@ -923,7 +923,7 @@ void Analyse::computeStorage(Int fr, Int sz, int64_t& fr_entries,
   int64_t schur_size{};
   for (Int j = 0; j < n_blocks; ++j) {
     const Int jb = std::min(nb_, cl - j * nb_);
-    schur_size += (ino64_t)(cl - j * nb_) * jb;
+    schur_size += (int64_t)(cl - j * nb_) * jb;
   }
   cl_entries = schur_size;
 }
