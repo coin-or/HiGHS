@@ -187,21 +187,36 @@ TaskGroupSpecial::~TaskGroupSpecial() {
   }
 }
 
-void Factorise::processSupernode(Int sn, bool parallelise) {
+void Factorise::processSupernode(Int sn, CliqueStack* cliquestack,
+                                 bool subtree) {
   // Assemble frontal matrix for supernode sn, perform partial factorisation and
   // store the result.
+  // Supernode can be processes as a single node or as part of a subtree.
+  // If subtree, then no parallelisation happens because the sn in the subtree
+  // are processed consecutively. Otherwise, parallelisation happens.
+  // When processing a subtree, cliquestack has to be valid, to be used to store
+  // the cliques. If not in a subtree, cliquestack is ignored.
+
+  // single nodes shouldn't have cliquestack
+  if (!subtree && cliquestack) {
+    flag_stop_ = true;
+    return;
+  }
+
+  // subtrees should have a cliquestack
+  // ......
 
   TaskGroupSpecial tg;
 
   if (flag_stop_) return;
 
-  bool do_parallelise = parallelise;
+  bool parallelise = !subtree;
 
-  if (do_parallelise) {
+  if (parallelise) {
     // if there is only one child, do not parallelise
     if (first_child_[sn] != -1 && next_child_[first_child_[sn]] == -1) {
       spawnNode(first_child_[sn], tg, false);
-      do_parallelise = false;
+      parallelise = false;
     } else {
       // spawn children of this supernode in reverse order
       Int child_to_spawn = first_child_reverse_[sn];
@@ -228,10 +243,13 @@ void Factorise::processSupernode(Int sn, bool parallelise) {
   const Int sn_end = S_.snStart(sn + 1);
   const Int sn_size = sn_end - sn_begin;
 
+  double* clique_ptr = nullptr;
+  if (cliquestack) clique_ptr = cliquestack->setup(S_.cliqueSize(sn));
+
   // initialise the format handler
   // this also allocates space for the frontal matrix and schur complement
-  std::unique_ptr<FormatHandler> FH(
-      new HybridHybridFormatHandler(S_, sn, regul_, data_, sn_columns_[sn]));
+  std::unique_ptr<FormatHandler> FH(new HybridHybridFormatHandler(
+      S_, sn, regul_, data_, sn_columns_[sn], clique_ptr));
 
 #if HIPO_TIMING_LEVEL >= 2
   data_.sumTime(kTimeFactorisePrepare, clock.stop());
@@ -263,23 +281,38 @@ void Factorise::processSupernode(Int sn, bool parallelise) {
   // ===================================================
   // Assemble frontal matrices of children
   // ===================================================
-  Int child_sn = first_child_[sn];
-  while (child_sn != -1) {
-    // Schur contribution of the current child
-    std::vector<double>& child_clique = schur_contribution_[child_sn];
+  Int child = first_child_[sn];
+  while (child != -1) {
+    Int child_sn;
+    const double* child_clique;
 
-    if (do_parallelise) {
+    // Schur contribution of the current child
+    if (cliquestack)
+      // use cliquestack, children are summed from last to first
+      child_clique = cliquestack->getChild(child_sn);
+    else {
+      // use local storage, children are summed from first to last
+      child_sn = child;
+      child_clique = schur_contribution_[child_sn].data();
+    }
+
+    if (parallelise) {
       // sync with spawned child, apart from the first one
       if (child_sn != first_child_[sn]) syncNode(child_sn, tg);
 
+      // read pointer again, because it may have changed after syncing
+      child_clique = schur_contribution_[child_sn].data();
+
       if (flag_stop_) return;
 
-      if (child_clique.size() == 0) {
+      if (schur_contribution_[child_sn].empty()) {
         if (log_) log_->printDevInfo("Missing child supernode contribution\n");
         flag_stop_ = true;
         return;
       }
     }
+
+    assert(child_clique);
 
     // determine size of clique of child
     const Int child_begin = S_.snStart(child_sn);
@@ -333,12 +366,16 @@ void Factorise::processSupernode(Int sn, bool parallelise) {
 #endif
 
     // Schur contribution of the child is no longer needed
-    // Swap with temporary empty vector to deallocate memory
-    std::vector<double> temp_empty;
-    schur_contribution_[child_sn].swap(temp_empty);
+    if (cliquestack) {
+      cliquestack->popChild();
+    } else {
+      // Swap with temporary empty vector to deallocate memory
+      std::vector<double> temp_empty;
+      schur_contribution_[child_sn].swap(temp_empty);
+    }
 
     // move on to the next child
-    child_sn = next_child_[child_sn];
+    child = next_child_[child];
   }
 
   if (flag_stop_) return;
@@ -354,7 +391,7 @@ void Factorise::processSupernode(Int sn, bool parallelise) {
   const double reg_thresh = A_norm1_ * kDynamicDiagCoeff;
 
   // Node-level parallelism is off if in a subtree
-  bool node_parallel = parallelise && S_.parNode();
+  bool node_parallel = !subtree && S_.parNode();
 
   if (Int flag = FH->denseFactorise(reg_thresh, node_parallel)) {
     flag_stop_ = true;
@@ -379,6 +416,9 @@ void Factorise::processSupernode(Int sn, bool parallelise) {
   // terminate the format handler
   FH->terminate(schur_contribution_[sn], total_reg_, swaps_[sn],
                 pivot_2x2_[sn]);
+
+  if (cliquestack) cliquestack->pushWork(sn);
+
 #if HIPO_TIMING_LEVEL >= 2
   data_.sumTime(kTimeFactoriseTerminate, clock.stop());
 #endif
@@ -401,7 +441,7 @@ void Factorise::spawnNode(Int sn, const TaskGroupSpecial& tg, bool do_spawn) {
   if (it->second.type == NodeType::single) {
     // sn is single node; spawn only that
 
-    auto f = [this, sn]() { processSupernode(sn, true); };
+    auto f = [this, sn]() { processSupernode(sn, nullptr, false); };
 
     if (do_spawn)
       tg.spawn(std::move(f));
@@ -414,14 +454,28 @@ void Factorise::spawnNode(Int sn, const TaskGroupSpecial& tg, bool do_spawn) {
 
     const NodeData* nd_ptr = &(it->second);
 
-    auto f = [this, nd_ptr]() {
+    auto f = [this, nd_ptr, sn]() {
+      CliqueStack cliquestack(nd_ptr->stack_size);
+
       for (Int i = 0; i < nd_ptr->group.size(); ++i) {
         Int st_head = nd_ptr->group[i];
         Int start = nd_ptr->firstdesc[i];
         Int end = st_head + 1;
         for (Int sn = start; sn < end; ++sn) {
-          processSupernode(sn, false);
+          processSupernode(sn, &cliquestack, true);
         }
+
+        // Current subtree is finished. Before processing the next subtree in
+        // the group, move clique from the stack into schur_contribution...
+        schur_contribution_[st_head].resize(S_.cliqueSize(st_head));
+        std::memcpy(schur_contribution_[st_head].data(), cliquestack.get(),
+                    S_.cliqueSize(st_head) * sizeof(double));
+
+        // ...and clear the stack.
+        cliquestack.popChild();
+
+        // cliquestack should be empty now
+        assert(cliquestack.getTop() == 0);
       }
     };
 
@@ -466,9 +520,11 @@ bool Factorise::run(Numeric& num) {
     // sync tasks for root supernodes
     tg.taskWait();
   } else {
+    CliqueStack cliquestack(S_.maxStackSize());
+
     // go through each supernode serially
     for (Int sn = 0; sn < S_.sn(); ++sn) {
-      processSupernode(sn, false);
+      processSupernode(sn, &cliquestack, true);
     }
   }
 

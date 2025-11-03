@@ -14,6 +14,7 @@ struct NodeData {
   NodeType type;
   std::vector<Int> firstdesc;
   std::vector<Int> group;
+  int64_t stack_size;
 };
 
 // Symbolic factorisation object
@@ -44,6 +45,7 @@ class Symbolic {
   Int sn_size_1_{};
   Int sn_size_10_{};
   Int sn_size_100_{};
+  int64_t max_stack_size_{};
 
   // Inverse permutation
   std::vector<Int> iperm_{};
@@ -147,6 +149,7 @@ class Symbolic {
   bool parTree() const;
   bool parNode() const;
   bool metisNo2hop() const;
+  int64_t maxStackSize() const;
   const std::vector<Int>& ptr() const;
   const std::vector<Int>& iperm() const;
   const std::vector<Int>& snParent() const;

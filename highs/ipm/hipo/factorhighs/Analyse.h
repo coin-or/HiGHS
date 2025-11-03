@@ -80,6 +80,9 @@ class Analyse {
   std::map<Int, NodeData> tree_splitting_;
   std::vector<bool> is_in_tree_splitting_;
 
+  std::vector<int64_t> stack_subtrees_{};
+  int64_t max_stack_size_{};
+
   // block size
   Int nb_{};
 
@@ -101,10 +104,11 @@ class Analyse {
   void relativeIndClique();
   void reorderChildren();
   void computeStorage();
-  void computeStorage(Int fr, Int sz, double& fr_entries,
-                      double& cl_entries) const;
+  void computeStorage(Int fr, Int sz, int64_t& fr_entries,
+                      int64_t& cl_entries) const;
   void computeCriticalPath();
   void computeBlockStart();
+  void computeStackSize();
 
   void findTreeSplitting();
 

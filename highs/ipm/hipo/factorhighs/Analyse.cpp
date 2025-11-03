@@ -908,8 +908,8 @@ void Analyse::relativeIndClique() {
   }
 }
 
-void Analyse::computeStorage(Int fr, Int sz, double& fr_entries,
-                             double& cl_entries) const {
+void Analyse::computeStorage(Int fr, Int sz, int64_t& fr_entries,
+                             int64_t& cl_entries) const {
   // compute storage required by frontal and clique, based on the format used
 
   const Int cl = fr - sz;
@@ -920,17 +920,17 @@ void Analyse::computeStorage(Int fr, Int sz, double& fr_entries,
 
   // clique is stored as a collection of rectangles
   n_blocks = (cl - 1) / nb_ + 1;
-  double schur_size{};
+  int64_t schur_size{};
   for (Int j = 0; j < n_blocks; ++j) {
     const Int jb = std::min(nb_, cl - j * nb_);
-    schur_size += (double)(cl - j * nb_) * jb;
+    schur_size += (ino64_t)(cl - j * nb_) * jb;
   }
   cl_entries = schur_size;
 }
 
 void Analyse::computeStorage() {
-  std::vector<double> clique_entries(sn_count_);
-  std::vector<double> frontal_entries(sn_count_);
+  std::vector<int64_t> clique_entries(sn_count_);
+  std::vector<int64_t> frontal_entries(sn_count_);
   std::vector<double> storage(sn_count_);
   std::vector<double> storage_factors(sn_count_);
 
@@ -1050,8 +1050,8 @@ void Analyse::computeCriticalPath() {
 }
 
 void Analyse::reorderChildren() {
-  std::vector<double> clique_entries(sn_count_);
-  std::vector<double> frontal_entries(sn_count_);
+  std::vector<int64_t> clique_entries(sn_count_);
+  std::vector<int64_t> frontal_entries(sn_count_);
   std::vector<double> storage(sn_count_);
   std::vector<double> storage_factors(sn_count_);
 
@@ -1304,12 +1304,15 @@ void Analyse::findTreeSplitting() {
             is_in_tree_splitting_[child] = true;
             current_nodedata = &res_insert.first->second;
             current_nodedata->type = NodeType::subtree;
+            current_nodedata->stack_size = 0;
             current_ops = 0.0;
           }
 
           current_ops += subtree_ops[child];
           current_nodedata->group.push_back(child);
           current_nodedata->firstdesc.push_back(first_desc[child]);
+          current_nodedata->stack_size =
+              std::max(current_nodedata->stack_size, stack_subtrees_[child]);
 
           if (current_ops > small_thresh) current_nodedata = nullptr;
         }
@@ -1324,6 +1327,7 @@ void Analyse::findTreeSplitting() {
       res_insert.first->second.type = NodeType::subtree;
       res_insert.first->second.group.push_back(sn);
       res_insert.first->second.firstdesc.push_back(first_desc[sn]);
+      res_insert.first->second.stack_size = stack_subtrees_[sn];
     }
     /*
     else if (subtree_ops[sn_parent_[sn]] > small_thresh) {
@@ -1334,6 +1338,62 @@ void Analyse::findTreeSplitting() {
       continue;
     }
     */
+  }
+}
+
+void Analyse::computeStackSize() {
+  // Compute the minimum size of the stack to process each subtree.
+
+  std::vector<int64_t> clique_entries(sn_count_);
+  std::vector<int64_t> frontal_entries(sn_count_);
+  stack_subtrees_.assign(sn_count_, 0);
+
+  // initialise data of supernodes
+  for (Int sn = 0; sn < sn_count_; ++sn) {
+    // supernode size
+    const Int sz = sn_start_[sn + 1] - sn_start_[sn];
+
+    // frontal size
+    const Int fr = ptr_sn_[sn + 1] - ptr_sn_[sn];
+
+    // compute storage based on format used
+    computeStorage(fr, sz, frontal_entries[sn], clique_entries[sn]);
+  }
+
+  // linked lists of children
+  std::vector<Int> head, next;
+  childrenLinkedList(sn_parent_, head, next);
+
+  // go through the supernodes
+  for (Int sn = 0; sn < sn_count_; ++sn) {
+    // leaf node
+    if (head[sn] == -1) {
+      stack_subtrees_[sn] = clique_entries[sn];
+      continue;
+    }
+
+    // Compute storage
+    // storage is found as max(storage_1,storage_2), where
+    // storage_1 = max_j stack_size[j] + \sum_{k up to j-1} clique_entries[k]
+    // storage_2 = clique_total_entries (including node itself)
+
+    int64_t clique_partial_entries{};
+    int64_t storage_1{};
+
+    Int child = head[sn];
+    while (child != -1) {
+      int64_t current = stack_subtrees_[child] + clique_partial_entries;
+
+      clique_partial_entries += clique_entries[child];
+      storage_1 = std::max(storage_1, current);
+
+      child = next[child];
+    }
+
+    int64_t storage_2 = clique_partial_entries + clique_entries[sn];
+
+    stack_subtrees_[sn] = std::max(storage_1, storage_2);
+    max_stack_size_ = std::max(max_stack_size_, stack_subtrees_[sn]);
   }
 }
 
@@ -1411,6 +1471,7 @@ Int Analyse::run(Symbolic& S) {
   computeStorage();
   computeBlockStart();
   computeCriticalPath();
+  computeStackSize();
 
   findTreeSplitting();
 
@@ -1427,6 +1488,7 @@ Int Analyse::run(Symbolic& S) {
   S.serial_storage_ = serial_storage_;
   S.flops_ = dense_ops_;
   S.block_size_ = nb_;
+  S.max_stack_size_ = max_stack_size_;
 
   // compute largest supernode
   std::vector<Int> sn_size(sn_start_.begin() + 1, sn_start_.end());
