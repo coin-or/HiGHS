@@ -393,7 +393,7 @@ Int FactorHiGHSSolver::analyseAS(Symbolic& S) {
   Int status = FH_.analyse(S, rowsLower, ptrLower, pivot_signs);
   if (info_) info_->analyse_AS_time = clock.stop();
 
-  if (status && log_.debug(1)) {
+  if (status && log_.debug(2)) {
     log_.print("Failed augmented system:");
     S.print(log_, true);
   }
@@ -432,7 +432,7 @@ Int FactorHiGHSSolver::analyseNE(Symbolic& S, int64_t nz_limit) {
   Int status = FH_.analyse(S, rowsNE_, ptrNE_, pivot_signs);
   if (info_) info_->analyse_NE_time = clock.stop();
 
-  if (status && log_.debug(1)) {
+  if (status && log_.debug(2)) {
     log_.print("Failed normal equations:");
     S.print(log_, true);
   }
