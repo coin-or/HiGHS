@@ -38,7 +38,7 @@ cmake.args = [
   "-DHIPO=ON",
   "-DCMAKE_TOOLCHAIN_FILE='C:/Users/galab/code/repos/vcpkg/scripts/buildsystems/vcpkg.cmake'",
   "-DVCPKG_TARGET_TRIPLET='x64-windows-static'",
-  # "-DMETIS_ROOT='C:/Users/galab/installs/metis-521-ts'"
+  "-DMETIS_ROOT='C:/Users/galab/installs/metis-521-ts'"
 ]
 
 wheel.expand-macos-universal-tags = true

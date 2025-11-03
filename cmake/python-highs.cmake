@@ -57,12 +57,18 @@ target_link_libraries(_core PRIVATE pybind11::headers)
 
 if (HIPO)
   target_link_libraries(_core PRIVATE OpenBLAS::OpenBLAS)
-  if (NOT METIS_ROOT STREQUAL "")
-    target_include_directories(_core PRIVATE ${METIS_DST_DIR}/include)
-    target_link_libraries(_core PRIVATE ${METIS_DST_DIR}/lib/metis.lib)
-  else()
+  # if (NOT METIS_ROOT STREQUAL "")
+  #   target_include_directories(_core PRIVATE ${METIS_DST_DIR}/include)
+  #   target_link_libraries(_core PRIVATE ${METIS_DST_DIR}/lib/metis.lib)
+  # else()
+
+  if(metis_FOUND)
     target_link_libraries(_core PRIVATE metis)
+  else()
+    target_include_directories(_core PRIVATE "${METIS_PATH}")
+    target_link_libraries(_core PRIVATE "${METIS_LIB}")
   endif()
+
 endif()
 
 # sources for python
