@@ -145,25 +145,20 @@ endif()
 set(METIS_ROOT "" CACHE STRING "Root directory of METIS")
 message(STATUS "METIS_ROOT is " ${METIS_ROOT})
 
-if (PYTHON_BUILD_SETUP)
-
+if (PYTHON_BUILD_SETUP AND NOT (METIS_ROOT STREQUAL ""))
     set(METIS_SRC_DIR ${METIS_ROOT})
     set(METIS_DST_DIR ${CMAKE_BINARY_DIR}/metis)
-
     file(COPY ${METIS_SRC_DIR}/include DESTINATION ${METIS_DST_DIR})
     file(COPY ${METIS_SRC_DIR}/lib DESTINATION ${METIS_DST_DIR})
-
     return()
-
 endif()
-
 
 # If a METIS install was specified try to use it first.
 if (NOT (METIS_ROOT STREQUAL ""))
     message(STATUS "Looking for METIS CMake targets file in " ${METIS_ROOT})
     find_package(metis CONFIG NO_DEFAULT_PATH QUIET)
 else()
-    find_package(metis CONFIG QUIET)
+    find_package(metis CONFIG)
 endif()
 
 if(metis_FOUND)

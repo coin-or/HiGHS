@@ -56,9 +56,13 @@ python_add_library(_core MODULE highs/highs_bindings.cpp WITH_SOABI)
 target_link_libraries(_core PRIVATE pybind11::headers)
 
 if (HIPO)
-  target_include_directories(_core PRIVATE ${METIS_DST_DIR}/include)
   target_link_libraries(_core PRIVATE OpenBLAS::OpenBLAS)
-  target_link_libraries(_core PRIVATE ${METIS_DST_DIR}/lib/metis.lib)
+  if (NOT METIS_ROOT STREQUAL "")
+    target_include_directories(_core PRIVATE ${METIS_DST_DIR}/include)
+    target_link_libraries(_core PRIVATE ${METIS_DST_DIR}/lib/metis.lib)
+  else()
+    target_link_libraries(_core PRIVATE metis)
+  endif()
 endif()
 
 # sources for python
