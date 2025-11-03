@@ -54,7 +54,7 @@ wheel.packages = ["highs/highspy"]
 sdist.include = [
   "highs/highspy/highs.py",
   "highs/highspy/__init__.py",
-  "highs/highspy/__init__.pyi",
+  # "highs/highspy/__init__.pyi",
   # "highs/highspy/_core/*.pyi",
   "tests/test_highspy.py",
   "Version.txt",

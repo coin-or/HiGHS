@@ -17,12 +17,12 @@ set(headers_python ${highs_headers_python}
                    ${basiclu_headers_python})
 
 if(HIPO)
-  set(sources_python ${sources}
+  set(sources_python ${sources_python}
                      ${hipo_sources_python}
                      ${factor_highs_sources_python}
                      ${hipo_util_sources_python})
 
-  set(headers_python ${headers}
+  set(headers_python ${headers_python}
                      ${hipo_headers_python}
                      ${factor_highs_headers_python}
                      ${hipo_util_headers_python})

@@ -227,6 +227,21 @@ class TestHighsPy(unittest.TestCase):
         self.assertEqual(status, highspy.HighsStatus.kOk)
         self.assertAlmostEqual(mip_node_count0, mip_node_count1)
 
+    def test_hipo(self):
+        print("running hipo test")
+        h = self.get_example_model()
+        h.setOptionValue("solver", "hipo")
+        h.setOptionValue("output_flag", True)
+
+        [status, output_flag] = h.getOptionValue("solver")
+        self.assertEqual(output_flag, "hipo")
+
+        h.run()
+        self.assertEqual(status, highspy.HighsStatus.kOk)
+
+        status = h.getModelStatus()
+        self.assertEqual(status, highspy.HighsModelStatus.kOptimal)
+
     def test_example(self):
         h = self.get_example_model()
         lp = h.getLp()
