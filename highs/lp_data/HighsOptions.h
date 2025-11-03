@@ -851,11 +851,11 @@ class HighsOptions : public HighsOptionsStruct {
 
     record_int = new OptionRecordInt(
         "simplex_scale_strategy",
-        "Simplex scaling strategy: off / choose / equilibration (default) / "
+        "Simplex scaling strategy: off / choose / geometric mean (default) / "
         "forced "
-        "equilibration / max value (0/1/2/3/4)",
+        "geometric mean / max value / max value with cost scaling(0/1/2/3/4/5)",
         advanced, &simplex_scale_strategy, kSimplexScaleStrategyMin,
-        kSimplexScaleStrategyEquilibration, kSimplexScaleStrategyMax);
+        kSimplexScaleStrategyGeomean, kSimplexScaleStrategyMax);
     records.push_back(record_int);
 
     record_int = new OptionRecordInt(

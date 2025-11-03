@@ -469,9 +469,9 @@ void simplexScaleLp(const HighsOptions& options, HighsLp& lp,
   // Determine the actual strategy to use
   HighsInt use_scale_strategy = simplex_scale_strategy;
   if (use_scale_strategy == kSimplexScaleStrategyChoose) {
-    // HiGHS is left to choose: currently use forced equilibration, but maybe do
+    // HiGHS is left to choose: currently use forced geomean, but maybe do
     // something more intelligent
-    use_scale_strategy = kSimplexScaleStrategyForcedEquilibration;
+    use_scale_strategy = kSimplexScaleStrategyForcedGeomean;
   }
   HighsScale& scale = lp.scale_;
   bool scaled_costs = false;
@@ -499,31 +499,31 @@ void simplexScaleLp(const HighsOptions& options, HighsLp& lp,
   }
   if (allow_matrix_scaling) {
     // Consider matrix scaling, and determine which type to use
-    const bool equilibration_scaling =
-      use_scale_strategy == kSimplexScaleStrategyEquilibration ||
-      use_scale_strategy == kSimplexScaleStrategyForcedEquilibration;
+    const bool geomean_scaling =
+        use_scale_strategy == kSimplexScaleStrategyGeomean ||
+        use_scale_strategy == kSimplexScaleStrategyForcedGeomean;
     // Find out range of matrix values
     lp.a_matrix_.range(original_matrix_min_value, original_matrix_max_value);
     const double no_scaling_original_matrix_min_value = 0.2;
     const double no_scaling_original_matrix_max_value = 5.0;
     bool use_scaling = true;
-    if (equilibration_scaling) {
+    if (geomean_scaling) {
       // Skip if |values| are in [0.2, 5]
-      if (original_matrix_min_value >=
-	  no_scaling_original_matrix_min_value &&
-	original_matrix_max_value <=
-	  no_scaling_original_matrix_max_value) use_scaling = false;
+      if (original_matrix_min_value >= no_scaling_original_matrix_min_value &&
+          original_matrix_max_value <= no_scaling_original_matrix_max_value)
+        use_scaling = false;
     } else {
       // Skip if |values| are in [0, 5]
-      if (original_matrix_max_value <=
-	  no_scaling_original_matrix_max_value) use_scaling = false;
+      if (original_matrix_max_value <= no_scaling_original_matrix_max_value)
+        use_scaling = false;
     }
     // Possibly force scaling
     if (force_scaling) use_scaling = true;
     if (!use_scaling) {
       // No matrix scaling
       highsLogDev(options.log_options, HighsLogType::kInfo,
-                  "Scaling: Matrix has [min, max] values of [%g, %g] so no scaling performed\n",
+                  "Scaling: Matrix has [min, max] values of [%g, %g] so no "
+                  "scaling performed\n",
                   original_matrix_min_value, original_matrix_max_value);
     } else {
       // Try scaling, so assign unit factors - partly because initial
@@ -534,9 +534,8 @@ void simplexScaleLp(const HighsOptions& options, HighsLp& lp,
       // Try scaling. Value of scaled_matrix indicates whether scaling
       // was considered valuable (and performed). If it's not valuable
       // then the matrix remains unscaled
-      if (equilibration_scaling) {
-        scaled_matrix =
-            equilibrationScaleMatrix(options, lp, use_scale_strategy);
+      if (geomean_scaling) {
+        scaled_matrix = geomeanScaleMatrix(options, lp, use_scale_strategy);
       } else {
         scaled_matrix = maxValueScaleMatrix(options, lp, use_scale_strategy);
       }
@@ -598,22 +597,23 @@ void simplexScaleLp(const HighsOptions& options, HighsLp& lp,
           "grepSimplexRangeTxt HighsScale: "
           "Original costs in [%11.4g, %11.4g] and matrix in [%11.4g, %11.4g]"
           " %s: %s\n",
-          original_min_cost, original_max_cost,
-	  original_matrix_min_value, original_matrix_max_value, 
-	  lp.model_name_.c_str(), lp.origin_name_.c_str());
+          original_min_cost, original_max_cost, original_matrix_min_value,
+          original_matrix_max_value, lp.model_name_.c_str(),
+          lp.origin_name_.c_str());
       printf(
           "grepSimplexRangeTxt HighsScale: "
           "Scaled   costs in [%11.4g, %11.4g] and matrix in [%11.4g, %11.4g]"
           " %s: %s\n",
-          col_scaled_min_cost, col_scaled_max_cost,
-          scaled_matrix_min_value, scaled_matrix_max_value,
-	  lp.model_name_.c_str(), lp.origin_name_.c_str());
+          col_scaled_min_cost, col_scaled_max_cost, scaled_matrix_min_value,
+          scaled_matrix_max_value, lp.model_name_.c_str(),
+          lp.origin_name_.c_str());
       printf(
           "grepSimplexRangeTxt HighsScale: "
-          "Final    costs in [%11.4g, %11.4g]                                         "
+          "Final    costs in [%11.4g, %11.4g]                                  "
+          "       "
           " %s: %s\n",
-          final_min_cost, final_max_cost,
-	  lp.model_name_.c_str(), lp.origin_name_.c_str());
+          final_min_cost, final_max_cost, lp.model_name_.c_str(),
+          lp.origin_name_.c_str());
       printf("grepSimplexRangeCsv,%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,%s,%s\n",
              original_min_cost, original_max_cost, original_matrix_min_value,
              original_matrix_max_value, col_scaled_min_cost,
@@ -635,8 +635,8 @@ void simplexScaleLp(const HighsOptions& options, HighsLp& lp,
   }
 }
 
-bool equilibrationScaleMatrix(const HighsOptions& options, HighsLp& lp,
-                              const HighsInt use_scale_strategy) {
+bool geomeanScaleMatrix(const HighsOptions& options, HighsLp& lp,
+                        const HighsInt use_scale_strategy) {
   HighsInt numCol = lp.num_col_;
   HighsInt numRow = lp.num_row_;
   HighsScale& scale = lp.scale_;
@@ -699,10 +699,10 @@ bool equilibrationScaleMatrix(const HighsOptions& options, HighsLp& lp,
         col_min_value = min(col_min_value, value);
         col_max_value = max(col_max_value, value);
       }
-      double col_equilibration = 1 / sqrt(col_min_value * col_max_value);
+      double col_geomean = 1 / sqrt(col_min_value * col_max_value);
       // Ensure that column scale factor is not excessively large or small
       colScale[iCol] =
-          min(max(min_allow_col_scale, col_equilibration), max_allow_col_scale);
+          min(max(min_allow_col_scale, col_geomean), max_allow_col_scale);
       // For row scale (only collect)
       for (HighsInt k = Astart[iCol]; k < Astart[iCol + 1]; k++) {
         HighsInt iRow = Aindex[k];
@@ -713,11 +713,10 @@ bool equilibrationScaleMatrix(const HighsOptions& options, HighsLp& lp,
     }
     // For row scale (find)
     for (HighsInt iRow = 0; iRow < numRow; iRow++) {
-      double row_equilibration =
-          1 / sqrt(row_min_value[iRow] * row_max_value[iRow]);
+      double row_geomean = 1 / sqrt(row_min_value[iRow] * row_max_value[iRow]);
       // Ensure that row scale factor is not excessively large or small
       rowScale[iRow] =
-          min(max(min_allow_row_scale, row_equilibration), max_allow_row_scale);
+          min(max(min_allow_row_scale, row_geomean), max_allow_row_scale);
     }
     row_min_value.assign(numRow, finite_infinity);
     row_max_value.assign(numRow, 1 / finite_infinity);
@@ -742,18 +741,18 @@ bool equilibrationScaleMatrix(const HighsOptions& options, HighsLp& lp,
   // Apply scaling to matrix and bounds
   double matrix_min_value = finite_infinity;
   double matrix_max_value = 0;
-  double min_original_col_equilibration = finite_infinity;
-  double sum_original_log_col_equilibration = 0;
-  double max_original_col_equilibration = 0;
-  double min_original_row_equilibration = finite_infinity;
-  double sum_original_log_row_equilibration = 0;
-  double max_original_row_equilibration = 0;
-  double min_col_equilibration = finite_infinity;
-  double sum_log_col_equilibration = 0;
-  double max_col_equilibration = 0;
-  double min_row_equilibration = finite_infinity;
-  double sum_log_row_equilibration = 0;
-  double max_row_equilibration = 0;
+  double min_original_col_geomean = finite_infinity;
+  double sum_original_log_col_geomean = 0;
+  double max_original_col_geomean = 0;
+  double min_original_row_geomean = finite_infinity;
+  double sum_original_log_row_geomean = 0;
+  double max_original_row_geomean = 0;
+  double min_col_geomean = finite_infinity;
+  double sum_log_col_geomean = 0;
+  double max_col_geomean = 0;
+  double min_row_geomean = finite_infinity;
+  double sum_log_row_geomean = 0;
+  double max_row_geomean = 0;
   vector<double> original_row_min_value(numRow, finite_infinity);
   vector<double> original_row_max_value(numRow, 1 / finite_infinity);
   row_min_value.assign(numRow, finite_infinity);
@@ -782,80 +781,71 @@ bool equilibrationScaleMatrix(const HighsOptions& options, HighsLp& lp,
     matrix_min_value = min(matrix_min_value, col_min_value);
     matrix_max_value = max(matrix_max_value, col_max_value);
 
-    const double original_col_equilibration =
+    const double original_col_geomean =
         1 / sqrt(original_col_min_value * original_col_max_value);
-    min_original_col_equilibration =
-        min(original_col_equilibration, min_original_col_equilibration);
-    sum_original_log_col_equilibration += log(original_col_equilibration);
-    max_original_col_equilibration =
-        max(original_col_equilibration, max_original_col_equilibration);
-    const double col_equilibration = 1 / sqrt(col_min_value * col_max_value);
-    min_col_equilibration = min(col_equilibration, min_col_equilibration);
-    sum_log_col_equilibration += log(col_equilibration);
-    max_col_equilibration = max(col_equilibration, max_col_equilibration);
+    min_original_col_geomean =
+        min(original_col_geomean, min_original_col_geomean);
+    sum_original_log_col_geomean += log(original_col_geomean);
+    max_original_col_geomean =
+        max(original_col_geomean, max_original_col_geomean);
+    const double col_geomean = 1 / sqrt(col_min_value * col_max_value);
+    min_col_geomean = min(col_geomean, min_col_geomean);
+    sum_log_col_geomean += log(col_geomean);
+    max_col_geomean = max(col_geomean, max_col_geomean);
   }
 
   for (HighsInt iRow = 0; iRow < numRow; iRow++) {
-    const double original_row_equilibration =
+    const double original_row_geomean =
         1 / sqrt(original_row_min_value[iRow] * original_row_max_value[iRow]);
-    min_original_row_equilibration =
-        min(original_row_equilibration, min_original_row_equilibration);
-    sum_original_log_row_equilibration += log(original_row_equilibration);
-    max_original_row_equilibration =
-        max(original_row_equilibration, max_original_row_equilibration);
-    const double row_equilibration =
+    min_original_row_geomean =
+        min(original_row_geomean, min_original_row_geomean);
+    sum_original_log_row_geomean += log(original_row_geomean);
+    max_original_row_geomean =
+        max(original_row_geomean, max_original_row_geomean);
+    const double row_geomean =
         1 / sqrt(row_min_value[iRow] * row_max_value[iRow]);
-    min_row_equilibration = min(row_equilibration, min_row_equilibration);
-    sum_log_row_equilibration += log(row_equilibration);
-    max_row_equilibration = max(row_equilibration, max_row_equilibration);
+    min_row_geomean = min(row_geomean, min_row_geomean);
+    sum_log_row_geomean += log(row_geomean);
+    max_row_geomean = max(row_geomean, max_row_geomean);
   }
-  const double geomean_original_col_equilibration =
-      exp(sum_original_log_col_equilibration / numCol);
-  const double geomean_original_row_equilibration =
-      exp(sum_original_log_row_equilibration / numRow);
-  const double geomean_col_equilibration =
-      exp(sum_log_col_equilibration / numCol);
-  const double geomean_row_equilibration =
-      exp(sum_log_row_equilibration / numRow);
+  const double geomean_original_col_geomean =
+      exp(sum_original_log_col_geomean / numCol);
+  const double geomean_original_row_geomean =
+      exp(sum_original_log_row_geomean / numRow);
+  const double geomean_col_geomean = exp(sum_log_col_geomean / numCol);
+  const double geomean_row_geomean = exp(sum_log_row_geomean / numRow);
   if (options.log_dev_level) {
-    highsLogDev(
-        options.log_options, HighsLogType::kInfo,
-        "Scaling: Original equilibration: min/mean/max %11.4g/%11.4g/%11.4g "
-        "(cols); min/mean/max %11.4g/%11.4g/%11.4g (rows)\n",
-        min_original_col_equilibration, geomean_original_col_equilibration,
-        max_original_col_equilibration, min_original_row_equilibration,
-        geomean_original_row_equilibration, max_original_row_equilibration);
-    highsLogDev(
-        options.log_options, HighsLogType::kInfo,
-        "Scaling: Final    equilibration: min/mean/max %11.4g/%11.4g/%11.4g "
-        "(cols); min/mean/max %11.4g/%11.4g/%11.4g (rows)\n",
-        min_col_equilibration, geomean_col_equilibration, max_col_equilibration,
-        min_row_equilibration, geomean_row_equilibration,
-        max_row_equilibration);
+    highsLogDev(options.log_options, HighsLogType::kInfo,
+                "Scaling: Original geomean: min/mean/max %11.4g/%11.4g/%11.4g "
+                "(cols); min/mean/max %11.4g/%11.4g/%11.4g (rows)\n",
+                min_original_col_geomean, geomean_original_col_geomean,
+                max_original_col_geomean, min_original_row_geomean,
+                geomean_original_row_geomean, max_original_row_geomean);
+    highsLogDev(options.log_options, HighsLogType::kInfo,
+                "Scaling: Final    geomean: min/mean/max %11.4g/%11.4g/%11.4g "
+                "(cols); min/mean/max %11.4g/%11.4g/%11.4g (rows)\n",
+                min_col_geomean, geomean_col_geomean, max_col_geomean,
+                min_row_geomean, geomean_row_geomean, max_row_geomean);
   }
 
-  // Compute the mean equilibration improvement
+  // Compute the mean geomean improvement
   const double geomean_original_col =
-      max(geomean_original_col_equilibration,
-          1 / geomean_original_col_equilibration);
+      max(geomean_original_col_geomean, 1 / geomean_original_col_geomean);
   const double geomean_original_row =
-      max(geomean_original_row_equilibration,
-          1 / geomean_original_row_equilibration);
-  const double geomean_col =
-      max(geomean_col_equilibration, 1 / geomean_col_equilibration);
-  const double geomean_row =
-      max(geomean_row_equilibration, 1 / geomean_row_equilibration);
-  const double mean_equilibration_improvement =
+      max(geomean_original_row_geomean, 1 / geomean_original_row_geomean);
+  const double geomean_col = max(geomean_col_geomean, 1 / geomean_col_geomean);
+  const double geomean_row = max(geomean_row_geomean, 1 / geomean_row_geomean);
+  const double mean_geomean_improvement =
       sqrt((geomean_original_col * geomean_original_row) /
            (geomean_col * geomean_row));
-  // Compute the extreme equilibration improvement
+  // Compute the extreme geomean improvement
   const double original_col_ratio =
-      max_original_col_equilibration / min_original_col_equilibration;
+      max_original_col_geomean / min_original_col_geomean;
   const double original_row_ratio =
-      max_original_row_equilibration / min_original_row_equilibration;
-  const double col_ratio = max_col_equilibration / min_col_equilibration;
-  const double row_ratio = max_row_equilibration / min_row_equilibration;
-  const double extreme_equilibration_improvement =
+      max_original_row_geomean / min_original_row_geomean;
+  const double col_ratio = max_col_geomean / min_col_geomean;
+  const double row_ratio = max_row_geomean / min_row_geomean;
+  const double extreme_geomean_improvement =
       (original_col_ratio + original_row_ratio) / (col_ratio + row_ratio);
   // Compute the max/min matrix value improvement
   const double matrix_value_ratio = matrix_max_value / matrix_min_value;
@@ -866,18 +856,18 @@ bool equilibrationScaleMatrix(const HighsOptions& options, HighsLp& lp,
   if (options.log_dev_level) {
     highsLogDev(
         options.log_options, HighsLogType::kInfo,
-        "Scaling: Extreme equilibration improvement =      ( %11.4g + "
+        "Scaling: Extreme geomean improvement =      ( %11.4g + "
         "%11.4g) / ( %11.4g + %11.4g)  =      %11.4g / %11.4g  = %11.4g\n",
         original_col_ratio, original_row_ratio, col_ratio, row_ratio,
         (original_col_ratio + original_row_ratio), (col_ratio + row_ratio),
-        extreme_equilibration_improvement);
+        extreme_geomean_improvement);
     highsLogDev(
         options.log_options, HighsLogType::kInfo,
-        "Scaling: Mean    equilibration improvement = sqrt(( %11.4g * "
+        "Scaling: Mean    geomean improvement = sqrt(( %11.4g * "
         "%11.4g) / ( %11.4g * %11.4g)) = sqrt(%11.4g / %11.4g) = %11.4g\n",
         geomean_original_col, geomean_original_row, geomean_col, geomean_row,
         (geomean_original_col * geomean_original_row),
-        (geomean_col * geomean_row), mean_equilibration_improvement);
+        (geomean_col * geomean_row), mean_geomean_improvement);
     highsLogDev(
         options.log_options, HighsLogType::kInfo,
         "Scaling: Yields [min, max, ratio] matrix values of [%0.4g, %0.4g, "
@@ -886,26 +876,26 @@ bool equilibrationScaleMatrix(const HighsOptions& options, HighsLp& lp,
         original_matrix_min_value, original_matrix_max_value,
         original_matrix_value_ratio, matrix_value_ratio_improvement);
     highsLogDev(options.log_options, HighsLogType::kInfo,
-                "Scaling: Improves    mean equilibration by a factor %0.4g\n",
-                mean_equilibration_improvement);
+                "Scaling: Improves    mean geomean by a factor %0.4g\n",
+                mean_geomean_improvement);
     highsLogDev(options.log_options, HighsLogType::kInfo,
-                "Scaling: Improves extreme equilibration by a factor %0.4g\n",
-                extreme_equilibration_improvement);
+                "Scaling: Improves extreme geomean by a factor %0.4g\n",
+                extreme_geomean_improvement);
     highsLogDev(options.log_options, HighsLogType::kInfo,
                 "Scaling: Improves max/min matrix values by a factor %0.4g\n",
                 matrix_value_ratio_improvement);
   }
   const bool possibly_abandon_scaling =
-      simplex_scale_strategy != kSimplexScaleStrategyForcedEquilibration;
-  const double improvement_factor = extreme_equilibration_improvement *
-                                    mean_equilibration_improvement *
+      simplex_scale_strategy != kSimplexScaleStrategyForcedGeomean;
+  const double improvement_factor = extreme_geomean_improvement *
+                                    mean_geomean_improvement *
                                     matrix_value_ratio_improvement;
 
   const double improvement_factor_required = 1.0;
   const bool poor_improvement =
       improvement_factor < improvement_factor_required;
 
-  // Possibly abandon scaling if it's not improved equilibration significantly
+  // Possibly abandon scaling if it's not improved geomean significantly
   if (possibly_abandon_scaling && poor_improvement) {
     // Unscale the matrix
     for (HighsInt iCol = 0; iCol < numCol; iCol++) {
@@ -929,17 +919,17 @@ bool equilibrationScaleMatrix(const HighsOptions& options, HighsLp& lp,
       highsLogDev(options.log_options, HighsLogType::kInfo,
                   "Scaling: Improvement factor is %0.4g >= %0.4g so scale LP\n",
                   improvement_factor, improvement_factor_required);
-      if (extreme_equilibration_improvement < 1.0) {
+      if (extreme_geomean_improvement < 1.0) {
         highsLogDev(
             options.log_options, HighsLogType::kWarning,
             "Scaling: Applying scaling with extreme improvement of %0.4g\n",
-            extreme_equilibration_improvement);
+            extreme_geomean_improvement);
       }
-      if (mean_equilibration_improvement < 1.0) {
+      if (mean_geomean_improvement < 1.0) {
         highsLogDev(
             options.log_options, HighsLogType::kWarning,
             "Scaling: Applying scaling with mean improvement of %0.4g\n",
-            mean_equilibration_improvement);
+            mean_geomean_improvement);
       }
       if (matrix_value_ratio_improvement < 1.0) {
         highsLogDev(options.log_options, HighsLogType::kWarning,
@@ -1053,7 +1043,8 @@ bool maxValueScaleMatrix(const HighsOptions& options, HighsLp& lp,
   */
   // Seems unlikely that max value scaling has increased the maximum
   // matrix value, but may as well check for it
-  const double improvement_factor = original_matrix_max_value / matrix_max_value;
+  const double improvement_factor =
+      original_matrix_max_value / matrix_max_value;
   const double improvement_factor_required = 1.0;
   const bool poor_improvement =
       improvement_factor <= improvement_factor_required;
@@ -1087,10 +1078,11 @@ bool maxValueScaleMatrix(const HighsOptions& options, HighsLp& lp,
           original_matrix_min_value, original_matrix_max_value,
           original_matrix_value_ratio, matrix_value_ratio_improvement);
       */
-      highsLogDev(
-          options.log_options, HighsLogType::kInfo,
-          "Scaling: Yields max matrix value of %0.4g; Originally %0.4g: Improvement of %0.4g\n",
-          matrix_max_value, original_matrix_max_value, improvement_factor);
+      highsLogDev(options.log_options, HighsLogType::kInfo,
+                  "Scaling: Yields max matrix value of %0.4g; Originally "
+                  "%0.4g: Improvement of %0.4g\n",
+                  matrix_max_value, original_matrix_max_value,
+                  improvement_factor);
     }
     return true;
   }

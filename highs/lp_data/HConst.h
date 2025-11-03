@@ -54,8 +54,8 @@ enum SimplexScaleStrategy {
   kSimplexScaleStrategyCost = kSimplexScaleStrategyMin,  // -1
   kSimplexScaleStrategyOff,                              // 0
   kSimplexScaleStrategyChoose,                           // 1
-  kSimplexScaleStrategyEquilibration,                    // 2
-  kSimplexScaleStrategyForcedEquilibration,              // 3
+  kSimplexScaleStrategyGeomean,                          // 2
+  kSimplexScaleStrategyForcedGeomean,                    // 3
   kSimplexScaleStrategyMaxValue,                         // 4
   kSimplexScaleStrategyMaxValueMatrixAndCost,            // 5
   kSimplexScaleStrategyMax = kSimplexScaleStrategyMaxValueMatrixAndCost

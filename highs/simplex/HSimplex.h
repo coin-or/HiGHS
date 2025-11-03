@@ -45,8 +45,8 @@ void setSolutionStatus(HighsInfo& highs_info);
 bool considerSimplexScaling(const HighsOptions& options, HighsLp& lp);
 void simplexScaleLp(const HighsOptions& options, HighsLp& lp,
                     const bool force_scaling = false);
-bool equilibrationScaleMatrix(const HighsOptions& options, HighsLp& lp,
-                              const HighsInt use_scale_strategy);
+bool geomeanScaleMatrix(const HighsOptions& options, HighsLp& lp,
+                        const HighsInt use_scale_strategy);
 bool maxValueScaleMatrix(const HighsOptions& options, HighsLp& lp,
                          const HighsInt use_scale_strategy);
 
