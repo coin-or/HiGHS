@@ -197,14 +197,15 @@ void Factorise::processSupernode(Int sn, CliqueStack* cliquestack,
   // When processing a subtree, cliquestack has to be valid, to be used to store
   // the cliques. If not in a subtree, cliquestack is ignored.
 
-  // single nodes shouldn't have cliquestack
-  if (!subtree && cliquestack) {
+  if (
+      // single nodes shouldn't have cliquestack
+      (!subtree && cliquestack) ||
+      // subtrees must have cliquestack
+      (subtree && !cliquestack)) {
+    if (log_) log_->printDevInfo("Issue with subtree and cliquestack\n");
     flag_stop_ = true;
     return;
   }
-
-  // subtrees should have a cliquestack
-  // ......
 
   TaskGroupSpecial tg;
 
