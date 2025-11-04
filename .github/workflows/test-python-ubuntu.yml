@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python: [3.11]
+        python: [3.12]
     steps:
       - uses: actions/checkout@v4
       - name: Install correct python version
@@ -22,7 +22,7 @@ jobs:
       - name: Test Python Interface
         run: |
           python3 -m pip install .
-          pytest -v
+          pytest -v -k "not test_hipo"
 
       - name: Test Python Examples
         run: |
@@ -35,7 +35,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python: [3.11]
+        python: [3.12]
     steps:
       - uses: actions/checkout@v4
       - name: Install correct python version
@@ -46,14 +46,11 @@ jobs:
       - name: Edit pyproject
         run: |
           ls
-          $VCPKG_ROOT = "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
-          $METIS_ROOT = "${{ runner.workspace }}/installs"
+          METIS_ROOT="${{ runner.workspace }}/installs"
           sed -i '/cmake\.args = \[/,/\]/{
-            s/"-DPYTHON_BUILD_SETUP=ON"/"-DPYTHON_BUILD_SETUP=ON",\n \
-            "-DHIPO=ON",\n  "-DMETIS_ROOT=$METIS_ROOT"/
+            s/"-DPYTHON_BUILD_SETUP=ON"/"-DPYTHON_BUILD_SETUP=ON",\n  "-DHIPO=ON",\n  "-DMETIS_ROOT=$METIS_ROOT"/
           }' pyproject.toml
           cat pyproject.toml
-
 
       - name: Checkout METIS
         uses: actions/checkout@v4
