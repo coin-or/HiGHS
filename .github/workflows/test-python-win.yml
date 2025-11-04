@@ -56,9 +56,9 @@ jobs:
           cmake.args = [
           "-DPYTHON_BUILD_SETUP=ON",
           "-DHIPO=ON",
-          "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_ROOT",
-          "-DVCPKG_TARGET_TRIPLET=$env:TRIPLET",
-          "-DMETIS_ROOT=$env:METIS_ROOT"
+          "-DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT",
+          "-DVCPKG_TARGET_TRIPLET=$TRIPLET",
+          "-DMETIS_ROOT=$METIS_ROOT"
           ]
           "@
           $newContent | Set-Content pyproject.toml
@@ -88,7 +88,7 @@ jobs:
           pwd
           cmake -S. -B build `
           -DGKLIB_PATH="$env:GITHUB_WORKSPACE/METIS/GKlib" `
-          -DCMAKE_INSTALL_PREFIX="${{ runner.workspace }}/installs" `
+          -DCMAKE_INSTALL_PREFIX="${{ runner.workspace }}/installs"
           cmake --build build --parallel --config Release
           cmake --install build --config Release
 
