@@ -72,7 +72,7 @@ if (HIPO)
         target_compile_definitions(_core PRIVATE HIPO_USES_OPENBLAS)
     elseif(blas_lower MATCHES "accelerate")
       target_compile_definitions(_core PRIVATE HIPO_USES_APPLE_BLAS)
-    endief()
+    endif()
 
   endif()
 
