@@ -2264,10 +2264,10 @@ void testIis() {
 		    NULL, NULL, NULL,
 		    NULL);
 
-  HighsInt* col_index;
-  HighsInt* row_index;
-  HighsInt* col_bound;
-  HighsInt* row_bound;
+  HighsInt* col_index = NULL;
+  HighsInt* row_index = NULL;
+  HighsInt* col_bound = NULL;
+  HighsInt* row_bound = NULL;
   HighsInt* col_status = (HighsInt*)malloc(sizeof(HighsInt) * num_col);
   HighsInt* row_status = (HighsInt*)malloc(sizeof(HighsInt) * num_row);
 
