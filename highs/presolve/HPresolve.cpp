@@ -1156,6 +1156,7 @@ HPresolve::Result HPresolve::dominatedColumns(
   }
 
   // count number of fixed columns and modified bounds
+  HighsInt numCols = 0;
   HighsInt numFixedCols = 0;
   HighsInt numFixedColsPredBndAnalysis = 0;
   HighsInt numModifiedBndsPredBndAnalysis = 0;
@@ -1166,6 +1167,9 @@ HPresolve::Result HPresolve::dominatedColumns(
   for (HighsInt j = 0; j < model->num_col_; ++j) {
     // skip deleted columns
     if (colDeleted[j]) continue;
+
+    // increment counter for number of columns
+    numCols++;
 
     // initialise
     HighsInt bestRowPlus = -1;
@@ -1411,6 +1415,16 @@ HPresolve::Result HPresolve::dominatedColumns(
       HPRESOLVE_CHECKED_CALL(checkRow(bestRowPlus, j, HighsInt{1},
                                       ajBestRowPlus, upperImplied,
                                       hasPosCliques));
+
+    // do not use predictive bound analysis if it requires many domination
+    // checks and does not yield fixings or improved bounds
+    allowPredBndAnalysis =
+        allowPredBndAnalysis &&
+        (numDomChecksPredBndAnalysis == 0 ||
+         (numDomChecksPredBndAnalysis / static_cast<double>(numCols) <= 1e4 &&
+          (numFixedColsPredBndAnalysis + numModifiedBndsPredBndAnalysis) /
+                  static_cast<double>(numDomChecksPredBndAnalysis) >=
+              1e-5));
   }
 
   if (numFixedCols > 0 || numModifiedBndsPredBndAnalysis > 0)
