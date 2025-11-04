@@ -46,6 +46,7 @@ class CliqueStack {
   void pushWork(Int sn);
   const double* get() const;
   Int getTop() const;
+  void free();
 };
 
 }  // namespace hipo

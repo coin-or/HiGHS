@@ -1318,8 +1318,7 @@ void Analyse::findTreeSplitting() {
           current_ops += subtree_ops[child];
           current_nodedata->group.push_back(child);
           current_nodedata->firstdesc.push_back(first_desc[child]);
-          current_nodedata->stack_size =
-              std::max(current_nodedata->stack_size, stack_subtrees_[child]);
+          current_nodedata->stack_size += stack_subtrees_[child];
 
           if (current_ops > small_thresh) current_nodedata = nullptr;
         }

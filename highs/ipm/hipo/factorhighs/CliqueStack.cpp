@@ -34,6 +34,11 @@ double* CliqueStack::setup(Int clique_size, bool& reallocation) {
   return workspace_;
 }
 
+void CliqueStack::free() {
+  // release memory owned by stack_
+  std::vector<double>().swap(stack_);
+}
+
 const double* CliqueStack::get() const { return stack_.data(); }
 Int CliqueStack::getTop() const { return top_; }
 

@@ -290,32 +290,57 @@ void Factorise::processSupernode(Int sn, CliqueStack* cliquestack,
   // ===================================================
   Int child = first_child_[sn];
   while (child != -1) {
+    // Child contribution is found:
+    // - in cliquestack, if we are processing a subtee. Children are summed from
+    //   last to first.
+    // - in a stack (childstack), if we are processing a single node and the
+    //   child is a subtree. The subtrees belonging to the group are summed from
+    //   first to last, provided that they are executed from last to first in
+    //   spawnNode.
+    // - in schur_contribution_ if we are processing a single node and the child
+    //   is a single node. The children of this type are summed from first to
+    //   last, because they are spawned from last to first at the beginning of
+    //   processSupernode.
+
     Int child_sn;
     const double* child_clique;
+    CliqueStack* childstack = nullptr;
 
-    // Schur contribution of the current child
-    if (cliquestack)
-      // use cliquestack, children are summed from last to first
+    if (cliquestack) {
       child_clique = cliquestack->getChild(child_sn);
-    else {
-      // use local storage, children are summed from first to last
+    } else {
       child_sn = child;
-      child_clique = schur_contribution_[child_sn].data();
     }
 
     if (parallelise) {
       // sync with spawned child, apart from the first one
       if (child_sn != first_child_[sn]) syncNode(child_sn, tg);
-
-      // read pointer again, because it may have changed after syncing
-      child_clique = schur_contribution_[child_sn].data();
-
       if (flag_stop_) return;
+    }
 
-      if (schur_contribution_[child_sn].empty()) {
-        if (log_) log_->printDevInfo("Missing child supernode contribution\n");
-        flag_stop_ = true;
-        return;
+    if (!cliquestack) {
+      Int stack_id = S_.stackId(child_sn);
+      if (stack_id >= 0) {
+        // child is found on a stack
+        childstack = &stacks_[stack_id];
+        Int temp_child_sn;
+        child_clique = childstack->getChild(temp_child_sn);
+        if (child_sn != temp_child_sn) {
+          if (log_) log_->printDevInfo("Wrong child_sn\n");
+          flag_stop_ = true;
+          return;
+        }
+      } else {
+        // child is found in schur_contribution.
+        // read pointer after syncing, since it can change during syncNode.
+        child_clique = schur_contribution_[child_sn].data();
+
+        if (!child_clique) {
+          if (log_)
+            log_->printDevInfo("Missing child supernode contribution\n");
+          flag_stop_ = true;
+          return;
+        }
       }
     }
 
@@ -375,10 +400,15 @@ void Factorise::processSupernode(Int sn, CliqueStack* cliquestack,
     // Schur contribution of the child is no longer needed
     if (cliquestack) {
       cliquestack->popChild();
+
+    } else if (childstack) {
+      childstack->popChild();
+
+      // if we finished reading from the stack, free memory
+      if (childstack->getTop() == 0) childstack->free();
+
     } else {
-      // Swap with temporary empty vector to deallocate memory
-      std::vector<double> temp_empty;
-      schur_contribution_[child_sn].swap(temp_empty);
+      std::vector<double>().swap(schur_contribution_[child_sn]);
     }
 
     // move on to the next child
@@ -467,25 +497,15 @@ void Factorise::spawnNode(Int sn, const TaskGroupSpecial& tg, bool do_spawn) {
       CliqueStack* cliquestack = &stacks_[stack_id];
       cliquestack->init(nd_ptr->stack_size);
 
-      for (Int i = 0; i < nd_ptr->group.size(); ++i) {
+      // Subtrees in the group are processed in reverse order, so that they
+      // appear in the stack in forward order.
+      for (Int i = nd_ptr->group.size() - 1; i >= 0; --i) {
         Int st_head = nd_ptr->group[i];
         Int start = nd_ptr->firstdesc[i];
         Int end = st_head + 1;
-        for (Int sn = start; sn < end; ++sn) {
-          processSupernode(sn, cliquestack, true);
+        for (Int j = start; j < end; ++j) {
+          processSupernode(j, cliquestack, true);
         }
-
-        // Current subtree is finished. Before processing the next subtree in
-        // the group, move clique from the stack into schur_contribution...
-        schur_contribution_[st_head].resize(S_.cliqueSize(st_head));
-        std::memcpy(schur_contribution_[st_head].data(), cliquestack->get(),
-                    S_.cliqueSize(st_head) * sizeof(double));
-
-        // ...and clear the stack.
-        cliquestack->popChild();
-
-        // cliquestack should be empty now
-        assert(cliquestack->getTop() == 0);
       }
     };
 
@@ -536,6 +556,20 @@ bool Factorise::run(Numeric& num) {
     // go through each supernode serially
     for (Int sn = 0; sn < S_.sn(); ++sn) {
       processSupernode(sn, &cliquestack, true);
+    }
+  }
+
+  // check that stacks and cliques have been deallocated correctly
+  if (log_ && log_->debug(1)) {
+    for (auto& s : stacks_) {
+      if (s.get() != nullptr) {
+        if (log_) log_->printDevInfo("CliqueStack not freed\n");
+      }
+    }
+    for (auto& a : schur_contribution_) {
+      if (a.data() != nullptr) {
+        if (log_) log_->printDevInfo("Clique not freed\n");
+      }
     }
   }
 
