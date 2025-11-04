@@ -33,7 +33,7 @@ if (NOT USE_CMAKE_FIND_BLAS)
             # (NOT OpenBLAS_FOUND AND NOT BLAS_FOUND))
             message(STATUS "Looking for blas")
 
-            find_package(OpenBLAS CONFIG REQUIRED)
+            find_package(OpenBLAS CONFIG)
 
             if(OpenBLAS_FOUND)
                 if(TARGET OpenBLAS::OpenBLAS)
