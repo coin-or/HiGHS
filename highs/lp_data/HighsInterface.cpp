@@ -1828,18 +1828,30 @@ HighsStatus Highs::getRangingInterface() {
 
 HighsStatus Highs::getIisInterfaceReturn(const HighsStatus return_status) {
   if (return_status != HighsStatus::kError) {
-    // Construct the ISS LP
-    this->iis_.getLp(this->model_.lp_);
-    // Check that the IIS LP data are OK (correspond to original model
-    // reduced to IIS col/row and bound data).
-    if (!this->iis_.lpDataOk(this->model_.lp_, this->options_))
-      return HighsStatus::kError;
-    // Check that the IIS LP is OK (infeasible and optimal/unbounded
-    // is any bound is relaxed)
-    if (!this->iis_.lpOk(this->options_)) return HighsStatus::kError;
-    // Construct the ISS status vectors for cols and rows of original
-    // model
-    this->iis_.getStatus(model_.lp_);
+    // A valid IIS is one for which the IIS information is known to be
+    // correct. In the case of a system that's feasible this will give
+    // empty HighsIis::col_index_ and HighsIis::col_index_.
+    const bool has_iis =
+        this->iis_.col_index_.size() || this->iis_.row_index_.size();
+    if (has_iis) {
+      assert(this->iis_.valid_);
+      // Construct the ISS LP
+      this->iis_.getLp(this->model_.lp_);
+      // Check that the IIS LP data are OK (correspond to original model
+      // reduced to IIS col/row and bound data).
+      if (!this->iis_.lpDataOk(this->model_.lp_, this->options_))
+        return HighsStatus::kError;
+      // Check that the IIS LP is OK (infeasible and optimal/unbounded
+      // is any bound is relaxed)
+      if (!this->iis_.lpOk(this->options_)) return HighsStatus::kError;
+      // Construct the ISS status vectors for cols and rows of original
+      // model
+      this->iis_.getStatus(model_.lp_);
+    } else {
+      // No IIS, so check that the IIS LP is empty
+      assert(this->iis_.model_.lp_.num_col_ == 0);
+      assert(this->iis_.model_.lp_.num_row_ == 0);
+    }
   }
   return return_status;
 }
