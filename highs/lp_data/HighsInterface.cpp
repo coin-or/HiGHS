@@ -1828,23 +1828,40 @@ HighsStatus Highs::getRangingInterface() {
 
 HighsStatus Highs::getIisInterfaceReturn(const HighsStatus return_status) {
   if (return_status != HighsStatus::kError) {
-    // Construct the ISS LP
-    this->iis_.getLp(this->model_.lp_);
-    // Check that the IIS LP data are OK (correspond to original model
-    // reduced to IIS col/row and bound data).
-    if (!this->iis_.lpDataOk(this->model_.lp_, this->options_))
-      return HighsStatus::kError;
-    // Check that the IIS LP is OK (infeasible and optimal/unbounded
-    // is any bound is relaxed)
-    if (!this->iis_.lpOk(this->options_)) return HighsStatus::kError;
-    // Construct the ISS status vectors for cols and rows of original
-    // model
-    this->iis_.getStatus(model_.lp_);
+    // A valid IIS is one for which the IIS information is known to be
+    // correct. In the case of a system that's feasible this will give
+    // empty HighsIis::col_index_ and HighsIis::col_index_.
+    HighsLp& lp = this->model_.lp_;
+    HighsLp& iis_lp = this->iis_.model_.lp_;
+    const bool has_iis =
+        this->iis_.col_index_.size() || this->iis_.row_index_.size();
+    if (has_iis) {
+      assert(this->iis_.valid_);
+      // Construct the ISS LP
+      this->iis_.getLp(lp);
+      // Check that the IIS LP data are OK (correspond to original model
+      // reduced to IIS col/row and bound data).
+      if (!this->iis_.lpDataOk(lp, this->options_)) return HighsStatus::kError;
+      // Check that the IIS LP is OK (infeasible and optimal/unbounded
+      // is any bound is relaxed)
+      if (!this->iis_.lpOk(this->options_)) return HighsStatus::kError;
+      // Construct the ISS status vectors for cols and rows of original
+      // model
+      this->iis_.getStatus(lp);
+    } else {
+      // No IIS, so check that the IIS LP is empty
+      assert(iis_lp.num_col_ == 0);
+      assert(iis_lp.num_row_ == 0);
+      // Make sure that col_status_ and row_status_ have been assigned
+      assert(this->iis_.col_status_.size() == static_cast<size_t>(lp.num_col_));
+      assert(this->iis_.row_status_.size() == static_cast<size_t>(lp.num_row_));
+    }
   }
   return return_status;
 }
 
 HighsStatus Highs::getIisInterface() {
+  const HighsLp& lp = model_.lp_;
   if (this->model_status_ == HighsModelStatus::kOptimal ||
       this->model_status_ == HighsModelStatus::kUnbounded) {
     // Strange to call getIis for a model that's known to be feasible
@@ -1854,6 +1871,8 @@ HighsStatus Highs::getIisInterface() {
     this->iis_.invalidate();
     // No IIS exists, so validate the empty HighsIis instance
     this->iis_.valid_ = true;
+    this->iis_.col_status_.assign(lp.num_col_, kIisStatusNotInConflict);
+    this->iis_.row_status_.assign(lp.num_row_, kIisStatusNotInConflict);
     return this->getIisInterfaceReturn(HighsStatus::kOk);
   }
   HighsStatus return_status = HighsStatus::kOk;
@@ -1866,7 +1885,6 @@ HighsStatus Highs::getIisInterface() {
   }
   if (this->iis_.valid_) return this->getIisInterfaceReturn(HighsStatus::kOk);
   this->iis_.invalidate();
-  const HighsLp& lp = model_.lp_;
   // Check for trivial IIS: empty infeasible row or inconsistent bounds
   if (this->iis_.trivial(lp, options_)) {
     this->model_status_ = HighsModelStatus::kInfeasible;
@@ -1887,8 +1905,11 @@ HighsStatus Highs::getIisInterface() {
   }
   // Don't continue with more expensive techniques if using the IIS
   // light strategy
-  if (options_.iis_strategy == kIisStrategyLight)
+  if (options_.iis_strategy == kIisStrategyLight) {
+    this->iis_.col_status_.assign(lp.num_col_, kIisStatusMaybeInConflict);
+    this->iis_.row_status_.assign(lp.num_row_, kIisStatusMaybeInConflict);
     return this->getIisInterfaceReturn(HighsStatus::kOk);
+  }
   const bool ray_option = false;
   //      options_.iis_strategy == kIisStrategyFromRayRowPriority ||
   //      options_.iis_strategy == kIisStrategyFromRayColPriority;
@@ -1962,6 +1983,8 @@ HighsStatus Highs::getIisInterface() {
   if (infeasible_row_subset.size() == 0) {
     // No subset of infeasible rows, so model is feasible
     this->iis_.valid_ = true;
+    this->iis_.col_status_.assign(lp.num_col_, kIisStatusNotInConflict);
+    this->iis_.row_status_.assign(lp.num_row_, kIisStatusNotInConflict);
   } else {
     return_status =
         this->iis_.getData(lp, options_, basis_, infeasible_row_subset);
