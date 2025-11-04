@@ -65,7 +65,7 @@ if (HIPO)
   #   target_link_libraries(_core PRIVATE ${METIS_DST_DIR}/lib/metis.lib)
   # else()
 
-    target_link_libraries(highs PRIVATE BLAS::BLAS)
+    target_link_libraries(_core PRIVATE BLAS::BLAS)
 
     string(TOLOWER "${BLAS_LIBRARIES}" blas_lower)
     if(blas_lower MATCHES "openblas")
