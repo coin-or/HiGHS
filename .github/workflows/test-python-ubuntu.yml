@@ -48,7 +48,9 @@ jobs:
           ls
           METIS_ROOT="${{ runner.workspace }}/installs"
           sed -i '/cmake\.args = \[/,/\]/{
-            s/"-DPYTHON_BUILD_SETUP=ON"/"-DPYTHON_BUILD_SETUP=ON",\n  "-DHIPO=ON",\n  "-DMETIS_ROOT=$METIS_ROOT"/
+            s|"-DPYTHON_BUILD_SETUP=ON"|"-DPYTHON_BUILD_SETUP=ON",\
+            "-DHIPO=ON",\
+            "-DMETIS_ROOT='"$METIS_ROOT"'"|
           }' pyproject.toml
           cat pyproject.toml
 
