@@ -49,16 +49,16 @@ jobs:
         run: |
           ls
           $VCPKG_ROOT = "C:/vcpkg"
-          $METIS_ROOT = "${{ runner.workspace }}/installs"
+          $METIS_ROOT = Join-Path "${{ runner.workspace }}" "installs"
           $TRIPLET    = "x64-windows-static"
           $content = Get-Content pyproject.toml -Raw
           $newContent = $content -replace 'cmake\.args = \[\s*"-DPYTHON_BUILD_SETUP=ON"\s*\]', @"
           cmake.args = [
           "-DPYTHON_BUILD_SETUP=ON",
           "-DHIPO=ON",
-          "-DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT",
+          "-DCMAKE_TOOLCHAIN_FILE='$VCPKG_ROOT'",
           "-DVCPKG_TARGET_TRIPLET=$TRIPLET",
-          "-DMETIS_ROOT=$METIS_ROOT"
+          "-DMETIS_ROOT='$METIS_ROOT'"
           ]
           "@
           $newContent | Set-Content pyproject.toml
