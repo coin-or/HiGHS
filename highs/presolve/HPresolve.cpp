@@ -1158,10 +1158,10 @@ HPresolve::Result HPresolve::dominatedColumns(
   // count number of fixed columns and modified bounds
   HighsInt numFixedCols = 0;
   HighsInt numFixedColsPredBndAnalysis = 0;
-  HighsInt numModifiedBoundsPredBndAnalysis = 0;
+  HighsInt numModifiedBndsPredBndAnalysis = 0;
 
   // perform predictive bound analysis?
-  bool allowPredBndAnalysis = false;
+  bool allowPredBndAnalysis = true;
 
   for (HighsInt j = 0; j < model->num_col_; ++j) {
     // skip deleted columns
@@ -1262,7 +1262,7 @@ HPresolve::Result HPresolve::dominatedColumns(
           numFixedColsPredBndAnalysis++;
           HPRESOLVE_CHECKED_CALL(fixCol(col, HighsInt{1}));
         } else if (model->integrality_[col] != HighsVarType::kContinuous) {
-          numModifiedBoundsPredBndAnalysis++;
+          numModifiedBndsPredBndAnalysis++;
           changeColLower(col, lowerBound);
         }
       }
@@ -1273,7 +1273,7 @@ HPresolve::Result HPresolve::dominatedColumns(
           numFixedColsPredBndAnalysis++;
           HPRESOLVE_CHECKED_CALL(fixCol(col, HighsInt{-1}));
         } else if (model->integrality_[col] != HighsVarType::kContinuous) {
-          numModifiedBoundsPredBndAnalysis++;
+          numModifiedBndsPredBndAnalysis++;
           changeColUpper(col, upperBound);
         }
       }
@@ -1413,11 +1413,11 @@ HPresolve::Result HPresolve::dominatedColumns(
                                       hasPosCliques));
   }
 
-  if (numFixedCols > 0 || numModifiedBoundsPredBndAnalysis > 0)
+  if (numFixedCols > 0 || numModifiedBndsPredBndAnalysis > 0)
     highsLogDev(options->log_options, HighsLogType::kInfo,
                 "Fixed %d dominated columns and strengthened %d bounds\n",
                 static_cast<int>(numFixedCols),
-                static_cast<int>(numModifiedBoundsPredBndAnalysis));
+                static_cast<int>(numModifiedBndsPredBndAnalysis));
 
   return Result::kOk;
 }
