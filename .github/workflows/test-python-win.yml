@@ -18,12 +18,86 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - name: Install build dependencies
-        run: python -m pip install numpy setuptools wheel pytest 
-  
+        run: python -m pip install numpy wheel pytest
+
       - name: Test python install
         run: |
           python -m pip install .
-          pytest 
+          pytest -k "not test_hipo"
+
+      - name: Test Python Examples
+        run: |
+         python ./examples/call_highs_from_python_highspy.py
+         python ./examples/call_highs_from_python_mps.py
+         python ./examples/minimal.py
+
+  build_hipo:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # os: [self-hosted]
+        os: [windows-2022]
+        python: [3.12]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install correct python version
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install build dependencies
+        run: python -m pip install numpy wheel pytest
+
+      - name: Checkout METIS
+        uses: actions/checkout@v4
+        with:
+          repository: galabovaa/METIS
+          ref: 521-ts
+          path: METIS
+
+      - name: Create installs dir
+        working-directory: ${{runner.workspace}}
+        run: |
+          ls
+          mkdir installs
+          ls
+
+      - name: Install METIS
+        shell: pwsh
+        run: |
+          cd METIS
+          pwd
+          cmake -S. -B build `
+          -DGKLIB_PATH="$env:GITHUB_WORKSPACE/METIS/GKlib" `
+          -DCMAKE_INSTALL_PREFIX="${{ runner.workspace }}/installs" `
+          cmake --build build --parallel --config Release
+          cmake --install build --config Release
+
+      - name: Install OpenBLAS
+        shell: pwsh
+        run: vcpkg install openblas[threads]
+
+      - name: Edit pyproject
+        run: |
+          $VCPKG_ROOT = "C:/vcpkg"
+          $METIS_ROOT = "C:/Users/galab/installs"
+          $TRIPLET    = "x64-windows-static"
+          $content = Get-Content pyproject.toml -Raw
+          $newContent = $content -replace 'cmake\.args = \[\s*"-DPYTHON_BUILD_SETUP=ON"\s*\]', @"
+          cmake.args = [
+          "-DPYTHON_BUILD_SETUP=ON",
+          "-DHIPO=ON",
+          "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_ROOT",
+          "-DVCPKG_TARGET_TRIPLET=$env:TRIPLET",
+          "-DMETIS_ROOT=$env:METIS_ROOT"
+          ]
+          "@
+          $newContent | Set-Content pyproject.toml
+
+      - name: Test python install
+        run: |
+          python -m pip install .
+          pytest
 
       - name: Test Python Examples
         run: |

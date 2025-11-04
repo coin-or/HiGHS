@@ -22,7 +22,7 @@ jobs:
 
       - name: install highspy
         run: |
-          python3 -m pip install dist/*.tar.gz --user 
+          python3 -m pip install dist/*.tar.gz --user
 
       - name: Test Python Examples
         run: |
