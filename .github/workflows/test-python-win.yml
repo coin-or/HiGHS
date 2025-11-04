@@ -48,7 +48,7 @@ jobs:
       - name: Edit pyproject
         run: |
           ls
-          $VCPKG_ROOT = "C:/vcpkg"
+          $VCPKG_ROOT = "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
           $METIS_ROOT = "${{ runner.workspace }}/installs" -replace '\\', '/'
           $TRIPLET    = "x64-windows-static"
           $content = Get-Content pyproject.toml -Raw
