@@ -5,7 +5,7 @@
 
 namespace hipo {
 
-CliqueStack::CliqueStack(Int stack_size) {
+void CliqueStack::init(Int stack_size) {
   stack_.assign(stack_size, 0.0);
   top_ = 0;
   workspace_ = nullptr;

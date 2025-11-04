@@ -1275,6 +1275,8 @@ void Analyse::findTreeSplitting() {
   childrenLinkedList(sn_parent_, head, next);
 
   is_in_tree_splitting_.assign(sn_count_, false);
+  stack_id_.assign(sn_count_, -1);
+  Int stack_id_current = -1;
 
   // Divide the tree into single nodes and subtrees, such that each subtree has
   // at most small_thresh operations overall. Group subtrees together, so that
@@ -1303,6 +1305,7 @@ void Analyse::findTreeSplitting() {
           num_subtrees_++;
 
           if (!current_nodedata) {
+            stack_id_current++;
             auto res_insert = tree_splitting_.insert({child, {}});
             is_in_tree_splitting_[child] = true;
             current_nodedata = &res_insert.first->second;
@@ -1311,6 +1314,7 @@ void Analyse::findTreeSplitting() {
             current_ops = 0.0;
           }
 
+          stack_id_[child] = stack_id_current;
           current_ops += subtree_ops[child];
           current_nodedata->group.push_back(child);
           current_nodedata->firstdesc.push_back(first_desc[child]);
@@ -1328,6 +1332,8 @@ void Analyse::findTreeSplitting() {
       auto res_insert = tree_splitting_.insert({sn, {}});
       is_in_tree_splitting_[sn] = true;
       res_insert.first->second.type = NodeType::subtree;
+      stack_id_current++;
+      stack_id_[sn] = stack_id_current;
       res_insert.first->second.group.push_back(sn);
       res_insert.first->second.firstdesc.push_back(first_desc[sn]);
       res_insert.first->second.stack_size = stack_subtrees_[sn];
@@ -1530,6 +1536,7 @@ Int Analyse::run(Symbolic& S) {
   S.clique_block_start_ = std::move(clique_block_start_);
   S.tree_splitting_ = std::move(tree_splitting_);
   S.is_in_tree_splitting_ = std::move(is_in_tree_splitting_);
+  S.stack_id_ = std::move(stack_id_);
 
 #if HIPO_TIMING_LEVEL >= 1
   data_.sumTime(kTimeAnalyse, clock_total.stop());

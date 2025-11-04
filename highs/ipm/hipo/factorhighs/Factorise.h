@@ -54,6 +54,9 @@ class Factorise {
   //  the off-diagonal pivot entry (of the 2x2 inverse).
   std::vector<std::vector<double>> pivot_2x2_{};
 
+  // Stack for each task. To access the correct task, use Symbolic::stackId(sn)
+  std::vector<CliqueStack> stacks_{};
+
   // largest diagonal element in the original matrix and norms of columns
   double max_diag_{};
   double min_diag_{};

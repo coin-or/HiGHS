@@ -45,6 +45,7 @@ bool Symbolic::parTree() const { return parallel_tree_; }
 bool Symbolic::parNode() const { return parallel_node_; }
 bool Symbolic::metisNo2hop() const { return metis_no2hop_; }
 int64_t Symbolic::maxStackSize() const { return max_stack_size_; }
+Int Symbolic::numStacks() const { return tree_splitting_.size() - num_single_; }
 
 const std::vector<Int>& Symbolic::ptr() const { return ptr_; }
 const std::vector<Int>& Symbolic::iperm() const { return iperm_; }
@@ -57,6 +58,7 @@ const std::map<Int, NodeData>& Symbolic::treeSplitting() const {
 bool Symbolic::isInTreeSplitting(Int sn) const {
   return is_in_tree_splitting_[sn];
 }
+Int Symbolic::stackId(Int sn) const { return stack_id_[sn]; }
 
 Int Symbolic::snRoots() const {
   Int roots = 0;

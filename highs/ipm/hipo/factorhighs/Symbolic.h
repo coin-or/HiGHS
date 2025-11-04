@@ -121,6 +121,8 @@ class Symbolic {
   // tree_splitting_ data structure. Avoids too many lookups into the map.
   std::vector<bool> is_in_tree_splitting_;
 
+  std::vector<Int> stack_id_;
+
   friend class Analyse;
 
  public:
@@ -151,6 +153,7 @@ class Symbolic {
   bool parNode() const;
   bool metisNo2hop() const;
   int64_t maxStackSize() const;
+  Int numStacks() const;
   const std::vector<Int>& ptr() const;
   const std::vector<Int>& iperm() const;
   const std::vector<Int>& snParent() const;
@@ -158,6 +161,7 @@ class Symbolic {
   const std::vector<Int>& pivotSign() const;
   const std::map<Int, NodeData>& treeSplitting() const;
   bool isInTreeSplitting(Int sn) const;
+  Int stackId(Int sn) const;
 
   void print(const Log& log, bool verbose = false) const;
 };

@@ -98,6 +98,8 @@ Factorise::Factorise(const Symbolic& S, const std::vector<Int>& rowsA,
   A_norm1_ = *std::max_element(one_norm_cols_.begin(), one_norm_cols_.end());
 
   data_.setNorms(A_norm1_, max_diag_);
+
+  if (S_.parTree()) stacks_.resize(S_.numStacks());
 }
 
 void Factorise::permute(const std::vector<Int>& iperm) {
@@ -460,27 +462,30 @@ void Factorise::spawnNode(Int sn, const TaskGroupSpecial& tg, bool do_spawn) {
     const NodeData* nd_ptr = &(it->second);
 
     auto f = [this, nd_ptr, sn]() {
-      CliqueStack cliquestack(nd_ptr->stack_size);
+      Int stack_id = S_.stackId(sn);
+      assert(stack_id >= 0);
+      CliqueStack* cliquestack = &stacks_[stack_id];
+      cliquestack->init(nd_ptr->stack_size);
 
       for (Int i = 0; i < nd_ptr->group.size(); ++i) {
         Int st_head = nd_ptr->group[i];
         Int start = nd_ptr->firstdesc[i];
         Int end = st_head + 1;
         for (Int sn = start; sn < end; ++sn) {
-          processSupernode(sn, &cliquestack, true);
+          processSupernode(sn, cliquestack, true);
         }
 
         // Current subtree is finished. Before processing the next subtree in
         // the group, move clique from the stack into schur_contribution...
         schur_contribution_[st_head].resize(S_.cliqueSize(st_head));
-        std::memcpy(schur_contribution_[st_head].data(), cliquestack.get(),
+        std::memcpy(schur_contribution_[st_head].data(), cliquestack->get(),
                     S_.cliqueSize(st_head) * sizeof(double));
 
         // ...and clear the stack.
-        cliquestack.popChild();
+        cliquestack->popChild();
 
         // cliquestack should be empty now
-        assert(cliquestack.getTop() == 0);
+        assert(cliquestack->getTop() == 0);
       }
     };
 
@@ -525,7 +530,8 @@ bool Factorise::run(Numeric& num) {
     // sync tasks for root supernodes
     tg.taskWait();
   } else {
-    CliqueStack cliquestack(S_.maxStackSize());
+    CliqueStack cliquestack;
+    cliquestack.init(S_.maxStackSize());
 
     // go through each supernode serially
     for (Int sn = 0; sn < S_.sn(); ++sn) {
