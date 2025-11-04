@@ -56,11 +56,25 @@ python_add_library(_core MODULE highs/highs_bindings.cpp WITH_SOABI)
 target_link_libraries(_core PRIVATE pybind11::headers)
 
 if (HIPO)
-  target_link_libraries(_core PRIVATE OpenBLAS::OpenBLAS)
+  if (WIN32)
+    target_link_libraries(_core PRIVATE OpenBLAS::OpenBLAS)
+    target_compile_definitions(_core PRIVATE HIPO_USES_OPENBLAS)
+  else()
   # if (NOT METIS_ROOT STREQUAL "")
   #   target_include_directories(_core PRIVATE ${METIS_DST_DIR}/include)
   #   target_link_libraries(_core PRIVATE ${METIS_DST_DIR}/lib/metis.lib)
   # else()
+
+    target_link_libraries(highs PRIVATE BLAS::BLAS)
+
+    string(TOLOWER "${BLAS_LIBRARIES}" blas_lower)
+    if(blas_lower MATCHES "openblas")
+        target_compile_definitions(_core PRIVATE HIPO_USES_OPENBLAS)
+    elseif(blas_lower MATCHES "accelerate")
+      target_compile_definitions(_core PRIVATE HIPO_USES_APPLE_BLAS)
+    endief()
+
+  endif()
 
   if(metis_FOUND)
     target_link_libraries(_core PRIVATE metis)
