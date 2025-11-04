@@ -2239,8 +2239,7 @@ void testIis() {
   }
 
   // Re #2635 check with feasible LP
-  /*
-  Highs_clear(highs);
+  Highs_clearModel(highs);
 
   ret = Highs_addCol(highs, 0.0, 0.0, inf, 0, NULL, NULL);
   assert(ret == 0);
@@ -2272,6 +2271,9 @@ void testIis() {
   HighsInt* col_status = (HighsInt*)malloc(sizeof(HighsInt) * num_col);
   HighsInt* row_status = (HighsInt*)malloc(sizeof(HighsInt) * num_row);
 
+  // First try with kIisStrategyLight
+  Highs_setIntOptionValue(highs, "iis_strategy", kHighsIisStrategyLight);
+  
   for (int k = 0 ; k < 2; k++) {
     HighsInt iis_num_col;
     HighsInt iis_num_row;
@@ -2289,25 +2291,53 @@ void testIis() {
 		       col_index, row_index,
 		       col_bound, row_bound,
 		       col_status, row_status);
+    assert(ret == 0);
     if (k == 0) {
-      assert(ret == 0);
-      
+      // Before running HiGHS, model status is unknown
+      assert(col_status[0] == kHighsIisStatusMaybeInConflict);
+      assert(col_status[1] == kHighsIisStatusMaybeInConflict);
+      assert(row_status[0] == kHighsIisStatusMaybeInConflict);
+      assert(row_status[1] == kHighsIisStatusMaybeInConflict);
+    } else {
+      // After running HiGHS, model status is known to be optimal
       assert(col_status[0] == kHighsIisStatusNotInConflict);
       assert(col_status[1] == kHighsIisStatusNotInConflict);
-      
       assert(row_status[0] == kHighsIisStatusNotInConflict);
       assert(row_status[1] == kHighsIisStatusNotInConflict);
-    } else {
-      assert(ret == -1);
     }
+    Highs_run(highs);
   }
-  free(col_index);
-  free(row_index);
-  free(col_bound);
-  free(row_bound);
+
+  // Now try with kHighsIisStrategyFromLpRowPriority
+  Highs_clearSolver(highs);
+  Highs_setIntOptionValue(highs, "iis_strategy",
+			  kHighsIisStrategyFromLpRowPriority);
+  HighsInt iis_num_col;
+  HighsInt iis_num_row;
+  ret = Highs_getIis(highs,
+		     &iis_num_col, &iis_num_row,
+		     NULL, NULL,
+		     NULL, NULL,
+		     NULL, NULL);
+  assert(ret == 0);
+
+  assert(iis_num_col == 0);
+  assert(iis_num_row == 0);
+  ret = Highs_getIis(highs,
+		     &iis_num_col, &iis_num_row,
+		     col_index, row_index,
+		     col_bound, row_bound,
+		     col_status, row_status);
+  assert(ret == 0);
+  // With kHighsIisStrategyFromLpRowPriority, model status is found to
+  // be feasible
+  assert(col_status[0] == kHighsIisStatusNotInConflict);
+  assert(col_status[1] == kHighsIisStatusNotInConflict);
+  assert(row_status[0] == kHighsIisStatusNotInConflict);
+  assert(row_status[1] == kHighsIisStatusNotInConflict);
+
   free(col_status);
   free(row_status);
-  */
 
   Highs_destroy(highs);
 }
@@ -2422,30 +2452,30 @@ void testFixedLp() {
 }
 
 int main() {
-  //    minimalApiIllegalLp();
-  //    testCallback();
-  //    versionApi();
-  //    fullApi();
-  //    minimalApiLp();
-  //    minimalApiMip();
-  //    minimalApiQp();
-  //    fullApiOptions();
-  //    fullApiLp();
-  //    fullApiMip();
-  //    fullApiQp();
-  //    passPresolveGetLp();
-  //    options();
-  //    testGetColsByRange();
-  //    testPassHessian();
-  //    testRanging();
-  //    testFeasibilityRelaxation();
-  //    testGetModel();
-  //    testMultiObjective();
-  //    testQpIndefiniteFailure();
-  //    testDualRayTwice();
-  //    testDeleteRowResolveWithBasis();
-    testIis();
-    //    testFixedLp();
+  minimalApiIllegalLp();
+  testCallback();
+  versionApi();
+  fullApi();
+  minimalApiLp();
+  minimalApiMip();
+  minimalApiQp();
+  fullApiOptions();
+  fullApiLp();
+  fullApiMip();
+  fullApiQp();
+  passPresolveGetLp();
+  options();
+  testGetColsByRange();
+  testPassHessian();
+  testRanging();
+  testFeasibilityRelaxation();
+  testGetModel();
+  testMultiObjective();
+  testQpIndefiniteFailure();
+  testDualRayTwice();
+  testDeleteRowResolveWithBasis();
+  testIis();
+  testFixedLp();
   return 0;
 }
 //  testSetSolution();
