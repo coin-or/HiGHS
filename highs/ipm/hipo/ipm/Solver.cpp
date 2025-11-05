@@ -150,8 +150,7 @@ bool Solver::predictor() {
   sigmaAffine();
   it_->residual56(sigma_);
 
-  if (solveNewtonSystem(it_->delta)) return true;
-  if (recoverDirection(it_->delta)) return true;
+  if (solveNewtonSystem(it_->delta, it_->res)) return true;
 
   return false;
 }
@@ -266,14 +265,14 @@ void Solver::runCrossover() {
   info_.ipx_used = true;
 }
 
-bool Solver::solveNewtonSystem(NewtonDir& delta) {
+bool Solver::solveNewtonSystem(NewtonDir& delta, const Residuals& rhs) {
   std::vector<double>& theta_inv = it_->scaling;
 
-  std::vector<double> res7 = it_->residual7();
+  std::vector<double> res7 = it_->residual7(rhs);
 
   // NORMAL EQUATIONS
   if (options_.nla == kOptionNlaNormEq) {
-    std::vector<double> res8 = it_->residual8(res7);
+    std::vector<double> res8 = it_->residual8(rhs, res7);
 
     // factorise normal equations, if not yet done
     if (!LS_->valid_)
@@ -312,27 +311,40 @@ bool Solver::solveNewtonSystem(NewtonDir& delta) {
       }
 
     // solve with augmented system
-    if (Int status = LS_->solveAS(res7, it_->res1, delta.x, delta.y)) {
+    if (Int status = LS_->solveAS(res7, rhs.r1, delta.x, delta.y)) {
       logH_.printe("Error while solving augmented system\n");
       info_.status = (Status)status;
       return true;
     }
   }
 
+  recoverDirection(delta, rhs);
+
+  // Check for NaN of Inf
+  if (it_->isDirNan(delta)) {
+    logH_.printDevInfo("Direction is nan\n");
+    info_.status = kStatusError;
+    return true;
+  } else if (it_->isDirInf(delta)) {
+    logH_.printDevInfo("Direction is inf\n");
+    info_.status = kStatusError;
+    return true;
+  }
+
   return false;
 }
 
-bool Solver::recoverDirection(NewtonDir& delta) {
+void Solver::recoverDirection(NewtonDir& delta, const Residuals& rhs) const {
   // Recover components xl, xu, zl, zu of partial direction delta.
-  std::vector<double>& xl = it_->xl;
-  std::vector<double>& xu = it_->xu;
-  std::vector<double>& zl = it_->zl;
-  std::vector<double>& zu = it_->zu;
-  std::vector<double>& res2 = it_->res2;
-  std::vector<double>& res3 = it_->res3;
-  std::vector<double>& res4 = it_->res4;
-  std::vector<double>& res5 = it_->res5;
-  std::vector<double>& res6 = it_->res6;
+  const std::vector<double>& xl = it_->xl;
+  const std::vector<double>& xu = it_->xu;
+  const std::vector<double>& zl = it_->zl;
+  const std::vector<double>& zu = it_->zu;
+  const std::vector<double>& res2 = rhs.r2;
+  const std::vector<double>& res3 = rhs.r3;
+  const std::vector<double>& res4 = rhs.r4;
+  const std::vector<double>& res5 = rhs.r5;
+  const std::vector<double>& res6 = rhs.r6;
 
   for (Int i = 0; i < n_; ++i) {
     if (model_.hasLb(i) || model_.hasUb(i)) {
@@ -372,18 +384,6 @@ bool Solver::recoverDirection(NewtonDir& delta) {
   }
 
   backwardError(delta);
-
-  // Check for NaN of Inf
-  if (it_->isDirNan()) {
-    logH_.printDevInfo("Direction is nan\n");
-    info_.status = kStatusError;
-    return true;
-  } else if (it_->isDirInf()) {
-    logH_.printDevInfo("Direction is inf\n");
-    info_.status = kStatusError;
-    return true;
-  }
-  return false;
 }
 
 double Solver::stepToBoundary(const std::vector<double>& x,
@@ -788,8 +788,8 @@ void Solver::residualsMcc() {
   std::vector<double>& xu = it_->xu;
   std::vector<double>& zl = it_->zl;
   std::vector<double>& zu = it_->zu;
-  std::vector<double>& res5 = it_->res5;
-  std::vector<double>& res6 = it_->res6;
+  std::vector<double>& res5 = it_->res.r5;
+  std::vector<double>& res6 = it_->res.r6;
   double& mu = it_->mu;
 
   // clear existing residuals
@@ -876,8 +876,7 @@ bool Solver::centralityCorrectors() {
 
     // compute corrector
     NewtonDir corr(m_, n_);
-    if (solveNewtonSystem(corr)) return true;
-    if (recoverDirection(corr)) return true;
+    if (solveNewtonSystem(corr, it_->res)) return true;
 
     double alpha_p, alpha_d;
     double wp = alpha_p_old * alpha_d_old;
@@ -1078,12 +1077,12 @@ void Solver::backwardError(const NewtonDir& delta) const {
     std::vector<double>& y = it_->y;
     std::vector<double>& zl = it_->zl;
     std::vector<double>& zu = it_->zu;
-    std::vector<double>& res1 = it_->res1;
-    std::vector<double>& res2 = it_->res2;
-    std::vector<double>& res3 = it_->res3;
-    std::vector<double>& res4 = it_->res4;
-    std::vector<double>& res5 = it_->res5;
-    std::vector<double>& res6 = it_->res6;
+    std::vector<double>& res1 = it_->res.r1;
+    std::vector<double>& res2 = it_->res.r2;
+    std::vector<double>& res3 = it_->res.r3;
+    std::vector<double>& res4 = it_->res.r4;
+    std::vector<double>& res5 = it_->res.r5;
+    std::vector<double>& res6 = it_->res.r6;
 
     // ===================================================================================
     // Normwise backward error
@@ -1126,6 +1125,8 @@ void Solver::backwardError(const NewtonDir& delta) const {
       if (model_.hasUb(i))
         r6[i] = res6[i] - zu[i] * delta.xu[i] - xu[i] * delta.zu[i];
     }
+
+    it_->residuals6x6(delta);
 
     // ...and their infinity norm
     double inf_norm_r{};
