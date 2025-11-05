@@ -5,10 +5,36 @@
 namespace hipo {
 
 void Solver::refine(NewtonDir& delta) {
+  NewtonDir correction(m_, n_);
+  NewtonDir temp(m_, n_);
+
   // compute the residuals of the linear system in it_->ires
   it_->residuals6x6(delta);
 
   double omega = computeOmega(delta);
+  double old_omega{};
+
+  for (Int iter = 0; iter < kMaxIterRefine; ++iter) {
+    if (omega < kTolRefine) break;
+
+    correction.clear();
+    solveNewtonSystem(correction, it_->ires);
+
+    temp = delta;
+    temp.add(correction);
+
+    it_->residuals6x6(temp);
+
+    old_omega = omega;
+    omega = computeOmega(temp);
+
+    if (omega < old_omega) {
+      delta = temp;
+    } else {
+      omega = old_omega;
+      break;
+    }
+  }
 }
 
 static void updateOmega(double tau, double& omega1, double& omega2, double num,

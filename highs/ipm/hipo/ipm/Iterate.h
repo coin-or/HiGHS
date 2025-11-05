@@ -20,6 +20,8 @@ struct NewtonDir {
   std::vector<double> zu{};
 
   NewtonDir(Int m, Int n);
+  void clear();
+  void add(const NewtonDir& d);
 };
 
 struct Residuals {

@@ -8,6 +8,24 @@ namespace hipo {
 NewtonDir::NewtonDir(Int m, Int n)
     : x(n, 0.0), y(m, 0.0), xl(n, 0.0), xu(n, 0.0), zl(n, 0.0), zu(n, 0.0) {}
 
+void NewtonDir::clear() {
+  std::fill(x.begin(), x.end(), 0.0);
+  std::fill(y.begin(), y.end(), 0.0);
+  std::fill(xl.begin(), xl.end(), 0.0);
+  std::fill(xu.begin(), xu.end(), 0.0);
+  std::fill(zl.begin(), zl.end(), 0.0);
+  std::fill(zu.begin(), zu.end(), 0.0);
+}
+
+void NewtonDir::add(const NewtonDir& d) {
+  vectorAdd(x, d.x);
+  vectorAdd(y, d.y);
+  vectorAdd(xl, d.xl);
+  vectorAdd(xu, d.xu);
+  vectorAdd(zl, d.zl);
+  vectorAdd(zu, d.zu);
+}
+
 Iterate::Iterate(const Model& model_input, Regularisation& r)
     : model{&model_input}, delta(model->m(), model->n()), regul{r} {
   clearIter();
@@ -257,14 +275,7 @@ void Iterate::clearRes() {
   res.r5.assign(model->n(), 0.0);
   res.r6.assign(model->n(), 0.0);
 }
-void Iterate::clearDir() {
-  delta.x.assign(model->n(), 0.0);
-  delta.xl.assign(model->n(), 0.0);
-  delta.xu.assign(model->n(), 0.0);
-  delta.y.assign(model->m(), 0.0);
-  delta.zl.assign(model->n(), 0.0);
-  delta.zu.assign(model->n(), 0.0);
-}
+void Iterate::clearDir() { delta.clear(); }
 void Iterate::clearIres() {
   ires.r1.assign(model->m(), 0.0);
   ires.r2.assign(model->n(), 0.0);
