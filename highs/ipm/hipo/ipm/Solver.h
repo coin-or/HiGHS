@@ -198,6 +198,12 @@ class Solver {
   void recoverDirection(NewtonDir& delta, const Residuals& rhs) const;
 
   // ===================================================================================
+  // Functions for iterative refinement on the large 6x6 system
+  // ===================================================================================
+  void refine(NewtonDir& delta);
+  double computeOmega(const NewtonDir& delta) const;
+
+  // ===================================================================================
   // Steps to boundary are computed so that
   //
   //  x  + alpha_primal * Deltax
@@ -322,12 +328,6 @@ class Solver {
   bool statusNeedsRefinement() const;
   bool statusAllowsCrossover() const;
   bool crossoverIsOn() const;
-
-  // ===================================================================================
-  // Compute the normwise and componentwise backward error for the large 6x6
-  // linear system
-  // ===================================================================================
-  void backwardError(const NewtonDir& delta) const;
 
   // ===================================================================================
   // Print to screen
