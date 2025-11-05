@@ -1162,7 +1162,7 @@ HPresolve::Result HPresolve::dominatedColumns(
   HighsInt numModifiedBndsPredBndAnalysis = 0;
 
   // parameters for predictive bound analysis
-  const double maxAverageNumDomChecksPredBndAnalysis = 1e4;
+  const size_t maxAverageNumDomChecksPredBndAnalysis = 10000;
   const double minAverageNumRedsPredBndAnalysis = 1e-2;
 
   // perform predictive bound analysis?
@@ -1422,15 +1422,15 @@ HPresolve::Result HPresolve::dominatedColumns(
 
     // do not use predictive bound analysis if it requires many domination
     // checks and only yields few fixings or improved bounds on average
-    double averageNumDomChecksPredBndAnalysis =
-        numDomChecksPredBndAnalysis / static_cast<double>(numCols);
+    size_t averageNumDomChecksPredBndAnalysis =
+        numDomChecksPredBndAnalysis / static_cast<size_t>(numCols);
     double averageNumRedsPredBndAnalysis =
         (numFixedColsPredBndAnalysis + numModifiedBndsPredBndAnalysis) /
         static_cast<double>(numCols);
     allowPredBndAnalysis =
         allowPredBndAnalysis &&
         (numDomChecksPredBndAnalysis <=
-             30.0 * maxAverageNumDomChecksPredBndAnalysis ||
+             30 * maxAverageNumDomChecksPredBndAnalysis ||
          (averageNumDomChecksPredBndAnalysis <=
               maxAverageNumDomChecksPredBndAnalysis &&
           averageNumRedsPredBndAnalysis >= minAverageNumRedsPredBndAnalysis));
