@@ -317,16 +317,13 @@ Int FactorHiGHSSolver::solveNE(const std::vector<double>& rhs,
   lhs = rhs;
 
   Clock clock;
-  Int solve_count;
-  double final_res;
-  if (FH_.solve(lhs, &solve_count, &final_res)) return kStatusErrorSolve;
+  if (FH_.solve(lhs)) return kStatusErrorSolve;
   if (info_) {
     info_->solve_time += clock.stop();
-    info_->solve_number += solve_count;
+    info_->solve_number++;
   }
   if (data_) {
-    data_->back().num_solves += solve_count;
-    data_->back().omega = std::max(data_->back().omega, final_res);
+    data_->back().num_solves++;
   }
 
   return kStatusOk;
@@ -347,16 +344,13 @@ Int FactorHiGHSSolver::solveAS(const std::vector<double>& rhs_x,
   rhs.insert(rhs.end(), rhs_y.begin(), rhs_y.end());
 
   Clock clock;
-  Int solve_count;
-  double final_res;
-  if (FH_.solve(rhs, &solve_count, &final_res)) return kStatusErrorSolve;
+  if (FH_.solve(rhs)) return kStatusErrorSolve;
   if (info_) {
     info_->solve_time += clock.stop();
-    info_->solve_number += solve_count;
+    info_->solve_number++;
   }
   if (data_) {
-    data_->back().num_solves += solve_count;
-    data_->back().omega = std::max(data_->back().omega, final_res);
+    data_->back().num_solves++;
   }
 
   // split lhs

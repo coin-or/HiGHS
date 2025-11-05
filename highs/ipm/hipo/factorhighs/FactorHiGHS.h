@@ -91,13 +91,8 @@ class FHsolver {
                 const std::vector<Int>& ptr, const std::vector<double>& vals);
 
   // Perform solve phase with rhs given by x, which is overwritten with the
-  // solution. solve_count returns the number of solves performed during the
-  // phase (including refinement). omega returns the final residual after
-  // refinement.
-  // For now refinement is performed automatically as part of solve,
-  // this will change in the future.
-  Int solve(std::vector<double>& x, Int* solve_count = nullptr,
-            double* omega = nullptr);
+  // solution.
+  Int solve(std::vector<double>& x);
 
   // If multiple factorisation are performed, call newIter() before each
   // factorisation. This is used only to collect data for debugging, if

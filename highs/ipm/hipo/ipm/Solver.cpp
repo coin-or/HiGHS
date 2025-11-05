@@ -150,7 +150,7 @@ bool Solver::predictor() {
   sigmaAffine();
   it_->residual56(sigma_);
 
-  if (solveNewtonSystem(it_->delta, it_->res)) return true;
+  if (solveNewtonSystem(it_->delta)) return true;
 
   return false;
 }
@@ -265,7 +265,25 @@ void Solver::runCrossover() {
   info_.ipx_used = true;
 }
 
-bool Solver::solveNewtonSystem(NewtonDir& delta, const Residuals& rhs) {
+bool Solver::solveNewtonSystem(NewtonDir& delta) {
+  solve6x6(delta, it_->res);
+  refine(delta);
+
+  // Check for NaN of Inf
+  if (it_->isDirNan(delta)) {
+    logH_.printDevInfo("Direction is nan\n");
+    info_.status = kStatusError;
+    return true;
+  } else if (it_->isDirInf(delta)) {
+    logH_.printDevInfo("Direction is inf\n");
+    info_.status = kStatusError;
+    return true;
+  }
+
+  return false;
+}
+
+bool Solver::solve2x2(NewtonDir& delta, const Residuals& rhs) {
   std::vector<double>& theta_inv = it_->scaling;
 
   std::vector<double> res7 = it_->residual7(rhs);
@@ -318,19 +336,12 @@ bool Solver::solveNewtonSystem(NewtonDir& delta, const Residuals& rhs) {
     }
   }
 
+  return false;
+}
+
+bool Solver::solve6x6(NewtonDir& delta, const Residuals& rhs) {
+  if (solve2x2(delta, rhs)) return true;
   recoverDirection(delta, rhs);
-
-  // Check for NaN of Inf
-  if (it_->isDirNan(delta)) {
-    logH_.printDevInfo("Direction is nan\n");
-    info_.status = kStatusError;
-    return true;
-  } else if (it_->isDirInf(delta)) {
-    logH_.printDevInfo("Direction is inf\n");
-    info_.status = kStatusError;
-    return true;
-  }
-
   return false;
 }
 
@@ -874,7 +885,7 @@ bool Solver::centralityCorrectors() {
 
     // compute corrector
     NewtonDir corr(m_, n_);
-    if (solveNewtonSystem(corr, it_->res)) return true;
+    if (solveNewtonSystem(corr)) return true;
 
     double alpha_p, alpha_d;
     double wp = alpha_p_old * alpha_d_old;
@@ -1265,7 +1276,7 @@ void Solver::maxCorrectors() {
     // all the time, so use f/2.
     // Therefore, we want (1+k)(1+f/2) < ratio.
 
-    double thresh = ratio / (1.0 + kMaxRefinementIter / 2.0) - 1;
+    double thresh = ratio / (1.0 + kMaxIterRefine / 2.0) - 1;
 
     info_.correctors = std::floor(thresh);
     info_.correctors = std::max(info_.correctors, (Int)1);

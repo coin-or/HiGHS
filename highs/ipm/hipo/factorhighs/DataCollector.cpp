@@ -203,14 +203,6 @@ void DataCollector::printTimes(const Log& log) const {
              << fix(times[kTimeSolveSolve_sparse], 8, 4) << "\n";
   log_stream << "\t\tswap:           " << fix(times[kTimeSolveSolve_swap], 8, 4)
              << "\n";
-  log_stream << "\tResidual:               "
-             << fix(times[kTimeSolveResidual], 8, 4) << " ("
-             << fix(times[kTimeSolveResidual] / times[kTimeSolve] * 100, 4, 1)
-             << "%)\n";
-  log_stream << "\tOmega:                  "
-             << fix(times[kTimeSolveOmega], 8, 4) << " ("
-             << fix(times[kTimeSolveOmega] / times[kTimeSolve] * 100, 4, 1)
-             << "%)\n";
 #endif
   log_stream << "----------------------------------------------------\n";
 

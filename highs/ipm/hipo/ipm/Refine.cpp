@@ -18,7 +18,7 @@ void Solver::refine(NewtonDir& delta) {
     if (omega < kTolRefine) break;
 
     correction.clear();
-    solveNewtonSystem(correction, it_->ires);
+    solve6x6(correction, it_->ires);
 
     temp = delta;
     temp.add(correction);
@@ -35,6 +35,9 @@ void Solver::refine(NewtonDir& delta) {
       break;
     }
   }
+
+  // save worst residual seen in this ipm iteration
+  it_->data.back().omega = std::max(it_->data.back().omega, omega);
 }
 
 static void updateOmega(double tau, double& omega1, double& omega2, double num,

@@ -185,7 +185,9 @@ class Solver {
   // with:
   //  res8 = res1 + A * Theta * res7
   // ===================================================================================
-  bool solveNewtonSystem(NewtonDir& delta, const Residuals& rhs);
+  bool solveNewtonSystem(NewtonDir& delta);
+  bool solve2x2(NewtonDir& delta, const Residuals& rhs);
+  bool solve6x6(NewtonDir& delta, const Residuals& rhs);
 
   // ===================================================================================
   // Reconstruct the solution of the full Newton system:
