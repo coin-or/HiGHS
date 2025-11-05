@@ -207,14 +207,23 @@ TEST_CASE("lp-get-iis", "[iis]") {
   highs.setOptionValue("output_flag", dev_run);
   highs.passModel(lp);
   HighsIis iis;
-  REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
-  REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
-  REQUIRE(iis.col_index_.size() == 2);
-  REQUIRE(iis.row_index_.size() == 1);
-  REQUIRE(iis.col_index_[0] == 0);
-  REQUIRE(iis.col_index_[1] == 1);
-  REQUIRE(iis.row_index_[0] == 2);
-
+  const HighsLp& highs_lp = highs.getLp();
+  // First pass with incumbent matrix colwise; second with it
+  // rowwise
+  highs.ensureColwise();
+  REQUIRE(highs_lp.a_matrix_.isColwise());
+  for (HighsInt k = 0; k < 2; k++) {
+    REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
+    REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
+    REQUIRE(iis.col_index_.size() == 2);
+    REQUIRE(iis.row_index_.size() == 1);
+    REQUIRE(iis.col_index_[0] == 0);
+    REQUIRE(iis.col_index_[1] == 1);
+    REQUIRE(iis.row_index_[0] == 2);
+    highs.clearSolver();
+    highs.ensureRowwise();
+    REQUIRE(highs_lp.a_matrix_.isRowwise());
+  }
   highs.resetGlobalScheduler(true);
 }
 

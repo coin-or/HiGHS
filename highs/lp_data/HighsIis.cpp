@@ -124,11 +124,17 @@ bool HighsIis::trivial(const HighsLp& lp, const HighsOptions& options) {
   }
   // Now look for empty rows that cannot have zero activity
   std::vector<HighsInt> count;
-  count.assign(lp.num_row_, 0);
-  for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
-    for (HighsInt iEl = lp.a_matrix_.start_[iCol];
-         iEl < lp.a_matrix_.start_[iCol + 1]; iEl++)
-      count[lp.a_matrix_.index_[iEl]]++;
+  // Get the row counts
+  if (lp.a_matrix_.isColwise()) {
+    count.assign(lp.num_row_, 0);
+    for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
+      for (HighsInt iEl = lp.a_matrix_.start_[iCol];
+	   iEl < lp.a_matrix_.start_[iCol + 1]; iEl++)
+	count[lp.a_matrix_.index_[iEl]]++;
+    }
+  } else {
+    for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) 
+      count.push_back(lp.a_matrix_.start_[iRow + 1]-lp.a_matrix_.start_[iRow]);
   }
   assert(this->row_index_.size() == 0);
   for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) {
@@ -289,6 +295,7 @@ HighsStatus HighsIis::getData(const HighsLp& lp, const HighsOptions& options,
   std::vector<HighsInt> from_col;
   std::vector<HighsInt> to_row;
   to_row.assign(lp.num_row_, -1);
+  // To get the IIS data needs the matrix to be column-wise
   assert(lp.a_matrix_.isColwise());
   // Determine how to detect whether a row is in infeasible_row and
   // (then) gather information about it
@@ -434,6 +441,8 @@ void HighsIis::getLp(const HighsLp& lp) {
   }
   iis_lp.num_col_ = iis_lp.col_cost_.size();
   iis_lp.num_row_ = iis_lp.row_lower_.size();
+  // The IIS LP matrix will have the same format as the incumbent LP
+  iis_lp.a_matrix_.format_ = lp.a_matrix_.format_;
   iis_lp.a_matrix_.num_col_ = iis_lp.num_col_;
   iis_lp.a_matrix_.num_row_ = iis_lp.num_row_;
   iis_lp.model_name_ = lp.model_name_ + "_IIS";

@@ -1986,6 +1986,8 @@ HighsStatus Highs::getIisInterface() {
     this->iis_.col_status_.assign(lp.num_col_, kIisStatusNotInConflict);
     this->iis_.row_status_.assign(lp.num_row_, kIisStatusNotInConflict);
   } else {
+    // To get the IIS data needs the matrix to be column-wise
+    model_.lp_.a_matrix_.ensureColwise();
     return_status =
         this->iis_.getData(lp, options_, basis_, infeasible_row_subset);
     if (return_status == HighsStatus::kOk) {
