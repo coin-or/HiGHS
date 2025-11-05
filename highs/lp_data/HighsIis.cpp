@@ -129,12 +129,13 @@ bool HighsIis::trivial(const HighsLp& lp, const HighsOptions& options) {
     count.assign(lp.num_row_, 0);
     for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
       for (HighsInt iEl = lp.a_matrix_.start_[iCol];
-	   iEl < lp.a_matrix_.start_[iCol + 1]; iEl++)
-	count[lp.a_matrix_.index_[iEl]]++;
+           iEl < lp.a_matrix_.start_[iCol + 1]; iEl++)
+        count[lp.a_matrix_.index_[iEl]]++;
     }
   } else {
-    for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) 
-      count.push_back(lp.a_matrix_.start_[iRow + 1]-lp.a_matrix_.start_[iRow]);
+    for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++)
+      count.push_back(lp.a_matrix_.start_[iRow + 1] -
+                      lp.a_matrix_.start_[iRow]);
   }
   assert(this->row_index_.size() == 0);
   for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) {
@@ -784,17 +785,25 @@ HighsStatus HighsIis::compute(const HighsLp& lp, const HighsOptions& options,
   return HighsStatus::kOk;
 }
 
+bool lpDataOkReturn(const bool return_value) { return return_value; }
+
 bool HighsIis::lpDataOk(const HighsLp& lp, const HighsOptions& options) const {
   const HighsLp& iis_lp = this->model_.lp_;
   HighsInt iis_num_col = this->col_index_.size();
   HighsInt iis_num_row = this->row_index_.size();
-  if (!(iis_lp.num_col_ == iis_num_col)) return false;
-  if (!(iis_lp.num_row_ == iis_num_row)) return false;
+  if (!(iis_lp.num_col_ == iis_num_col)) return lpDataOkReturn(false);
+  if (!(iis_lp.num_row_ == iis_num_row)) return lpDataOkReturn(false);
 
   const bool colwise = lp.a_matrix_.isColwise();
 
+  const HighsInt illegal_index = -1;
+  const double illegal_value = kHighsInf;
+  // iis_row/col give the row/col in the IIS for each row/col in the
+  // LP, or an illegal index if the LP row/col isn't in the IIS
   std::vector<HighsInt> iis_row;
-  iis_row.assign(lp.num_row_, -1);
+  iis_row.assign(lp.num_row_, illegal_index);
+  std::vector<HighsInt> iis_col;
+  iis_col.assign(lp.num_col_, illegal_index);
   double bound;
   for (HighsInt iisRow = 0; iisRow < iis_num_row; iisRow++) {
     HighsInt iRow = this->row_index_[iisRow];
@@ -804,32 +813,31 @@ bool HighsIis::lpDataOk(const HighsLp& lp, const HighsOptions& options) const {
         row_bound == kIisBoundStatusLower || row_bound == kIisBoundStatusBoxed
             ? lp.row_lower_[iRow]
             : -kHighsInf;
-    if (iis_lp.row_lower_[iisRow] != bound) return false;
+    if (iis_lp.row_lower_[iisRow] != bound) return lpDataOkReturn(false);
     bound =
         row_bound == kIisBoundStatusUpper || row_bound == kIisBoundStatusBoxed
             ? lp.row_upper_[iRow]
             : kHighsInf;
-    if (iis_lp.row_upper_[iisRow] != bound) return false;
+    if (iis_lp.row_upper_[iisRow] != bound) return lpDataOkReturn(false);
   }
 
   // Work through the LP columns checking the zero costs and bounds
   for (HighsInt iisCol = 0; iisCol < iis_num_col; iisCol++) {
     HighsInt iCol = this->col_index_[iisCol];
-    if (iis_lp.col_cost_[iisCol]) return false;
+    iis_col[iCol] = iisCol;
+    if (iis_lp.col_cost_[iisCol]) return lpDataOkReturn(false);
     HighsInt col_bound = this->col_bound_[iisCol];
     bound =
         col_bound == kIisBoundStatusLower || col_bound == kIisBoundStatusBoxed
             ? lp.col_lower_[iCol]
             : -kHighsInf;
-    if (iis_lp.col_lower_[iisCol] != bound) return false;
+    if (iis_lp.col_lower_[iisCol] != bound) return lpDataOkReturn(false);
     bound =
         col_bound == kIisBoundStatusUpper || col_bound == kIisBoundStatusBoxed
             ? lp.col_upper_[iCol]
             : kHighsInf;
-    if (iis_lp.col_upper_[iisCol] != bound) return false;
+    if (iis_lp.col_upper_[iisCol] != bound) return lpDataOkReturn(false);
   }
-  const HighsInt illegal_index = -1;
-  const double illegal_value = kHighsInf;
   std::vector<HighsInt> index;
   std::vector<double> value;
   // Work through the LP matrix, checking the matrix index/value
@@ -851,8 +859,9 @@ bool HighsIis::lpDataOk(const HighsLp& lp, const HighsOptions& options) const {
         HighsInt iRow = lp.a_matrix_.index_[iEl];
         HighsInt iisRow = iis_row[iRow];
         if (iisRow >= 0) {
-          if (index[iisRow] != iRow) return false;
-          if (value[iisRow] != lp.a_matrix_.value_[iEl]) return false;
+          if (index[iisRow] != iRow) return lpDataOkReturn(false);
+          if (value[iisRow] != lp.a_matrix_.value_[iEl])
+            return lpDataOkReturn(false);
           index[iisRow] = illegal_index;
           value[iisRow] = illegal_value;
         }
@@ -862,22 +871,23 @@ bool HighsIis::lpDataOk(const HighsLp& lp, const HighsOptions& options) const {
     for (HighsInt iisRow = 0; iisRow < iis_num_row; iisRow++) {
       HighsInt iRow = this->row_index_[iisRow];
       // Use index/value to scatter the IIS matrix row
-      index.assign(iis_num_row, illegal_index);
-      value.assign(iis_num_row, illegal_value);
+      index.assign(iis_num_col, illegal_index);
+      value.assign(iis_num_col, illegal_value);
       for (HighsInt iEl = iis_lp.a_matrix_.start_[iisRow];
            iEl < iis_lp.a_matrix_.start_[iisRow + 1]; iEl++) {
         HighsInt iisCol = iis_lp.a_matrix_.index_[iEl];
-        HighsInt iCol = this->row_index_[iisCol];
+        HighsInt iCol = this->col_index_[iisCol];
         index[iisCol] = iCol;
         value[iisCol] = iis_lp.a_matrix_.value_[iEl];
       }
       for (HighsInt iEl = lp.a_matrix_.start_[iRow];
            iEl < lp.a_matrix_.start_[iRow + 1]; iEl++) {
         HighsInt iCol = lp.a_matrix_.index_[iEl];
-        HighsInt iisCol = iis_row[iCol];
+        HighsInt iisCol = iis_col[iCol];
         if (iisCol >= 0) {
-          if (index[iisCol] != iCol) return false;
-          if (value[iisCol] != lp.a_matrix_.value_[iEl]) return false;
+          if (index[iisCol] != iCol) return lpDataOkReturn(false);
+          if (value[iisCol] != lp.a_matrix_.value_[iEl])
+            return lpDataOkReturn(false);
           index[iisCol] = illegal_index;
           value[iisCol] = illegal_value;
         }
@@ -903,34 +913,38 @@ bool HighsIis::lpDataOk(const HighsLp& lp, const HighsOptions& options) const {
            iEl < iis_lp.a_matrix_.start_[iisCol + 1]; iEl++) {
         HighsInt iisRow = iis_lp.a_matrix_.index_[iEl];
         HighsInt iRow = this->row_index_[iisRow];
-        if (index[iRow] != iisRow) return false;
-        if (value[iRow] != iis_lp.a_matrix_.value_[iEl]) return false;
+        if (index[iRow] != iisRow) return lpDataOkReturn(false);
+        if (value[iRow] != iis_lp.a_matrix_.value_[iEl])
+          return lpDataOkReturn(false);
       }
     }
   } else {
     for (HighsInt iisRow = 0; iisRow < iis_num_row; iisRow++) {
       HighsInt iRow = this->row_index_[iisRow];
       // Use index/value to scatter the LP matrix row
-      index.assign(lp.num_row_, illegal_index);
-      value.assign(lp.num_row_, illegal_value);
+      index.assign(lp.num_col_, illegal_index);
+      value.assign(lp.num_col_, illegal_value);
       for (HighsInt iEl = lp.a_matrix_.start_[iRow];
            iEl < lp.a_matrix_.start_[iRow + 1]; iEl++) {
         HighsInt iCol = lp.a_matrix_.index_[iEl];
-        HighsInt iisCol = iis_row[iCol];
+        HighsInt iisCol = iis_col[iCol];
         index[iCol] = iisCol;
         value[iCol] = lp.a_matrix_.value_[iEl];
       }
       for (HighsInt iEl = iis_lp.a_matrix_.start_[iisRow];
            iEl < iis_lp.a_matrix_.start_[iisRow + 1]; iEl++) {
         HighsInt iisCol = iis_lp.a_matrix_.index_[iEl];
-        HighsInt iCol = this->row_index_[iisCol];
-        if (index[iCol] != iisCol) return false;
-        if (value[iCol] != iis_lp.a_matrix_.value_[iEl]) return false;
+        HighsInt iCol = this->col_index_[iisCol];
+        if (index[iCol] != iisCol) return lpDataOkReturn(false);
+        if (value[iCol] != iis_lp.a_matrix_.value_[iEl])
+          return lpDataOkReturn(false);
       }
     }
   }
-  return true;
+  return lpDataOkReturn(true);
 }
+
+bool lpOkReturn(const bool return_value) { return return_value; }
 
 bool HighsIis::lpOk(const HighsOptions& options) const {
   // Check that the IIS LP is OK (infeasible and optimal if
@@ -955,7 +969,7 @@ bool HighsIis::lpOk(const HighsOptions& options) const {
   if (h.getModelStatus() != HighsModelStatus::kInfeasible) {
     highsLogUser(log_options, HighsLogType::kError,
                  "HighsIis: IIS LP is not infeasible\n");
-    return false;
+    return lpOkReturn(false);
   }
   auto optimal = [&]() -> bool {
     if (options.log_dev_level > 0) h.writeModel("");
@@ -972,7 +986,7 @@ bool HighsIis::lpOk(const HighsOptions& options) const {
                      "bound of %g yield IIS LP with status %s\n",
                      int(iisCol), int(iCol), iis_lp.col_lower_[iisCol],
                      h.modelStatusToString(h.getModelStatus()).c_str());
-        return false;
+        return lpOkReturn(false);
       }
       h.changeColBounds(iisCol, iis_lp.col_lower_[iisCol],
                         iis_lp.col_upper_[iisCol]);
@@ -985,7 +999,7 @@ bool HighsIis::lpOk(const HighsOptions& options) const {
                      "bound of %g yield IIS LP with status %s\n",
                      int(iisCol), int(iCol), iis_lp.col_upper_[iisCol],
                      h.modelStatusToString(h.getModelStatus()).c_str());
-        return false;
+        return lpOkReturn(false);
       }
       h.changeColBounds(iisCol, iis_lp.col_lower_[iisCol],
                         iis_lp.col_upper_[iisCol]);
@@ -1001,7 +1015,7 @@ bool HighsIis::lpOk(const HighsOptions& options) const {
                      "of %g yield IIS LP with status %s\n",
                      int(iisRow), int(iRow), iis_lp.row_lower_[iisRow],
                      h.modelStatusToString(h.getModelStatus()).c_str());
-        return false;
+        return lpOkReturn(false);
       }
       h.changeRowBounds(iisRow, iis_lp.row_lower_[iisRow],
                         iis_lp.row_upper_[iisRow]);
@@ -1010,15 +1024,15 @@ bool HighsIis::lpOk(const HighsOptions& options) const {
       h.changeRowBounds(iisRow, iis_lp.row_lower_[iisRow], kHighsInf);
       if (!optimal()) {
         highsLogUser(log_options, HighsLogType::kError,
-                     "HighsIis: IIS rowumn %d (LP rowumn %d): relaxing upper "
+                     "HighsIis: IIS row %d (LP row %d): relaxing upper "
                      "bound of %g yield IIS LP with status %s\n",
                      int(iisRow), int(iRow), iis_lp.row_upper_[iisRow],
                      h.modelStatusToString(h.getModelStatus()).c_str());
-        return false;
+        return lpOkReturn(false);
       }
       h.changeRowBounds(iisRow, iis_lp.row_lower_[iisRow],
                         iis_lp.row_upper_[iisRow]);
     }
   }
-  return true;
+  return lpOkReturn(true);
 }
