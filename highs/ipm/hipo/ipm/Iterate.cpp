@@ -12,6 +12,7 @@ Iterate::Iterate(const Model& model_input, Regularisation& r)
     : model{&model_input}, delta(model->m(), model->n()), regul{r} {
   clearIter();
   clearRes();
+  clearIres();
   best_mu = 0;
 }
 
@@ -274,6 +275,14 @@ void Iterate::clearDir() {
   delta.y.assign(model->m(), 0.0);
   delta.zl.assign(model->n(), 0.0);
   delta.zu.assign(model->n(), 0.0);
+}
+void Iterate::clearIres() {
+  ires1.assign(model->m(), 0.0);
+  ires2.assign(model->n(), 0.0);
+  ires3.assign(model->n(), 0.0);
+  ires4.assign(model->n(), 0.0);
+  ires5.assign(model->n(), 0.0);
+  ires6.assign(model->n(), 0.0);
 }
 
 void Iterate::extract(std::vector<double>& x_user, std::vector<double>& xl_user,
@@ -615,6 +624,59 @@ void Iterate::finalResiduals(Info& info) const {
     info.p_obj = info.ipx_info.pobjval;
     info.d_obj = info.ipx_info.dobjval;
     info.pd_gap = info.ipx_info.rel_objgap;
+  }
+}
+
+void Iterate::residuals6x6(const NewtonDir& d) {
+  const std::vector<double>& dx = d.x;
+  const std::vector<double>& dy = d.y;
+  const std::vector<double>& dxl = d.xl;
+  const std::vector<double>& dxu = d.xu;
+  const std::vector<double>& dzl = d.zl;
+  const std::vector<double>& dzu = d.zu;
+
+  // res1,2,3,4,5,6 contain the rhs of the linear system
+
+  // ires1 = res1 - A * dx
+  ires1 = res1;
+  model->A().alphaProductPlusY(-1.0, dx, ires1);
+
+  // ires2 = res2 - dx + dxl
+  for (Int i = 0; i < model->n(); ++i)
+    if (model->hasLb(i))
+      ires2[i] = res2[i] - dx[i] + dxl[i];
+    else
+      ires2[i] = 0.0;
+
+  // ires3 = res3 - dx - dxu
+  for (Int i = 0; i < model->n(); ++i)
+    if (model->hasUb(i))
+      ires3[i] = res3[i] - dx[i] - dxu[i];
+    else
+      ires3[i] = 0.0;
+
+  // ires4 = res4 - A^T * dy - dzl + dzu
+  ires4 = res4;
+  for (Int i = 0; i < model->n(); ++i) {
+    if (model->hasLb(i)) ires4[i] -= dzl[i];
+    if (model->hasUb(i)) ires4[i] += dzu[i];
+  }
+  model->A().alphaProductPlusY(-1.0, dy, ires4, true);
+
+  // ires5 = res5 - zl * dxl - xl * dzl
+  for (Int i = 0; i < model->n(); ++i) {
+    if (model->hasLb(i))
+      ires5[i] = res5[i] - zl[i] * dxl[i] - xl[i] * dzl[i];
+    else
+      ires5[i] = 0.0;
+  }
+
+  // ires6 = res6 - zu * dxu - xu * dzu
+  for (Int i = 0; i < model->n(); ++i) {
+    if (model->hasUb(i))
+      ires6[i] = res6[i] - zu[i] * dxu[i] - xu[i] * dzu[i];
+    else
+      ires6[i] = 0.0;
   }
 }
 

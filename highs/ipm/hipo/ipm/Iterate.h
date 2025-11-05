@@ -50,6 +50,9 @@ struct Iterate {
   // regularisation values
   Regularisation& regul;
 
+  // residuals of linear system for iterative refinement
+  std::vector<double> ires1, ires2, ires3, ires4, ires5, ires6;
+
   // ===================================================================================
   // Functions to construct, clear and check for nan or inf
   // ===================================================================================
@@ -59,6 +62,7 @@ struct Iterate {
   void clearIter();
   void clearRes();
   void clearDir();
+  void clearIres();
 
   // check if any component is nan or infinite
   bool isNan() const;
@@ -175,6 +179,11 @@ struct Iterate {
   // unscaled.
   // ===================================================================================
   void finalResiduals(Info& info) const;
+
+  // ===================================================================================
+  // Compute residual of 6x6 linear system for iterative refinement.
+  // ===================================================================================
+  void residuals6x6(const NewtonDir& d);
 };
 
 }  // namespace hipo
