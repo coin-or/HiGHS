@@ -1161,6 +1161,10 @@ HPresolve::Result HPresolve::dominatedColumns(
   HighsInt numFixedColsPredBndAnalysis = 0;
   HighsInt numModifiedBndsPredBndAnalysis = 0;
 
+  // parameters for predictive bound analysis
+  const double maxAverageNumDomChecksPredBndAnalysis = 1e4;
+  const double minAverageNumRedsPredBndAnalysis = 1e-2;
+
   // perform predictive bound analysis?
   bool allowPredBndAnalysis = true;
 
@@ -1417,14 +1421,19 @@ HPresolve::Result HPresolve::dominatedColumns(
                                       hasPosCliques));
 
     // do not use predictive bound analysis if it requires many domination
-    // checks and does not yield fixings or improved bounds
+    // checks and only yields few fixings or improved bounds on average
+    double averageNumDomChecksPredBndAnalysis =
+        numDomChecksPredBndAnalysis / static_cast<double>(numCols);
+    double averageNumRedsPredBndAnalysis =
+        (numFixedColsPredBndAnalysis + numModifiedBndsPredBndAnalysis) /
+        static_cast<double>(numCols);
     allowPredBndAnalysis =
         allowPredBndAnalysis &&
-        (numDomChecksPredBndAnalysis == 0 ||
-         (numDomChecksPredBndAnalysis / static_cast<double>(numCols) <= 1e4 &&
-          (numFixedColsPredBndAnalysis + numModifiedBndsPredBndAnalysis) /
-                  static_cast<double>(numDomChecksPredBndAnalysis) >=
-              1e-5));
+        (numDomChecksPredBndAnalysis <=
+             30.0 * maxAverageNumDomChecksPredBndAnalysis ||
+         (averageNumDomChecksPredBndAnalysis <=
+              maxAverageNumDomChecksPredBndAnalysis &&
+          averageNumRedsPredBndAnalysis >= minAverageNumRedsPredBndAnalysis));
   }
 
   if (numFixedCols > 0 || numModifiedBndsPredBndAnalysis > 0)
