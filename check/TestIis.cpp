@@ -442,3 +442,59 @@ void testFeasibilityRelaxation(
   REQUIRE(h.getInfo().objective_function_value ==
           require_feasibility_objective_function_value);
 }
+
+TEST_CASE("feasible-lp-iis", "[iis]") {
+  HighsLp lp;
+  lp.model_name_ = "chip";
+  lp.sense_ = ObjSense::kMaximize;
+  lp.num_col_ = 2;
+  lp.num_row_ = 2;
+  lp.col_cost_ = {10, 25};
+  lp.col_lower_ = {0, 0};
+  lp.col_upper_ = {inf, inf};
+  lp.col_names_ = {"Tables", "SetsOfChairs"};
+  lp.row_lower_ = {-inf, -inf};
+  lp.row_upper_ = {80, 120};
+  lp.row_names_ = {"Assembly", "Finishng"};
+  lp.a_matrix_.start_ = {0, 2, 4};
+  lp.a_matrix_.index_ = {0, 1, 0, 1};
+  lp.a_matrix_.value_ = {1, 1, 2, 4};
+  Highs h;
+  h.setOptionValue("output_flag", dev_run);
+  h.passModel(lp);
+  HighsIis iis;
+  // With kIisStrategyLight, feasibility of the LP is not determined
+  // until it's been solved
+  h.getIis(iis);
+  REQUIRE(iis.col_index_.size() == 0);
+  REQUIRE(iis.row_index_.size() == 0);
+  REQUIRE(iis.col_status_[0] == kIisStatusMaybeInConflict);
+  REQUIRE(iis.col_status_[1] == kIisStatusMaybeInConflict);
+  REQUIRE(iis.row_status_[0] == kIisStatusMaybeInConflict);
+  REQUIRE(iis.row_status_[1] == kIisStatusMaybeInConflict);
+
+  h.run();
+
+  h.getIis(iis);
+  REQUIRE(iis.col_index_.size() == 0);
+  REQUIRE(iis.row_index_.size() == 0);
+  REQUIRE(iis.col_status_[0] == kIisStatusNotInConflict);
+  REQUIRE(iis.col_status_[1] == kIisStatusNotInConflict);
+  REQUIRE(iis.row_status_[0] == kIisStatusNotInConflict);
+  REQUIRE(iis.row_status_[1] == kIisStatusNotInConflict);
+
+  h.passModel(lp);
+  // With kIisStrategyFromLpRowPriority, feasibility of the LP is
+  // determined
+  h.setOptionValue("iis_strategy", kIisStrategyFromLpRowPriority);
+
+  h.getIis(iis);
+  REQUIRE(iis.col_index_.size() == 0);
+  REQUIRE(iis.row_index_.size() == 0);
+  REQUIRE(iis.col_status_[0] == kIisStatusNotInConflict);
+  REQUIRE(iis.col_status_[1] == kIisStatusNotInConflict);
+  REQUIRE(iis.row_status_[0] == kIisStatusNotInConflict);
+  REQUIRE(iis.row_status_[1] == kIisStatusNotInConflict);
+
+  h.resetGlobalScheduler(true);
+}

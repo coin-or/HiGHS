@@ -153,7 +153,6 @@ if(metis_FOUND)
 else()
     find_path(METIS_PATH
         NAMES "metis.h"
-        REQUIRED
         PATHS "${METIS_ROOT}/include"
         NO_DEFAULT_PATH)
 
@@ -161,7 +160,6 @@ else()
 
     find_library(METIS_LIB
         NAMES metis libmetis
-        REQUIRED
         PATHS "${METIS_ROOT}/lib" "${METIS_ROOT}/bin"
         NO_DEFAULT_PATH)
 
@@ -176,7 +174,20 @@ else()
             if (metis_FOUND)
                 message(STATUS "metis CMake config path: ${metis_DIR}")
             else()
-                message(FATAL_ERROR "No Metis library found")
+                # METIS_ROOT was not successful and there is no cmake config
+                find_path(METIS_PATH
+                    NAMES "metis.h")
+
+                message(STATUS "Found Metis header at ${METIS_PATH}")
+
+                find_library(METIS_LIB
+                    NAMES metis libmetis)
+
+                if(METIS_LIB)
+                    message(STATUS "Found Metis library at ${METIS_LIB}")
+                else()
+                    message(FATAL_ERROR "No Metis library found")
+                endif()
             endif()
         endif()
     endif()
@@ -225,14 +236,7 @@ if (NOT (GKLIB_ROOT STREQUAL ""))
             message(STATUS "Found GKlib library at ${GKLIB_LIB}")
         else()
             # GKLIB_ROOT was not successful
-            message(STATUS "GKlib not found in GKLIB_PATH, fallback to default search.")
-            find_package(GKlib CONFIG)
-
-            if (GKlib_FOUND)
-                message(STATUS "GKlib CMake config path: ${GKlib_DIR}")
-            else()
-                message(FATAL_ERROR "No GKLib library found")
-            endif()
+            message(FATAL_ERROR "No GKlib library found at ${GKLIB_ROOT}")
         endif()
     endif()
 endif()
