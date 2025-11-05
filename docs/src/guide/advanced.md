@@ -37,7 +37,20 @@ variable/constraint bound information, that cannot be satisfied (so is
 infeasible). It is irreducible in that if any constraint or variable
 bound is removed, then the system can be satisfied (so is feasible).
 
-HiGHS has an IIS facility that is under development. Currently it can only be used for LPs.
+HiGHS has an IIS facility that is under development. Currently it can
+only be used for LPs. The full IIS calculation is expensive, since it
+requires the solution of multiple LPs. Although there is a prototype
+implementation, it is not as robust or efficient as it will
+be. Otherwise, there is a simple, cheap test that looks for
+infeasibility due to incompatible variable oe constraint bounds, or
+constraint bounds that cannot be satisfied given the range of values
+on the constraint activity implied by bounds on variables.
+
+The choice of IIS strategy is defined by the [iis_strategy](@id option-iis-strategy) option, which can take the value
+
+- `kIisStrategyLight` = 0: The cheap test
+- `kIisStrategyFromLpRowPriority` = 1: The full IIS calculation, aiming to have a minimal number of rows in the IIS
+- `kIisStrategyFromLpColPriority` = 2: The full IIS calculation, aiming to have a minimal number of columns in the IIS
 
 ### IIS-related methods in the `Highs` class
 

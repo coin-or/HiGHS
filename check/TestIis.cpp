@@ -406,7 +406,7 @@ void testMps(std::string& model, const HighsInt iis_strategy,
   std::string model_file =
       std::string(HIGHS_DIR) + "/check/instances/" + model + ".mps";
   Highs highs;
-  highs.setOptionValue("output_flag", dev_run);
+  //  highs.setOptionValue("output_flag", dev_run);
 
   REQUIRE(highs.readModel(model_file) == HighsStatus::kOk);
   //  if (iis_strategy == kIisStrategyFromRayRowPriority ||
