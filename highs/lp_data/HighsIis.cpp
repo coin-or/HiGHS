@@ -85,9 +85,7 @@ void HighsIis::removeRow(const HighsInt row) {
 
 bool HighsIis::trivial(const HighsLp& lp, const HighsOptions& options) {
   this->invalidate();
-  const bool col_priority =
-      //      options.iis_strategy == kIisStrategyFromRayColPriority ||
-      options.iis_strategy == kIisStrategyFromLpColPriority;
+  const bool col_priority = kIisStrategyColPriority & options.iis_strategy;
   for (HighsInt k = 0; k < 2; k++) {
     if ((col_priority && k == 0) || (!col_priority && k == 1)) {
       // Loop over columns first
@@ -464,9 +462,8 @@ void HighsIis::getStatus(const HighsLp& lp) {
 HighsStatus HighsIis::compute(const HighsLp& lp, const HighsOptions& options,
                               const HighsBasis* basis) {
   const HighsLogOptions& log_options = options.log_options;
-  const bool row_priority =
-      //      options.iis_strategy == kIisStrategyFromRayRowPriority ||
-      options.iis_strategy == kIisStrategyFromLpRowPriority;
+  const bool col_priority = kIisStrategyColPriority & options.iis_strategy;
+  const bool row_priority = !col_priority;
   // Initially all columns and rows are candidates for the IIS
   for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) this->addCol(iCol);
   for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) this->addRow(iRow);

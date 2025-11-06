@@ -1044,10 +1044,9 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used()) {
   py::enum_<IisStrategy>(m, "IisStrategy", py::module_local())
       .value("kIisStrategyMin", IisStrategy::kIisStrategyMin)
       .value("kIisStrategyLight", IisStrategy::kIisStrategyLight)
-      .value("kIisStrategyFromLpRowPriority",
-             IisStrategy::kIisStrategyFromLpRowPriority)
-      .value("kIisStrategyFromLpColPriority",
-             IisStrategy::kIisStrategyFromLpColPriority)
+      .value("kIisStrategyFromRay", IisStrategy::kIisStrategyFromRay)
+      .value("kIisStrategyFromLp", IisStrategy::kIisStrategyFromLp)
+      .value("kIisStrategyColPriority", IisStrategy::kIisStrategyColPriority)
       .value("kIisStrategyMax", IisStrategy::kIisStrategyMax)
       .export_values();
   py::enum_<IisBoundStatus>(m, "IisBoundStatus", py::module_local())

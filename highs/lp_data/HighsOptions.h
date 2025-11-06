@@ -1312,17 +1312,10 @@ class HighsOptions : public HighsOptionsStruct {
     record_int = new OptionRecordInt(
         "iis_strategy",
         "Strategy for IIS calculation: "
-        //        "Use LP and p"
-        "Light test / "
-        "Full and prioritise rows / "
-        //        "Use LP and p"
-        "Full and prioritise columns"
-        //        "Use unbounded dual ray and prioritise low number of rows / "
-        //        "Use ray and prioritise low numbers of columns "
-        " (0/1/2"
-        //        "/3/4)",
-        ")",
-        advanced, &iis_strategy, kIisStrategyMin, kIisStrategyLight,
+	"0 => Light test; 1 => Try dual ray; "
+	"2 => Try elastic LP; 4 => Prioritise columns; "
+	"8 => Find true IIS; 16 => Find relaxation IIS for MIP",
+        advanced, &iis_strategy, kIisStrategyMin, kIisStrategyDefault,
         kIisStrategyMax);
     records.push_back(record_int);
 

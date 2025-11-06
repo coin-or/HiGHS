@@ -10,6 +10,11 @@ const bool write_model = false;
 
 const double inf = kHighsInf;
 
+const HighsInt kIisStrategyFromRayRowPriority = kIisStrategyFromRay;
+const HighsInt kIisStrategyFromRayColPriority = kIisStrategyFromRay + kIisStrategyColPriority;
+const HighsInt kIisStrategyFromLpRowPriority = kIisStrategyFromLp;
+const HighsInt kIisStrategyFromLpColPriority = kIisStrategyFromLp + kIisStrategyColPriority;
+
 void testMps(std::string& model, const HighsInt iis_strategy,
              const HighsModelStatus require_model_status =
                  HighsModelStatus::kInfeasible);
@@ -493,8 +498,7 @@ TEST_CASE("feasible-lp-iis", "[iis]") {
   REQUIRE(iis.row_status_[1] == kIisStatusNotInConflict);
 
   h.passModel(lp);
-  // With kIisStrategyFromLpRowPriority, feasibility of the LP is
-  // determined
+  // With kIisStrategyFromLp, feasibility of the LP is determined
   h.setOptionValue("iis_strategy", kIisStrategyFromLpRowPriority);
 
   h.getIis(iis);
