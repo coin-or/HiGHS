@@ -40,9 +40,9 @@ class HighsIis {
   void addRow(const HighsInt row, const HighsInt status = kIisBoundStatusNull);
   void removeCol(const HighsInt col);
   void removeRow(const HighsInt row);
-  HighsStatus getData(const HighsLp& lp, const HighsOptions& options,
-                      const HighsBasis& basis,
-                      const std::vector<HighsInt>& infeasible_row);
+  HighsStatus deduce(const HighsLp& lp, const HighsOptions& options,
+		     const HighsBasis& basis,
+		     const std::vector<HighsInt>& infeasible_row);
   void getLp(const HighsLp& lp);
   void getStatus(const HighsLp& lp);
 

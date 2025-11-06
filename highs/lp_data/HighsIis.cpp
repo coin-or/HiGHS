@@ -282,9 +282,9 @@ bool HighsIis::rowValueBounds(const HighsLp& lp, const HighsOptions& options) {
   return this->valid_;
 }
 
-HighsStatus HighsIis::getData(const HighsLp& lp, const HighsOptions& options,
-                              const HighsBasis& basis,
-                              const std::vector<HighsInt>& infeasible_row) {
+HighsStatus HighsIis::deduce(const HighsLp& lp, const HighsOptions& options,
+			     const HighsBasis& basis,
+			     const std::vector<HighsInt>& infeasible_row) {
   // Check for trivial IIS should have been done earlier
   assert(!this->trivial(lp, options));
   // The number of infeasible rows must be positive

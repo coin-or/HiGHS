@@ -1910,9 +1910,9 @@ HighsStatus Highs::getIisInterface() {
     this->iis_.row_status_.assign(lp.num_row_, kIisStatusMaybeInConflict);
     return this->getIisInterfaceReturn(HighsStatus::kOk);
   }
-  const bool ray_option = false;
-  //      options_.iis_strategy == kIisStrategyFromRayRowPriority ||
-  //      options_.iis_strategy == kIisStrategyFromRayColPriority;
+  const bool ray_option =
+    // kIisStrategyFromRay & options.iis_strategy;
+    false;
   if (this->model_status_ == HighsModelStatus::kInfeasible && ray_option &&
       !ekk_instance_.status_.has_invert) {
     // Model is known to be infeasible, and a dual ray option is
@@ -1985,45 +1985,52 @@ HighsStatus Highs::getIisInterface() {
     this->iis_.valid_ = true;
     this->iis_.col_status_.assign(lp.num_col_, kIisStatusNotInConflict);
     this->iis_.row_status_.assign(lp.num_row_, kIisStatusNotInConflict);
-  } else {
-    // To get the IIS data needs the matrix to be column-wise
-    model_.lp_.a_matrix_.ensureColwise();
-    return_status =
-        this->iis_.getData(lp, options_, basis_, infeasible_row_subset);
-    if (return_status == HighsStatus::kOk) {
-      // Existence of non-empty IIS => infeasibility
-      if (this->iis_.col_index_.size() > 0 || this->iis_.row_index_.size() > 0)
-        this->model_status_ = HighsModelStatus::kInfeasible;
-    }
-    // Analyse the LP solution data
-    const HighsInt num_lp_solved = this->iis_.info_.size();
-    double min_time = kHighsInf;
-    double sum_time = 0;
-    double max_time = 0;
-    HighsInt min_iterations = kHighsIInf;
-    HighsInt sum_iterations = 0;
-    HighsInt max_iterations = 0;
-    for (HighsInt iX = 0; iX < num_lp_solved; iX++) {
-      double time = this->iis_.info_[iX].simplex_time;
-      HighsInt iterations = this->iis_.info_[iX].simplex_iterations;
-      min_time = std::min(time, min_time);
-      sum_time += time;
-      max_time = std::max(time, max_time);
-      min_iterations = std::min(iterations, min_iterations);
-      sum_iterations += iterations;
-      max_iterations = std::max(iterations, max_iterations);
-    }
-    highsLogUser(options_.log_options, HighsLogType::kInfo,
-                 " %d cols, %d rows, %d LPs solved"
-                 " (min / average / max) iteration count (%6d / %6.2g / % 6d)"
-                 " and time (%6.2f / %6.2f / % 6.2f) \n",
-                 int(this->iis_.col_index_.size()),
-                 int(this->iis_.row_index_.size()), int(num_lp_solved),
-                 int(min_iterations),
-                 num_lp_solved > 0 ? (1.0 * sum_iterations) / num_lp_solved : 0,
-                 int(max_iterations), min_time,
-                 num_lp_solved > 0 ? sum_time / num_lp_solved : 0, max_time);
+    return this->getIisInterfaceReturn(return_status);
   }
+  const bool get_iis = kIisStrategyIrreducible & this->options_.iis_strategy;
+  if (!get_iis) {
+    assert(111==333);
+    return this->getIisInterfaceReturn(return_status);
+  }
+  // Attempt to compute a true IIS
+  //
+  // To get the IIS data needs the matrix to be column-wise
+  model_.lp_.a_matrix_.ensureColwise();
+  return_status =
+    this->iis_.deduce(lp, options_, basis_, infeasible_row_subset);
+  if (return_status == HighsStatus::kOk) {
+    // Existence of non-empty IIS => infeasibility
+    if (this->iis_.col_index_.size() > 0 || this->iis_.row_index_.size() > 0)
+      this->model_status_ = HighsModelStatus::kInfeasible;
+  }
+  // Analyse the LP solution data
+  const HighsInt num_lp_solved = this->iis_.info_.size();
+  double min_time = kHighsInf;
+  double sum_time = 0;
+  double max_time = 0;
+  HighsInt min_iterations = kHighsIInf;
+  HighsInt sum_iterations = 0;
+  HighsInt max_iterations = 0;
+  for (HighsInt iX = 0; iX < num_lp_solved; iX++) {
+    double time = this->iis_.info_[iX].simplex_time;
+    HighsInt iterations = this->iis_.info_[iX].simplex_iterations;
+    min_time = std::min(time, min_time);
+    sum_time += time;
+    max_time = std::max(time, max_time);
+    min_iterations = std::min(iterations, min_iterations);
+    sum_iterations += iterations;
+    max_iterations = std::max(iterations, max_iterations);
+  }
+  highsLogUser(options_.log_options, HighsLogType::kInfo,
+	       " %d cols, %d rows, %d LPs solved"
+	       " (min / average / max) iteration count (%6d / %6.2g / % 6d)"
+	       " and time (%6.2f / %6.2f / % 6.2f) \n",
+	       int(this->iis_.col_index_.size()),
+	       int(this->iis_.row_index_.size()), int(num_lp_solved),
+	       int(min_iterations),
+	       num_lp_solved > 0 ? (1.0 * sum_iterations) / num_lp_solved : 0,
+	       int(max_iterations), min_time,
+	       num_lp_solved > 0 ? sum_time / num_lp_solved : 0, max_time);
   return this->getIisInterfaceReturn(return_status);
 }
 
@@ -2061,7 +2068,8 @@ HighsStatus Highs::elasticityFilterReturn(
                              original_col_upper.data());
   assert(run_status == HighsStatus::kOk);
 
-  if (original_integrality.size()) {
+  if (kIisStrategyRelaxation & this->options_.iis_strategy &&
+      original_integrality.size()) {
     this->changeColsIntegrality(0, original_num_col - 1,
                                 original_integrality.data());
     assert(run_status == HighsStatus::kOk);
@@ -2162,7 +2170,9 @@ HighsStatus Highs::elasticityFilter(
   run_status = this->changeColsCost(0, lp.num_col_ - 1, zero_costs.data());
   assert(run_status == HighsStatus::kOk);
 
-  if (get_infeasible_row && lp.integrality_.size()) {
+  const bool mip_relaxation_iis = get_infeasible_row && lp.isMip() &&
+    kIisStrategyRelaxation & this->options_.iis_strategy;    
+  if (mip_relaxation_iis) {
     // Set any integrality to continuous
     std::vector<HighsVarType> all_continuous;
     all_continuous.assign(original_num_col, HighsVarType::kContinuous);
