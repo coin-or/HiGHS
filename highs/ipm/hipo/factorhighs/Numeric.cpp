@@ -62,4 +62,6 @@ Int Numeric::solve(std::vector<double>& x) const {
   return kRetOk;
 }
 
+void Numeric::getReg(std::vector<double>& reg) { reg = std::move(total_reg_); }
+
 }  // namespace hipo

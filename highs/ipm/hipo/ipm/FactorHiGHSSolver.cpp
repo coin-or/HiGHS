@@ -363,6 +363,9 @@ Int FactorHiGHSSolver::solveAS(const std::vector<double>& rhs_x,
 double FactorHiGHSSolver::flops() const { return S_.flops(); }
 double FactorHiGHSSolver::spops() const { return S_.spops(); }
 double FactorHiGHSSolver::nz() const { return (double)S_.nz(); }
+void FactorHiGHSSolver::getReg(std::vector<double>& reg) {
+  return FH_.getRegularisation(reg);
+}
 
 Int FactorHiGHSSolver::analyseAS(Symbolic& S) {
   // Perform analyse phase of augmented system and return symbolic factorisation

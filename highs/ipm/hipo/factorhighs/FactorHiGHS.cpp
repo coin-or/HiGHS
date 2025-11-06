@@ -50,4 +50,6 @@ Int FHsolver::factorise(const Symbolic& S, const std::vector<Int>& rows,
 
 Int FHsolver::solve(std::vector<double>& x) { return N_.solve(x); }
 
+void FHsolver::getRegularisation(std::vector<double>& reg) { N_.getReg(reg); }
+
 }  // namespace hipo

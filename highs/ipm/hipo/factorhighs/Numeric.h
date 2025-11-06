@@ -35,12 +35,13 @@ class Numeric {
 
   friend class Factorise;
 
- public:
   // dynamic regularisation applied to the matrix
   std::vector<double> total_reg_{};
 
+ public:
   // Full solve
   Int solve(std::vector<double>& x) const;
+  void getReg(std::vector<double>& reg);
 };
 
 }  // namespace hipo
