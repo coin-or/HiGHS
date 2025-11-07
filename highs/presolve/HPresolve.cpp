@@ -4140,9 +4140,9 @@ HPresolve::Result HPresolve::rowPresolve(HighsPostsolveStack& postsolve_stack,
         // bound or comes from this row, which means it is not used in the
         // rows implied bounds. Therefore we can fix the variable at its
         // upper bound.
-        fixColToUpper(postsolve_stack, nonzero.index());
+        HPRESOLVE_CHECKED_CALL(fixColToUpper(postsolve_stack, nonzero.index()));
       } else {
-        fixColToLower(postsolve_stack, nonzero.index());
+        HPRESOLVE_CHECKED_CALL(fixColToLower(postsolve_stack, nonzero.index()));
       }
     }
     // now the row might be empty, but not necessarily because the implied
