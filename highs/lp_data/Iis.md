@@ -2,6 +2,10 @@
 
 Further to documentation in https://ergo-code.github.io/HiGHS/stable/guide/advanced/
 
+Source of IIS techniques is
+
+J. W. Chinneck, "Feasibility and Infeasibility in Optimization". Algorithms and Computational Methods, Springer, New York, 2008. [DOI 10.1007/978-0-387-74932-7](https://doi.org/10.1007/978-0-387-74932-7)
+
 The IIS search is rooted in `Highs::getIisInterface()`, which first
 checks whether the `Highs::model_status_` is
 `HighsModelStatus::kOptimal` or `HighsModelStatus::kUnbounded`, in
@@ -35,11 +39,11 @@ is not robust, so currently switched off.
 ### Using the elasticity filter
 
 Currently, the only route to finding a set of mutually infeasible rows
-is to perform an elasticity filter calculation. This is done in
-`HighsIis::elasticityFilter`. This method is more general than is
-necessary for finding the set of mutually infeasible rows for an IIS
-calculation, and can be called directly using
-`Highs::feasibilityRelaxation`.
+is to perform an elasticity filter calculation [Chinneck
+p101-104]. This is done in `HighsIis::elasticityFilter`. This method
+is more general than is necessary for finding the set of mutually
+infeasible rows for an IIS calculation, and can be called directly
+using `Highs::feasibilityRelaxation`.
 
 The essence of the `HighsIis::elasticityFilter` is that it allows
 lower bounds, upper bounds and RHS values to be violated. There are
