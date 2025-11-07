@@ -4132,41 +4132,13 @@ HPresolve::Result HPresolve::rowPresolve(HighsPostsolveStack& postsolve_stack,
     markRowDeleted(row);
     for (const HighsSliceNonzero& nonzero : rowVector) {
       if (direction * nonzero.value() > 0) {
-        if (model->integrality_[nonzero.index()] != HighsVarType::kContinuous &&
-            fractionality(model->col_upper_[nonzero.index()]) >
-                mipsolver->options_mip_->mip_feasibility_tolerance) {
-          // If a non-continuous variable is fixed at a fractional
-          // value then the problem is infeasible
-          return Result::kPrimalInfeasible;
-        }
         // the upper bound of the column is as tight as the implied upper
         // bound or comes from this row, which means it is not used in the
         // rows implied bounds. Therefore we can fix the variable at its
         // upper bound.
-        postsolve_stack.fixedColAtUpper(nonzero.index(),
-                                        model->col_upper_[nonzero.index()],
-                                        model->col_cost_[nonzero.index()],
-                                        getColumnVector(nonzero.index()));
-        if (model->col_lower_[nonzero.index()] <
-            model->col_upper_[nonzero.index()])
-          changeColLower(nonzero.index(), model->col_upper_[nonzero.index()]);
-        removeFixedCol(nonzero.index());
+        fixColToUpper(postsolve_stack, nonzero.index());
       } else {
-        if (model->integrality_[nonzero.index()] != HighsVarType::kContinuous &&
-            fractionality(model->col_lower_[nonzero.index()]) >
-                mipsolver->options_mip_->mip_feasibility_tolerance) {
-          // If a non-continuous variable is fixed at a fractional
-          // value then the problem is infeasible
-          return Result::kPrimalInfeasible;
-        }
-        postsolve_stack.fixedColAtLower(nonzero.index(),
-                                        model->col_lower_[nonzero.index()],
-                                        model->col_cost_[nonzero.index()],
-                                        getColumnVector(nonzero.index()));
-        if (model->col_upper_[nonzero.index()] >
-            model->col_lower_[nonzero.index()])
-          changeColUpper(nonzero.index(), model->col_lower_[nonzero.index()]);
-        removeFixedCol(nonzero.index());
+        fixColToLower(postsolve_stack, nonzero.index());
       }
     }
     // now the row might be empty, but not necessarily because the implied
@@ -6001,8 +5973,8 @@ void HPresolve::removeFixedCol(HighsInt col) {
 }
 
 void HPresolve::removeFixedCol(HighsInt col, double fixval) {
-  // first mark the row as logically deleted, so that it is not register as
-  // singleton row upon removing its non-zeros
+  // mark the column as deleted first so that it is not registered as singleton
+  // column upon removing its non-zeros
   markColDeleted(col);
 
   for (HighsInt coliter = colhead[col]; coliter != -1;) {
