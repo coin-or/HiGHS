@@ -5,6 +5,7 @@
 
 #include "Info.h"
 #include "IpmData.h"
+#include "LinearSolver.h"
 #include "Model.h"
 #include "ipm/hipo/auxiliary/IntConfig.h"
 
@@ -55,6 +56,9 @@ struct Iterate {
 
   // regularisation values
   Regularisation& regul;
+  std::vector<double> total_reg;
+  double* Rp;
+  double* Rd;
 
   // residuals of linear system for iterative refinement
   Residuals ires;
@@ -191,6 +195,8 @@ struct Iterate {
   // Compute residual of 6x6 linear system for iterative refinement.
   // ===================================================================================
   void residuals6x6(const NewtonDir& d);
+
+  void setReg(LinearSolver& LS, OptionNla opt);
 };
 
 }  // namespace hipo

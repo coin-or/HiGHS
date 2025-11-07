@@ -627,6 +627,20 @@ void Iterate::finalResiduals(Info& info) const {
   }
 }
 
+void Iterate::setReg(LinearSolver& LS, OptionNla opt) {
+  // extract regularisation
+  LS.getReg(total_reg);
+
+  // easy access to primal/dual regularisation
+  if (opt == kOptionNlaNormEq) {
+    Rp = nullptr;
+    Rd = total_reg.data();
+  } else {
+    Rp = total_reg.data();
+    Rd = &total_reg[model->n()];
+  }
+}
+
 void Iterate::residuals6x6(const NewtonDir& d) {
   const std::vector<double>& dx = d.x;
   const std::vector<double>& dy = d.y;
@@ -634,37 +648,47 @@ void Iterate::residuals6x6(const NewtonDir& d) {
   const std::vector<double>& dxu = d.xu;
   const std::vector<double>& dzl = d.zl;
   const std::vector<double>& dzu = d.zu;
+  const Int m = model->m();
+  const Int n = model->n();
+  assert(Rd);
 
   // res1,2,3,4,5,6 contain the rhs of the linear system
 
-  // ires1 = res1 - A * dx
+  // ires1 = res1 - A * dx - Rd * dy
   ires.r1 = res.r1;
   model->A().alphaProductPlusY(-1.0, dx, ires.r1);
+  for (Int i = 0; i < m; ++i) {
+    ires.r1[i] -= Rd[i] * dy[i];
+  }
 
   // ires2 = res2 - dx + dxl
-  for (Int i = 0; i < model->n(); ++i)
+  for (Int i = 0; i < n; ++i)
     if (model->hasLb(i))
       ires.r2[i] = res.r2[i] - dx[i] + dxl[i];
     else
       ires.r2[i] = 0.0;
 
   // ires3 = res3 - dx - dxu
-  for (Int i = 0; i < model->n(); ++i)
+  for (Int i = 0; i < n; ++i)
     if (model->hasUb(i))
       ires.r3[i] = res.r3[i] - dx[i] - dxu[i];
     else
       ires.r3[i] = 0.0;
 
-  // ires4 = res4 - A^T * dy - dzl + dzu
+  // ires4 = res4 - A^T * dy - dzl + dzu + Rp * dx
   ires.r4 = res.r4;
-  for (Int i = 0; i < model->n(); ++i) {
+  for (Int i = 0; i < n; ++i) {
     if (model->hasLb(i)) ires.r4[i] -= dzl[i];
     if (model->hasUb(i)) ires.r4[i] += dzu[i];
   }
   model->A().alphaProductPlusY(-1.0, dy, ires.r4, true);
+  for (Int i = 0; i < n; ++i) {
+    double reg_p = Rp ? Rp[i] : regul.primal;
+    ires.r4[i] += reg_p * dx[i];
+  }
 
   // ires5 = res5 - zl * dxl - xl * dzl
-  for (Int i = 0; i < model->n(); ++i) {
+  for (Int i = 0; i < n; ++i) {
     if (model->hasLb(i))
       ires.r5[i] = res.r5[i] - zl[i] * dxl[i] - xl[i] * dzl[i];
     else
@@ -672,7 +696,7 @@ void Iterate::residuals6x6(const NewtonDir& d) {
   }
 
   // ires6 = res6 - zu * dxu - xu * dzu
-  for (Int i = 0; i < model->n(); ++i) {
+  for (Int i = 0; i < n; ++i) {
     if (model->hasUb(i))
       ires.r6[i] = res.r6[i] - zu[i] * dxu[i] - xu[i] * dzu[i];
     else

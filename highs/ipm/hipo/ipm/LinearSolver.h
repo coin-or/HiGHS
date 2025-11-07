@@ -26,6 +26,7 @@ namespace hipo {
 // - flops: return number of flops needed for factorisation
 // - spops: return number of sparse ops needed for factorisation
 // - nz: return number of nonzeros in factorisation
+// - getReg: extract regularisation
 //
 // NB: forming the normal equations or augmented system is delegated to the
 // linear solver chosen, so that only the appropriate data (upper triangle,

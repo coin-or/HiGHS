@@ -293,12 +293,14 @@ bool Solver::solve2x2(NewtonDir& delta, const Residuals& rhs) {
     std::vector<double> res8 = it_->residual8(rhs, res7);
 
     // factorise normal equations, if not yet done
-    if (!LS_->valid_)
+    if (!LS_->valid_) {
       if (Int status = LS_->factorNE(model_.A(), theta_inv)) {
         logH_.printe("Error while factorising normal equations\n");
         info_.status = (Status)status;
         return true;
       }
+      it_->setReg(*LS_, options_.nla);
+    }
 
     // solve with normal equations
     if (Int status = LS_->solveNE(res8, delta.y)) {
@@ -321,12 +323,14 @@ bool Solver::solve2x2(NewtonDir& delta, const Residuals& rhs) {
   // AUGMENTED SYSTEM
   else {
     // factorise augmented system, if not yet done
-    if (!LS_->valid_)
+    if (!LS_->valid_) {
       if (Int status = LS_->factorAS(model_.A(), theta_inv)) {
         logH_.printe("Error while factorising augmented system\n");
         info_.status = (Status)status;
         return true;
       }
+      it_->setReg(*LS_, options_.nla);
+    }
 
     // solve with augmented system
     if (Int status = LS_->solveAS(res7, rhs.r1, delta.x, delta.y)) {

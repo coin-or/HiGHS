@@ -62,6 +62,11 @@ Int Numeric::solve(std::vector<double>& x) const {
   return kRetOk;
 }
 
-void Numeric::getReg(std::vector<double>& reg) { reg = std::move(total_reg_); }
+void Numeric::getReg(std::vector<double>& reg) {
+  // unpermute regularisation
+  permuteVector(total_reg_, S_->iperm());
+
+  reg = std::move(total_reg_);
+}
 
 }  // namespace hipo

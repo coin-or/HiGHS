@@ -81,19 +81,26 @@ double Solver::computeOmega(const NewtonDir& delta) const {
 
   // tau_i =
   // tau_const * (inf_norm_rows(big 6x6 matrix)_i * inf_norm_delta + |rhs_i|)
+
   const double tau_const = 1000.0 * (5 * n_ + m_) * 1e-16;
   double omega_1{}, omega_2{};
 
+  assert(it_->Rd);
+
   // First block
   for (Int i = 0; i < m_; ++i) {
-    const double tau = tau_const * (model_.infNormRows(i) * inf_norm_delta +
-                                    std::abs(it_->res.r1[i]));
-    updateOmega(tau, omega_1, omega_2,
-                // numerator
-                std::abs(it_->ires.r1[i]),
-                // denominators
-                abs_prod_A[i], std::abs(it_->res.r1[i]),
-                model_.oneNormRows(i) * inf_norm_delta);
+    const double tau =
+        tau_const * (std::max(model_.infNormRows(i), std::abs(it_->Rd[i])) *
+                         inf_norm_delta +
+                     std::abs(it_->res.r1[i]));
+    updateOmega(
+        tau, omega_1, omega_2,
+        // numerator
+        std::abs(it_->ires.r1[i]),
+        // denominators
+        abs_prod_A[i] + std::abs(it_->Rd[i]) * std::abs(delta.y[i]),
+        std::abs(it_->res.r1[i]),
+        (model_.oneNormRows(i) + std::abs(it_->Rd[i])) * inf_norm_delta);
   }
 
   // Second block
@@ -128,20 +135,25 @@ double Solver::computeOmega(const NewtonDir& delta) const {
 
   // Fourth block
   for (Int i = 0; i < n_; ++i) {
+    double reg_p = it_->Rp ? it_->Rp[i] : regul_.primal;
+
     const double tau =
-        tau_const * (std::max(model_.infNormCols(i), 1.0) * inf_norm_delta +
-                     std::abs(it_->res.r4[i]));
+        tau_const *
+        (std::max(std::max(model_.infNormCols(i), 1.0), std::abs(reg_p)) *
+             inf_norm_delta +
+         std::abs(it_->res.r4[i]));
 
     double denom1 = abs_prod_At[i];
     if (model_.hasLb(i)) denom1 += std::abs(delta.zl[i]);
     if (model_.hasUb(i)) denom1 += std::abs(delta.zu[i]);
+    denom1 += std::abs(reg_p) * std::abs(delta.x[i]);
 
     updateOmega(tau, omega_1, omega_2,
                 // numerator
                 std::abs(it_->ires.r4[i]),
                 // denominators
                 denom1, std::abs(it_->res.r4[i]),
-                (model_.oneNormCols(i) + 2) * inf_norm_delta);
+                (model_.oneNormCols(i) + 2 + std::abs(reg_p)) * inf_norm_delta);
   }
 
   // Fifth block
