@@ -5930,40 +5930,18 @@ HPresolve::Result HPresolve::fixColToLower(HighsPostsolveStack& postsolve_stack,
                                            HighsInt col) {
   double fixval = model->col_lower_[col];
   if (fixval == -kHighsInf) return Result::kDualInfeasible;
-
-  const bool logging_on = analysis_.logging_on_;
-  if (logging_on) analysis_.startPresolveRuleLog(kPresolveRuleFixedCol);
+  if (model->integrality_[col] != HighsVarType::kContinuous &&
+      fractionality(fixval) >
+          mipsolver->options_mip_->mip_feasibility_tolerance)
+    return Result::kPrimalInfeasible;
 
   // printf("fixing column %" HIGHSINT_FORMAT " to %.15g\n", col, fixval);
 
-  // mark the column as deleted first so that it is not registered as singleton
-  // column upon removing its nonzeros
+  const bool logging_on = analysis_.logging_on_;
+  if (logging_on) analysis_.startPresolveRuleLog(kPresolveRuleFixedCol);
   postsolve_stack.fixedColAtLower(col, fixval, model->col_cost_[col],
                                   getColumnVector(col));
-  markColDeleted(col);
-
-  for (HighsInt coliter = colhead[col]; coliter != -1;) {
-    HighsInt colrow = Arow[coliter];
-    double colval = Avalue[coliter];
-    assert(Acol[coliter] == col);
-
-    HighsInt colpos = coliter;
-    coliter = Anext[coliter];
-
-    if (model->row_lower_[colrow] != -kHighsInf)
-      model->row_lower_[colrow] -= colval * fixval;
-
-    if (model->row_upper_[colrow] != kHighsInf)
-      model->row_upper_[colrow] -= colval * fixval;
-
-    unlink(colpos);
-
-    reinsertEquation(colrow);
-  }
-
-  model->offset_ += model->col_cost_[col] * fixval;
-  assert(std::isfinite(model->offset_));
-  model->col_cost_[col] = 0;
+  removeFixedCol(col, fixval);
   analysis_.logging_on_ = logging_on;
   if (logging_on) analysis_.stopPresolveRuleLog(kPresolveRuleFixedCol);
   return Result::kOk;
@@ -5973,40 +5951,18 @@ HPresolve::Result HPresolve::fixColToUpper(HighsPostsolveStack& postsolve_stack,
                                            HighsInt col) {
   double fixval = model->col_upper_[col];
   if (fixval == kHighsInf) return Result::kDualInfeasible;
-
-  const bool logging_on = analysis_.logging_on_;
-  if (logging_on) analysis_.startPresolveRuleLog(kPresolveRuleFixedCol);
+  if (model->integrality_[col] != HighsVarType::kContinuous &&
+      fractionality(fixval) >
+          mipsolver->options_mip_->mip_feasibility_tolerance)
+    return Result::kPrimalInfeasible;
 
   // printf("fixing column %" HIGHSINT_FORMAT " to %.15g\n", col, fixval);
 
-  // mark the column as deleted first so that it is not registered as singleton
-  // column upon removing its nonzeros
+  const bool logging_on = analysis_.logging_on_;
+  if (logging_on) analysis_.startPresolveRuleLog(kPresolveRuleFixedCol);
   postsolve_stack.fixedColAtUpper(col, fixval, model->col_cost_[col],
                                   getColumnVector(col));
-  markColDeleted(col);
-
-  for (HighsInt coliter = colhead[col]; coliter != -1;) {
-    HighsInt colrow = Arow[coliter];
-    double colval = Avalue[coliter];
-    assert(Acol[coliter] == col);
-
-    HighsInt colpos = coliter;
-    coliter = Anext[coliter];
-
-    if (model->row_lower_[colrow] != -kHighsInf)
-      model->row_lower_[colrow] -= colval * fixval;
-
-    if (model->row_upper_[colrow] != kHighsInf)
-      model->row_upper_[colrow] -= colval * fixval;
-
-    unlink(colpos);
-
-    reinsertEquation(colrow);
-  }
-
-  model->offset_ += model->col_cost_[col] * fixval;
-  assert(std::isfinite(model->offset_));
-  model->col_cost_[col] = 0;
+  removeFixedCol(col, fixval);
   analysis_.logging_on_ = logging_on;
   if (logging_on) analysis_.stopPresolveRuleLog(kPresolveRuleFixedCol);
   return Result::kOk;
@@ -6018,23 +5974,7 @@ void HPresolve::fixColToZero(HighsPostsolveStack& postsolve_stack,
   if (logging_on) analysis_.startPresolveRuleLog(kPresolveRuleFixedCol);
   postsolve_stack.fixedColAtZero(col, model->col_cost_[col],
                                  getColumnVector(col));
-  // mark the column as deleted first so that it is not registered as singleton
-  // column upon removing its nonzeros
-  markColDeleted(col);
-
-  for (HighsInt coliter = colhead[col]; coliter != -1;) {
-    HighsInt colrow = Arow[coliter];
-    assert(Acol[coliter] == col);
-
-    HighsInt colpos = coliter;
-    coliter = Anext[coliter];
-
-    unlink(colpos);
-
-    reinsertEquation(colrow);
-  }
-
-  model->col_cost_[col] = 0;
+  removeFixedCol(col, 0.0);
   analysis_.logging_on_ = logging_on;
   if (logging_on) analysis_.stopPresolveRuleLog(kPresolveRuleFixedCol);
 }
@@ -6055,8 +5995,14 @@ void HPresolve::removeRow(HighsInt row) {
 void HPresolve::removeFixedCol(HighsInt col) {
   const bool logging_on = analysis_.logging_on_;
   if (logging_on) analysis_.startPresolveRuleLog(kPresolveRuleFixedCol);
-  double fixval = model->col_lower_[col];
+  removeFixedCol(col, model->col_lower_[col]);
+  analysis_.logging_on_ = logging_on;
+  if (logging_on) analysis_.stopPresolveRuleLog(kPresolveRuleFixedCol);
+}
 
+void HPresolve::removeFixedCol(HighsInt col, double fixval) {
+  // first mark the row as logically deleted, so that it is not register as
+  // singleton row upon removing its non-zeros
   markColDeleted(col);
 
   for (HighsInt coliter = colhead[col]; coliter != -1;) {
@@ -6081,8 +6027,6 @@ void HPresolve::removeFixedCol(HighsInt col) {
   model->offset_ += model->col_cost_[col] * fixval;
   assert(std::isfinite(model->offset_));
   model->col_cost_[col] = 0;
-  analysis_.logging_on_ = logging_on;
-  if (logging_on) analysis_.stopPresolveRuleLog(kPresolveRuleFixedCol);
 }
 
 HPresolve::Result HPresolve::removeRowSingletons(
