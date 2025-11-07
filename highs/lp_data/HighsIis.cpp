@@ -13,6 +13,7 @@
 
 void HighsIis::invalidate() {
   this->valid_ = false;
+  this->irreducible_ = false;
   this->strategy_ = kIisStrategyMin;
   this->col_index_.clear();
   this->row_index_.clear();
@@ -349,7 +350,7 @@ HighsStatus HighsIis::deduce(const HighsLp& lp, const HighsOptions& options,
   return HighsStatus::kOk;
 }
 
-void HighsIis::getLp(const HighsLp& lp) {
+void HighsIis::setLp(const HighsLp& lp) {
   HighsLp& iis_lp = this->model_.lp_;
   iis_lp.clear();
   HighsInt iis_num_col = this->col_index_.size();
@@ -447,16 +448,20 @@ void HighsIis::getLp(const HighsLp& lp) {
   iis_lp.model_name_ = lp.model_name_ + "_IIS";
 }
 
-void HighsIis::getStatus(const HighsLp& lp) {
+void HighsIis::setStatus(const HighsLp& lp) {
   if (!this->valid_) return;
   this->col_status_.assign(lp.num_col_, kIisStatusNotInConflict);
   this->row_status_.assign(lp.num_row_, kIisStatusNotInConflict);
   HighsInt iis_num_col = this->col_index_.size();
   HighsInt iis_num_row = this->row_index_.size();
   for (HighsInt iisCol = 0; iisCol < iis_num_col; iisCol++)
-    this->col_status_[this->col_index_[iisCol]] = kIisStatusInConflict;
+    this->col_status_[this->col_index_[iisCol]] = this->irreducible_ ?
+      kIisStatusInConflict :
+      kIisStatusMaybeInConflict;
   for (HighsInt iisRow = 0; iisRow < iis_num_row; iisRow++)
-    this->row_status_[this->row_index_[iisRow]] = kIisStatusInConflict;
+    this->row_status_[this->row_index_[iisRow]] = this->irreducible_ ?
+      kIisStatusInConflict :
+      kIisStatusMaybeInConflict;
 }
 
 HighsStatus HighsIis::compute(const HighsLp& lp, const HighsOptions& options,
@@ -780,6 +785,67 @@ HighsStatus HighsIis::compute(const HighsLp& lp, const HighsOptions& options,
   this->valid_ = true;
   this->strategy_ = options.iis_strategy;
   return HighsStatus::kOk;
+}
+
+bool indexStatusOkReturn(const bool return_value) { return return_value; }
+
+bool HighsIis::indexStatusOk(const HighsLp& lp) const {
+  HighsInt num_col = lp.num_col_;
+  HighsInt num_row = lp.num_row_;
+  bool col_status_size_ok = this->col_status_.size() == static_cast<size_t>(num_col);
+  bool row_status_size_ok = this->row_status_.size() == static_cast<size_t>(num_row);
+  assert(col_status_size_ok);
+  assert(row_status_size_ok);
+  if (!col_status_size_ok) return indexStatusOkReturn(false);
+  if (!row_status_size_ok) return indexStatusOkReturn(false);
+  HighsInt num_iis_col = this->col_index_.size();
+  HighsInt num_iis_row = this->row_index_.size();
+  // Determine whether this is an IIS or just an IS
+  bool true_iis = false;
+  for (HighsInt iCol = 0; iCol < num_col; iCol++) {
+    if (this->col_status_[iCol] == kIisStatusInConflict) {
+      true_iis = true;
+      break;
+    }
+  }
+  if (!true_iis) {
+    for (HighsInt iRow = 0; iRow < num_row; iRow++) {
+      if (this->row_status_[iRow] == kIisStatusInConflict) {
+	true_iis = true;
+	break;
+      }
+    }
+  }
+  // Now check that cols and rows in the IIS are kIisStatusInConflict
+  // or kIisStatusMaybeInConflict, according to true_iis, and that all
+  // other cols and rows are kIisStatusNotConflict
+  std::vector<HighsInt> col_status = col_status_;
+  std::vector<HighsInt> row_status = row_status_;
+  for (HighsInt iX = 0; iX < num_iis_col; iX++) {
+    HighsInt iCol = this->col_index_[iX];
+    if (col_status_[iCol] != true_iis ?
+	kIisStatusInConflict :
+	kIisStatusMaybeInConflict) return indexStatusOkReturn(false);
+    col_status[iCol] = -1;
+  }
+  for (HighsInt iX = 0; iX < num_iis_row; iX++) {
+    HighsInt iRow = this->row_index_[iX];
+    if (row_status_[iRow] != true_iis ?
+	kIisStatusInConflict :
+	kIisStatusMaybeInConflict) return indexStatusOkReturn(false);
+    row_status[iRow] = -1;
+  }
+  for (HighsInt iCol = 0; iCol < num_col; iCol++) {
+    if (col_status[iCol] >= 0 &&
+	col_status[iCol] != kIisStatusNotInConflict) 
+      return indexStatusOkReturn(false);
+  }
+  for (HighsInt iRow = 0; iRow < num_row; iRow++) {
+    if (row_status[iRow] >= 0 &&
+	row_status[iRow] != kIisStatusNotInConflict) 
+      return indexStatusOkReturn(false);
+  }
+  return indexStatusOkReturn(true);
 }
 
 bool lpDataOkReturn(const bool return_value) { return return_value; }

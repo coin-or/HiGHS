@@ -43,8 +43,8 @@ class HighsIis {
   HighsStatus deduce(const HighsLp& lp, const HighsOptions& options,
 		     const HighsBasis& basis,
 		     const std::vector<HighsInt>& infeasible_row);
-  void getLp(const HighsLp& lp);
-  void getStatus(const HighsLp& lp);
+  void setLp(const HighsLp& lp);
+  void setStatus(const HighsLp& lp);
 
   HighsStatus compute(const HighsLp& lp, const HighsOptions& options,
                       const HighsBasis* basis = nullptr);
@@ -52,11 +52,13 @@ class HighsIis {
   bool trivial(const HighsLp& lp, const HighsOptions& options);
   bool rowValueBounds(const HighsLp& lp, const HighsOptions& options);
 
+  bool indexStatusOk(const HighsLp& lp) const;
   bool lpDataOk(const HighsLp& lp, const HighsOptions& options) const;
   bool lpOk(const HighsOptions& options) const;
 
   // Data members
   bool valid_ = false;
+  bool irreducible_ = false;
   HighsInt strategy_ = kIisStrategyMin;
   std::vector<HighsInt> col_index_;
   std::vector<HighsInt> row_index_;
