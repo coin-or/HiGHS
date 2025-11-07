@@ -1279,3 +1279,16 @@ TEST_CASE("row-fixed-lp", "[highs_test_mip_solver]") {
 
   h.resetGlobalScheduler(true);
 }
+
+TEST_CASE("issue-2585", "[highs_test_mip_solver]") {
+  std::string filename =
+      std::string(HIGHS_DIR) + "/check/instances/issue-2585.lp";
+  Highs highs;
+  highs.setOptionValue("output_flag", dev_run);
+  highs.setOptionValue("mip_rel_gap", 0);
+  highs.setOptionValue("mip_abs_gap", 0);
+  highs.readModel(filename);
+  const HighsModelStatus require_model_status = HighsModelStatus::kOptimal;
+  const double optimal_objective = -175.91;
+  solve(highs, kHighsOnString, require_model_status, optimal_objective);
+}
