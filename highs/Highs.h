@@ -1608,7 +1608,7 @@ class Highs {
   // Invalidates all solver data in Highs class members by calling
   // invalidateModelStatus(), invalidateSolution(), invalidateBasis(),
   // invalidateRanging(), invalidateInfo(), invalidateEkk() and
-  // invalidateIis()
+  // clearIis()
   void invalidateSolverData();
 
   // Invalidates all solver dual data in Highs class members by calling
@@ -1641,8 +1641,8 @@ class Highs {
   // Invalidates ekk_instance_
   void invalidateEkk();
 
-  // Invalidates iis_
-  void invalidateIis();
+  // Clears iis_
+  void clearIis();
 
   HighsStatus returnFromWriteSolution(FILE* file,
                                       const HighsStatus return_status);

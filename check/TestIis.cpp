@@ -51,6 +51,8 @@ TEST_CASE("lp-incompatible-bounds", "[iis]") {
   HighsIis iis;
   REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
   REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
+  REQUIRE(iis.valid_ == true);
+  REQUIRE(iis.irreducible_ == true);
 
   // Perform full IIS
   REQUIRE(highs.run() == HighsStatus::kOk);
@@ -58,6 +60,9 @@ TEST_CASE("lp-incompatible-bounds", "[iis]") {
 
   highs.setOptionValue("iis_strategy", kIisStrategyFromLpRowPriority);
   REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
+  REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
+  REQUIRE(iis.valid_ == true);
+  REQUIRE(iis.irreducible_ == true);
   REQUIRE(iis.col_index_.size() == 0);
   REQUIRE(iis.row_index_.size() == 1);
   REQUIRE(iis.row_index_[0] == 0);
@@ -74,6 +79,9 @@ TEST_CASE("lp-incompatible-bounds", "[iis]") {
 
   highs.setOptionValue("iis_strategy", kIisStrategyFromLpColPriority);
   REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
+  REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
+  REQUIRE(iis.valid_ == true);
+  REQUIRE(iis.irreducible_ == true);
   REQUIRE(iis.col_index_.size() == 1);
   REQUIRE(iis.row_index_.size() == 0);
   REQUIRE(iis.col_index_[0] == 2);
@@ -100,6 +108,9 @@ TEST_CASE("lp-incompatible-bounds", "[iis]") {
   highs.passModel(lp);
   highs.setOptionValue("iis_strategy", kIisStrategyFromLpRowPriority);
   REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
+  REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
+  REQUIRE(iis.valid_ == true);
+  REQUIRE(iis.irreducible_ == true);
   REQUIRE(iis.col_index_.size() == 0);
   REQUIRE(iis.row_index_.size() == 1);
   REQUIRE(iis.row_index_[0] == 0);
@@ -115,7 +126,10 @@ TEST_CASE("lp-incompatible-bounds", "[iis]") {
   }
 
   highs.setOptionValue("iis_strategy", kIisStrategyFromLpColPriority);
+  REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
   REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
+  REQUIRE(iis.valid_ == true);
+  REQUIRE(iis.irreducible_ == true);
   REQUIRE(iis.col_index_.size() == 1);
   REQUIRE(iis.row_index_.size() == 0);
   REQUIRE(iis.col_index_[0] == 0);
@@ -156,6 +170,8 @@ TEST_CASE("lp-empty-infeasible-row", "[iis]") {
   // Get IIS for empty row with positive lower bound
   REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
   REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
+  REQUIRE(iis.valid_ == true);
+  REQUIRE(iis.irreducible_ == true);
   if (dev_run && write_model) {
     highs.writeModel("");
     highs.writeIisModel("");
@@ -184,6 +200,8 @@ TEST_CASE("lp-empty-infeasible-row", "[iis]") {
   lp.row_upper_[empty_row] = new_upper;
   REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
   REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
+  REQUIRE(iis.valid_ == true);
+  REQUIRE(iis.irreducible_ == true);
   REQUIRE(iis.col_index_.size() == 0);
   REQUIRE(iis.row_index_.size() == 1);
   REQUIRE(iis.row_index_[0] == empty_row);
@@ -236,12 +254,25 @@ TEST_CASE("lp-get-iis-light", "[iis]") {
     for (int k = 0; k < 2; k++) {
       REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
       REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
+      REQUIRE(iis.valid_ == true);
+      REQUIRE(iis.irreducible_ == true);
       REQUIRE(iis.row_index_.size() == 1);
-
-	printf("Pass k = %d; l = %d: iis.row_index_[0] = %d\n", k, l, int(iis.row_index_[0]));
-      for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++)
-	//	REQUIRE(iis.col_status_[iCol] == kIisStatusNotInConflict);
-	printf("Pass k = %d; l = %d: iis.col_status_[%d] = %d\n", k, l, int(iCol), int(iis.col_status_[iCol]));
+      HighsInt iis_row = iis.row_index_[0];
+      if (lp.a_matrix_.isColwise()) {
+	for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
+	  for (HighsInt iEl = lp.a_matrix_.start_[iCol]; iEl < lp.a_matrix_.start_[iCol+1]; iEl++) {
+	    if (lp.a_matrix_.index_[iEl] == iis_row) {
+	      REQUIRE(iis.col_status_[iCol] == kIisStatusInConflict);
+	      break;
+	    }
+	  }
+	}
+      } else {
+	for (HighsInt iEl = lp.a_matrix_.start_[iis_row]; iEl < lp.a_matrix_.start_[iis_row+1]; iEl++) {
+	  HighsInt iCol = lp.a_matrix_.index_[iEl];
+	  REQUIRE(iis.col_status_[iCol] == kIisStatusInConflict);
+	}
+      }
       for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) {
 	if (iRow == iis.row_index_[0]) {
 	  REQUIRE(iis.row_status_[iRow] == kIisStatusInConflict);
@@ -249,7 +280,6 @@ TEST_CASE("lp-get-iis-light", "[iis]") {
 	  REQUIRE(iis.row_status_[iRow] == kIisStatusNotInConflict);
 	}
       }
-
       if (dev_run && write_model) {
         highs.writeModel("");
         highs.writeIisModel("");
@@ -312,11 +342,37 @@ TEST_CASE("lp-get-iis", "[iis]") {
   for (HighsInt k = 0; k < 2; k++) {
     REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
     REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
+    REQUIRE(iis.valid_ == true);
+    REQUIRE(iis.irreducible_ == true);
     REQUIRE(iis.col_index_.size() == 2);
     REQUIRE(iis.row_index_.size() == 1);
     REQUIRE(iis.col_index_[0] == 0);
     REQUIRE(iis.col_index_[1] == 1);
     REQUIRE(iis.row_index_[0] == 2);
+
+    HighsInt iis_row = iis.row_index_[0];
+    if (lp.a_matrix_.isColwise()) {
+      for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
+	for (HighsInt iEl = lp.a_matrix_.start_[iCol]; iEl < lp.a_matrix_.start_[iCol+1]; iEl++) {
+	  if (lp.a_matrix_.index_[iEl] == iis_row) {
+	    REQUIRE(iis.col_status_[iCol] == kIisStatusInConflict);
+	    break;
+	  }
+	}
+      }
+    } else {
+      for (HighsInt iEl = lp.a_matrix_.start_[iis_row]; iEl < lp.a_matrix_.start_[iis_row+1]; iEl++) {
+	HighsInt iCol = lp.a_matrix_.index_[iEl];
+	REQUIRE(iis.col_status_[iCol] == kIisStatusInConflict);
+      }
+    }
+    for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) {
+      if (iRow == iis.row_index_[0]) {
+	REQUIRE(iis.row_status_[iRow] == kIisStatusInConflict);
+      } else {
+	REQUIRE(iis.row_status_[iRow] == kIisStatusNotInConflict);
+      }
+    }
     highs.clearSolver();
     highs.ensureRowwise();
     REQUIRE(highs_lp.a_matrix_.isRowwise());
@@ -372,10 +428,8 @@ TEST_CASE("lp-get-iis-galenet", "[iis]") {
   //
   // Hence only empty columns can be removed
   std::string model = "galenet";
-  const HighsInt iis_strategy = kIisStrategyFromLpRowPriority
-    + kIisStrategyIrreducible;
-  testMps(model, iis_strategy);
-  //  testMps(model, kIisStrategyFromRayRowPriority);
+  testMps(model, kIisStrategyFromLpRowPriority);
+  //  testMps(model, kIisStrategyFromLpRowPriority + kIisStrategyIrreducible);
 }
 
 TEST_CASE("lp-get-iis-avgas", "[iis]") {
@@ -530,6 +584,14 @@ void testMps(std::string& model, const HighsInt iis_strategy,
     if (dev_run)
       printf("Model %s has IIS with %d columns and %d rows\n", model.c_str(),
              int(num_iis_col), int(num_iis_row));
+    REQUIRE(iis.valid_ == true);
+    const bool find_irreducible = kIisStrategyIrreducible & iis_strategy;
+    const HighsInt iis_status = find_irreducible ? kIisStatusInConflict : kIisStatusMaybeInConflict;
+    REQUIRE(iis.irreducible_ == find_irreducible);
+    for(HighsInt iX = 0; iX < num_iis_col; iX++) 
+      REQUIRE(iis.col_status_[iis.col_index_[iX]] == iis_status);
+    for(HighsInt iX = 0; iX < num_iis_row; iX++) 
+      REQUIRE(iis.row_status_[iis.row_index_[iX]] == iis_status);
   } else {
     REQUIRE(num_iis_col == 0);
     REQUIRE(num_iis_row == 0);
@@ -584,6 +646,7 @@ TEST_CASE("feasible-lp-iis", "[iis]") {
   h.run();
 
   h.getIis(iis);
+  REQUIRE(h.getModelStatus() == HighsModelStatus::kOptimal);
   REQUIRE(iis.col_index_.size() == 0);
   REQUIRE(iis.row_index_.size() == 0);
   REQUIRE(iis.col_status_[0] == kIisStatusNotInConflict);

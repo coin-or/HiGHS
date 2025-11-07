@@ -3772,7 +3772,7 @@ void Highs::invalidateSolverData() {
   invalidateSolution();
   invalidateBasis();
   invalidateEkk();
-  invalidateIis();
+  clearIis();
 }
 
 void Highs::invalidateSolverDualData() {
@@ -3790,7 +3790,7 @@ void Highs::invalidateModelStatusAndInfo() {
   invalidateModelStatus();
   invalidateRanging();
   invalidateInfo();
-  invalidateIis();
+  clearIis();
 }
 
 void Highs::invalidateModelStatus() {
@@ -3820,7 +3820,7 @@ void Highs::invalidateRanging() { ranging_.invalidate(); }
 
 void Highs::invalidateEkk() { ekk_instance_.invalidate(); }
 
-void Highs::invalidateIis() { iis_.invalidate(); }
+void Highs::clearIis() { iis_.clear(); }
 
 HighsStatus Highs::completeSolutionFromDiscreteAssignment() {
   // Determine whether the current solution of a MIP is feasible and,

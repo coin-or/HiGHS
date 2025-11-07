@@ -292,11 +292,11 @@ enum IisStrategy : int {
 };
 
 enum IisStatus {
-  kIisStatusMin = 0,
-  kIisStatusInConflict = kIisStatusMin,  // 0
-  kIisStatusNotInConflict,               // 1
-  kIisStatusMaybeInConflict,             // 2
-  kIisStatusMax = kIisStatusMaybeInConflict
+  kIisStatusMin = -1,
+  kIisStatusNotInConflict = kIisStatusMin,  // -1
+  kIisStatusMaybeInConflict,                // 0
+  kIisStatusInConflict,                     // 1
+  kIisStatusMax = kIisStatusInConflict
 };
 
 enum SubSolverIndex : int {

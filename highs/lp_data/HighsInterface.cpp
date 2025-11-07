@@ -1868,7 +1868,7 @@ HighsStatus Highs::getIisInterface() {
     highsLogUser(
         options_.log_options, HighsLogType::kInfo,
         "Calling Highs::getIis for a model that is known to be feasible\n");
-    this->iis_.invalidate();
+    this->iis_.clear();
     // No IIS exists, so validate the empty HighsIis instance
     this->iis_.valid_ = true;
     return this->getIisInterfaceReturn(HighsStatus::kOk);
@@ -1882,7 +1882,7 @@ HighsStatus Highs::getIisInterface() {
                  this->modelStatusToString(this->model_status_).c_str());
   }
   if (this->iis_.valid_) return this->getIisInterfaceReturn(HighsStatus::kOk);
-  this->iis_.invalidate();
+  this->iis_.clear();
   // Check for trivial IIS: empty infeasible row or inconsistent bounds
   if (this->iis_.trivial(lp, options_)) {
     this->model_status_ = HighsModelStatus::kInfeasible;
@@ -3013,7 +3013,7 @@ HighsStatus Highs::handleInfCost() {
 
 HighsStatus Highs::optionChangeAction() {
   if (this->iis_.valid_ && options_.iis_strategy != this->iis_.strategy_)
-    this->iis_.invalidate();
+    this->iis_.clear();
   return HighsStatus::kOk;
 }
 

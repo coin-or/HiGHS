@@ -11,7 +11,7 @@
 
 #include "Highs.h"
 
-void HighsIis::invalidate() {
+void HighsIis::clear() {
   this->valid_ = false;
   this->irreducible_ = false;
   this->strategy_ = kIisStrategyMin;
@@ -23,6 +23,12 @@ void HighsIis::invalidate() {
   this->row_status_.clear();
   this->info_.clear();
   this->model_.clear();
+}
+
+void HighsIis::invalid(const HighsLp& lp) {
+  this->clear();
+  this->col_status_.assign(lp.num_col_, kIisStatusMaybeInConflict);
+  this->row_status_.assign(lp.num_row_, kIisStatusMaybeInConflict);
 }
 
 std::string HighsIis::iisBoundStatusToString(HighsInt bound_status) const {
@@ -85,7 +91,7 @@ void HighsIis::removeRow(const HighsInt row) {
 }
 
 bool HighsIis::trivial(const HighsLp& lp, const HighsOptions& options) {
-  this->invalidate();
+  this->clear();
   const bool col_priority = kIisStrategyColPriority & options.iis_strategy;
   for (HighsInt k = 0; k < 2; k++) {
     if ((col_priority && k == 0) || (!col_priority && k == 1)) {
@@ -112,12 +118,12 @@ bool HighsIis::trivial(const HighsLp& lp, const HighsOptions& options) {
   }
   HighsInt num_iis_col = this->col_index_.size();
   HighsInt num_iis_row = this->row_index_.size();
-  // If one is found then we're done
+  // If one is found then we've found an IIS
   if (num_iis_col + num_iis_row > 0) {
     // Should have found exactly 1
-    assert((num_iis_col == 1 || num_iis_row == 1) &&
-           num_iis_col + num_iis_row < 2);
+    assert(num_iis_col + num_iis_row == 1);
     this->valid_ = true;
+    this->irreducible_ = true;
     this->strategy_ = options.iis_strategy;
     return true;
   }
@@ -145,7 +151,9 @@ bool HighsIis::trivial(const HighsLp& lp, const HighsOptions& options) {
       this->addRow(iRow, kIisBoundStatusUpper);
     }
     if (this->row_index_.size() > 0) {
+      // If one is found then we've found an IIS
       this->valid_ = true;
+      this->irreducible_ = true;
       this->strategy_ = options.iis_strategy;
       return true;
     }
@@ -155,7 +163,7 @@ bool HighsIis::trivial(const HighsLp& lp, const HighsOptions& options) {
 
 bool HighsIis::rowValueBounds(const HighsLp& lp, const HighsOptions& options) {
   // Look for infeasible rows based on row value bounds
-  this->invalidate();
+  this->clear();
   std::vector<double> lower_value;
   std::vector<double> upper_value;
   if (lp.a_matrix_.isColwise()) {
@@ -219,6 +227,23 @@ bool HighsIis::rowValueBounds(const HighsLp& lp, const HighsOptions& options) {
   if (this->row_index_.size() == 0) return false;
   assert(below_lower || above_upper);
   assert(!(below_lower && above_upper));
+  // Found an infeasible row
+  const HighsInt iRow = this->row_index_[0];
+  const std::string row_name_string =
+      lp.row_names_.size() > 0 ? "(" + lp.row_names_[iRow] + ")" : "";
+  if (below_lower) {
+    highsLogUser(
+        options.log_options, HighsLogType::kInfo,
+        "LP row %d %shas maximum row value of %g, below lower bound of %g\n",
+        int(iRow), row_name_string.c_str(), upper_value[iRow],
+        lp.row_lower_[iRow]);
+  } else {
+    highsLogUser(
+        options.log_options, HighsLogType::kInfo,
+        "LP row %d %shas minimum row value of %g, above upper bound of %g\n",
+        int(iRow), row_name_string.c_str(), lower_value[iRow],
+        lp.row_upper_[iRow]);
+  }
   double value;
   auto setColBound = [&]() {
     if (below_lower) {
@@ -235,23 +260,7 @@ bool HighsIis::rowValueBounds(const HighsLp& lp, const HighsOptions& options) {
       }
     }
   };
-  // Found an infeasible row
-  HighsInt iRow = this->row_index_[0];
-  const std::string row_name_string =
-      lp.row_names_.size() > 0 ? "(" + lp.row_names_[iRow] + ")" : "";
-  if (below_lower) {
-    highsLogUser(
-        options.log_options, HighsLogType::kInfo,
-        "LP row %d %shas maximum row value of %g, below lower bound of %g\n",
-        int(iRow), row_name_string.c_str(), upper_value[iRow],
-        lp.row_lower_[iRow]);
-  } else {
-    highsLogUser(
-        options.log_options, HighsLogType::kInfo,
-        "LP row %d %shas minimum row value of %g, above upper bound of %g\n",
-        int(iRow), row_name_string.c_str(), lower_value[iRow],
-        lp.row_upper_[iRow]);
-  }
+
   if (lp.a_matrix_.isColwise()) {
     for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
       for (HighsInt iEl = lp.a_matrix_.start_[iCol];
@@ -274,12 +283,14 @@ bool HighsIis::rowValueBounds(const HighsLp& lp, const HighsOptions& options) {
       }
     }
   }
+
   // There must be at least one column in the IIS
   assert(this->col_index_.size() > 0);
   assert(this->col_index_.size() == this->col_bound_.size());
   assert(this->row_index_.size() == this->row_bound_.size());
-  this->strategy_ = options.iis_strategy;
   this->valid_ = true;
+  this->irreducible_ = true;
+  this->strategy_ = options.iis_strategy;
   return this->valid_;
 }
 
