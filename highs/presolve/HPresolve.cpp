@@ -5911,10 +5911,6 @@ HPresolve::Result HPresolve::fixColToLower(HighsPostsolveStack& postsolve_stack,
                                            HighsInt col) {
   double fixval = model->col_lower_[col];
   if (fixval == -kHighsInf) return Result::kDualInfeasible;
-  if (model->integrality_[col] != HighsVarType::kContinuous &&
-      fractionality(fixval) >
-          mipsolver->options_mip_->mip_feasibility_tolerance)
-    return Result::kPrimalInfeasible;
 
   // printf("fixing column %" HIGHSINT_FORMAT " to %.15g\n", col, fixval);
 
@@ -5932,10 +5928,6 @@ HPresolve::Result HPresolve::fixColToUpper(HighsPostsolveStack& postsolve_stack,
                                            HighsInt col) {
   double fixval = model->col_upper_[col];
   if (fixval == kHighsInf) return Result::kDualInfeasible;
-  if (model->integrality_[col] != HighsVarType::kContinuous &&
-      fractionality(fixval) >
-          mipsolver->options_mip_->mip_feasibility_tolerance)
-    return Result::kPrimalInfeasible;
 
   // printf("fixing column %" HIGHSINT_FORMAT " to %.15g\n", col, fixval);
 
