@@ -62,6 +62,15 @@ TEST_CASE("lp-incompatible-bounds", "[iis]") {
   REQUIRE(iis.row_index_.size() == 1);
   REQUIRE(iis.row_index_[0] == 0);
   REQUIRE(iis.row_bound_[0] == kIisBoundStatusBoxed);
+  for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++)
+    REQUIRE(iis.col_status_[iCol] == kIisStatusNotInConflict);
+  for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) {
+    if (iRow == iis.row_index_[0]) {
+      REQUIRE(iis.row_status_[iRow] == kIisStatusInConflict);
+    } else {
+      REQUIRE(iis.row_status_[iRow] == kIisStatusNotInConflict);
+    }
+  }
 
   highs.setOptionValue("iis_strategy", kIisStrategyFromLpColPriority);
   REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
@@ -69,6 +78,57 @@ TEST_CASE("lp-incompatible-bounds", "[iis]") {
   REQUIRE(iis.row_index_.size() == 0);
   REQUIRE(iis.col_index_[0] == 2);
   REQUIRE(iis.col_bound_[0] == kIisBoundStatusBoxed);
+  for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
+    if (iCol == iis.col_index_[0]) {
+      REQUIRE(iis.col_status_[iCol] == kIisStatusInConflict);
+    } else {
+      REQUIRE(iis.col_status_[iCol] == kIisStatusNotInConflict);
+    }
+  }
+  for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++)
+    REQUIRE(iis.row_status_[iRow] == kIisStatusNotInConflict);
+
+  // Now give two columns and two rows incompatible bounds, and ensure
+  // that just one of each (the first encountered) is found
+  lp.col_upper_[0] = -1;
+  lp.row_upper_[1] = -1;
+  const bool two_inconsistent_rows = lp.row_upper_[0] < lp.row_lower_[0] && lp.row_upper_[1] < lp.row_lower_[1];
+  const bool two_inconsistent_cols = lp.col_upper_[0] < lp.col_lower_[0] && lp.col_upper_[2] < lp.col_lower_[2];
+  REQUIRE(two_inconsistent_cols);
+  REQUIRE(two_inconsistent_rows);
+  
+  highs.passModel(lp);
+  highs.setOptionValue("iis_strategy", kIisStrategyFromLpRowPriority);
+  REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
+  REQUIRE(iis.col_index_.size() == 0);
+  REQUIRE(iis.row_index_.size() == 1);
+  REQUIRE(iis.row_index_[0] == 0);
+  REQUIRE(iis.row_bound_[0] == kIisBoundStatusBoxed);
+  for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++)
+    REQUIRE(iis.col_status_[iCol] == kIisStatusNotInConflict);
+  for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) {
+    if (iRow == iis.row_index_[0]) {
+      REQUIRE(iis.row_status_[iRow] == kIisStatusInConflict);
+    } else {
+      REQUIRE(iis.row_status_[iRow] == kIisStatusNotInConflict);
+    }
+  }
+
+  highs.setOptionValue("iis_strategy", kIisStrategyFromLpColPriority);
+  REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
+  REQUIRE(iis.col_index_.size() == 1);
+  REQUIRE(iis.row_index_.size() == 0);
+  REQUIRE(iis.col_index_[0] == 0);
+  REQUIRE(iis.col_bound_[0] == kIisBoundStatusBoxed);
+  for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
+    if (iCol == iis.col_index_[0]) {
+      REQUIRE(iis.col_status_[iCol] == kIisStatusInConflict);
+    } else {
+      REQUIRE(iis.col_status_[iCol] == kIisStatusNotInConflict);
+    }
+  }
+  for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++)
+    REQUIRE(iis.row_status_[iRow] == kIisStatusNotInConflict);
 
   highs.resetGlobalScheduler(true);
 }
@@ -104,6 +164,15 @@ TEST_CASE("lp-empty-infeasible-row", "[iis]") {
   REQUIRE(iis.row_index_.size() == 1);
   REQUIRE(iis.row_index_[0] == empty_row);
   REQUIRE(iis.row_bound_[0] == kIisBoundStatusLower);
+  for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++)
+    REQUIRE(iis.col_status_[iCol] == kIisStatusNotInConflict);
+  for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) {
+    if (iRow == iis.row_index_[0]) {
+      REQUIRE(iis.row_status_[iRow] == kIisStatusInConflict);
+    } else {
+      REQUIRE(iis.row_status_[iRow] == kIisStatusNotInConflict);
+    }
+  }
 
   // Get IIS for empty row with negative upper bound
   double new_lower = -2;
@@ -119,6 +188,15 @@ TEST_CASE("lp-empty-infeasible-row", "[iis]") {
   REQUIRE(iis.row_index_.size() == 1);
   REQUIRE(iis.row_index_[0] == empty_row);
   REQUIRE(iis.row_bound_[0] == kIisBoundStatusUpper);
+  for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++)
+    REQUIRE(iis.col_status_[iCol] == kIisStatusNotInConflict);
+  for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) {
+    if (iRow == iis.row_index_[0]) {
+      REQUIRE(iis.row_status_[iRow] == kIisStatusInConflict);
+    } else {
+      REQUIRE(iis.row_status_[iRow] == kIisStatusNotInConflict);
+    }
+  }
 
   highs.resetGlobalScheduler(true);
 }
@@ -143,11 +221,11 @@ TEST_CASE("lp-get-iis-light", "[iis]") {
   // Each of the three constraints constitutes an IIS. Find each by
   // freeing the upper bounds in turn.
   //
-  // 1.5w + 2x + y <= 30
+  //      1.5w + 2x +   y      <= 30
   //
-  // -10 <= 4w -2x + y + 2z <= 15
+  // -10 <= 4w - 2x +   y + 2z <= 15
   //
-  // -2x -1.5y -z >= -34
+  // -34 <=    - 2x -1.5y -  z 
   //
   Highs highs;
   highs.setOptionValue("output_flag", dev_run);
@@ -158,6 +236,20 @@ TEST_CASE("lp-get-iis-light", "[iis]") {
     for (int k = 0; k < 2; k++) {
       REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
       REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
+      REQUIRE(iis.row_index_.size() == 1);
+
+	printf("Pass k = %d; l = %d: iis.row_index_[0] = %d\n", k, l, int(iis.row_index_[0]));
+      for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++)
+	//	REQUIRE(iis.col_status_[iCol] == kIisStatusNotInConflict);
+	printf("Pass k = %d; l = %d: iis.col_status_[%d] = %d\n", k, l, int(iCol), int(iis.col_status_[iCol]));
+      for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++) {
+	if (iRow == iis.row_index_[0]) {
+	  REQUIRE(iis.row_status_[iRow] == kIisStatusInConflict);
+	} else {
+	  REQUIRE(iis.row_status_[iRow] == kIisStatusNotInConflict);
+	}
+      }
+
       if (dev_run && write_model) {
         highs.writeModel("");
         highs.writeIisModel("");
