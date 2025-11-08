@@ -42,8 +42,7 @@ class HighsIis {
   void removeCol(const HighsInt col);
   void removeRow(const HighsInt row);
   HighsStatus deduce(const HighsLp& lp, const HighsOptions& options,
-		     const HighsBasis& basis,
-		     const std::vector<HighsInt>& infeasible_row);
+		     const HighsBasis& basis);
   void setLp(const HighsLp& lp);
   void setStatus(const HighsLp& lp);
 

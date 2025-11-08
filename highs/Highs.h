@@ -1741,8 +1741,7 @@ class Highs {
                                const double* local_lower_penalty,
                                const double* local_upper_penalty,
                                const double* local_rhs_penalty,
-                               const bool get_infeasible_row,
-                               std::vector<HighsInt>& infeasible_row_subset);
+                               const bool get_iis = false);
   HighsStatus extractIis(HighsInt& num_iis_col, HighsInt& num_iis_row,
                          HighsInt* iis_col_index, HighsInt* iis_row_index,
                          HighsInt* iis_col_bound, HighsInt* iis_row_bound);

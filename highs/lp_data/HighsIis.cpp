@@ -295,23 +295,24 @@ bool HighsIis::rowValueBounds(const HighsLp& lp, const HighsOptions& options) {
 }
 
 HighsStatus HighsIis::deduce(const HighsLp& lp, const HighsOptions& options,
-			     const HighsBasis& basis,
-			     const std::vector<HighsInt>& infeasible_row) {
-  // Check for trivial IIS should have been done earlier
-  assert(!this->trivial(lp, options));
+			     const HighsBasis& basis) {
   // The number of infeasible rows must be positive
-  assert(infeasible_row.size() > 0);
+  assert(this->row_index_.size() > 0);
   // Identify the LP corresponding to the set of infeasible rows
-  std::vector<HighsInt> from_row = infeasible_row;
+  std::vector<HighsInt> from_row = this->row_index_;
   std::vector<HighsInt> from_col;
   std::vector<HighsInt> to_row;
   to_row.assign(lp.num_row_, -1);
+  // Check for trivial IIS should have been done earlier
+  assert(!this->trivial(lp, options));
+  // Only uses this->row_index_ to initialise from_row, so can clear
+  this->clear();
   // To get the IIS data needs the matrix to be column-wise
   assert(lp.a_matrix_.isColwise());
-  // Determine how to detect whether a row is in infeasible_row and
-  // (then) gather information about it
-  for (HighsInt iX = 0; iX < HighsInt(infeasible_row.size()); iX++)
-    to_row[infeasible_row[iX]] = iX;
+  // Determine how to detect whether a row is in from_row and (then)
+  // gather information about it
+  for (HighsInt iX = 0; iX < HighsInt(from_row.size()); iX++)
+    to_row[from_row[iX]] = iX;
   // Identify the columns (from_col) with nonzeros in the infeasible
   // rows
   for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {

@@ -1848,6 +1848,10 @@ HighsStatus Highs::getIisInterfaceReturn(const HighsStatus return_status) {
     // is any bound is relaxed)
     bool lp_ok = this->iis_.lpOk(this->options_);
     if (!lp_ok) return HighsStatus::kError;
+  } else {
+    assert(!this->iis_.irreducible_);
+    assert(!this->iis_.col_bound_.size());
+    assert(!this->iis_.row_bound_.size());
   }
   // Construct the ISS status vectors for cols and rows of original
   // model
@@ -1942,7 +1946,6 @@ HighsStatus Highs::getIisInterface() {
     highsLogUser(
         options_.log_options, HighsLogType::kWarning,
         "No known dual ray from which to compute IIS: using whole model\n");
-  std::vector<HighsInt> infeasible_row_subset;
   if (ray_option && has_dual_ray) {
     // Compute the dual ray to identify an infeasible subset of rows
     assert(ekk_instance_.status_.has_invert);
@@ -1956,7 +1959,7 @@ HighsStatus Highs::getIisInterface() {
     basisSolveInterface(rhs, dual_ray_value.data(), dual_ray_num_nz, NULL,
                         true);
     for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++)
-      if (dual_ray_value[iRow]) infeasible_row_subset.push_back(iRow);
+      if (dual_ray_value[iRow]) this->iis_.row_index_.push_back(iRow);
   } else {
     // Full LP option chosen or no dual ray to use
     //
@@ -1967,15 +1970,14 @@ HighsStatus Highs::getIisInterface() {
     // Apply the elasticity filter to the whole model in order to
     // determine an infeasible subset of rows
     HighsStatus return_status =
-        this->elasticityFilter(-1.0, -1.0, 1.0, nullptr, nullptr, nullptr, true,
-                               infeasible_row_subset);
+      this->elasticityFilter(-1.0, -1.0, 1.0, nullptr, nullptr, nullptr, true);
     HighsLp check_lp_after = this->model_.lp_;
     assert(check_lp_before.equalVectors(check_lp_after));
     assert(check_lp_before.a_matrix_.equivalent(check_lp_after.a_matrix_));
     if (return_status != HighsStatus::kOk) return return_status;
   }
   return_status = HighsStatus::kOk;
-  if (infeasible_row_subset.size() == 0) {
+  if (this->iis_.row_index_.size() == 0) {
     // No subset of infeasible rows, so model is feasible
     this->iis_.valid_ = true;
     assert(!this->iis_.irreducible_);
@@ -1991,7 +1993,7 @@ HighsStatus Highs::getIisInterface() {
   // To get the IIS data needs the matrix to be column-wise
   model_.lp_.a_matrix_.ensureColwise();
   return_status =
-    this->iis_.deduce(lp, options_, basis_, infeasible_row_subset);
+    this->iis_.deduce(lp, options_, basis_);
   if (return_status == HighsStatus::kOk) {
     // Existence of non-empty IIS => infeasibility
     if (this->iis_.col_index_.size() > 0 || this->iis_.row_index_.size() > 0)
@@ -2096,12 +2098,11 @@ HighsStatus Highs::elasticityFilter(
     const double global_lower_penalty, const double global_upper_penalty,
     const double global_rhs_penalty, const double* local_lower_penalty,
     const double* local_upper_penalty, const double* local_rhs_penalty,
-    const bool get_infeasible_row,
-    std::vector<HighsInt>& infeasible_row_subset) {
+    const bool get_iis) {
   //  this->writeModel("infeasible.mps");
   //
   // Solve the feasibility relaxation problem for the given penalties,
-  // continuing to act as the elasticity filter if get_infeasible_row
+  // continuing to act as the elasticity filter if get_iis
   // is true, resulting in an infeasibility subset for further
   // refinement as an IIS
   //
@@ -2164,7 +2165,7 @@ HighsStatus Highs::elasticityFilter(
   run_status = this->changeColsCost(0, lp.num_col_ - 1, zero_costs.data());
   assert(run_status == HighsStatus::kOk);
 
-  const bool mip_relaxation_iis = get_infeasible_row && lp.isMip() &&
+  const bool mip_relaxation_iis = get_iis && lp.isMip() &&
     kIisStrategyRelaxation & this->options_.iis_strategy;    
   if (mip_relaxation_iis) {
     // Set any integrality to continuous
@@ -2419,7 +2420,7 @@ HighsStatus Highs::elasticityFilter(
   assert(this->model_status_ == HighsModelStatus::kOptimal ||
          this->model_status_ == HighsModelStatus::kUnbounded);
 
-  if (!get_infeasible_row)
+  if (!get_iis)
     return elasticityFilterReturn(HighsStatus::kOk, false, original_model_name,
                                   original_num_col, original_num_row,
                                   original_col_cost, original_col_lower,
@@ -2485,7 +2486,7 @@ HighsStatus Highs::elasticityFilter(
     loop_k++;
   }
 
-  infeasible_row_subset.clear();
+  this->iis_.clear();
   HighsInt num_enforced_col_ecol = 0;
   HighsInt num_enforced_row_ecol = 0;
   if (has_elastic_columns) {
@@ -2507,7 +2508,12 @@ HighsStatus Highs::elasticityFilter(
       HighsInt iRow = row_of_ecol[eCol];
       if (lp.col_upper_[row_ecol_offset + eCol] == 0) {
         num_enforced_row_ecol++;
-        infeasible_row_subset.push_back(iRow);
+	this->iis_.row_index_.push_back(iRow);
+	/*
+	this->iis_.row_bound_.push_back(erow_value[eRow] > 0 ?
+				       kIisBoundStatusUpper :
+				       kIisBoundStatusLower);
+	*/
         if (kIisDevReport)
           printf(
               "Row e-col %2d (column %2d) corresponds to    row %2d with bound "
@@ -2517,8 +2523,25 @@ HighsStatus Highs::elasticityFilter(
       }
     }
   }
+  HighsInt num_iis_row = this->iis_.row_index_.size();
+  /*
+  assert(row_of_ecol.size() == num_iis_row);
+  std::vector<HighsInt> erow_of_row.assign(lp.num_row_, -1);
+  for (HighsInt iX = 0; iX < num_iis_row; iX++) {
+    HighsInt iRow = 
+    if (lp.a_matrix_.isColwise()) {
+      for (HighsInt iCol = 
+  }
+  */
   if (feasible_model)
     assert(num_enforced_col_ecol == 0 && num_enforced_row_ecol == 0);
+  HighsIis& iis = this->iis_;
+  printf("After elasticity filter num_enforced_col_ecol = %d; num_enforced_row_ecol = %d\n",
+	 int(num_enforced_col_ecol),
+	 int(num_enforced_row_ecol));
+  if (!feasible_model) this->model_status_ = HighsModelStatus::kInfeasible;
+  iis.valid_ = true;
+  iis.irreducible_ = false;
 
   highsLogUser(
       options_.log_options, HighsLogType::kInfo,
