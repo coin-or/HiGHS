@@ -282,13 +282,15 @@ enum PresolveRuleType : int {
 enum IisStrategy : int {
   kIisStrategyMin = 0,
   kIisStrategyLight = kIisStrategyMin,  // 0
-  kIisStrategyFromRay =     1,
-  kIisStrategyFromLp =      2,
+  kIisStrategyFromRay = 1,
+  kIisStrategyFromLp = 2,
   kIisStrategyColPriority = 4,
   kIisStrategyIrreducible = 8,
   kIisStrategyRelaxation = 16,
   kIisStrategyDefault = kIisStrategyLight,
-  kIisStrategyMax = kIisStrategyFromRay + kIisStrategyFromLp + kIisStrategyColPriority + kIisStrategyIrreducible + kIisStrategyRelaxation
+  kIisStrategyMax = kIisStrategyFromRay + kIisStrategyFromLp +
+                    kIisStrategyColPriority + kIisStrategyIrreducible +
+                    kIisStrategyRelaxation
 };
 
 enum IisStatus {

@@ -224,7 +224,13 @@ bool HighsIis::rowValueBounds(const HighsLp& lp, const HighsOptions& options) {
       break;
     }
   }
-  if (this->row_index_.size() == 0) return false;
+  if (this->row_index_.size() == 0) {
+    // Nothing found, but IIS data still valid
+    this->clear();
+    this->valid_ = true;
+    this->strategy_ = options.iis_strategy;
+    return false;
+  }
   assert(below_lower || above_upper);
   assert(!(below_lower && above_upper));
   // Found an infeasible row
@@ -291,11 +297,11 @@ bool HighsIis::rowValueBounds(const HighsLp& lp, const HighsOptions& options) {
   this->valid_ = true;
   this->irreducible_ = true;
   this->strategy_ = options.iis_strategy;
-  return this->valid_;
+  return true;
 }
 
 HighsStatus HighsIis::deduce(const HighsLp& lp, const HighsOptions& options,
-			     const HighsBasis& basis) {
+                             const HighsBasis& basis) {
   // The number of infeasible rows must be positive
   assert(this->row_index_.size() > 0);
   // Identify the LP corresponding to the set of infeasible rows
@@ -307,6 +313,9 @@ HighsStatus HighsIis::deduce(const HighsLp& lp, const HighsOptions& options,
   assert(!this->trivial(lp, options));
   // Only uses this->row_index_ to initialise from_row, so can clear
   this->clear();
+  // ToDo Exploit the known col_index_ and row_bound_ HighsIis
+  // information
+  //
   // To get the IIS data needs the matrix to be column-wise
   assert(lp.a_matrix_.isColwise());
   // Determine how to detect whether a row is in from_row and (then)
@@ -467,13 +476,11 @@ void HighsIis::setStatus(const HighsLp& lp) {
   HighsInt iis_num_col = this->col_index_.size();
   HighsInt iis_num_row = this->row_index_.size();
   for (HighsInt iisCol = 0; iisCol < iis_num_col; iisCol++)
-    this->col_status_[this->col_index_[iisCol]] = this->irreducible_ ?
-      kIisStatusInConflict :
-      kIisStatusMaybeInConflict;
+    this->col_status_[this->col_index_[iisCol]] =
+        this->irreducible_ ? kIisStatusInConflict : kIisStatusMaybeInConflict;
   for (HighsInt iisRow = 0; iisRow < iis_num_row; iisRow++)
-    this->row_status_[this->row_index_[iisRow]] = this->irreducible_ ?
-      kIisStatusInConflict :
-      kIisStatusMaybeInConflict;
+    this->row_status_[this->row_index_[iisRow]] =
+        this->irreducible_ ? kIisStatusInConflict : kIisStatusMaybeInConflict;
 }
 
 HighsStatus HighsIis::compute(const HighsLp& lp, const HighsOptions& options,
@@ -795,6 +802,7 @@ HighsStatus HighsIis::compute(const HighsLp& lp, const HighsOptions& options,
   this->row_index_.resize(iss_num_row);
   this->row_bound_.resize(iss_num_row);
   this->valid_ = true;
+  this->irreducible_ = true;
   this->strategy_ = options.iis_strategy;
   return HighsStatus::kOk;
 }
@@ -804,8 +812,10 @@ bool indexStatusOkReturn(const bool return_value) { return return_value; }
 bool HighsIis::indexStatusOk(const HighsLp& lp) const {
   HighsInt num_col = lp.num_col_;
   HighsInt num_row = lp.num_row_;
-  bool col_status_size_ok = this->col_status_.size() == static_cast<size_t>(num_col);
-  bool row_status_size_ok = this->row_status_.size() == static_cast<size_t>(num_row);
+  bool col_status_size_ok =
+      this->col_status_.size() == static_cast<size_t>(num_col);
+  bool row_status_size_ok =
+      this->row_status_.size() == static_cast<size_t>(num_row);
   assert(col_status_size_ok);
   assert(row_status_size_ok);
   if (!col_status_size_ok) return indexStatusOkReturn(false);
@@ -823,8 +833,8 @@ bool HighsIis::indexStatusOk(const HighsLp& lp) const {
   if (!true_iis) {
     for (HighsInt iRow = 0; iRow < num_row; iRow++) {
       if (this->row_status_[iRow] == kIisStatusInConflict) {
-	true_iis = true;
-	break;
+        true_iis = true;
+        break;
       }
     }
   }
@@ -835,26 +845,24 @@ bool HighsIis::indexStatusOk(const HighsLp& lp) const {
   std::vector<HighsInt> row_status = row_status_;
   for (HighsInt iX = 0; iX < num_iis_col; iX++) {
     HighsInt iCol = this->col_index_[iX];
-    if (col_status_[iCol] != true_iis ?
-	kIisStatusInConflict :
-	kIisStatusMaybeInConflict) return indexStatusOkReturn(false);
+    if (col_status_[iCol] != true_iis ? kIisStatusInConflict
+                                      : kIisStatusMaybeInConflict)
+      return indexStatusOkReturn(false);
     col_status[iCol] = -1;
   }
   for (HighsInt iX = 0; iX < num_iis_row; iX++) {
     HighsInt iRow = this->row_index_[iX];
-    if (row_status_[iRow] != true_iis ?
-	kIisStatusInConflict :
-	kIisStatusMaybeInConflict) return indexStatusOkReturn(false);
+    if (row_status_[iRow] != true_iis ? kIisStatusInConflict
+                                      : kIisStatusMaybeInConflict)
+      return indexStatusOkReturn(false);
     row_status[iRow] = -1;
   }
   for (HighsInt iCol = 0; iCol < num_col; iCol++) {
-    if (col_status[iCol] >= 0 &&
-	col_status[iCol] != kIisStatusNotInConflict) 
+    if (col_status[iCol] >= 0 && col_status[iCol] != kIisStatusNotInConflict)
       return indexStatusOkReturn(false);
   }
   for (HighsInt iRow = 0; iRow < num_row; iRow++) {
-    if (row_status[iRow] >= 0 &&
-	row_status[iRow] != kIisStatusNotInConflict) 
+    if (row_status[iRow] >= 0 && row_status[iRow] != kIisStatusNotInConflict)
       return indexStatusOkReturn(false);
   }
   return indexStatusOkReturn(true);
@@ -1024,7 +1032,7 @@ bool lpOkReturn(const bool return_value) { return return_value; }
 bool HighsIis::lpOk(const HighsOptions& options) const {
   // Check that the IIS LP is OK (infeasible and optimal if
   // any bound is relaxed)
-  if (!this->valid_) return true;
+  if (!this->valid_) return lpOkReturn(true);
   HighsInt num_iis_col = this->col_index_.size();
   HighsInt num_iis_row = this->row_index_.size();
   // If an LP has a row with inconsistent bounds, or an empty row with
@@ -1046,6 +1054,7 @@ bool HighsIis::lpOk(const HighsOptions& options) const {
                  "HighsIis: IIS LP is not infeasible\n");
     return lpOkReturn(false);
   }
+  if (!this->irreducible_) return lpOkReturn(true);
   auto optimal = [&]() -> bool {
     if (options.log_dev_level > 0) h.writeModel("");
     h.run();
