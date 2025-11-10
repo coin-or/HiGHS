@@ -491,7 +491,6 @@ TEST_CASE("lp-feasibility-relaxation", "[iis]") {
   h.setOptionValue("output_flag", dev_run);
   const HighsSolution& solution = h.getSolution();
   h.passModel(lp);
-  //  h.run();
 
   const bool all_tests = false;
   const bool test0 = false || all_tests;
@@ -586,7 +585,7 @@ void testMps(std::string& model, const HighsInt iis_strategy,
   std::string model_file =
       std::string(HIGHS_DIR) + "/check/instances/" + model + ".mps";
   Highs highs;
-  //  highs.setOptionValue("output_flag", dev_run);
+  highs.setOptionValue("output_flag", dev_run);
 
   REQUIRE(highs.readModel(model_file) == HighsStatus::kOk);
   //  if (iis_strategy == kIisStrategyFromRay ||
@@ -658,7 +657,7 @@ TEST_CASE("feasible-lp-iis", "[iis]") {
   lp.a_matrix_.index_ = {0, 1, 0, 1};
   lp.a_matrix_.value_ = {1, 1, 2, 4};
   Highs h;
-  h.setOptionValue("output_flag", dev_run);
+  //  h.setOptionValue("output_flag", dev_run);
   h.passModel(lp);
   HighsIis iis;
   // With kIisStrategyLight, feasibility of the LP is not determined

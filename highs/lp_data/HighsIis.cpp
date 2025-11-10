@@ -469,10 +469,28 @@ void HighsIis::setLp(const HighsLp& lp) {
   iis_lp.model_name_ = lp.model_name_ + "_IIS";
 }
 
-void HighsIis::setStatus(const HighsLp& lp) {
+HighsInt HighsIis::nonIsStatus(const HighsModelStatus& model_status) const {
+  const bool is_feasible =
+    model_status == HighsModelStatus::kOptimal ||
+    model_status == HighsModelStatus::kUnbounded;
+  const bool has_is = this->col_index_.size() || this->row_index_.size();
+  // If the model is known to be feasible, then there should be no IS,
+  // and all columns and rows are kIisStatusNotInConflict
+  if (is_feasible) assert(!has_is);
+  // If there is an IS, then all columns and rows not in the IS are
+  // kIisStatusNotInConflict
+  const HighsInt default_iis_status = is_feasible || has_is ?
+    kIisStatusNotInConflict :
+    kIisStatusMaybeInConflict;
+  return default_iis_status;
+}
+  
+void HighsIis::setStatus(const HighsLp& lp,
+			 const HighsModelStatus& model_status) {
   if (!this->valid_) return;
-  this->col_status_.assign(lp.num_col_, kIisStatusNotInConflict);
-  this->row_status_.assign(lp.num_row_, kIisStatusNotInConflict);
+  const HighsInt non_is_status = nonIsStatus(model_status);
+  this->col_status_.assign(lp.num_col_, non_is_status);
+  this->row_status_.assign(lp.num_row_, non_is_status);
   HighsInt iis_num_col = this->col_index_.size();
   HighsInt iis_num_row = this->row_index_.size();
   for (HighsInt iisCol = 0; iisCol < iis_num_col; iisCol++)
@@ -809,7 +827,8 @@ HighsStatus HighsIis::compute(const HighsLp& lp, const HighsOptions& options,
 
 bool indexStatusOkReturn(const bool return_value) { return return_value; }
 
-bool HighsIis::indexStatusOk(const HighsLp& lp) const {
+bool HighsIis::indexStatusOk(const HighsLp& lp,
+			     const HighsModelStatus& model_status) const {
   HighsInt num_col = lp.num_col_;
   HighsInt num_row = lp.num_row_;
   bool col_status_size_ok =
@@ -843,26 +862,30 @@ bool HighsIis::indexStatusOk(const HighsLp& lp) const {
   // other cols and rows are kIisStatusNotConflict
   std::vector<HighsInt> col_status = col_status_;
   std::vector<HighsInt> row_status = row_status_;
+  const HighsInt illegal_status = -99;
   for (HighsInt iX = 0; iX < num_iis_col; iX++) {
     HighsInt iCol = this->col_index_[iX];
     if (col_status_[iCol] != true_iis ? kIisStatusInConflict
                                       : kIisStatusMaybeInConflict)
       return indexStatusOkReturn(false);
-    col_status[iCol] = -1;
+    col_status[iCol] = illegal_status;
   }
   for (HighsInt iX = 0; iX < num_iis_row; iX++) {
     HighsInt iRow = this->row_index_[iX];
     if (row_status_[iRow] != true_iis ? kIisStatusInConflict
                                       : kIisStatusMaybeInConflict)
       return indexStatusOkReturn(false);
-    row_status[iRow] = -1;
+    row_status[iRow] = illegal_status;
   }
+  const HighsInt non_is_status = nonIsStatus(model_status);
   for (HighsInt iCol = 0; iCol < num_col; iCol++) {
-    if (col_status[iCol] >= 0 && col_status[iCol] != kIisStatusNotInConflict)
+    if (col_status[iCol] > illegal_status &&
+	col_status[iCol] != non_is_status)
       return indexStatusOkReturn(false);
   }
   for (HighsInt iRow = 0; iRow < num_row; iRow++) {
-    if (row_status[iRow] >= 0 && row_status[iRow] != kIisStatusNotInConflict)
+    if (row_status[iRow] > illegal_status &&
+	row_status[iRow] != non_is_status)
       return indexStatusOkReturn(false);
   }
   return indexStatusOkReturn(true);

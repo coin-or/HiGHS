@@ -44,7 +44,9 @@ class HighsIis {
   HighsStatus deduce(const HighsLp& lp, const HighsOptions& options,
                      const HighsBasis& basis);
   void setLp(const HighsLp& lp);
-  void setStatus(const HighsLp& lp);
+  HighsInt nonIsStatus(const HighsModelStatus& model_status) const;
+  void setStatus(const HighsLp& lp,
+		 const HighsModelStatus& model_status);
 
   HighsStatus compute(const HighsLp& lp, const HighsOptions& options,
                       const HighsBasis* basis = nullptr);
@@ -52,7 +54,8 @@ class HighsIis {
   bool trivial(const HighsLp& lp, const HighsOptions& options);
   bool rowValueBounds(const HighsLp& lp, const HighsOptions& options);
 
-  bool indexStatusOk(const HighsLp& lp) const;
+  bool indexStatusOk(const HighsLp& lp,
+		     const HighsModelStatus& model_status) const;
   bool lpDataOk(const HighsLp& lp, const HighsOptions& options) const;
   bool lpOk(const HighsOptions& options) const;
 

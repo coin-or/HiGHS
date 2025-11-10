@@ -1870,9 +1870,9 @@ HighsStatus Highs::getIisInterfaceReturn(const HighsStatus return_status) {
   }
   // Construct the ISS status vectors for cols and rows of original
   // model
-  this->iis_.setStatus(lp);
+  this->iis_.setStatus(lp, this->model_status_);
   // Check consistency of the col/row_index_ and col/row_status_
-  bool index_status_ok = this->iis_.indexStatusOk(lp);
+  bool index_status_ok = this->iis_.indexStatusOk(lp, this->model_status_);
   assert(index_status_ok);
   if (!index_status_ok) return HighsStatus::kError;
 
@@ -2102,14 +2102,14 @@ HighsStatus Highs::elasticityFilterReturn(
     getKktFailures(options_, model_, solution_, basis_, info_);
     info_.valid = true;
   }
-
-  // If the model is feasible, then the status of model is not known
-  if (feasible_model) this->model_status_ = HighsModelStatus::kNotset;
-  // The
-  assert(!feasible_model == (model_status == HighsModelStatus::kInfeasible));
   // The elasticity filter may well have identified infeasiblility, so
   // set this->model_status_
-  if (!feasible_model) this->model_status_ = HighsModelStatus::kInfeasible;
+  if (!feasible_model) {
+    this->model_status_ = HighsModelStatus::kInfeasible;
+  } else {
+    // If the model is feasible, then the status of model is not known
+    this->model_status_ = HighsModelStatus::kNotset;
+  }
   this->iis_ = iis;
   return return_status;
 }
