@@ -64,6 +64,53 @@ TEST_CASE("user-scale-after-run", "[highs_user_scale]") {
   highs.resetGlobalScheduler(true);
 }
 
+TEST_CASE("chip-user-bound-scale", "[highs_user_scale]") {
+  Highs highs;
+  const HighsInfo& info = highs.getInfo();
+  const HighsSolution& solution = highs.getSolution();
+  //  highs.setOptionValue("output_flag", dev_run);
+  highs.setOptionValue("presolve", kHighsOffString);
+  HighsLp lp;
+  lp.num_col_ = 2;
+  lp.num_row_ = 2;
+  lp.col_cost_ = {10, 25};
+  lp.sense_ = ObjSense::kMaximize;
+  lp.col_lower_ = {0, 0};
+  lp.col_upper_ = {inf, inf};
+  lp.row_lower_ = {-inf, -inf};
+  lp.row_upper_ = {80, 120};
+  lp.a_matrix_.start_ = {0, 2, 4};
+  lp.a_matrix_.index_ = {0, 1, 0, 1};
+  lp.a_matrix_.value_ = {1, 1, 2, 4};
+
+  highs.passModel(lp);
+
+  highs.run();
+  REQUIRE(solution.col_value[0] == 40);
+  REQUIRE(solution.col_value[1] == 20);
+
+  highs.clearSolver();
+
+  REQUIRE(highs.setOptionValue("user_bound_scale", 3) ==
+          HighsStatus::kOk);
+
+  highs.run();
+  REQUIRE(solution.col_value[0] == 40);
+  REQUIRE(solution.col_value[1] == 20);
+
+  highs.clearSolver();
+
+  REQUIRE(highs.setOptionValue("user_bound_scale", -3) ==
+          HighsStatus::kOk);
+
+  highs.run();
+  REQUIRE(solution.col_value[0] == 40);
+  REQUIRE(solution.col_value[1] == 20);
+
+  highs.resetGlobalScheduler(true);
+
+}
+
 TEST_CASE("user-small-cost-scale", "[highs_user_scale]") {
   Highs highs;
   const HighsInfo& info = highs.getInfo();
