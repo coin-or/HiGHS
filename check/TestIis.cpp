@@ -471,7 +471,7 @@ TEST_CASE("lp-get-iis-avgas", "[iis]") {
 }
 
 TEST_CASE("lp-feasibility-relaxation", "[iis]") {
-  // Using infeasible LP from AMPL documentation
+  // Using infeasible MIP from AMPL documentation
   //
   // https://mp.ampl.com/features-guide.html#feasibility-relaxation
   HighsLp lp;
