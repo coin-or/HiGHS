@@ -2128,7 +2128,7 @@ void testDeleteRowResolveWithBasis() {
 
 void testIis() {
   void* highs = Highs_create();
-  Highs_setBoolOptionValue(highs, "output_flag", dev_run);
+  //Highs_setBoolOptionValue(highs, "output_flag", dev_run);
   HighsInt ret;
   double inf = Highs_getInfinity(highs);
   // For the constraints
@@ -2190,7 +2190,7 @@ void testIis() {
       assert(iis_num_col == 0);
       assert(iis_num_row == 0);
       Highs_setIntOptionValue(highs, "iis_strategy",
-			      kHighsIisStrategyFromLpRowPriority);
+			      kHighsIisStrategyFromLpRowPriorityIrreducible);
     } else {
       assert(iis_num_col == 3);
       assert(iis_num_row == 2);

@@ -1844,7 +1844,7 @@ HighsStatus Highs::getIisInterfaceReturn(const HighsStatus return_status) {
   // HighsIis::row_index_ have HighsIis::col_bound_ and
   // HighsIis::row_bound_ values set to kIisStatusNotInConflict
   assert(this->iis_.valid_);
-  // If the IIS process has identified infeasibility, then set 
+  // If the IIS process has identified infeasibility, then set
   if (this->iis_.status_ >= kIisModelStatusInfeasible)
     this->model_status_ = HighsModelStatus::kInfeasible;
 
@@ -1908,7 +1908,7 @@ HighsStatus Highs::getIisInterface() {
   if (this->iis_.valid_) return this->getIisInterfaceReturn(HighsStatus::kOk);
   this->iis_.clear();
   // Check for trivial IIS: empty infeasible row or inconsistent bounds
-  if (this->iis_.trivial(lp, options_)) 
+  if (this->iis_.trivial(lp, options_))
     return this->getIisInterfaceReturn(HighsStatus::kOk);
   HighsInt num_row = lp.num_row_;
   if (num_row == 0) {
@@ -2008,7 +2008,7 @@ HighsStatus Highs::getIisInterface() {
   // A subset of infeasible rows, so at least have a reducible
   // infeasibility set
   this->iis_.status_ = kIisModelStatusReducible;
-  if (!(kIisStrategyIrreducible & this->options_.iis_strategy)) 
+  if (!(kIisStrategyIrreducible & this->options_.iis_strategy))
     return this->getIisInterfaceReturn(return_status);
   // Attempt to compute a true IIS
   //
@@ -2047,9 +2047,8 @@ HighsStatus Highs::getIisInterface() {
 }
 
 HighsStatus Highs::elasticityFilterReturn(
-    const HighsStatus return_status, 
-    const std::string& original_model_name, const HighsInt original_num_col,
-    const HighsInt original_num_row,
+    const HighsStatus return_status, const std::string& original_model_name,
+    const HighsInt original_num_col, const HighsInt original_num_row,
     const std::vector<double>& original_col_cost,
     const std::vector<double>& original_col_lower,
     const std::vector<double> original_col_upper,
@@ -2447,6 +2446,7 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
 
   // Solve the elastic LP
   run_status = solveLp();
+  this->writeSolution("", 1);
 
   if (run_status != HighsStatus::kOk)
     return elasticityFilterReturn(run_status, original_model_name,
@@ -2458,10 +2458,10 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
   assert(this->model_status_ == HighsModelStatus::kOptimal ||
          this->model_status_ == HighsModelStatus::kUnbounded);
   this->iis_.valid_ = true;
-  this->iis_.status_ = this->info_.objective_function_value > 0 ?
-    kIisModelStatusInfeasible :
-    kIisModelStatusFeasible;
-  if (!get_iis) 
+  this->iis_.status_ = this->info_.objective_function_value > 0
+                           ? kIisModelStatusInfeasible
+                           : kIisModelStatusFeasible;
+  if (!get_iis)
     return elasticityFilterReturn(HighsStatus::kOk, original_model_name,
                                   original_num_col, original_num_row,
                                   original_col_cost, original_col_lower,
@@ -2520,10 +2520,10 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
     }
     HighsStatus run_status = solveLp();
     if (run_status != HighsStatus::kOk)
-      return elasticityFilterReturn(
-          run_status, original_model_name, original_num_col,
-          original_num_row, original_col_cost, original_col_lower,
-          original_col_upper, original_integrality);
+      return elasticityFilterReturn(run_status, original_model_name,
+                                    original_num_col, original_num_row,
+                                    original_col_cost, original_col_lower,
+                                    original_col_upper, original_integrality);
     if (kIisDevReport) this->writeSolution("", kSolutionStylePretty);
     HighsModelStatus model_status = this->getModelStatus();
     if (model_status == HighsModelStatus::kInfeasible) break;
@@ -2585,11 +2585,11 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
 
   iis.valid_ = true;
   iis.strategy_ = this->options_.iis_strategy;
-  if (iis.status_ == kIisModelStatusFeasible) 
-    return elasticityFilterReturn(
-        HighsStatus::kOk, original_model_name, original_num_col,
-        original_num_row, original_col_cost, original_col_lower,
-        original_col_upper, original_integrality);
+  if (iis.status_ == kIisModelStatusFeasible)
+    return elasticityFilterReturn(HighsStatus::kOk, original_model_name,
+                                  original_num_col, original_num_row,
+                                  original_col_cost, original_col_lower,
+                                  original_col_upper, original_integrality);
   // Model is infeasible because there are (at least) a positive
   // number of rows in the infeasibility set. Hence the IIS status is
   // reducible
@@ -2663,10 +2663,10 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
   }
   assert(iis.row_bound_.size() == iis.row_index_.size());
   for (HighsInt iX = 0; iX < num_iis_row; iX++) assert(iis.row_bound_[iX] >= 0);
-  return elasticityFilterReturn(
-      HighsStatus::kOk, original_model_name, original_num_col,
-      original_num_row, original_col_cost, original_col_lower,
-      original_col_upper, original_integrality);
+  return elasticityFilterReturn(HighsStatus::kOk, original_model_name,
+                                original_num_col, original_num_row,
+                                original_col_cost, original_col_lower,
+                                original_col_upper, original_integrality);
 }
 
 HighsStatus Highs::extractIis(HighsInt& num_iis_col, HighsInt& num_iis_row,

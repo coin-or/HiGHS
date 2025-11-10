@@ -474,6 +474,31 @@ TEST_CASE("lp-feasibility-relaxation", "[iis]") {
   // Using infeasible MIP from AMPL documentation
   //
   // https://mp.ampl.com/features-guide.html#feasibility-relaxation
+  //
+  // min x-2y
+  //
+  // 2 <= -x + 21y
+  //
+  //     -3x +  2y <= 1
+  //
+  //     20x +   y <= 20
+  //
+  //  5 <= x;    y free
+  //
+  //  Vanilla feasibility relaxation
+  //
+  // min e0 + e1 + e2 + e3
+  //
+  // 2 <= e1 - x + 21y
+  //
+  //     -3x +  2y - e2 <= 1
+  //
+  //     20x +   y - e3 <= 20
+  //
+  //  5 <= e0 + x
+  //
+  //  x, y free
+  //
   HighsLp lp;
   lp.model_name_ = "ampl_infeas";
   lp.num_col_ = 2;
@@ -490,15 +515,15 @@ TEST_CASE("lp-feasibility-relaxation", "[iis]") {
   lp.a_matrix_.value_ = {-1, -3, 20, 21, 2, 1};
   lp.integrality_ = {HighsVarType::kInteger, HighsVarType::kInteger};
   Highs h;
-  //h.setOptionValue("output_flag", dev_run);
+  h.setOptionValue("output_flag", dev_run);
   const HighsSolution& solution = h.getSolution();
   h.passModel(lp);
 
-  const bool all_tests = false;//true;
-  const bool test0 = false || all_tests;
-  const bool test1 = false || all_tests;
+  const bool all_tests = true;
+  const bool test0 = true || all_tests;
+  const bool test1 = true || all_tests;
   const bool test2 = true || all_tests;
-  const bool test3 = false || all_tests;
+  const bool test3 = true || all_tests;
   if (test0) {
     // Vanilla feasibility relaxation
     if (dev_run)
@@ -545,11 +570,19 @@ TEST_CASE("lp-feasibility-relaxation", "[iis]") {
     std::vector<double> local_rhs_penalty = {1, -1, 10};
     h.feasibilityRelaxation(1, 1, 0, nullptr, nullptr,
                             local_rhs_penalty.data());
-    // Should get slacks (-3, 4, 0)
+    // AMPL says: Should get slacks (-3, 4, 0) corresponding to x = 1;
+    // y = 0, giving objective = 4 + 3 = 7
+    //
+    // However, x = 0; y = 0, gives slacks (-2, 1, 20) and also
+    // objective = 5 + 2 = 7
+    //
+    double r0_slack = -2;  // -3;
+    double r1_slack = 1;   // 4;
+    double r2_slack = 20;  // 0;
     h.writeSolution("", 1);
-    REQUIRE(solution.row_value[0] == lp.row_lower_[0] + 3);
-    REQUIRE(solution.row_value[1] == lp.row_upper_[1] - 4);
-    REQUIRE(solution.row_value[2] == lp.row_upper_[2]);
+    REQUIRE(solution.row_value[0] == lp.row_lower_[0] + r0_slack);
+    REQUIRE(solution.row_value[1] == lp.row_upper_[1] - r1_slack);
+    REQUIRE(solution.row_value[2] == lp.row_upper_[2] - r2_slack);
   }
 
   if (test3) {
@@ -617,10 +650,9 @@ void testMps(std::string& model, const HighsInt iis_strategy,
     REQUIRE(iis.valid_ == true);
     const bool find_irreducible = kIisStrategyIrreducible & iis_strategy;
     if (find_irreducible) REQUIRE(iis.status_ == kIisModelStatusIrreducible);
-    const HighsInt in_iis_status =
-      iis.status_ == kIisModelStatusIrreducible ?
-      kIisStatusInConflict :
-      kIisStatusMaybeInConflict;
+    const HighsInt in_iis_status = iis.status_ == kIisModelStatusIrreducible
+                                       ? kIisStatusInConflict
+                                       : kIisStatusMaybeInConflict;
     for (HighsInt iX = 0; iX < num_iis_col; iX++)
       REQUIRE(iis.col_status_[iis.col_index_[iX]] == in_iis_status);
     for (HighsInt iX = 0; iX < num_iis_row; iX++)

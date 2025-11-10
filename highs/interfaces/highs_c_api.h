@@ -145,17 +145,19 @@ static const char* const kHighsCallbackDataOutCutpoolUpperName =
     "cutpool_upper";
 
 const HighsInt kHighsIisStrategyLight = 0;
-const HighsInt kHighsIisStrategyFromLpRowPriority = 1;  // WIP
-const HighsInt kHighsIisStrategyFromLpColPriority = 2;  // WIP
+const HighsInt kHighsIisStrategyFromLpRowPriority = 2;
+const HighsInt kHighsIisStrategyFromLpColPriority = 6;
+const HighsInt kHighsIisStrategyFromLpRowPriorityIrreducible = 10;
+const HighsInt kHighsIisStrategyFromLpColPriorityIrreducible = 14;
 
 const HighsInt kHighsIisBoundFree = 1;
 const HighsInt kHighsIisBoundLower = 2;
 const HighsInt kHighsIisBoundUpper = 3;
 const HighsInt kHighsIisBoundBoxed = 4;
 
-const HighsInt kHighsIisStatusInConflict = 0;
-const HighsInt kHighsIisStatusNotInConflict = 1;
-const HighsInt kHighsIisStatusMaybeInConflict = 2;
+const HighsInt kHighsIisStatusNotInConflict = -1;
+const HighsInt kHighsIisStatusMaybeInConflict = 0;
+const HighsInt kHighsIisStatusInConflict = 1;
 
 #ifdef __cplusplus
 extern "C" {

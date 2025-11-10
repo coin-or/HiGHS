@@ -479,19 +479,18 @@ HighsInt HighsIis::nonIsStatus() const {
   if (has_is) assert(this->status_ >= kIisModelStatusReducible);
   // If there is an IS, then all columns and rows not in the IS are
   // kIisStatusNotInConflict
-  const HighsInt default_iis_status = is_feasible || has_is ?
-    kIisStatusNotInConflict :
-    kIisStatusMaybeInConflict;
+  const HighsInt default_iis_status = is_feasible || has_is
+                                          ? kIisStatusNotInConflict
+                                          : kIisStatusMaybeInConflict;
   return default_iis_status;
 }
-  
+
 void HighsIis::setStatus(const HighsLp& lp) {
   if (!this->valid_) return;
   const HighsInt non_is_status = nonIsStatus();
-  const HighsInt in_is_status =
-    this->status_ == kIisModelStatusIrreducible ?
-    kIisStatusInConflict :
-    kIisStatusMaybeInConflict;
+  const HighsInt in_is_status = this->status_ == kIisModelStatusIrreducible
+                                    ? kIisStatusInConflict
+                                    : kIisStatusMaybeInConflict;
   this->col_status_.assign(lp.num_col_, non_is_status);
   this->row_status_.assign(lp.num_row_, non_is_status);
   const HighsInt iis_num_col = this->col_index_.size();
@@ -879,13 +878,11 @@ bool HighsIis::indexStatusOk(const HighsLp& lp) const {
   }
   const HighsInt non_is_status = nonIsStatus();
   for (HighsInt iCol = 0; iCol < num_col; iCol++) {
-    if (col_status[iCol] > illegal_status &&
-	col_status[iCol] != non_is_status)
+    if (col_status[iCol] > illegal_status && col_status[iCol] != non_is_status)
       return indexStatusOkReturn(false);
   }
   for (HighsInt iRow = 0; iRow < num_row; iRow++) {
-    if (row_status[iRow] > illegal_status &&
-	row_status[iRow] != non_is_status)
+    if (row_status[iRow] > illegal_status && row_status[iRow] != non_is_status)
       return indexStatusOkReturn(false);
   }
   return indexStatusOkReturn(true);

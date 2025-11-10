@@ -26,10 +26,10 @@ enum IisBoundStatus {
 
 enum IisModelStatus {
   kIisModelStatusFeasible = -1,
-  kIisModelStatusUnknown,    // 0
-  kIisModelStatusInfeasible, // 1
-  kIisModelStatusReducible,  // 2
-  kIisModelStatusIrreducible // 3
+  kIisModelStatusUnknown,     // 0
+  kIisModelStatusInfeasible,  // 1
+  kIisModelStatusReducible,   // 2
+  kIisModelStatusIrreducible  // 3
 };
 
 struct HighsIisInfo {
