@@ -5,13 +5,20 @@
 namespace hipo {
 
 void Solver::refine(NewtonDir& delta) {
+  Clock clock;
+
   NewtonDir correction(m_, n_);
   NewtonDir temp(m_, n_);
 
   // compute the residuals of the linear system in it_->ires
+  clock.start();
   it_->residuals6x6(delta);
+  info_.residual_time += clock.stop();
 
+  clock.start();
   double omega = computeOmega(delta);
+  info_.omega_time += clock.stop();
+
   double old_omega{};
 
   for (Int iter = 0; iter < kMaxIterRefine; ++iter) {
@@ -23,10 +30,15 @@ void Solver::refine(NewtonDir& delta) {
     temp = delta;
     temp.add(correction);
 
+    clock.start();
     it_->residuals6x6(temp);
+    info_.residual_time += clock.stop();
 
     old_omega = omega;
+
+    clock.start();
     omega = computeOmega(temp);
+    info_.omega_time += clock.stop();
 
     if (omega < old_omega) {
       delta = temp;

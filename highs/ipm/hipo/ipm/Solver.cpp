@@ -1209,6 +1209,10 @@ void Solver::printSummary() const {
                << fix(info_.factor_time, 0, 2) << '\n';
     log_stream << textline("Solve time:") << fix(info_.solve_time, 0, 2)
                << '\n';
+    log_stream << textline("Residual time:") << fix(info_.residual_time, 0, 2)
+               << '\n';
+    log_stream << textline("Omega time:") << fix(info_.omega_time, 0, 2)
+               << '\n';
     log_stream << textline("Factorisations:") << integer(info_.factor_number)
                << '\n';
     log_stream << textline("Solves:") << integer(info_.solve_number) << '\n';
