@@ -52,7 +52,7 @@ TEST_CASE("lp-incompatible-bounds", "[iis]") {
   REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
   REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
   REQUIRE(iis.valid_ == true);
-  REQUIRE(iis.irreducible_ == true);
+  REQUIRE(iis.status_ == kIisModelStatusIrreducible);
 
   // Perform full IIS
   REQUIRE(highs.run() == HighsStatus::kOk);
@@ -62,7 +62,7 @@ TEST_CASE("lp-incompatible-bounds", "[iis]") {
   REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
   REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
   REQUIRE(iis.valid_ == true);
-  REQUIRE(iis.irreducible_ == true);
+  REQUIRE(iis.status_ == kIisModelStatusIrreducible);
   REQUIRE(iis.col_index_.size() == 0);
   REQUIRE(iis.row_index_.size() == 1);
   REQUIRE(iis.row_index_[0] == 0);
@@ -81,7 +81,7 @@ TEST_CASE("lp-incompatible-bounds", "[iis]") {
   REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
   REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
   REQUIRE(iis.valid_ == true);
-  REQUIRE(iis.irreducible_ == true);
+  REQUIRE(iis.status_ == kIisModelStatusIrreducible);
   REQUIRE(iis.col_index_.size() == 1);
   REQUIRE(iis.row_index_.size() == 0);
   REQUIRE(iis.col_index_[0] == 2);
@@ -112,7 +112,7 @@ TEST_CASE("lp-incompatible-bounds", "[iis]") {
   REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
   REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
   REQUIRE(iis.valid_ == true);
-  REQUIRE(iis.irreducible_ == true);
+  REQUIRE(iis.status_ == kIisModelStatusIrreducible);
   REQUIRE(iis.col_index_.size() == 0);
   REQUIRE(iis.row_index_.size() == 1);
   REQUIRE(iis.row_index_[0] == 0);
@@ -131,7 +131,7 @@ TEST_CASE("lp-incompatible-bounds", "[iis]") {
   REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
   REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
   REQUIRE(iis.valid_ == true);
-  REQUIRE(iis.irreducible_ == true);
+  REQUIRE(iis.status_ == kIisModelStatusIrreducible);
   REQUIRE(iis.col_index_.size() == 1);
   REQUIRE(iis.row_index_.size() == 0);
   REQUIRE(iis.col_index_[0] == 0);
@@ -173,7 +173,7 @@ TEST_CASE("lp-empty-infeasible-row", "[iis]") {
   REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
   REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
   REQUIRE(iis.valid_ == true);
-  REQUIRE(iis.irreducible_ == true);
+  REQUIRE(iis.status_ == kIisModelStatusIrreducible);
   if (dev_run && write_model) {
     highs.writeModel("");
     highs.writeIisModel("");
@@ -203,7 +203,7 @@ TEST_CASE("lp-empty-infeasible-row", "[iis]") {
   REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
   REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
   REQUIRE(iis.valid_ == true);
-  REQUIRE(iis.irreducible_ == true);
+  REQUIRE(iis.status_ == kIisModelStatusIrreducible);
   REQUIRE(iis.col_index_.size() == 0);
   REQUIRE(iis.row_index_.size() == 1);
   REQUIRE(iis.row_index_[0] == empty_row);
@@ -257,7 +257,7 @@ TEST_CASE("lp-get-iis-light", "[iis]") {
       REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
       REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
       REQUIRE(iis.valid_ == true);
-      REQUIRE(iis.irreducible_ == true);
+      REQUIRE(iis.status_ == kIisModelStatusIrreducible);
       REQUIRE(iis.row_index_.size() == 1);
       HighsInt iis_row = iis.row_index_[0];
       if (lp.a_matrix_.isColwise()) {
@@ -347,7 +347,7 @@ TEST_CASE("lp-get-iis", "[iis]") {
     REQUIRE(highs.getIis(iis) == HighsStatus::kOk);
     REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
     REQUIRE(iis.valid_ == true);
-    REQUIRE(iis.irreducible_ == true);
+    REQUIRE(iis.status_ == kIisModelStatusIrreducible);
     REQUIRE(iis.col_index_.size() == 2);
     REQUIRE(iis.row_index_.size() == 1);
     REQUIRE(iis.col_index_[0] == 0);
@@ -612,13 +612,15 @@ void testMps(std::string& model, const HighsInt iis_strategy,
              int(num_iis_col), int(num_iis_row));
     REQUIRE(iis.valid_ == true);
     const bool find_irreducible = kIisStrategyIrreducible & iis_strategy;
-    if (find_irreducible) REQUIRE(iis.irreducible_);
-    const HighsInt iis_status =
-        iis.irreducible_ ? kIisStatusInConflict : kIisStatusMaybeInConflict;
+    if (find_irreducible) REQUIRE(iis.status_ == kIisModelStatusIrreducible);
+    const HighsInt in_iis_status =
+      iis.status_ == kIisModelStatusIrreducible ?
+      kIisStatusInConflict :
+      kIisStatusMaybeInConflict;
     for (HighsInt iX = 0; iX < num_iis_col; iX++)
-      REQUIRE(iis.col_status_[iis.col_index_[iX]] == iis_status);
+      REQUIRE(iis.col_status_[iis.col_index_[iX]] == in_iis_status);
     for (HighsInt iX = 0; iX < num_iis_row; iX++)
-      REQUIRE(iis.row_status_[iis.row_index_[iX]] == iis_status);
+      REQUIRE(iis.row_status_[iis.row_index_[iX]] == in_iis_status);
   } else {
     REQUIRE(num_iis_col == 0);
     REQUIRE(num_iis_row == 0);
@@ -657,7 +659,7 @@ TEST_CASE("feasible-lp-iis", "[iis]") {
   lp.a_matrix_.index_ = {0, 1, 0, 1};
   lp.a_matrix_.value_ = {1, 1, 2, 4};
   Highs h;
-  //  h.setOptionValue("output_flag", dev_run);
+  h.setOptionValue("output_flag", dev_run);
   h.passModel(lp);
   HighsIis iis;
   // With kIisStrategyLight, feasibility of the LP is not determined

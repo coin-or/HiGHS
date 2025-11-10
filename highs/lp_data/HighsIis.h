@@ -13,7 +13,7 @@
 
 #include "model/HighsModel.h"
 
-const bool kIisDevReport = true;  // false;
+const bool kIisDevReport = false;
 
 enum IisBoundStatus {
   kIisBoundStatusDropped = -1,
@@ -22,6 +22,14 @@ enum IisBoundStatus {
   kIisBoundStatusLower,  // 2
   kIisBoundStatusUpper,  // 3
   kIisBoundStatusBoxed   // 4
+};
+
+enum IisModelStatus {
+  kIisModelStatusFeasible = -1,
+  kIisModelStatusUnknown,    // 0
+  kIisModelStatusInfeasible, // 1
+  kIisModelStatusReducible,  // 2
+  kIisModelStatusIrreducible // 3
 };
 
 struct HighsIisInfo {
@@ -44,9 +52,8 @@ class HighsIis {
   HighsStatus deduce(const HighsLp& lp, const HighsOptions& options,
                      const HighsBasis& basis);
   void setLp(const HighsLp& lp);
-  HighsInt nonIsStatus(const HighsModelStatus& model_status) const;
-  void setStatus(const HighsLp& lp,
-		 const HighsModelStatus& model_status);
+  HighsInt nonIsStatus() const;
+  void setStatus(const HighsLp& lp);
 
   HighsStatus compute(const HighsLp& lp, const HighsOptions& options,
                       const HighsBasis* basis = nullptr);
@@ -54,14 +61,13 @@ class HighsIis {
   bool trivial(const HighsLp& lp, const HighsOptions& options);
   bool rowValueBounds(const HighsLp& lp, const HighsOptions& options);
 
-  bool indexStatusOk(const HighsLp& lp,
-		     const HighsModelStatus& model_status) const;
+  bool indexStatusOk(const HighsLp& lp) const;
   bool lpDataOk(const HighsLp& lp, const HighsOptions& options) const;
   bool lpOk(const HighsOptions& options) const;
 
   // Data members
   bool valid_ = false;
-  bool irreducible_ = false;
+  HighsInt status_;
   HighsInt strategy_ = kIisStrategyMin;
   std::vector<HighsInt> col_index_;
   std::vector<HighsInt> row_index_;
