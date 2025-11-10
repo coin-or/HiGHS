@@ -472,6 +472,8 @@ TEST_CASE("lp-get-iis-avgas", "[iis]") {
 
 TEST_CASE("lp-feasibility-relaxation", "[iis]") {
   // Using infeasible LP from AMPL documentation
+  //
+  // https://mp.ampl.com/features-guide.html#feasibility-relaxation
   HighsLp lp;
   lp.model_name_ = "ampl_infeas";
   lp.num_col_ = 2;
@@ -488,14 +490,14 @@ TEST_CASE("lp-feasibility-relaxation", "[iis]") {
   lp.a_matrix_.value_ = {-1, -3, 20, 21, 2, 1};
   lp.integrality_ = {HighsVarType::kInteger, HighsVarType::kInteger};
   Highs h;
-  h.setOptionValue("output_flag", dev_run);
+  //h.setOptionValue("output_flag", dev_run);
   const HighsSolution& solution = h.getSolution();
   h.passModel(lp);
 
-  const bool all_tests = false;
+  const bool all_tests = false;//true;
   const bool test0 = false || all_tests;
   const bool test1 = false || all_tests;
-  const bool test2 = false || all_tests;
+  const bool test2 = true || all_tests;
   const bool test3 = false || all_tests;
   if (test0) {
     // Vanilla feasibility relaxation
@@ -531,7 +533,8 @@ TEST_CASE("lp-feasibility-relaxation", "[iis]") {
           "===============================\n"
           "Local penalties RHS {1, -1, 10}\n"
           "===============================\n");
-    // Now test local penalties
+    // Now test local penalties, allowing lower bounds to be violated,
+    // but not upper bounds
     //
     // constraint 0: normal weight
     //
@@ -544,7 +547,7 @@ TEST_CASE("lp-feasibility-relaxation", "[iis]") {
                             local_rhs_penalty.data());
     // Should get slacks (-3, 4, 0)
     h.writeSolution("", 1);
-    REQUIRE(solution.row_value[0] == lp.row_lower_[0] - 3);
+    REQUIRE(solution.row_value[0] == lp.row_lower_[0] + 3);
     REQUIRE(solution.row_value[1] == lp.row_upper_[1] - 4);
     REQUIRE(solution.row_value[2] == lp.row_upper_[2]);
   }
@@ -566,6 +569,7 @@ TEST_CASE("lp-feasibility-relaxation", "[iis]") {
     h.feasibilityRelaxation(1, 1, 0, nullptr, nullptr,
                             local_rhs_penalty.data());
     // Should get slacks (18, 2, -1)
+    h.writeSolution("", 1);
     REQUIRE(solution.row_value[0] == lp.row_lower_[0] + 18);
     REQUIRE(solution.row_value[1] == lp.row_upper_[1] - 2);
     REQUIRE(solution.row_value[2] == lp.row_upper_[2] + 1);
