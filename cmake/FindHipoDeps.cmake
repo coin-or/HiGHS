@@ -101,7 +101,7 @@ if (NOT USE_CMAKE_FIND_BLAS)
     endif()
 else()
 
-    if (WIN32)
+    if (WIN32 AND NOT BLAS_LIBRARIES AND NOT BLA_VENDOR)
         find_package(OpenBLAS CONFIG)
         if(OpenBLAS_FOUND)
             message(STATUS "OpenBLAS CMake config path: ${OpenBLAS_DIR}")
