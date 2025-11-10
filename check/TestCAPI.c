@@ -2193,7 +2193,7 @@ void testIis() {
       assert(iis_num_col == 0);
       assert(iis_num_row == 0);
       Highs_setIntOptionValue(highs, "iis_strategy",
-			      kHighsIisStrategyFromLpRowPriorityIrreducible);
+			      kHighsIisStrategyFromLpRowPriority);
     } else {
       assert(iis_num_col == 3);
       assert(iis_num_row == 2);
