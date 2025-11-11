@@ -46,6 +46,8 @@ struct Info {
   double matrix_structure_time{};
   double factor_time{};
   double solve_time{};
+  double residual_time{};
+  double omega_time{};
 
   // Counters
   Int factor_number{};

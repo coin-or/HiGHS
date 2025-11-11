@@ -251,6 +251,22 @@ void Model::computeNorms() {
       norm_unscaled_rhs_ = std::max(norm_unscaled_rhs_, val);
     }
   }
+
+  // norms of rows and cols of A
+  one_norm_cols_.resize(n_);
+  one_norm_rows_.resize(m_);
+  inf_norm_cols_.resize(n_);
+  inf_norm_rows_.resize(m_);
+  for (Int col = 0; col < n_; ++col) {
+    for (Int el = A_.start_[col]; el < A_.start_[col + 1]; ++el) {
+      Int row = A_.index_[el];
+      double val = A_.value_[el];
+      one_norm_cols_[col] += std::abs(val);
+      one_norm_rows_[row] += std::abs(val);
+      inf_norm_rows_[row] = std::max(inf_norm_rows_[row], std::abs(val));
+      inf_norm_cols_[col] = std::max(inf_norm_cols_[col], std::abs(val));
+    }
+  }
 }
 
 void Model::print(const LogHighs& log) const {
@@ -438,7 +454,8 @@ void Model::scale() {
   // Row has been scaled up by rowscale_[row], so b is scaled up
   for (Int row = 0; row < m_; ++row) b_[row] *= rowscale_[row];
 
-  // Each entry of the matrix is scaled by the corresponding row and col factor
+  // Each entry of the matrix is scaled by the corresponding row and col
+  // factor
   for (Int col = 0; col < n_; ++col) {
     for (Int el = A_.start_[col]; el < A_.start_[col + 1]; ++el) {
       Int row = A_.index_[el];

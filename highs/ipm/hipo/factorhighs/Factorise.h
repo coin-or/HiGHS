@@ -51,8 +51,6 @@ class Factorise {
   double max_diag_{};
   double min_diag_{};
   double A_norm1_{};
-  std::vector<double> one_norm_cols_{};
-  std::vector<double> inf_norm_cols_{};
 
   // regularisation
   std::vector<double> total_reg_{};
