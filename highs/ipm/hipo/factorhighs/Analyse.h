@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <map>
 
 #include "DataCollector.h"
 #include "Symbolic.h"
@@ -77,6 +78,11 @@ class Analyse {
 
   std::vector<std::vector<Int>> clique_block_start_{};
 
+  std::map<Int, NodeData> tree_splitting_;
+  std::vector<NodeData*> node_data_ptr_;
+  Int num_single_{};
+  Int num_subtrees_{};
+
   // block size
   Int nb_{};
 
@@ -102,6 +108,7 @@ class Analyse {
                       double& cl_entries) const;
   void computeCriticalPath();
   void computeBlockStart();
+  void findTreeSplittingSolve();
 
  public:
   // Constructor: matrix must be in lower triangular format

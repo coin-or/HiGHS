@@ -44,6 +44,9 @@ Int Symbolic::cliqueSize(Int sn) const {
 bool Symbolic::parTree() const { return parallel_tree_; }
 bool Symbolic::parNode() const { return parallel_node_; }
 bool Symbolic::metisNo2hop() const { return metis_no2hop_; }
+const NodeData* Symbolic::nodeDataPtr(Int sn) const {
+  return node_data_ptr_[sn];
+}
 
 const std::vector<Int>& Symbolic::ptr() const { return ptr_; }
 const std::vector<Int>& Symbolic::iperm() const { return iperm_; }

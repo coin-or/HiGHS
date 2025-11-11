@@ -1,12 +1,20 @@
 #ifndef FACTORHIGHS_SYMBOLIC_H
 #define FACTORHIGHS_SYMBOLIC_H
 
+#include <map>
 #include <vector>
 
 #include "ipm/hipo/auxiliary/IntConfig.h"
 #include "ipm/hipo/auxiliary/Log.h"
 
 namespace hipo {
+
+enum NodeType { single, subtree };
+struct NodeData {
+  NodeType type;
+  std::vector<Int> firstdesc;
+  std::vector<Int> group;
+};
 
 // Symbolic factorisation object
 class Symbolic {
@@ -36,6 +44,7 @@ class Symbolic {
   Int sn_size_1_{};
   Int sn_size_10_{};
   Int sn_size_100_{};
+  Int num_single_, num_subtrees_;
 
   // Inverse permutation
   std::vector<Int> iperm_{};
@@ -97,6 +106,20 @@ class Symbolic {
   // Starting position of diagonal blocks for hybrid formats
   std::vector<std::vector<Int>> clique_block_start_{};
 
+  // Information to split the elimination tree for solve. Each entry in
+  // tree_splitting_solve_ corresponds to a task that is executed in parallel.
+  // tree_splitting_solve_ contains pairs (sn, data):
+  // - If data.type is single, then the task processes only the supernode sn.
+  // - If data.type is subtree, then the task processes each subtree rooted at
+  //    data.group[i]. Each subtree requires processing supernodes j,
+  //    data.firstdesc[i] <= j <= data.group[i].
+  std::map<Int, NodeData> tree_splitting_solve_;
+
+  // For each supernode, provide the pointer to the NodeData information, if the
+  // supernode is found in the tree splitting data structure. Otherwise,
+  // contains nullptr. Avoids too many lookups into the map.
+  std::vector<NodeData*> node_data_ptr_;
+
   friend class Analyse;
 
  public:
@@ -125,6 +148,7 @@ class Symbolic {
   bool parTree() const;
   bool parNode() const;
   bool metisNo2hop() const;
+  const NodeData* nodeDataPtr(Int sn) const;
   const std::vector<Int>& ptr() const;
   const std::vector<Int>& iperm() const;
   const std::vector<Int>& snParent() const;
