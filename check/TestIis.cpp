@@ -570,15 +570,20 @@ TEST_CASE("lp-feasibility-relaxation", "[iis]") {
     std::vector<double> local_rhs_penalty = {1, -1, 10};
     h.feasibilityRelaxation(1, 1, 0, nullptr, nullptr,
                             local_rhs_penalty.data());
-    // AMPL says: Should get slacks (-3, 4, 0) corresponding to x = 1;
-    // y = 0, giving objective = 4 + 3 = 7
+    // AMPL says: Should get slacks (-3, 4, 0) corresponding to (x, y)
+    // = (1, 0), giving objective = 4 + 3 = 7
     //
-    // However, x = 0; y = 0, gives slacks (-2, 1, 20) and also
+    // However, (x, y) = (0, 0) gives slacks (-2, 1, 20) and also
     // objective = 5 + 2 = 7
     //
-    double r0_slack = -2;  // -3;
-    double r1_slack = 1;   // 4;
-    double r2_slack = 20;  // 0;
+    // The 64-bit integer build (11/11/25) gives (x, y) = (1, 0), and
+    // the 32-bit integer build gives (x, y) = (0, 0). Since this may
+    // vary randomly in future, the test below is dependent on whether
+    // x = 0 or x = 1
+    const bool solution0 = solution.col_value[0] == 0;
+    double r0_slack = solution0 ? -2 : -3;
+    double r1_slack = solution0 ? 1 : 4;
+    double r2_slack = solution0 ? 20 : 0;
     h.writeSolution("", 1);
     REQUIRE(solution.row_value[0] == lp.row_lower_[0] + r0_slack);
     REQUIRE(solution.row_value[1] == lp.row_upper_[1] - r1_slack);
