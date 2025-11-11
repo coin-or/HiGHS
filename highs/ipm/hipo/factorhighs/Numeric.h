@@ -33,15 +33,28 @@ class Numeric {
 
   DataCollector* data_ = nullptr;
 
+  bool ready_ = false;
+
   friend class Factorise;
 
   // dynamic regularisation applied to the matrix
   std::vector<double> total_reg_{};
 
+  // children in supernodal elimination tree
+  std::vector<int> first_child_{};
+  std::vector<int> next_child_{};
+
+  // reverse linked lists of chidlren
+  std::vector<int> first_child_reverse_{};
+  std::vector<int> next_child_reverse_{};
+
+  std::vector<std::vector<double>> local_x_{};
+
  public:
   // Full solve
-  Int solve(std::vector<double>& x) const;
+  Int solve(std::vector<double>& x);
   void getReg(std::vector<double>& reg);
+  void setup();
 };
 
 }  // namespace hipo

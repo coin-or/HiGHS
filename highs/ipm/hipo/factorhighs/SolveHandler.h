@@ -41,6 +41,8 @@ class SolveHandler {
   virtual void backwardSolve(std::vector<double>& x) const = 0;
   virtual void diagSolve(std::vector<double>& x) const = 0;
 
+  virtual void parForwardSolve(std::vector<double>& x) = 0;
+
   void setData(DataCollector* data);
 };
 

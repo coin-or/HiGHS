@@ -13,13 +13,15 @@
 
 namespace hipo {
 
-Int Numeric::solve(std::vector<double>& x) const {
+Int Numeric::solve(std::vector<double>& x) {
   // Return the number of solves performed
 
   if (!sn_columns_ || !S_) return kRetInvalidPointer;
 
   // initialise solve handler
-  SH_.reset(new HybridSolveHandler(*S_, *sn_columns_, swaps_, pivot_2x2_));
+  SH_.reset(new HybridSolveHandler(
+      *S_, *sn_columns_, swaps_, pivot_2x2_, first_child_, next_child_,
+      first_child_reverse_, next_child_reverse_, local_x_));
 
   SH_->setData(data_);
 
@@ -38,7 +40,7 @@ Int Numeric::solve(std::vector<double>& x) const {
 #endif
 
   // solve
-  SH_->forwardSolve(x);
+  SH_->parForwardSolve(x);
   SH_->diagSolve(x);
   SH_->backwardSolve(x);
 
@@ -67,6 +69,29 @@ void Numeric::getReg(std::vector<double>& reg) {
   permuteVector(total_reg_, S_->iperm());
 
   reg = std::move(total_reg_);
+}
+
+void Numeric::setup() {
+  assert(S_);
+
+  if (ready_) return;
+
+  // create linked lists of children in supernodal elimination tree
+  childrenLinkedList(S_->snParent(), first_child_, next_child_);
+
+  // create reverse linked lists of children
+  first_child_reverse_ = first_child_;
+  next_child_reverse_ = next_child_;
+  reverseLinkedList(first_child_reverse_, next_child_reverse_);
+
+  // allocate local space for parallel solve
+  local_x_.resize(S_->sn());
+  for (Int sn = 0; sn < S_->sn(); ++sn) {
+    Int ldsn = S_->ptr(sn + 1) - S_->ptr(sn);
+    local_x_[sn].resize(ldsn);
+  }
+
+  ready_ = true;
 }
 
 }  // namespace hipo

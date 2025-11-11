@@ -12,8 +12,18 @@ namespace hipo {
 HybridSolveHandler::HybridSolveHandler(
     const Symbolic& S, const std::vector<std::vector<double>>& sn_columns,
     const std::vector<std::vector<Int>>& swaps,
-    const std::vector<std::vector<double>>& pivot_2x2)
-    : SolveHandler(S, sn_columns), swaps_{swaps}, pivot_2x2_{pivot_2x2} {}
+    const std::vector<std::vector<double>>& pivot_2x2,
+    const std::vector<Int>& fc, const std::vector<Int>& nc,
+    const std::vector<Int>& fcr, const std::vector<Int>& ncr,
+    std::vector<std::vector<double>>& local)
+    : SolveHandler(S, sn_columns),
+      swaps_{swaps},
+      pivot_2x2_{pivot_2x2},
+      first_child_{fc},
+      next_child_{nc},
+      first_child_reverse_{fcr},
+      next_child_reverse_{ncr},
+      local_{local} {}
 
 void HybridSolveHandler::forwardSolve(std::vector<double>& x) const {
   // Forward solve.
@@ -311,6 +321,214 @@ void HybridSolveHandler::diagSolve(std::vector<double>& x) const {
       // move diag_start forward by number of sub-diagonal entries in block
       diag_start += (ldSn - nb * j - jb) * jb;
     }
+  }
+}
+
+void HybridSolveHandler::parForwardSolve(std::vector<double>& x) {
+  if (S_.parTree()) {
+    TaskGroupSpecial tg;
+
+    for (Int sn = 0; sn < S_.sn(); ++sn) {
+      if (S_.snParent(sn) == -1) spawnNode(sn, x, tg);
+    }
+
+    tg.taskWait();
+
+  } else {
+    for (Int sn = 0; sn < S_.sn(); ++sn) {
+      processSupernode(sn, x, false);
+    }
+  }
+
+  for (int sn = 0; sn < S_.sn(); ++sn) {
+    const int sn_size = S_.snStart(sn + 1) - S_.snStart(sn);
+    std::memcpy(&x[S_.snStart(sn)], local_[sn].data(),
+                sn_size * sizeof(double));
+  }
+}
+
+void HybridSolveHandler::spawnNode(Int sn, const std::vector<double>& x,
+                                   const TaskGroupSpecial& tg, bool do_spawn) {
+  // if do_spawn is true, a task is actually spawned, otherwise, it is executed
+  // immediately. This avoids the overhead of spawning a task if a supernode has
+  // a single child.
+
+  const NodeData* ptr = S_.nodeDataPtr(sn);
+  if (!ptr) return;
+
+  if (ptr->type == NodeType::single) {
+    // sn is single node; spawn only that
+
+    auto f = [this, &x, sn]() { processSupernode(sn, x, true); };
+
+    if (do_spawn)
+      tg.spawn(std::move(f));
+    else
+      f();
+
+  } else {
+    // sn is head of the first subtree in a group of small subtrees; spawn all
+    // of them
+
+    auto f = [this, &x, ptr]() {
+      for (Int i = 0; i < ptr->group.size(); ++i) {
+        Int st_head = ptr->group[i];
+        Int start = ptr->firstdesc[i];
+        Int end = st_head + 1;
+        for (Int sn = start; sn < end; ++sn) {
+          processSupernode(sn, x, false);
+        }
+      }
+    };
+
+    if (do_spawn)
+      tg.spawn(std::move(f));
+    else
+      f();
+  }
+}
+
+void HybridSolveHandler::syncNode(Int sn, const TaskGroupSpecial& tg) {
+  // If spawnNode(sn,tg) created a task, then sync it.
+  // This happens only if sn is found in the treeSplitting data structure.
+
+  if (S_.nodeDataPtr(sn)) tg.sync();
+}
+
+void HybridSolveHandler::processSupernode(Int sn, const std::vector<double>& x,
+                                          bool parallelise) {
+  // Parallel forward solve.
+  // Blas calls: dtrsv, dgemv
+
+  // supernode columns in format FH
+
+#if HIPO_TIMING_LEVEL >= 2
+  Clock clock;
+#endif
+
+  TaskGroupSpecial tg;
+
+  if (parallelise) {
+    // if there is only one child, do not parallelise
+    if (first_child_[sn] != -1 && next_child_[first_child_[sn]] == -1) {
+      spawnNode(first_child_[sn], x, tg, false);
+      parallelise = false;
+    } else {
+      // spawn children of this supernode in reverse order
+      int child_to_spawn = first_child_reverse_[sn];
+      while (child_to_spawn != -1) {
+        spawnNode(child_to_spawn, x, tg);
+        child_to_spawn = next_child_reverse_[child_to_spawn];
+      }
+    }
+  }
+
+  const Int nb = S_.blockSize();
+
+  // leading size of supernode
+  const Int ldSn = S_.ptr(sn + 1) - S_.ptr(sn);
+
+  // number of columns in the supernode
+  const Int sn_size = S_.snStart(sn + 1) - S_.snStart(sn);
+
+  // first colums of the supernode
+  const Int sn_start = S_.snStart(sn);
+
+  // index to access S->rows for this supernode
+  const Int start_row = S_.ptr(sn);
+
+  // number of blocks of columns
+  const Int n_blocks = (sn_size - 1) / nb + 1;
+
+  // index to access snColumns[sn]
+  Int SnCol_ind{};
+
+  // initialize local storage for this supernode
+  double* local = local_[sn].data();
+  std::memset(local, 0, local_[sn].size() * sizeof(double));
+
+  // contribution from original vector
+  std::memcpy(local, &x[sn_start], sn_size * sizeof(double));
+
+  // contributions from children
+  int child = first_child_[sn];
+  while (child != -1) {
+    if (parallelise) {
+      // wait for child to be ready
+      syncNode(child, tg);
+    }
+
+    std::vector<double>& child_x = local_[child];
+    const int child_size = S_.snStart(child + 1) - S_.snStart(child);
+
+    // number of entries to assemble into local
+    const int nc = child_x.size() - child_size;
+
+#if HIPO_TIMING_LEVEL >= 2
+    clock.start();
+#endif
+    // assemble each contribution of this child
+    for (int i = 0; i < nc; ++i) {
+      const int j = S_.relindClique(child, i);
+      local[j] += child_x[child_size + i];
+    }
+#if HIPO_TIMING_LEVEL >= 2
+    if (data_) data_->sumTime(kTimeSolveSolve_sparse, clock.stop());
+#endif
+
+    child = next_child_[child];
+  }
+
+  // go through blocks of columns for this supernode
+  for (int j = 0; j < n_blocks; ++j) {
+    // number of columns in the block
+    const int jb = std::min(nb, sn_size - nb * j);
+
+    // number of entries in diagonal part
+    const int diag_entries = jb * jb;
+
+    // index to access vector x
+    const int x_start = sn_start + nb * j;
+
+#ifdef HIPO_PIVOTING
+#if HIPO_TIMING_LEVEL >= 2
+    clock.start();
+#endif
+    // apply swaps to portion of rhs that is affected
+    const int* current_swaps = &swaps_[sn][nb * j];
+    permuteWithSwaps(&local[nb * j], current_swaps, jb);
+#if HIPO_TIMING_LEVEL >= 2
+    if (data_) data_->sumTime(kTimeSolveSolve_swap, clock.stop());
+#endif
+#endif
+
+#if HIPO_TIMING_LEVEL >= 2
+    clock.start();
+#endif
+    callAndTime_dtrsv('U', 'T', 'U', jb, &sn_columns_[sn][SnCol_ind], jb,
+                      &local[nb * j], 1, *data_);
+
+    SnCol_ind += diag_entries;
+
+    const int gemv_size = ldSn - nb * j - jb;
+
+    callAndTime_dgemv('T', jb, gemv_size, -1.0, &sn_columns_[sn][SnCol_ind], jb,
+                      &local[nb * j], 1, 1.0, &local[nb * j + jb], 1, *data_);
+    SnCol_ind += jb * gemv_size;
+#if HIPO_TIMING_LEVEL >= 2
+    if (data_) data_->sumTime(kTimeSolveSolve_dense, clock.stop());
+#endif
+
+#ifdef HIPO_PIVOTING
+#if HIPO_TIMING_LEVEL >= 2
+    clock.start();
+#endif
+    // apply inverse swaps
+    permuteWithSwaps(&local[nb * j], current_swaps, jb, true);
+#if HIPO_TIMING_LEVEL >= 2
+    if (data_) data_->sumTime(kTimeSolveSolve_swap, clock.stop());
+#endif
+#endif
   }
 }
 

@@ -248,4 +248,24 @@ double Clock::stop() const {
   return d.count();
 }
 
+TaskGroupSpecial::~TaskGroupSpecial() {
+  // Using TaskGroup may throw an exception when tasks are cancelled. Not sure
+  // exactly why this happens, but for now this fix seems to work.
+
+  // No virtual destructor in TaskGroup. Do not call this class via pointer to
+  // the base!
+
+  cancel();
+
+  // re-call taskWait if it throws, until it succeeds
+  while (true) {
+    try {
+      taskWait();
+      break;
+    } catch (HighsTask::Interrupt) {
+      continue;
+    }
+  }
+}
+
 }  // namespace hipo
