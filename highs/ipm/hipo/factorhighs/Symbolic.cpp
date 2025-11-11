@@ -83,6 +83,12 @@ void Symbolic::print(const Log& log, bool verbose) const {
     log_stream << textline("Critical ops:") << sci(critops_, 0, 1) << '\n';
     log_stream << textline("Max tree speedup:") << fix(flops_ / critops_, 0, 2)
                << '\n';
+    log_stream << textline("Number of tasks:")
+               << integer(tree_splitting_solve_.size(), 0) << '\n';
+    log_stream << textline("Number of single nodes:") << integer(num_single_, 0)
+               << '\n';
+    log_stream << textline("Number of subtrees:") << integer(num_subtrees_, 0)
+               << '\n';
     log_stream << textline("Artificial nz:") << sci(artificial_nz_, 0, 1)
                << '\n';
     log_stream << textline("Artificial ops:") << sci(artificial_ops_, 0, 1)
