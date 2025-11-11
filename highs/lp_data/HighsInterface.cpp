@@ -1986,6 +1986,8 @@ HighsStatus Highs::getIisInterface() {
     this->iis_.col_status_.assign(lp.num_col_, kIisStatusNotInConflict);
     this->iis_.row_status_.assign(lp.num_row_, kIisStatusNotInConflict);
   } else {
+    // To get the IIS data needs the matrix to be column-wise
+    model_.lp_.a_matrix_.ensureColwise();
     return_status =
         this->iis_.getData(lp, options_, basis_, infeasible_row_subset);
     if (return_status == HighsStatus::kOk) {
@@ -2095,10 +2097,11 @@ HighsStatus Highs::elasticityFilter(
     const bool get_infeasible_row,
     std::vector<HighsInt>& infeasible_row_subset) {
   //  this->writeModel("infeasible.mps");
+  //
   // Solve the feasibility relaxation problem for the given penalties,
-  // continuing to act as the elasticity filter get_infeasible_row is
-  // true, resulting in an infeasibility subset for further refinement
-  // as an IIS
+  // continuing to act as the elasticity filter if get_infeasible_row
+  // is true, resulting in an infeasibility subset for further
+  // refinement as an IIS
   //
   // Construct the e-LP:
   //
