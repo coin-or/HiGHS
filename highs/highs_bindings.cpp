@@ -1497,8 +1497,9 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used()) {
 
   py::class_<HighsIis>(m, "HighsIis", py::module_local())
       .def(py::init<>())
-      .def("invalidate", &HighsIis::invalidate)
+      .def("clear", &HighsIis::clear)
       .def_readwrite("valid", &HighsIis::valid_)
+      .def_readwrite("status", &HighsIis::status_)
       .def_readwrite("strategy", &HighsIis::strategy_)
       .def_readwrite("col_index", &HighsIis::col_index_)
       .def_readwrite("row_index", &HighsIis::row_index_)
