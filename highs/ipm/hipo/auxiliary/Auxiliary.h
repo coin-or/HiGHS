@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "ipm/hipo/auxiliary/IntConfig.h"
-#include "util/HighsCDouble.h"
 
 namespace hipo {
 
@@ -20,13 +19,6 @@ void transpose(const std::vector<Int>& ptr, const std::vector<Int>& rows,
 void transpose(const std::vector<Int>& ptr, const std::vector<Int>& rows,
                const std::vector<double>& val, std::vector<Int>& ptrT,
                std::vector<Int>& rowsT, std::vector<double>& valT);
-void symProduct(const std::vector<Int>& ptr, const std::vector<Int>& rows,
-                const std::vector<double>& vals, const std::vector<double>& x,
-                std::vector<double>& y, double alpha = 1.0);
-void symProductQuad(const std::vector<Int>& ptr, const std::vector<Int>& rows,
-                    const std::vector<double>& vals,
-                    const std::vector<double>& x, std::vector<HighsCDouble>& y,
-                    double alpha);
 void childrenLinkedList(const std::vector<Int>& parent, std::vector<Int>& head,
                         std::vector<Int>& next);
 void reverseLinkedList(std::vector<Int>& head, std::vector<Int>& next);

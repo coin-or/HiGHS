@@ -486,7 +486,7 @@
 - Range: [0, inf]
 - Default: 1e-07
 
-## iis\_strategy
+## [iis\_strategy](@id option-iis-strategy)
 - Strategy for IIS calculation: Light test / Full and prioritise rows / Full and prioritise columns (0/1/2)
 - Type: integer
 - Range: {0, 2}

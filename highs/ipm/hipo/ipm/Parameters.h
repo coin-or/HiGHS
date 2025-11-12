@@ -37,6 +37,10 @@ const Int kMinNumberSn = 10;
 const double kDenseColThresh = 0.5;
 const Int kMinRowsForDensity = 2000;
 
+// parameters for iterative refinement
+const Int kMaxIterRefine = 3;
+const double kTolRefine = 1e-12;
+
 // static regularisation
 struct Regularisation {
   double primal = 1e-12;

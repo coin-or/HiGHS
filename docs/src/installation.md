@@ -39,8 +39,8 @@ git checkout 521-ts
 
 Then build with
 ```
-cmake -S. -B build
--DGKLIB_PATH=/path_to_METIS_repo/GKlib
+cmake -S. -B build \
+-DGKLIB_PATH=/path_to_METIS_repo/GKlib \
 -DCMAKE_INSTALL_PREFIX=path_to_installs_dir
 cmake --build build
 cmake --install build

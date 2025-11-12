@@ -67,6 +67,7 @@ class FactorHiGHSSolver : public LinearSolver {
   double flops() const override;
   double spops() const override;
   double nz() const override;
+  void getReg(std::vector<double>& reg) override;
 };
 
 }  // namespace hipo

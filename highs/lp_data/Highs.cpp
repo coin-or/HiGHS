@@ -1038,7 +1038,7 @@ HighsStatus Highs::optimizeModel() {
   // kHighsDebugLevelMax;
   //
   //  if (model_.lp_.num_row_>0 && model_.lp_.num_col_>0)
-  //  writeLpMatrixPicToFile(options_, "LpMatrix", model_.lp_);
+  //    writeLpMatrixPicToFile(options_, "LpMatrix", model_.lp_);
   if (options_.highs_debug_level < min_highs_debug_level)
     options_.highs_debug_level = min_highs_debug_level;
 

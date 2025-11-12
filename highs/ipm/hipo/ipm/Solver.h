@@ -122,7 +122,9 @@ class Solver {
   bool failed() const;
 
   // Set the IPX timer offset
-  void setIpxTimerOffset(const double offset) { this->ipx_lps_.setTimerOffset(offset); }
+  void setIpxTimerOffset(const double offset) {
+    this->ipx_lps_.setTimerOffset(offset);
+  }
 
  private:
   // Functions to run the various stages of the ipm
@@ -184,6 +186,8 @@ class Solver {
   //  res8 = res1 + A * Theta * res7
   // ===================================================================================
   bool solveNewtonSystem(NewtonDir& delta);
+  bool solve2x2(NewtonDir& delta, const Residuals& rhs);
+  bool solve6x6(NewtonDir& delta, const Residuals& rhs);
 
   // ===================================================================================
   // Reconstruct the solution of the full Newton system:
@@ -193,7 +197,13 @@ class Solver {
   //  Deltazl = Xl^{-1} * (res5 - zl * Deltaxl)
   //  Deltazu = Xu^{-1} * (res6 - zu * Deltaxu)
   // ===================================================================================
-  bool recoverDirection(NewtonDir& delta);
+  void recoverDirection(NewtonDir& delta, const Residuals& rhs) const;
+
+  // ===================================================================================
+  // Functions for iterative refinement on the large 6x6 system
+  // ===================================================================================
+  void refine(NewtonDir& delta);
+  double computeOmega(const NewtonDir& delta) const;
 
   // ===================================================================================
   // Steps to boundary are computed so that
@@ -320,12 +330,6 @@ class Solver {
   bool statusNeedsRefinement() const;
   bool statusAllowsCrossover() const;
   bool crossoverIsOn() const;
-
-  // ===================================================================================
-  // Compute the normwise and componentwise backward error for the large 6x6
-  // linear system
-  // ===================================================================================
-  void backwardError(const NewtonDir& delta) const;
 
   // ===================================================================================
   // Print to screen
