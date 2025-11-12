@@ -8,7 +8,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "highspy"
-version = "1.12.0.dev1"
+version = "1.12.0.dev2"
 description = "A thin set of pybind11 wrappers to HiGHS"
 authors = [{ name = "HiGHS developers", email = "highsopt@gmail.com" }]
 readme = "README.md"
@@ -56,8 +56,8 @@ wheel.packages = ["highs/highspy"]
 sdist.include = [
   "highs/highspy/highs.py",
   "highs/highspy/__init__.py",
-  # "highs/highspy/__init__.pyi",
-  # "highs/highspy/_core/*.pyi",
+  "highs/highspy/__init__.pyi",
+  "highs/highspy/_core/*.pyi",
   "tests/test_highspy.py",
   "Version.txt",
   "LICENSE",
