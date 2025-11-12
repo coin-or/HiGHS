@@ -26,15 +26,6 @@ static constexpr double kDivergentMovement = 1e10;
 
 using namespace std;
 
-void vecPrint(const std::vector<double>& vec, const char* name) {
-  std::cout << name << ": [";
-  for (size_t i = 0; i < vec.size(); ++i) {
-    std::cout << vec[i];
-    if (i < vec.size() - 1) std::cout << ", ";
-  }
-  std::cout << "]" << std::endl;
-}
-
 void PDLPSolver::printConstraintInfo() {
   if (original_lp_ == nullptr) return;
 
@@ -509,15 +500,17 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
   restart_scheme_.passParams(&working_params);
   restart_scheme_.Initialize(results_);
 
-  // Use member variables for iterates for cleaner state management
-  x_current_ = x;
-  y_current_ = y;
-  linalg::project_bounds(lp_, x_current_);
-  linalg::project_bounds(lp_, x_sum_);
-  linalg::project_bounds(lp_, x_avg_);
-  linalg::Ax(lp, x_current_, Ax_cache_);
-  std::vector<double> Ax_avg = Ax_cache_;
-  std::vector<double> ATy_avg(lp.num_col_, 0.0);
+  x_current_->copyFromHost(x);
+  y_current_->copyFromHost(y);
+  backend_->updateX(*x_current_, *x_current_, *ATy_cache_, *col_cost_vec_,
+                    *col_lower_vec_, *col_upper_vec_, 0.0); // 0.0 step = projection
+  backend_->updateX(*x_sum_, *x_sum_, *ATy_cache_, *col_cost_vec_,
+                  *col_lower_vec_, *col_upper_vec_, 0.0);
+  backend_->updateX(*x_avg_, *x_avg_, *ATy_cache_, *col_cost_vec_,
+                  *col_lower_vec_, *col_upper_vec_, 0.0);                
+  backend_->updateX(*x_avg_, *x_avg_, *ATy_cache_, *col_cost_vec_,
+                  *col_lower_vec_, *col_upper_vec_, 0.0);
+  backend_->Ax(*Ax_cache_, *matrix_, *x_current_); 
 
   num_rejected_steps_ = 0;
   bool first_malitsky_iteration = true;
@@ -534,7 +527,7 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
   debug_pdlp_data_.ax_average_norm = 0.0;
   debug_pdlp_data_.aty_average_norm = 0.0;
   debug_pdlp_data_.x_average_norm = 0.0;
-  debug_pdlp_data_.ax_norm = linalg::vector_norm(Ax_cache_);
+  debug_pdlp_data_.ax_norm = backend_->vector_norm(*Ax_cache_, 2.0);
 
   for (int iter = 0; iter < params_.max_iterations; ++iter) {
     debugPdlpIterLog(debug_pdlp_log_file_, iter, &debug_pdlp_data_,
@@ -554,7 +547,7 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
     bool_checking = (bool_checking || iter % PDHG_CHECK_INTERVAL == 0);
     if (bool_checking) {
       hipdlpTimerStart(kHipdlpClockAverageIterate);
-      computeAverageIterate(Ax_avg, ATy_avg);
+      computeAverageIterate(*Ax_avg_, *ATy_avg_);
       hipdlpTimerStop(kHipdlpClockAverageIterate);
 
       // Reset the average iterate accumulation
@@ -566,14 +559,16 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
 
       hipdlpTimerStart(kHipdlpClockConvergenceCheck);
       // Compute residuals for current iterate
-      bool current_converged = checkConvergence(
-          iter, x_current_, y_current_, Ax_cache_, ATy_cache_,
-          params_.tolerance, current_results, "[L]", dSlackPos_, dSlackNeg_);
+      bool current_converged =
+          checkConvergence(iter, *x_current_, *y_current_, *Ax_cache_,
+                           *ATy_cache_, params_.tolerance, current_results,
+                           "[L]", *dSlackPos_, *dSlackNeg_);
 
       // Compute residuals for average iterate
-      bool average_converged = checkConvergence(
-          iter, x_avg_, y_avg_, Ax_avg, ATy_avg, params_.tolerance,
-          average_results, "[A]", dSlackPosAvg_, dSlackNegAvg_);
+      bool average_converged =
+          checkConvergence(iter, *x_avg_, *y_avg_, *Ax_avg_,
+                           *ATy_avg_, params_.tolerance,
+                           average_results, "[A]", *dSlackPosAvg_, *dSlackNegAvg_);
       hipdlpTimerStop(kHipdlpClockConvergenceCheck);
 
       debugPdlpIterHeaderLog(debug_pdlp_log_file_);
@@ -586,8 +581,10 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         logger_.info("Current solution converged in " + std::to_string(iter) +
                      " iterations.");
         final_iter_count_ = iter;
-        x = x_current_;
-        y = y_current_;
+        x_current_->copyToHost(x);
+        y_current_->copyToHost(y);
+        dSlackPos_->copyToHost(h_dSlackPos_);
+        dSlackNeg_->copyToHost(h_dSlackNeg_);
         results_ = current_results;
         return solveReturn(TerminationStatus::OPTIMAL);
       }
@@ -596,10 +593,10 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         logger_.info("Average solution converged in " + std::to_string(iter) +
                      " iterations.");
         final_iter_count_ = iter;
-        x = x_avg_;
-        y = y_avg_;
-        dSlackPos_ = dSlackPosAvg_;
-        dSlackNeg_ = dSlackNegAvg_;
+        x_avg_->copyToHost(x);
+        y_avg_->copyToHost(y);
+        dSlackPosAvg_->copyToHost(h_dSlackPos_);
+        dSlackNegAvg_->copyToHost(h_dSlackNeg_);
         results_ = average_results;
         return solveReturn(TerminationStatus::OPTIMAL);
       }
@@ -617,11 +614,10 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
           restart_scheme_.duality_gap_last_restart_ =
               average_results.duality_gap;
 
-          x_current_ = x_avg_;
-          y_current_ = y_avg_;
-
-          Ax_cache_ = Ax_avg;
-          ATy_cache_ = ATy_avg;
+          x_current_->copyFrom(*x_avg_);
+          y_current_->copyFrom(*y_avg_);
+          Ax_cache_->copyFrom(*Ax_avg_);
+          ATy_cache_->copyFrom(*ATy_avg_);
         } else {
           restart_scheme_.primal_feas_last_restart_ =
               current_results.primal_feasibility;
@@ -636,20 +632,20 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         current_eta_ = working_params.eta;
         restart_scheme_.passParams(&working_params);
 
-        x_at_last_restart_ = x_current_;  // Current becomes the new last
-        y_at_last_restart_ = y_current_;
+        x_at_last_restart_->copyFrom(*x_current_);;  // Current becomes the new last
+        y_at_last_restart_->copyFrom(*y_current_);
 
-        std::fill(x_sum_.begin(), x_sum_.end(), 0.0);
-        std::fill(y_sum_.begin(), y_sum_.end(), 0.0);
+        x_sum_->fill(0.0);
+        y_sum_->fill(0.0);
         sum_weights_ = 0.0;
 
         restart_scheme_.last_restart_iter_ = iter;
         // Recompute Ax and ATy for the restarted iterates
         hipdlpTimerStart(kHipdlpClockMatrixMultiply);
-        linalg::Ax(lp, x_current_, Ax_cache_);
+        backend_->Ax(*Ax_cache_, *matrix_, *x_current_);
         hipdlpTimerStop(kHipdlpClockMatrixMultiply);
         hipdlpTimerStart(kHipdlpClockMatrixTransposeMultiply);
-        linalg::ATy(lp, y_current_, ATy_cache_);
+        backend_->ATy(*ATy_cache_, *matrix_, *y_current_);
         hipdlpTimerStop(kHipdlpClockMatrixTransposeMultiply);
 
         restart_scheme_.SetLastRestartIter(iter);
@@ -662,11 +658,11 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
 
     // Store current iterates before update (for next iteration's x_current_,
     // y_current_)
-    x_next_ = x_current_;
-    y_next_ = y_current_;
+    x_next_ ->copyFrom(*x_current_);
+    y_next_ ->copyFrom(*y_current_);
 
-    debug_pdlp_data_.ax_norm = linalg::vector_norm(Ax_cache_);
-    debug_pdlp_data_.aty_norm = linalg::vector_norm(ATy_cache_);
+    debug_pdlp_data_.ax_norm = backend_->vector_norm(*Ax_cache_, 2.0);
+    debug_pdlp_data_.aty_norm = backend_->vector_norm(*ATy_cache_, 2.0);
 
     switch (params_.step_size_strategy) {
       case StepSizeStrategy::FIXED:
@@ -684,21 +680,21 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
           std::cerr << "Malitsky-Pock step failed at iteration " << iter
                     << std::endl;
           // Reset to average and terminate
-          x = x_avg_;
-          y = y_avg_;
+          x_current_ ->copyFrom(*x_avg_);
+          y_current_ ->copyFrom(*y_avg_);
           hipdlpTimerStop(kHipdlpClockIterateUpdate);
           return solveReturn(TerminationStatus::ERROR);
         }
     }
 
     // Compute ATy for the new iterate
-    Ax_cache_ = Ax_next_;
+    Ax_cache_->copyFrom(*Ax_next_);
     /*
     hipdlpTimerStart(kHipdlpClockMatrixTransposeMultiply);
     linalg::ATy(lp, y_next_, ATy_cache_);
     hipdlpTimerStop(kHipdlpClockMatrixTransposeMultiply);
     */
-    ATy_cache_ = ATy_next_;
+    ATy_cache_->copyFrom(*ATy_next_);
 
     hipdlpTimerStop(kHipdlpClockIterateUpdate);
 
@@ -706,12 +702,12 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
     // The number of iterations since the last restart
     int inner_iter = iter - restart_scheme_.GetLastRestartIter();
     hipdlpTimerStart(kHipdlpClockAverageIterate);
-    updateAverageIterates(x_next_, y_next_, working_params, inner_iter);
+    updateAverageIterates(*x_current_, *y_current_, working_params, inner_iter);
     hipdlpTimerStop(kHipdlpClockAverageIterate);
 
     // --- 7. Prepare for next iteration ---
-    x_current_ = x_next_;
-    y_current_ = y_next_;
+    x_current_ ->copyFrom(*x_next_);
+    y_current_ ->copyFrom(*y_next_);
     // iteration
   }
 
@@ -720,8 +716,10 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
   final_iter_count_ = params_.max_iterations;
 
   // Return the average solution
-  x = x_avg_;
-  y = y_avg_;
+  x_avg_->copyToHost(x);
+  y_avg_->copyToHost(y);
+  dSlackNegAvg_->copyToHost(h_dSlackNeg_);
+  dSlackPosAvg_->copyToHost(h_dSlackPos_);
 
   return solveReturn(TerminationStatus::TIMEOUT);
 }
@@ -732,39 +730,95 @@ void PDLPSolver::solveReturn(const TerminationStatus term_code) {
 }
 
 void PDLPSolver::initialize() {
-  // Initialize x and y based on the LP problem
-  x_current_.resize(lp_.num_col_, 0.0);
-  y_current_.resize(lp_.num_row_, 0.0);
-  x_next_.resize(lp_.num_col_, 0.0);
-  y_next_.resize(lp_.num_row_, 0.0);
+  const HighsLp& lp = lp_;
 
-  x_at_last_restart_ = x_current_;
-  y_at_last_restart_ = y_current_;
-  x_sum_.resize(lp_.num_col_, 0.0);
-  y_sum_.resize(lp_.num_row_, 0.0);
+  if (!backend_){
+    backend_ = createBackend(device_);
+  }
 
+  if (!matrix_){
+    matrix_ = backend_->createSparseMatrix(lp);
+  }
+
+  col_cost_vec_ = backend_->createVector(lp.num_col_);
+  col_lower_vec_ = backend_->createVector(lp.num_col_);
+  col_upper_vec_ = backend_->createVector(lp.num_col_); 
+  rhs_vec_ = backend_->createVector(lp.num_row_); 
+  is_equality_row_vec_ = backend_->createVector(lp.num_row_);
+
+  // Create iterate vectors
+  x_current_ = backend_->createVector(lp.num_col_);
+  y_current_ = backend_->createVector(lp.num_row_);
+  x_next_ = backend_->createVector(lp.num_col_);
+  y_next_ = backend_->createVector(lp.num_row_);
+  x_at_last_restart_ = backend_->createVector(lp.num_col_);
+  y_at_last_restart_ = backend_->createVector(lp.num_row_);
+  x_sum_ = backend_->createVector(lp.num_col_);
+  y_sum_ = backend_->createVector(lp.num_row_);
+  x_avg_ = backend_->createVector(lp.num_col_);
+  y_avg_ = backend_->createVector(lp.num_row_);
+  x_diff_temp_ = backend_->createVector(lp.num_col_);
+  y_diff_temp_ = backend_->createVector(lp.num_row_);
+
+  // Create cache vectors
+  Ax_cache_ = backend_->createVector(lp.num_row_);
+  ATy_cache_ = backend_->createVector(lp.num_col_);
+  Ax_next_ = backend_->createVector(lp.num_row_);
+  ATy_next_ = backend_->createVector(lp.num_col_);
+  Ax_avg_ = backend_->createVector(lp.num_row_);
+  ATy_avg_ = backend_->createVector(lp.num_col_);
+
+  // --- NEW: Create device slack vectors and temp buffers ---
+  dSlackPos_ = backend_->createVector(lp.num_col_);
+  dSlackNeg_ = backend_->createVector(lp.num_col_);
+  dSlackPosAvg_ = backend_->createVector(lp.num_col_);
+  dSlackNegAvg_ = backend_->createVector(lp.num_col_);
+  primal_residual_ = backend_->createVector(lp.num_row_);
+  dual_residual_ = backend_->createVector(lp.num_col_);
+  dual_residual_avg_ = backend_->createVector(lp.num_col_);
+  
+  // --- Upload problem data to device ---
+  col_cost_vec_->copyFromHost(lp.col_cost_);
+  col_lower_vec_->copyFromHost(lp.col_lower_);
+  col_upper_vec_->copyFromHost(lp.col_upper_);
+  rhs_vec_->copyFromHost(lp.row_lower_); 
+  std::vector<double> is_eq_double(lp.num_row_);
+  for(size_t i = 0; i < lp.num_row_; ++i) {
+      is_eq_double[i] = is_equality_row_[i] ? 1.0 : 0.0;
+  }
+  is_equality_row_vec_->copyFromHost(is_eq_double);
+  
+  // --- Initialize host-side buffers (for restart and postprocess) ---
+  h_x_current_.resize(lp.num_col_);
+  h_x_at_last_restart_.resize(lp.num_col_);
+  h_y_current_.resize(lp.num_row_);
+  h_y_at_last_restart_.resize(lp.num_row_);
+  h_dSlackPos_.resize(lp.num_col_);
+  h_dSlackNeg_.resize(lp.num_col_);
+  
+  // Initialize iterates to zero on device
+  x_current_->fill(0.0);
+  y_current_->fill(0.0);
+  x_at_last_restart_->fill(0.0);
+  y_at_last_restart_->fill(0.0);
+  x_sum_->fill(0.0);
+  y_sum_->fill(0.0);
+  ATy_cache_->fill(0.0); 
+  x_diff_temp_->fill(0.0);
+  y_diff_temp_->fill(0.0);
+  
   sum_weights_ = 0.0;
-
-  x_avg_.resize(lp_.num_col_, 0.0);
-  y_avg_.resize(lp_.num_row_, 0.0);
-
-  Ax_cache_.resize(lp_.num_row_, 0.0);
-  ATy_cache_.resize(lp_.num_col_, 0.0);
-  Ax_next_.resize(lp_.num_row_, 0.0);
-  ATy_next_.resize(lp_.num_col_, 0.0);
-  K_times_x_diff_.resize(lp_.num_row_, 0.0);
-  dSlackPos_.resize(lp_.num_col_, 0.0);
-  dSlackNeg_.resize(lp_.num_col_, 0.0);
-  dSlackPosAvg_.resize(lp_.num_col_, 0.0);
-  dSlackNegAvg_.resize(lp_.num_col_, 0.0);
 }
 
 // Update primal weight
 void PDLPSolver::computeStepSizeRatio(PrimalDualParams& working_params) {
   // 1. Calculate the L2 norm of the difference between current and last-restart
   // iterates.
-  double primal_diff_norm = linalg::diffTwoNorm(x_at_last_restart_, x_current_);
-  double dual_diff_norm = linalg::diffTwoNorm(y_at_last_restart_, y_current_);
+  backend_->sub(*x_diff_temp_, *x_current_, *x_at_last_restart_);
+  backend_->sub(*y_diff_temp_, *y_current_, *y_at_last_restart_);
+
+  double primal_diff_norm = backend_->nrm2(*x_diff_temp_);
+  double dual_diff_norm = backend_->nrm2(*y_diff_temp_);
 
   double dMeanStepSize = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
 
@@ -785,51 +839,49 @@ void PDLPSolver::computeStepSizeRatio(PrimalDualParams& working_params) {
   restart_scheme_.UpdateBeta(stepsize_.beta);
 }
 
-void PDLPSolver::updateAverageIterates(const std::vector<double>& x,
-                                       const std::vector<double>& y,
+void PDLPSolver::updateAverageIterates(const PdlpVector& x,
+                                       const PdlpVector& y,
                                        const PrimalDualParams& params,
                                        int inner_iter) {
   double dMeanStepSize = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
 
   hipdlpTimerStart(kHipdlpClockAverageIterateUpdateX);
-  for (size_t i = 0; i < x.size(); ++i) x_sum_[i] += x[i] * dMeanStepSize;
+  backend_->accumulate_weighted_sum(*x_sum_, x, dMeanStepSize);
   hipdlpTimerStop(kHipdlpClockAverageIterateUpdateX);
 
   hipdlpTimerStart(kHipdlpClockAverageIterateUpdateY);
-  for (size_t i = 0; i < y.size(); ++i) y_sum_[i] += y[i] * dMeanStepSize;
+  backend_->accumulate_weighted_sum(*y_sum_, y, dMeanStepSize);
   hipdlpTimerStop(kHipdlpClockAverageIterateUpdateY);
 
   sum_weights_ += dMeanStepSize;
 }
 
-void PDLPSolver::computeAverageIterate(std::vector<double>& ax_avg,
-                                       std::vector<double>& aty_avg) {
-  double dPrimalScale = sum_weights_ > 1e-10 ? 1.0 / sum_weights_ : 1.0;
-  double dDualScale = sum_weights_ > 1e-10 ? 1.0 / sum_weights_ : 1.0;
+void PDLPSolver::computeAverageIterate(PdlpVector& ax_avg,
+                                       PdlpVector& aty_avg) {
 
   hipdlpTimerStart(kHipdlpClockAverageIterateComputeX);
-  for (size_t i = 0; i < x_avg_.size(); ++i)
-    x_avg_[i] = x_sum_[i] * dPrimalScale;
+  backend_->compute_average(*x_avg_, *x_sum_, sum_weights_);
   hipdlpTimerStop(kHipdlpClockAverageIterateComputeX);
 
   hipdlpTimerStart(kHipdlpClockAverageIterateComputeY);
-  for (size_t i = 0; i < y_avg_.size(); ++i) y_avg_[i] = y_sum_[i] * dDualScale;
+  backend_->compute_average(*y_avg_, *y_sum_, sum_weights_);
   hipdlpTimerStop(kHipdlpClockAverageIterateComputeY);
 
-  debug_pdlp_data_.x_average_norm = linalg::vector_norm_squared(x_avg_);
+  // debug_pdlp_data_.x_average_norm = ... (requires backend nrm2)
 
   hipdlpTimerStart(kHipdlpClockAverageIterateMatrixMultiply);
-  linalg::Ax(lp_, x_avg_, ax_avg);
+  backend_->Ax(ax_avg, *matrix_, *x_avg_);
   hipdlpTimerStop(kHipdlpClockAverageIterateMatrixMultiply);
 
   hipdlpTimerStart(kHipdlpClockAverageIterateMatrixTransposeMultiply);
-  linalg::ATy(lp_, y_avg_, aty_avg);
+  backend_->ATy(aty_avg, *matrix_, *y_avg_);
   hipdlpTimerStop(kHipdlpClockAverageIterateMatrixTransposeMultiply);
 
-  debug_pdlp_data_.ax_average_norm = linalg::vector_norm_squared(ax_avg);
-  debug_pdlp_data_.aty_average_norm = linalg::vector_norm_squared(aty_avg);
+  debug_pdlp_data_.ax_average_norm = backend_->vector_norm(*Ax_avg_, 2.0);
+  debug_pdlp_data_.aty_average_norm = backend_->vector_norm(*ATy_avg_, 2.0);
 }
 
+/*
 // lambda = c - proj_{\Lambda}(c - K^T y)
 std::vector<double> PDLPSolver::computeLambda(
     const std::vector<double>& y, const std::vector<double>& ATy_vector) {
@@ -1010,36 +1062,42 @@ double PDLPSolver::computeDualObjective(const std::vector<double>& y,
   return dual_obj;
 }
 
-bool PDLPSolver::checkConvergence(
-    const int iter, const std::vector<double>& x, const std::vector<double>& y,
-    const std::vector<double>& ax_vector, const std::vector<double>& aty_vector,
-    double epsilon, SolverResults& results, const char* type,
-    // Add slack vectors as non-const references
-    std::vector<double>& dSlackPos, std::vector<double>& dSlackNeg) {
-  // computeDualSlacks is now called inside computeDualFeasibility
+// Device-side
+bool PDLPSolver::checkConvergence(const int iter, const PdlpVector& x,
+                                  const PdlpVector& y,
+                                  const PdlpVector& ax_vector,
+                                  const PdlpVector& aty_vector,
+                                  double epsilon, SolverResults& results,
+                                  const char* type,
+                                  // Add slack vectors as non-const references
+                                  PdlpVector& dSlackPos,
+                                  PdlpVector& dSlackNeg){
+  PdlpVector& dualResidual  = (type[1] == 'L') ? *dual_residual_ : *dual_residual_avg_;  
+
+  backend_->computeDualSlacks(dSlackPos, dSlackNeg, *col_cost_vec_, aty_vector, *col_lower_vec_, *col_upper_vec_, dualResidual);
 
   // Compute primal feasibility
-  double primal_feasibility = computePrimalFeasibility(ax_vector);
+  double primal_feasibility = backend_->computePrimalFeasibility(
+    ax_vector, *rhs_vec_, *is_equality_row_vec_,
+      scaling_.GetRowScaling(), *primal_residual_);
   results.primal_feasibility = primal_feasibility;
 
   // Compute dual feasibility
   // This will populate dSlackPos and dSlackNeg
-  double dual_feasibility =
-      computeDualFeasibility(aty_vector, dSlackPos, dSlackNeg);
+  double dual_feasibility = backend_->computeDualFeasibility(
+    *col_cost_vec_, aty_vector, dSlackPos, dSlackNeg,
+      scaling_.GetColScaling(), dualResidual);
   results.dual_feasibility = dual_feasibility;
 
   // Compute objectives
-  double primal_obj = lp_.offset_;
-  for (int i = 0; i < lp_.num_col_; ++i) {
-    primal_obj += lp_.col_cost_[i] * x[i];
-  }
+  double primal_obj, dual_obj;
+  backend_->computeObjectives(
+      *col_cost_vec_, x, *rhs_vec_, y, *col_lower_vec_, *col_upper_vec_,
+      dSlackPos, dSlackNeg, lp_.offset_, primal_obj, dual_obj);
   results.primal_obj = primal_obj;
-
-  // Pass the now-populated slack vectors to computeDualObjective
-  double dual_obj = computeDualObjective(y, dSlackPos, dSlackNeg);
   results.dual_obj = dual_obj;
 
-  // Compute duality gap
+  // Compute duality gap (host-side, using scalar results)
   double duality_gap = primal_obj - dual_obj;
   results.duality_gap = std::abs(duality_gap);
 
@@ -1061,7 +1119,7 @@ bool PDLPSolver::checkConvergence(
 
   return primal_feasible && dual_feasible && gap_small;
 }
-
+*/
 double PDLPSolver::PowerMethod() {
   const HighsLp& lp = lp_;
   double op_norm_sq = 1.0;

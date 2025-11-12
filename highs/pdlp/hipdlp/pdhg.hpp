@@ -28,8 +28,13 @@
 #include "solver_results.hpp"
 
 // Forward declaration for a struct defined in the .cc file
+struct cusparseContext;
+struct cublasContext;
+struct cusparseSpMatDescr;
+struct cusparseDnVecDescr;
 struct StepSizeConfig;
 
+/*
 class PDLPSolver {
  public:
   // --- Public API ---
@@ -166,6 +171,147 @@ class PDLPSolver {
   std::vector<double> ATy_cache_;
   std::vector<double> Ax_next_, ATy_next_;
   std::vector<double> K_times_x_diff_;
+};
+*/
+
+class PDLPSolver {
+ public:
+  // --- Public API ---
+  void setup(const HighsOptions& options, HighsTimer& timer);
+  void passLp(const HighsLp* lp) { original_lp_ = lp; }
+  void preprocessLp();
+  void scaleProblem();
+  void solve(std::vector<double>& x, std::vector<double>& y);
+  void unscaleSolution(std::vector<double>& x, std::vector<double>& y);
+  PostSolveRetcode postprocess(HighsSolution& solution);
+  void logSummary();
+
+  // --- Getters ---
+  TerminationStatus getTerminationCode() const { return results_.term_code; }
+  int getIterationCount() const { return final_iter_count_; }
+  int getnCol() const { return lp_.num_col_; }
+  int getnRow() const { return lp_.num_row_; }
+
+  // --- Debugging ---
+  FILE* debug_pdlp_log_file_ = nullptr;
+  DebugPdlpData debug_pdlp_data_;
+
+  void reportHipdlpTimer();
+  void closeDebugLog();
+
+ private:
+  // --- Core Algorithm Logic ---
+  void solveReturn(const TerminationStatus term_code);
+  void initialize();
+  void printConstraintInfo();
+  bool checkConvergence(const int iter, const PdlpVector& x,
+                        const PdlpVector& y,
+                        const PdlpVector& ax_vector,
+                        const PdlpVector& aty_vector, double epsilon,
+                        SolverResults& results, const char* type,
+                        PdlpVector& dSlackPos, PdlpVector& dSlackNeg);
+  void updateAverageIterates(const PdlpVector& x, const PdlpVector& y,
+                             const PrimalDualParams& params, int inner_iter);
+  void computeAverageIterate(PdlpVector& ax_avg, PdlpVector& aty_avg);
+  double PowerMethod();
+
+  // --- Step update Methods (previously in Step) ---
+  void initializeStepSizes();
+  void updateIteratesFixed();
+  void updateIteratesAdaptive();
+  bool updateIteratesMalitskyPock(bool first_malitsky_iteration);
+
+  // --- Step Size Helper Methods (previously in PdlpStep) ---
+  bool CheckNumericalStability(const PdlpVector& delta_x,
+                               const PdlpVector& delta_y);
+  double computeMovement(const PdlpVector& delta_primal,
+                         const PdlpVector& delta_dual);
+  double computeNonlinearity(const PdlpVector& delta_primal,
+                             const PdlpVector& delta_aty);
+
+  // --- Feasibility, Duality, and KKT Checks ---
+  void computeStepSizeRatio(PrimalDualParams& working_params);
+  void hipdlpTimerStart(const HighsInt hipdlp_clock);
+  void hipdlpTimerStop(const HighsInt hipdlp_clock);
+
+  // --- Problem Data and Parameters ---
+  HighsLp lp_;
+  const HighsLp* original_lp_;
+  HighsLp unscaled_processed_lp_;
+  PrimalDualParams params_;
+  StepSizeConfig stepsize_;
+  Logger logger_;
+  HighsLogOptions log_options_;
+  SolverResults results_;
+  int original_num_col_;
+  int num_eq_rows_;
+  std::vector<bool> is_equality_row_;
+  std::vector<int> constraint_new_idx_;
+  std::vector<ConstraintType> constraint_types_;
+  int sense_origin_ = 1;
+
+  // --- Backend and Device Selection ---
+  Device device_ = Device::CPU;
+  std::unique_ptr<LinearAlgebraBackend> backend_;
+
+  // --- Solver State ---
+  int final_iter_count_ = 0;
+  std::unique_ptr<PdlpVector> x_current_, y_current_;
+  std::unique_ptr<PdlpVector> x_next_, y_next_;
+  std::unique_ptr<PdlpVector> x_avg_, y_avg_;
+  std::unique_ptr<PdlpVector> x_sum_, y_sum_;
+  std::unique_ptr<PdlpVector> x_diff_temp_;
+  std::unique_ptr<PdlpVector> y_diff_temp_;
+  double sum_weights_ = 0.0;
+  double current_eta_ = 0.0;
+  double ratio_last_two_step_sizes_ = 1.0;
+  int num_rejected_steps_ = 0;
+  Timer total_timer;
+  
+  // --- Device-side slack vectors ---
+  std::unique_ptr<PdlpVector> dSlackPos_;
+  std::unique_ptr<PdlpVector> dSlackNeg_;
+  std::unique_ptr<PdlpVector> dSlackPosAvg_;
+  std::unique_ptr<PdlpVector> dSlackNegAvg_;
+
+  // --- Host-side buffers for postprocessing ---
+  std::vector<double> h_dSlackPos_;
+  std::vector<double> h_dSlackNeg_;
+
+  HipdlpTimer hipdlp_timer_;
+  HighsTimerClock hipdlp_clocks_;
+
+  // --- Scaling ---
+  Scaling scaling_;
+  double unscaled_rhs_norm_ = 0.0;
+  double unscaled_c_norm_ = 0.0;
+
+  // --- Restarting ---
+  RestartScheme restart_scheme_;
+  std::unique_ptr<PdlpVector> x_at_last_restart_;
+  std::unique_ptr<PdlpVector> y_at_last_restart_;
+  // Host vectors
+  std::vector<double> h_x_current_, h_x_at_last_restart_;
+  std::vector<double> h_y_current_, h_y_at_last_restart_;
+
+  // --- Caching for Matrix-Vector Products ---
+  std::unique_ptr<PdlpVector> Ax_cache_;
+  std::unique_ptr<PdlpVector> ATy_cache_;
+  std::unique_ptr<PdlpVector> Ax_next_, ATy_next_;
+  std::unique_ptr<PdlpVector> Ax_avg_, ATy_avg_;
+
+  // --- Problem Data (Device-side) ---
+  std::unique_ptr<PdlpSparseMatrix> matrix_;
+  std::unique_ptr<PdlpVector> col_cost_vec_;
+  std::unique_ptr<PdlpVector> col_lower_vec_;
+  std::unique_ptr<PdlpVector> col_upper_vec_;
+  std::unique_ptr<PdlpVector> rhs_vec_;
+  std::unique_ptr<PdlpVector> is_equality_row_vec_;
+
+  // --- Temporary Vectors for Convergence Checks ---
+  std::unique_ptr<PdlpVector> primal_residual_;
+  std::unique_ptr<PdlpVector> dual_residual_;
+  std::unique_ptr<PdlpVector> dual_residual_avg_;
 };
 
 #endif

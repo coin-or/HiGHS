@@ -9,8 +9,27 @@
  * @brief
  */
 #include "linalg.hpp"
-
 #include "Highs.h"
+
+// Forward-declare the concrete backend creators
+namespace highs {
+namespace pdlp {
+std::unique_ptr<LinearAlgebraBackend> createCpuBackend();
+std::unique_ptr<LinearAlgebraBackend> createGpuBackend();
+} 
+}  
+
+std::unique_ptr<LinearAlgebraBackend> createBackend(Device device) {
+  switch (device) {
+    case Device::CPU:
+      // std::cout << "Creating CPU Backend" << std::endl;
+      return highs::pdlp::createCpuBackend();
+    case Device::GPU:
+      // std::cout << "Creating GPU Backend" << std::endl;
+      return highs::pdlp::createGpuBackend();
+  }
+  return std::cerr << "Error: Unknown device type!" << std::endl, nullptr;
+}
 
 namespace linalg {
 
@@ -20,7 +39,7 @@ double project_box(double x, double l, double u) {
 
 double project_non_negative(double x) { return std::max(0.0, x); }
 
-void project_bounds(const HighsLp& lp, std::vector<double>& x) {
+void project_bounds_CPU(const HighsLp& lp, double* x) {
   for (HighsInt i = 0; i < lp.num_col_; ++i) {
     // Project to upper bound
     if (x[i] > lp.col_upper_[i]) {
@@ -33,22 +52,20 @@ void project_bounds(const HighsLp& lp, std::vector<double>& x) {
   }
 }
 
-void Ax(const HighsLp& lp, const std::vector<double>& x,
-        std::vector<double>& result) {
-  std::fill(result.begin(), result.end(), 0.0);
-  // Assumes column-wise matrix format
-  for (HighsInt col = 0; col < lp.num_col_; ++col) {
-    for (HighsInt i = lp.a_matrix_.start_[col];
-         i < lp.a_matrix_.start_[col + 1]; ++i) {
-      const HighsInt row = lp.a_matrix_.index_[i];
-      result[row] += lp.a_matrix_.value_[i] * x[col];
+void Ax_CPU(const HighsLp& lp, const double* x, double* result) {
+    std::fill(result, result + lp.num_row_, 0.0);
+    for (HighsInt col = 0; col < lp.num_col_; ++col) {
+        for (HighsInt i = lp.a_matrix_.start_[col];
+             i < lp.a_matrix_.start_[col + 1]; ++i) {
+            const HighsInt row = lp.a_matrix_.index_[i];
+            result[row] += lp.a_matrix_.value_[i] * x[col];
+        }
     }
-  }
 }
 
-void ATy(const HighsLp& lp, const std::vector<double>& y,
-         std::vector<double>& result) {
-  std::fill(result.begin(), result.end(), 0.0);
+void ATy_CPU(const HighsLp& lp, const double* y, double* result) {
+  std::fill(result, result + lp.num_col_, 0.0);
+
   // Assumes column-wise matrix format. For each column `col` of A,
   // this loop calculates dot(column_col, y) and adds it to result[col].
   for (HighsInt col = 0; col < lp.num_col_; ++col) {

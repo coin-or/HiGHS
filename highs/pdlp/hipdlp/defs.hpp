@@ -16,8 +16,6 @@
 
 #include "Highs.h"
 
-enum class Device { CPU, GPU };
-
 enum class ScalingMethod { NONE, RUIZ, POCK_CHAMBOLLE, L2_NORM, COMBINED };
 
 enum class RestartStrategy { NO_RESTART, FIXED_RESTART, ADAPTIVE_RESTART };
