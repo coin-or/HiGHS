@@ -491,7 +491,7 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
 
   // --- 0. Using PowerMethod to estimate the largest eigenvalue ---
   initializeStepSizes();
-
+  setupGpu();
   PrimalDualParams working_params = params_;
   working_params.omega = std::sqrt(stepsize_.dual_step / stepsize_.primal_step);
   working_params.eta = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
@@ -515,7 +515,8 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
   linalg::project_bounds(lp_, x_current_);
   linalg::project_bounds(lp_, x_sum_);
   linalg::project_bounds(lp_, x_avg_);
-  linalg::Ax(lp, x_current_, Ax_cache_);
+  //linalg::Ax(lp, x_current_, Ax_cache_);
+  linalgGpuAx(x_current_, Ax_cache_);
   std::vector<double> Ax_avg = Ax_cache_;
   std::vector<double> ATy_avg(lp.num_col_, 0.0);
 
@@ -727,6 +728,7 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
 }
 
 void PDLPSolver::solveReturn(const TerminationStatus term_code) {
+  cleanupGpu();
   results_.term_code = term_code;
   hipdlpTimerStop(kHipdlpClockSolve);
 }
@@ -1646,4 +1648,162 @@ void PDLPSolver::hipdlpTimerStop(const HighsInt hipdlp_clock) {
 
 void PDLPSolver::closeDebugLog() {
   if (debug_pdlp_log_file_) fclose(debug_pdlp_log_file_);
+}
+
+// =============================================================================
+//  SECTION 5: GPU Part
+// =============================================================================
+
+void PDLPSolver::setupGpu(){
+  //1. Initialize cuSPARSE
+  CUSPARSE_CHECK(cusparseCreate(&cusparse_handle_));
+
+  //2. Get matrix data from lp_ (CSC)
+  a_num_rows_ = lp_.num_row_;
+  a_num_cols_ = lp_.num_col_;
+  a_nnz_ = lp_.a_matrix_.numNz();
+
+  HighsSparseMatrix lp_csr = lp_.a_matrix_;
+  lp_csr.ensureRowwise();
+
+  const std::vector<int>& h_a_row_ptr = lp_csr.start_;
+  const std::vector<int>& h_a_col_ind = lp_csr.index_;
+  const std::vector<double>& h_a_val = lp_csr.value_;
+
+  //3. Allocate and copy A's CSR data to GPU
+  CUDA_CHECK(cudaMalloc((void**)&d_a_row_ptr_, (a_num_cols_ + 1) * sizeof(int)));
+  CUDA_CHECK(cudaMalloc((void**)&d_a_col_ind_, a_nnz_ * sizeof(int)));
+  CUDA_CHECK(cudaMalloc((void**)&d_a_val_, a_nnz_ * sizeof(double)));
+
+  CUDA_CHECK(cudaMemcpy(d_a_row_ptr_, h_a_row_ptr.data(), (a_num_cols_ + 1) * sizeof(int), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_a_col_ind_, h_a_col_ind.data(), a_nnz_ * sizeof(int), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_a_val_, h_a_val.data(), a_nnz_ * sizeof(double), cudaMemcpyHostToDevice));
+
+  CUSPARSE_CHECK(cusparseCreateCsr(&mat_a_T_csr_, a_num_cols_, a_num_rows_, a_nnz_,
+                                    d_a_row_ptr_, d_a_col_ind_, d_a_val_,
+                                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
+                                    CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F));
+
+  //4. Create matrix AT in CSR format = A in CSC
+  const std::vector<int>& h_at_row_ptr = lp_.a_matrix_.start_;
+  const std::vector<int>& h_at_col_ind = lp_.a_matrix_.index_;
+  const std::vector<double>& h_at_val = lp_.a_matrix_.value_;
+
+  CUDA_CHECK(cudaMalloc((void**)&d_at_row_ptr_, (a_num_rows_ + 1) * sizeof(int)));
+  CUDA_CHECK(cudaMalloc((void**)&d_at_col_ind_, a_nnz_ * sizeof(int)));
+  CUDA_CHECK(cudaMalloc((void**)&d_at_val_, a_nnz_ * sizeof(double)));  
+
+  CUDA_CHECK(cudaMemcpy(d_at_row_ptr_, h_at_row_ptr.data(), (a_num_rows_ + 1) * sizeof(int), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_at_col_ind_, h_at_col_ind.data(), a_nnz_ * sizeof(int), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_at_val_, h_at_val.data(), a_nnz_ * sizeof(double), cudaMemcpyHostToDevice));  
+
+  CUSPARSE_CHECK(cusparseCreateCsr(&mat_a_csr_, a_num_rows_, a_num_cols_, a_nnz_,
+                                    d_at_row_ptr_, d_at_col_ind_, d_at_val_,
+                                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
+                                    CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F));
+  
+  //5. Allocate device vectors
+  CUDA_CHECK(cudaMalloc(&d_x_, a_num_cols_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_y_, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_ax_, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_aty_, a_num_cols_ * sizeof(double)));  
+  
+  //6. Preallocate buffer for cuSPARSE SpMV
+  //Buffer for Ax 
+  double alpha = 1.0;
+  double beta = 0.0;
+  cusparseDnVecDescr_t vec_x, vec_ax;
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_x, a_num_cols_, d_x_, CUDA_R_64F));
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_ax, a_num_rows_, d_ax_, CUDA_R_64F));
+
+  CUSPARSE_CHECK(cusparseSpMV_bufferSize(
+      cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
+      &alpha, mat_a_csr_, vec_x, &beta, vec_ax, CUDA_R_64F,
+      CUSPARSE_SPMV_CSR_ALG2, &spmv_buffer_size_ax_));
+  CUDA_CHECK(cudaMalloc(&d_spmv_buffer_ax_, spmv_buffer_size_ax_));
+
+  CUSPARSE_CHECK(cusparseDestroyDnVec(vec_x));
+  CUSPARSE_CHECK(cusparseDestroyDnVec(vec_ax));
+
+  //Buffer for ATy
+  cusparseDnVecDescr_t vec_y, vec_aty;
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_y, a_num_rows_, d_y_, CUDA_R_64F));
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_aty, a_num_cols_, d_aty_, CUDA_R_64F));
+  CUSPARSE_CHECK(cusparseSpMV_bufferSize(
+      cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
+      &alpha, mat_a_T_csr_, vec_y, &beta, vec_aty, CUDA_R_64F,
+      CUSPARSE_SPMV_CSR_ALG2, &spmv_buffer_size_aty_));
+  CUDA_CHECK(cudaMalloc(&d_spmv_buffer_aty_, spmv_buffer_size_aty_)); 
+  CUSPARSE_CHECK(cusparseDestroyDnVec(vec_y));
+  CUSPARSE_CHECK(cusparseDestroyDnVec(vec_aty));
+
+  highsLogUser(params_.log_options_, HighsLogType::kInfo, "GPU setup complete. Matrix A (CSR) and A^T (CSR) transferred to device.\n");
+}
+
+void PDLPSolver::cleanupGpu(){
+  if (cusparse_handle_) CUSPARSE_CHECK(cusparseDestroy(cusparse_handle_));
+  if (mat_a_csr_) CUSPARSE_CHECK(cusparseDestroySpMat(mat_a_csr_));
+  if (mat_a_T_csr_) CUSPARSE_CHECK(cusparseDestroySpMat(mat_a_T_csr_));
+  CUDA_CHECK(cudaFree(d_a_row_ptr_));
+  CUDA_CHECK(cudaFree(d_a_col_ind_));
+  CUDA_CHECK(cudaFree(d_a_val_));
+  CUDA_CHECK(cudaFree(d_at_row_ptr_));
+  CUDA_CHECK(cudaFree(d_at_col_ind_));
+  CUDA_CHECK(cudaFree(d_at_val_));
+  CUDA_CHECK(cudaFree(d_x_));
+  CUDA_CHECK(cudaFree(d_y_));
+  CUDA_CHECK(cudaFree(d_ax_));
+  CUDA_CHECK(cudaFree(d_aty_));
+  CUDA_CHECK(cudaFree(d_spmv_buffer_ax_));
+  CUDA_CHECK(cudaFree(d_spmv_buffer_aty_));
+}
+
+void PDLPSolver::linalgGpuAx(const std::vector<double>& x, std::vector<double>& ax){
+  CUDA_CHECK(cudaMemcpy(d_x_, x.data(), a_num_cols_ * sizeof(double), cudaMemcpyHostToDevice));
+  // Ax = 1.0 * A * x + 0.0 * ax
+  double alpha = 1.0;
+  double beta = 0.0;
+  cusparseDnVecDescr_t vec_x, vec_ax;
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_x, a_num_cols_, d_x_, CUDA_R_64F));
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_ax, a_num_rows_, d_ax_, CUDA_R_64F));
+  if(spmv_buffer_size_ax_ == 0){
+    CUSPARSE_CHECK(cusparseSpMV_bufferSize(
+        cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
+        &alpha, mat_a_csr_, vec_x, &beta, vec_ax, CUDA_R_64F,
+        CUSPARSE_SPMV_CSR_ALG2, &spmv_buffer_size_ax_));
+    CUDA_CHECK(cudaMalloc(&d_spmv_buffer_ax_, spmv_buffer_size_ax_));
+  }
+
+  CUSPARSE_CHECK(cusparseSpMV(
+      cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
+      &alpha, mat_a_csr_, vec_x, &beta, vec_ax, CUDA_R_64F,
+      CUSPARSE_SPMV_CSR_ALG2, d_spmv_buffer_ax_));
+  CUDA_CHECK(cudaMemcpy(ax.data(), d_ax_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
+  CUSPARSE_CHECK(cusparseDestroyDnVec(vec_x));
+  CUSPARSE_CHECK(cusparseDestroyDnVec(vec_ax));
+}
+
+void PDLPSolver::linalgGpuATy(const std::vector<double>& y,
+                       std::vector<double>& aty){
+  CUDA_CHECK(cudaMemcpy(d_y_, y.data(), a_num_rows_ * sizeof(double), cudaMemcpyHostToDevice));
+  // ATy = 1.0 * A^T * y + 0.0 * aty
+  double alpha = 1.0;
+  double beta = 0.0;
+  cusparseDnVecDescr_t vec_y, vec_aty;
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_y, a_num_rows_, d_y_, CUDA_R_64F));
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_aty, a_num_cols_, d_aty_, CUDA_R_64F));
+  if(spmv_buffer_size_aty_ == 0){
+    CUSPARSE_CHECK(cusparseSpMV_bufferSize(
+        cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
+        &alpha, mat_a_T_csr_, vec_y, &beta, vec_aty, CUDA_R_64F,
+        CUSPARSE_SPMV_CSR_ALG2, &spmv_buffer_size_aty_));
+    CUDA_CHECK(cudaMalloc(&d_spmv_buffer_aty_, spmv_buffer_size_aty_));
+  }
+  CUSPARSE_CHECK(cusparseSpMV(
+      cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
+      &alpha, mat_a_T_csr_, vec_y, &beta, vec_aty, CUDA_R_64F,
+      CUSPARSE_SPMV_CSR_ALG2, d_spmv_buffer_aty_));
+  CUDA_CHECK(cudaMemcpy(aty.data(), d_aty_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+  CUSPARSE_CHECK(cusparseDestroyDnVec(vec_y));
+  CUSPARSE_CHECK(cusparseDestroyDnVec(vec_aty));
 }

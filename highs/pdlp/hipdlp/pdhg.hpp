@@ -18,6 +18,8 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <cuda_runtime.h>
+#include <cusparse.h>
 
 #include "Highs.h"
 #include "linalg.hpp"
@@ -166,6 +168,64 @@ class PDLPSolver {
   std::vector<double> ATy_cache_;
   std::vector<double> Ax_next_, ATy_next_;
   std::vector<double> K_times_x_diff_;
+
+  // --- GPU methods ---
+  void setupGpu();
+  void cleanupGpu();
+  void linalgGpuAx(const std::vector<double>& x,
+                      std::vector<double>& ax);
+  void linalgGpuATy(const std::vector<double>& y,
+                       std::vector<double>& aty);
+  
+  // --- Helpers for error checking ---
+  #define CUDA_CHECK(call) \
+    do { \
+      cudaError_t err = (call); \
+      if (err != cudaSuccess) { \
+        fprintf(stderr, "CUDA Error at %s:%d: %s\n", __FILE__, __LINE__, cudaGetErrorString(err)); \
+        exit(EXIT_FAILURE); \
+      } \
+    } while (0)
+
+  #define CUSPARSE_CHECK(call) \
+    do { \
+      cusparseStatus_t status = (call); \
+      if (status != CUSPARSE_STATUS_SUCCESS) { \
+        fprintf(stderr, "cuSPARSE Error at %s:%d: %s\n", __FILE__, __LINE__, cusparseGetErrorString(status)); \
+        exit(EXIT_FAILURE); \
+      } \
+    } while (0)        
+    
+  // --- GPU Members ---
+  cusparseHandle_t cusparse_handle_ = nullptr;
+
+  // Matrix A in CSR format (for Ax)
+  cusparseSpMatDescr_t mat_a_csr_ = nullptr;
+  int* d_a_row_ptr_ = nullptr;
+  int* d_a_col_ind_ = nullptr;
+  double* d_a_val_ = nullptr;
+
+  // Matrix A^T in CSR format (for Aty)
+  // creat by resuing A's CSC data on GPU
+  cusparseSpMatDescr_t mat_a_T_csr_ = nullptr;
+  int* d_at_row_ptr_ = nullptr;
+  int* d_at_col_ind_ = nullptr;
+  double* d_at_val_ = nullptr;
+
+  // GPU vectors
+  int a_num_rows_ = 0;
+  int a_num_cols_ = 0;
+  int a_nnz_ = 0;
+  double* d_x_ = nullptr;
+  double* d_y_ = nullptr;
+  double* d_ax_ = nullptr;
+  double* d_aty_ = nullptr;
+
+  // Temporary buffer for SpMV
+  void* d_spmv_buffer_ax_ = nullptr;
+  size_t spmv_buffer_size_ax_ = 0;
+  void* d_spmv_buffer_aty_ = nullptr;
+  size_t spmv_buffer_size_aty_ = 0;
 };
 
 #endif
