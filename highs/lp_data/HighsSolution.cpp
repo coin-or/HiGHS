@@ -982,8 +982,14 @@ bool getComplementarityViolations(const HighsLp& lp,
     }
     const double dual_residual = std::fabs(dual);
     const double complementarity_violation = primal_residual * dual_residual;
-    if (complementarity_violation > optimality_tolerance)
+    if (complementarity_violation > optimality_tolerance) {
+      printf("getComplementarityViolations: %s %d has (primal / dual) residual (%g / %g) violation = %g\n",
+	     is_col ? "column" : "row",
+	     is_col ? int(iVar) : int(iRow),
+	     primal_residual, dual_residual,
+	     complementarity_violation);
       num_complementarity_violation++;
+    }
     max_complementarity_violation =
         std::max(complementarity_violation, max_complementarity_violation);
   }
