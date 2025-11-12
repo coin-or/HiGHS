@@ -399,26 +399,14 @@ void Model::print(const LogHighs& log) const {
   log.print(log_stream);
 }
 
+static double roundToPowerOf2(double d) {
+  int exp;  // int, not Int
+  std::frexp(d, &exp);
+  return std::ldexp(1.0, exp);
+}
+
 void Model::scale() {
-  // Apply Curtis-Reid scaling and scale the problem accordingly
-
-  // check if scaling is needed
-  bool need_scaling = false;
-  for (Int col = 0; col < n_; ++col) {
-    for (Int el = A_.start_[col]; el < A_.start_[col + 1]; ++el) {
-      if (std::abs(A_.value_[el]) != 1.0) {
-        need_scaling = true;
-        break;
-      }
-    }
-  }
-
-  if (!need_scaling) return;
-
-  // *********************************************************************
-  // Compute scaling
-  // *********************************************************************
-  // Transformation:
+  // Compute scaling:
   // A -> R * A * C
   // b -> R * b
   // c -> C * c
@@ -427,6 +415,39 @@ void Model::scale() {
   // z -> C * z
   // where R is row scaling, C is col scaling.
 
+  if (!needScaling()) return;
+
+  colscale_.resize(n_, 1.0);
+  rowscale_.resize(m_, 1.0);
+
+  CRscaling();
+  applyScaling();
+}
+
+bool Model::needScaling() {
+  bool need_scaling = false;
+
+  // check entries of A
+  for (Int col = 0; col < n_; ++col) {
+    for (Int el = A_.start_[col]; el < A_.start_[col + 1]; ++el) {
+      if (std::abs(A_.value_[el]) != 1.0) return true;
+    }
+  }
+
+  return false;
+
+  // check bounds
+  for (Int i = 0; i < n_; ++i) {
+    if (std::isfinite(lower_[i]) && std::isfinite(upper_[i])) {
+      const double diff = std::abs(lower_[i] - upper_[i]);
+      if (diff < kSmallBoundDiff || diff > kLargeBoundDiff) return true;
+    }
+  }
+}
+
+void Model::CRscaling() {
+  // Curtis-Reid scaling
+
   // Compute exponents for CR scaling of matrix A
   std::vector<Int> colexp(n_);
   std::vector<Int> rowexp(m_);
@@ -434,15 +455,11 @@ void Model::scale() {
       CurtisReidScaling(A_.start_, A_.index_, A_.value_, rowexp, colexp);
 
   // Compute scaling from exponents
-  colscale_.resize(n_);
-  rowscale_.resize(m_);
-  for (Int i = 0; i < n_; ++i) colscale_[i] = std::ldexp(1.0, colexp[i]);
-  for (Int i = 0; i < m_; ++i) rowscale_[i] = std::ldexp(1.0, rowexp[i]);
+  for (Int i = 0; i < n_; ++i) colscale_[i] *= std::ldexp(1.0, colexp[i]);
+  for (Int i = 0; i < m_; ++i) rowscale_[i] *= std::ldexp(1.0, rowexp[i]);
+}
 
-  // *********************************************************************
-  // Apply scaling
-  // *********************************************************************
-
+void Model::applyScaling() {
   // Column has been scaled up by colscale_[col], so cost is scaled up and
   // bounds are scaled down
   for (Int col = 0; col < n_; ++col) {
@@ -461,6 +478,58 @@ void Model::scale() {
       Int row = A_.index_[el];
       A_.value_[el] *= rowscale_[row];
       A_.value_[el] *= colscale_[col];
+    }
+  }
+}
+
+void Model::onePassNormScaling() {
+  // Compute a single pass of infinity-norm row scaling and a single pass of
+  // infinity-norm col scaling.
+
+  // infinity norm of rows
+  std::vector<double> norm_rows(m_);
+  for (Int col = 0; col < n_; ++col) {
+    for (Int el = A_.start_[col]; el < A_.start_[col + 1]; ++el) {
+      const Int row = A_.index_[el];
+      double value = A_.value_[el];
+      value *= colscale_[col];
+      value *= rowscale_[row];
+      norm_rows[row] = std::max(norm_rows[row], std::abs(value));
+    }
+  }
+
+  // apply row scaling
+  for (Int i = 0; i < m_; ++i)
+    rowscale_[i] *= roundToPowerOf2(1.0 / norm_rows[i]);
+
+  // infinity norm of columns
+  std::vector<double> norm_cols(n_);
+  for (Int col = 0; col < n_; ++col) {
+    for (Int el = A_.start_[col]; el < A_.start_[col + 1]; ++el) {
+      const Int row = A_.index_[el];
+      double value = A_.value_[el];
+      value *= colscale_[col];
+      value *= rowscale_[row];
+      norm_cols[col] = std::max(norm_cols[col], std::abs(value));
+    }
+  }
+
+  // apply col scaling
+  for (Int i = 0; i < n_; ++i)
+    colscale_[i] *= roundToPowerOf2(1.0 / norm_cols[i]);
+}
+
+void Model::boundScaling() {
+  for (Int i = 0; i < n_; ++i) {
+    if (std::isfinite(lower_[i]) && std::isfinite(upper_[i])) {
+      const double l = lower_[i] * colscale_[i];
+      const double u = upper_[i] * colscale_[i];
+      const double diff = std::abs(u - l);
+
+      if (diff < kSmallBoundDiff)
+        colscale_[i] *= roundToPowerOf2(kSmallBoundDiff / diff);
+      else if (diff > kLargeBoundDiff)
+        colscale_[i] *= roundToPowerOf2(kLargeBoundDiff / diff);
     }
   }
 }
