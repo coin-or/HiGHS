@@ -185,6 +185,7 @@ set(hipo_sources
     ipm/hipo/ipm/Iterate.cpp 
     ipm/hipo/ipm/LogHighs.cpp
     ipm/hipo/ipm/Model.cpp
+    ipm/hipo/ipm/Refine.cpp
     ipm/hipo/ipm/Solver.cpp)
 
 set(hipo_headers

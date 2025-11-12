@@ -97,48 +97,6 @@ void transpose(const std::vector<Int>& ptr, const std::vector<Int>& rows,
   }
 }
 
-void symProduct(const std::vector<Int>& ptr, const std::vector<Int>& rows,
-                const std::vector<double>& vals, const std::vector<double>& x,
-                std::vector<double>& y, double alpha) {
-  // Matrix-vector product in CSC format, for symmetric matrix which stores only
-  // the lower triangle.
-  // Compute y = y + alpha * M * x
-
-  const Int n = ptr.size() - 1;
-
-  for (Int col = 0; col < n; ++col) {
-    for (Int el = ptr[col]; el < ptr[col + 1]; ++el) {
-      Int row = rows[el];
-      double val = vals[el];
-
-      y[row] += alpha * val * x[col];
-      if (row != col) y[col] += alpha * val * x[row];
-    }
-  }
-}
-
-void symProductQuad(const std::vector<Int>& ptr, const std::vector<Int>& rows,
-                    const std::vector<double>& vals,
-                    const std::vector<double>& x, std::vector<HighsCDouble>& y,
-                    double alpha) {
-  // Matrix-vector product in CSC format, for symmetric matrix which stores only
-  // the lower triangle.
-  // Compute y = y + alpha * M * x
-
-  const Int n = ptr.size() - 1;
-
-  for (Int col = 0; col < n; ++col) {
-    for (Int el = ptr[col]; el < ptr[col + 1]; ++el) {
-      Int row = rows[el];
-      HighsCDouble val = vals[el];
-
-      y[row] += val * (HighsCDouble)x[col] * (HighsCDouble)alpha;
-      if (row != col)
-        y[col] += val * (HighsCDouble)x[row] * (HighsCDouble)alpha;
-    }
-  }
-}
-
 void childrenLinkedList(const std::vector<Int>& parent, std::vector<Int>& head,
                         std::vector<Int>& next) {
   // Create linked lists of children in elimination tree.

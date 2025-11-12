@@ -59,7 +59,7 @@ class Analyse {
   std::vector<Int> sn_parent_{};
 
   // temporary storage for relaxing supernodes
-  std::vector<Int> fake_nz_{};
+  std::vector<int64_t> fake_nz_{};
   std::vector<Int> merged_into_{};
   Int merged_sn_{};
 
@@ -84,14 +84,14 @@ class Analyse {
   DataCollector& data_;
 
   // Functions to perform analyse phase
-  Int getPermutation();
+  Int getPermutation(bool metis_no2hop);
   void permute(const std::vector<Int>& iperm);
   void eTree();
   void postorder();
   void colCount();
   void fundamentalSupernodes();
   void relaxSupernodes();
-  void relaxSupernodesSize();
+  double doRelaxSupernodes(int64_t max_artificial_nz);
   void afterRelaxSn();
   void snPattern();
   void relativeIndCols();
@@ -106,7 +106,8 @@ class Analyse {
  public:
   // Constructor: matrix must be in lower triangular format
   Analyse(const std::vector<Int>& rows, const std::vector<Int>& ptr,
-          const std::vector<Int>& signs, const Log* log, DataCollector& data);
+          const std::vector<Int>& signs, Int nb, const Log* log,
+          DataCollector& data);
 
   // Run analyse phase and save the result in Symbolic object S
   Int run(Symbolic& S);

@@ -12,7 +12,8 @@ Direct solver for IPM matrices.
 It requires Metis and BLAS.
 
 Consider a sparse symmetric matrix M in CSC format.
-Only its lower triangular part is used.
+Only its lower triangular part is used; entries in the upper triangle are
+ignored.
 The matrix has n rows/cols and nz nonzero entries in the lower triangle.
 It is stored using three arrays:
 - ptr, column pointers, of length n+1;
@@ -21,7 +22,6 @@ It is stored using three arrays:
 
 The direct solver uses the following objects:
 - Symbolic, to store the symbolic factorization;
-- Numeric, to store the numeric factorization;
 - FHsolver, to perform analyse and factorise phases.
 
 Define a vector signs that contains the expected sign of each pivot (1 or -1).
@@ -31,13 +31,10 @@ M^{-1} * rhs.
 Then, the factorization is performed as follows.
 
     Symbolic S;
-    Numeric N(S);
-
     FHsolver FH;
     FH.analyse(S, rows, ptr, signs);
-    FH.factorise(N, S, rows, ptr, val);
-
-    N.solve(rhs);
+    FH.factorise(S, rows, ptr, val);
+    FH.solve(x);
 
 Printing to screen is achieved using the interface in auxiliary/Log.h. Pass an
 object of type Log for normal printing:
@@ -45,12 +42,15 @@ object of type Log for normal printing:
     Log log;
     FHsolver FH(&log);
     ...
-Pass an object of type LogHighs for Highs logging:
+Pass an object of type LogHighs for Highs logging.
 Pass nothing to suppress all logging.
 
 To add static regularisation when the pivots are selected, use
 setRegularisation(reg_p,reg_d) to choose values of primal and dual
 regularisation. If regularisation is already added to the matrix, ignore.
+
+The default block size is 128. To set a different block size, pass it as second
+input to the constructor.
 
 */
 
@@ -60,10 +60,19 @@ class FHsolver {
   const Log* log_;
   DataCollector data_;
   Regul regul_;
+  Numeric N_;
+
+  const Int nb_;  // block size
+  static const Int default_nb_ = 128;
+
+  // Columns of factorisation, stored by supernode.
+  // This memory is allocated the first time that it is used. Subsequent
+  // factorisations reuse the same memory.
+  std::vector<std::vector<double>> sn_columns_;
 
  public:
   // Create object and initialise DataCollector
-  FHsolver(const Log* log = nullptr);
+  FHsolver(const Log* log = nullptr, Int block_size = default_nb_);
 
   // Print collected data (if any) and terminate DataCollector
   ~FHsolver();
@@ -78,8 +87,12 @@ class FHsolver {
   // numerical factorisation in object N. Matrix is moved into the object, so
   // rows, ptr, vals are invalid afterwards.
   // See ReturnValues.h for errors.
-  Int factorise(Numeric& N, const Symbolic& S, const std::vector<Int>& rows,
+  Int factorise(const Symbolic& S, const std::vector<Int>& rows,
                 const std::vector<Int>& ptr, const std::vector<double>& vals);
+
+  // Perform solve phase with rhs given by x, which is overwritten with the
+  // solution.
+  Int solve(std::vector<double>& x);
 
   // If multiple factorisation are performed, call newIter() before each
   // factorisation. This is used only to collect data for debugging, if
@@ -89,6 +102,8 @@ class FHsolver {
   // Set values for static regularisation to be added when a pivot is selected.
   // If regularisation is already added to the matrix, ignore.
   void setRegularisation(double reg_p, double reg_d);
+
+  void getRegularisation(std::vector<double>& reg);
 };
 
 }  // namespace hipo

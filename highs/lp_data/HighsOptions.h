@@ -303,6 +303,11 @@ const string kHipoNormalEqString = "normaleq";
 // Strings for MIP LP/IPM options
 const string kMipLpSolverString = "mip_lp_solver";
 const string kMipIpmSolverString = "mip_ipm_solver";
+// Strings for HiPO parallel method
+const string kHipoParallelString = "hipo_parallel_type";
+const string kHipoTreeString = "tree";
+const string kHipoNodeString = "node";
+const string kHipoBothString = "both";
 
 struct HighsOptionsStruct {
   // Run-time options read from the command line
@@ -333,8 +338,8 @@ struct HighsOptionsStruct {
   double objective_bound;
   double objective_target;
   HighsInt threads;
+  HighsInt user_objective_scale;
   HighsInt user_bound_scale;
-  HighsInt user_cost_scale;
   HighsInt highs_debug_level;
   HighsInt highs_analysis_level;
   HighsInt simplex_strategy;
@@ -367,6 +372,9 @@ struct HighsOptionsStruct {
   double ipm_optimality_tolerance;
   HighsInt ipm_iteration_limit;
   std::string hipo_system;
+  std::string hipo_parallel_type;
+  HighsInt hipo_block_size;
+  bool hipo_metis_no2hop;
 
   // Options for PDLP solver
   HighsInt pdlp_features_off;
@@ -513,8 +521,8 @@ struct HighsOptionsStruct {
         objective_bound(0.0),
         objective_target(0.0),
         threads(0),
+        user_objective_scale(0),
         user_bound_scale(0),
-        user_cost_scale(0),
         highs_debug_level(0),
         highs_analysis_level(0),
         simplex_strategy(0),
@@ -540,6 +548,9 @@ struct HighsOptionsStruct {
         ipm_optimality_tolerance(0.0),
         ipm_iteration_limit(0),
         hipo_system(""),
+        hipo_parallel_type(""),
+        hipo_block_size(0),
+        hipo_metis_no2hop(false),
         pdlp_features_off(0),
         pdlp_iteration_limit(0),
         pdlp_scaling_mode(0),
@@ -705,18 +716,11 @@ class HighsOptions : public HighsOptionsStruct {
         advanced, &presolve, kHighsChooseString);
     records.push_back(record_string);
 
-    record_string = new OptionRecordString(
-        kSolverString,
-        "Solver option: \"simplex\", \"choose\", \"ipm\", \"ipx\""
-#ifdef HIPO
-        ", \"hipo\""
-#endif
-        " or \"pdlp\"/\"cupdlp\"/\"hipdlp\". If "
-        "\"simplex\"/\"ipm\"/\"pdlp\"/\"cupdlp\"/\"hipdlp\" is chosen then, "
-        "for a MIP (QP) the "
-        "integrality "
-        "constraint (quadratic term) will be ignored",
-        advanced, &solver, kHighsChooseString);
+    record_string =
+        new OptionRecordString(kSolverString,
+                               "LP solver option: \"choose\", \"simplex\", "
+                               "\"ipm\", \"ipx\", \"hipo\" or \"pdlp\"",
+                               advanced, &solver, kHighsChooseString);
     records.push_back(record_string);
 
     record_string = new OptionRecordString(
@@ -828,13 +832,14 @@ class HighsOptions : public HighsOptionsStruct {
     records.push_back(record_int);
 
     record_int = new OptionRecordInt(
-        "user_bound_scale", "Exponent of power-of-two bound scaling for model",
-        advanced, &user_bound_scale, -kHighsIInf, 0, kHighsIInf);
+        "user_objective_scale",
+        "Exponent of power-of-two objective scaling for model", advanced,
+        &user_objective_scale, -kHighsIInf, 0, kHighsIInf);
     records.push_back(record_int);
 
     record_int = new OptionRecordInt(
-        "user_cost_scale", "Exponent of power-of-two cost scaling for model",
-        advanced, &user_cost_scale, -kHighsIInf, 0, kHighsIInf);
+        "user_bound_scale", "Exponent of power-of-two bound scaling for model",
+        advanced, &user_bound_scale, -kHighsIInf, 0, kHighsIInf);
     records.push_back(record_int);
 
     record_int = new OptionRecordInt("highs_debug_level",
@@ -1132,7 +1137,7 @@ class HighsOptions : public HighsOptionsStruct {
         "Maximal age of dynamic LP rows before "
         "they are removed from the LP relaxation in the MIP solver",
         advanced, &mip_lp_age_limit, 0, 10,
-        std::numeric_limits<int16_t>::max());
+        (std::numeric_limits<int16_t>::max)());
     records.push_back(record_int);
 
     record_int = new OptionRecordInt(
@@ -1230,26 +1235,17 @@ class HighsOptions : public HighsOptionsStruct {
         &mip_min_logging_interval, 0, 5, kHighsInf);
     records.push_back(record_double);
 
-    record_string = new OptionRecordString(
-        kMipLpSolverString,
-        "MIP LP solver option: \"choose\", \"simplex\", \"ipm\""
-#ifdef HIPO
-        ", \"ipx\" or \"hipo\"",
-#else
-        "or \"ipx\"",
-#endif
-        advanced, &mip_lp_solver, kHighsChooseString);
+    record_string =
+        new OptionRecordString(kMipLpSolverString,
+                               "MIP LP solver option: \"choose\", \"simplex\", "
+                               "\"ipm\", \"ipx\" or \"hipo\"",
+                               advanced, &mip_lp_solver, kHighsChooseString);
     records.push_back(record_string);
 
-    record_string =
-        new OptionRecordString(kMipIpmSolverString,
-                               "MIP IPM solver option: \"choose\""
-#ifdef HIPO
-                               ", \"ipx\" or \"hipo\"",
-#else
-                               "or \"ipx\"",
-#endif
-                               advanced, &mip_ipm_solver, kHighsChooseString);
+    record_string = new OptionRecordString(
+        kMipIpmSolverString,
+        "MIP IPM solver option: \"choose\", \"ipx\" or \"hipo\"", advanced,
+        &mip_ipm_solver, kHighsChooseString);
     records.push_back(record_string);
 
     record_double = new OptionRecordDouble(
@@ -1268,6 +1264,23 @@ class HighsOptions : public HighsOptionsStruct {
         "HiPO Newton system option: \"augmented\", \"normaleq\" or \"choose\".",
         advanced, &hipo_system, kHighsChooseString);
     records.push_back(record_string);
+
+    record_string =
+        new OptionRecordString(kHipoParallelString,
+                               "HiPO parallel option: \"tree\", "
+                               "\"node\" or \"both\".",
+                               advanced, &hipo_parallel_type, kHipoBothString);
+    records.push_back(record_string);
+
+    record_int = new OptionRecordInt(
+        "hipo_block_size", "Block size for dense linear algebra within HiPO",
+        advanced, &hipo_block_size, 0, 128, kHighsIInf);
+    records.push_back(record_int);
+
+    record_bool =
+        new OptionRecordBool("hipo_metis_no2hop", "Use option no2hop in Metis",
+                             advanced, &hipo_metis_no2hop, false);
+    records.push_back(record_bool);
 
     record_int = new OptionRecordInt(
         "pdlp_features_off",

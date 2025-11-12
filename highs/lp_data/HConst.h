@@ -20,9 +20,9 @@
 const std::string kHighsCopyrightStatement =
     "Copyright (c) 2025 HiGHS under MIT licence terms";
 
-const size_t kHighsSize_tInf = std::numeric_limits<size_t>::max();
-const HighsInt kHighsIInf = std::numeric_limits<HighsInt>::max();
-const HighsInt kHighsIInf32 = std::numeric_limits<int>::max();
+const size_t kHighsSize_tInf = (std::numeric_limits<size_t>::max)();
+const HighsInt kHighsIInf = (std::numeric_limits<HighsInt>::max)();
+const HighsInt kHighsIInf32 = (std::numeric_limits<int>::max)();
 const double kHighsInf = std::numeric_limits<double>::infinity();
 const double kHighsUndefined = kHighsInf;
 const double kHighsTiny = 1e-14;
@@ -34,10 +34,11 @@ const std::string kHighsOnString = "on";
 const HighsInt kHighsMaxStringLength = 512;
 const HighsInt kSimplexConcurrencyLimit = 8;
 const double kRunningAverageMultiplier = 0.05;
-const double kExcessivelyLargeBoundValue = 1e10;
-const double kExcessivelyLargeCostValue = 1e10;
+
+const double kExcessivelySmallObjectiveCoefficient = 1e-4;
+const double kExcessivelyLargeObjectiveCoefficient = 1e6;
 const double kExcessivelySmallBoundValue = 1e-4;
-const double kExcessivelySmallCostValue = 1e-4;
+const double kExcessivelyLargeBoundValue = 1e6;
 
 const HighsInt kNoThreadInstance = -1;
 const bool kAllowDeveloperAssert = false;

@@ -37,10 +37,14 @@ const Int kMinNumberSn = 10;
 const double kDenseColThresh = 0.5;
 const Int kMinRowsForDensity = 2000;
 
+// parameters for iterative refinement
+const Int kMaxIterRefine = 3;
+const double kTolRefine = 1e-12;
+
 // static regularisation
 struct Regularisation {
-  double primal = 1e-9;
-  double dual = 1e-9;
+  double primal = 1e-12;
+  double dual = 1e-10;
 };
 
 }  // namespace hipo

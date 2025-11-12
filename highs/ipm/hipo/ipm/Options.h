@@ -41,6 +41,9 @@ struct Options {
   OptionCrossover crossover = kOptionCrossoverDefault;
   OptionParallel parallel = kOptionParallelDefault;
 
+  // Metis options
+  bool metis_no2hop = false;
+
   // Ipm parameters
   Int max_iter = kMaxIterDefault;
   double feasibility_tol = kIpmTolDefault;
@@ -48,11 +51,13 @@ struct Options {
   double crossover_tol = kIpmTolDefault;
   bool refine_with_ipx = true;
   double time_limit = -1.0;
+  Int block_size = 0;
 
   // Logging
   bool display = true;
   bool display_ipx = false;
   bool timeless_log = false;
+  const HighsLogOptions* log_options = nullptr;
 };
 
 }  // namespace hipo

@@ -357,14 +357,18 @@ void HighsMipSolverData::startAnalyticCenterComputation(
     ipm.setOptionValue("presolve", kHighsOffString);
     // Determine the solver
     const std::string mip_ipm_solver = mipsolver.options_mip_->mip_ipm_solver;
-    // Currently use HiPO by default and take action on failure
-    // here. Later pass mip_ipm_solver and take action on failure in
-    // solveLp
+    // Currently use IPX by default and take action on failure here if
+    // using HiPO.
     bool use_hipo =
-#ifdef HIPO
+        /*
+  #ifdef HIPO
+        // Later use HiPO by default
         mip_ipm_solver == kHighsChooseString ||
-#endif
+  #endif
+        */
         mip_ipm_solver == kHipoString;
+    // Later still, pass mip_ipm_solver and take action on failure in
+    // solveLp
 #ifndef HIPO
     // Shouldn't be possible to choose HiPO if it's not in the build
     assert(!use_hipo);
@@ -1176,9 +1180,6 @@ try_again:
     tmpSolver.passModel(std::move(fixedModel));
     // Until a good decision can be made on whether to use simplex,
     // HiPO or IPX to solve an LP without a basis, use simplex
-    printf(
-        "HighsMipSolverData::transformNewIntegerFeasibleSolution "
-        "tmpSolver.run();\n");
     tmpSolver.setOptionValue("solver", kSimplexString);
     tmpSolver.run();
     if (!mipsolver.submip) {

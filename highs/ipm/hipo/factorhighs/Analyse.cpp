@@ -2,22 +2,27 @@
 
 #include <fstream>
 #include <iostream>
-#include <limits>
 #include <random>
 #include <stack>
 
 #include "DataCollector.h"
 #include "FactorHiGHSSettings.h"
-#include "GKlib.h"
 #include "ReturnValues.h"
 #include "ipm/hipo/auxiliary/Auxiliary.h"
 #include "ipm/hipo/auxiliary/Log.h"
+
+// define correct int type for Metis before header is included
+#ifdef HIGHSINT64
+#define IDXTYPEWIDTH 64
+#else
+#define IDXTYPEWIDTH 32
+#endif
 #include "metis.h"
 
 namespace hipo {
 
 Analyse::Analyse(const std::vector<Int>& rows, const std::vector<Int>& ptr,
-                 const std::vector<Int>& signs, const Log* log,
+                 const std::vector<Int>& signs, Int nb, const Log* log,
                  DataCollector& data)
     : log_{log}, data_{data} {
   // Input the symmetric matrix to be analysed in CSC format.
@@ -29,7 +34,7 @@ Analyse::Analyse(const std::vector<Int>& rows, const std::vector<Int>& ptr,
   n_ = ptr.size() - 1;
   nz_ = rows.size();
   signs_ = signs;
-  nb_ = kBlockSize;
+  nb_ = nb;
 
   // Create upper triangular part
   rows_upper_.resize(nz_);
@@ -57,7 +62,7 @@ Analyse::Analyse(const std::vector<Int>& rows, const std::vector<Int>& ptr,
   ready_ = true;
 }
 
-Int Analyse::getPermutation() {
+Int Analyse::getPermutation(bool metis_no2hop) {
   // Use Metis to compute a nested dissection permutation of the original matrix
 
   perm_.resize(n_);
@@ -105,18 +110,24 @@ Int Analyse::getPermutation() {
     }
   }
 
-  // call Metis
-  Int options[METIS_NOPTIONS];
+  idx_t options[METIS_NOPTIONS];
   METIS_SetDefaultOptions(options);
-  // fix seed of rng inside Metis, to make it deterministic (?)
-  options[METIS_OPTION_SEED] = 42;
+  options[METIS_OPTION_SEED] = kMetisSeed;
 
-  if (log_) log_->printDevInfo("Metis...");
+  // set logging of Metis depending on debug level
+  options[METIS_OPTION_DBGLVL] = 0;
+  if (log_->debug(2))
+    options[METIS_OPTION_DBGLVL] = METIS_DBG_INFO | METIS_DBG_COARSEN;
+
+  // set no2hop=1 if the user requested it
+  if (metis_no2hop) options[METIS_OPTION_NO2HOP] = 1;
+
+  if (log_) log_->printDevInfo("Running Metis\n");
 
   Int status = METIS_NodeND(&n_, temp_ptr.data(), temp_rows.data(), NULL,
                             options, perm_.data(), iperm_.data());
 
-  if (log_) log_->printDevInfo("done\n");
+  if (log_) log_->printDevInfo("Metis done\n");
   if (status != METIS_OK) {
     if (log_) log_->printDevInfo("Error with Metis\n");
     return kRetMetisError;
@@ -388,156 +399,9 @@ void Analyse::fundamentalSupernodes() {
   sn_parent_.back() = -1;
 }
 
-void Analyse::relaxSupernodes() {
-  // Child which produces smallest number of fake nonzeros is merged if
-  // resulting sn has fewer than max_artificial_nz fake nonzeros.
-  // Multiple values of max_artificial_nz are tried, chosen with bisection
-  // method, until the percentage of artificial nonzeros is in the range [1,2]%.
-
-  Int max_artificial_nz = kStartThreshRelax;
-  Int largest_below = -1;
-  Int smallest_above = -1;
-
-  for (Int iter = 0; iter < kMaxIterRelax; ++iter) {
-    // =================================================
-    // Build information about supernodes
-    // =================================================
-    std::vector<Int> sn_size(sn_count_);
-    std::vector<Int> clique_size(sn_count_);
-    fake_nz_.assign(sn_count_, 0);
-    for (Int i = 0; i < sn_count_; ++i) {
-      sn_size[i] = sn_start_[i + 1] - sn_start_[i];
-      clique_size[i] = col_count_[sn_start_[i]] - sn_size[i];
-      fake_nz_[i] = 0;
-    }
-
-    // build linked lists of children
-    std::vector<Int> first_child, next_child;
-    childrenLinkedList(sn_parent_, first_child, next_child);
-
-    // =================================================
-    // Merge supernodes
-    // =================================================
-    merged_into_.assign(sn_count_, -1);
-    merged_sn_ = 0;
-
-    for (Int sn = 0; sn < sn_count_; ++sn) {
-      // keep iterating through the children of the supernode, until there's no
-      // more child to merge with
-
-      while (true) {
-        Int child = first_child[sn];
-
-        // info for first criterion
-        Int nz_fakenz = INT_MAX;
-        Int size_fakenz = 0;
-        Int child_fakenz = -1;
-
-        while (child != -1) {
-          // how many zero rows would become nonzero
-          const Int rows_filled =
-              sn_size[sn] + clique_size[sn] - clique_size[child];
-
-          // how many zero entries would become nonzero
-          const Int nz_added = rows_filled * sn_size[child];
-
-          // how many artificial nonzeros would the merged supernode have
-          const Int total_art_nz = nz_added + fake_nz_[sn] + fake_nz_[child];
-
-          // Save child with smallest number of artificial zeros created.
-          // Ties are broken based on size of child.
-          if (total_art_nz < nz_fakenz ||
-              (total_art_nz == nz_fakenz && size_fakenz < sn_size[child])) {
-            nz_fakenz = total_art_nz;
-            size_fakenz = sn_size[child];
-            child_fakenz = child;
-          }
-
-          child = next_child[child];
-        }
-
-        if (nz_fakenz <= max_artificial_nz) {
-          // merging creates fewer nonzeros than the maximum allowed
-
-          // update information of parent
-          sn_size[sn] += size_fakenz;
-          fake_nz_[sn] = nz_fakenz;
-
-          // count number of merged supernodes
-          ++merged_sn_;
-
-          // save information about merging of supernodes
-          merged_into_[child_fakenz] = sn;
-
-          // remove child from linked list of children
-          child = first_child[sn];
-          if (child == child_fakenz) {
-            // child_smallest is the first child
-            first_child[sn] = next_child[child_fakenz];
-          } else {
-            while (next_child[child] != child_fakenz) {
-              child = next_child[child];
-            }
-            // now child is the previous child of child_smallest
-            next_child[child] = next_child[child_fakenz];
-          }
-
-        } else {
-          // no more children can be merged with parent
-          break;
-        }
-      }
-    }
-
-    // compute total number of artificial nonzeros and artificial ops for this
-    // value of max_artificial_nz
-    double temp_art_nz{};
-    double temp_art_ops{};
-    for (Int sn = 0; sn < sn_count_; ++sn) {
-      if (merged_into_[sn] == -1) {
-        temp_art_nz += fake_nz_[sn];
-
-        const double nn = sn_size[sn];
-        const double cc = clique_size[sn];
-        temp_art_ops += (nn + cc) * (nn + cc) * nn - (nn + cc) * nn * (nn + 1) +
-                        nn * (nn + 1) * (2 * nn + 1) / 6;
-      }
-    }
-    temp_art_ops -= dense_ops_norelax_;
-
-    // if enough fake nz or ops have been added, stop.
-    const double ratio_fake =
-        temp_art_ops / (temp_art_ops + dense_ops_norelax_);
-
-    // try to find ratio in interval [0.01,0.02] using bisection
-    if (ratio_fake < kLowerRatioRelax) {
-      // ratio too small
-      largest_below = max_artificial_nz;
-      if (smallest_above == -1) {
-        max_artificial_nz *= 2;
-      } else {
-        max_artificial_nz = (largest_below + smallest_above) / 2;
-      }
-    } else if (ratio_fake > kUpperRatioRelax) {
-      // ratio too large
-      smallest_above = max_artificial_nz;
-      if (largest_below == -1) {
-        max_artificial_nz /= 2;
-      } else {
-        max_artificial_nz = (largest_below + smallest_above) / 2;
-      }
-    } else {
-      // good ratio
-      return;
-    }
-  }
-}
-
-void Analyse::relaxSupernodesSize() {
-  // Smallest child is merged with parent, if child is small enough.
-
+double Analyse::doRelaxSupernodes(int64_t max_artificial_nz) {
   // =================================================
-  // build information about supernodes
+  // Build information about supernodes
   // =================================================
   std::vector<Int> sn_size(sn_count_);
   std::vector<Int> clique_size(sn_count_);
@@ -566,54 +430,57 @@ void Analyse::relaxSupernodesSize() {
       Int child = first_child[sn];
 
       // info for first criterion
-      Int size_smallest = INT_MAX;
-      Int child_smallest = -1;
-      Int nz_smallest = 0;
+      int64_t nz_fakenz = kHighsIInf;
+      Int size_fakenz = 0;
+      Int child_fakenz = -1;
 
       while (child != -1) {
         // how many zero rows would become nonzero
-        const Int rows_filled =
+        const int64_t rows_filled =
             sn_size[sn] + clique_size[sn] - clique_size[child];
 
         // how many zero entries would become nonzero
-        const Int nz_added = rows_filled * sn_size[child];
+        const int64_t nz_added = rows_filled * sn_size[child];
 
         // how many artificial nonzeros would the merged supernode have
-        const Int total_art_nz = nz_added + fake_nz_[sn] + fake_nz_[child];
+        const int64_t total_art_nz = nz_added + fake_nz_[sn] + fake_nz_[child];
 
-        if (sn_size[child] < size_smallest) {
-          size_smallest = sn_size[child];
-          child_smallest = child;
-          nz_smallest = total_art_nz;
+        // Save child with smallest number of artificial zeros created.
+        // Ties are broken based on size of child.
+        if (total_art_nz < nz_fakenz ||
+            (total_art_nz == nz_fakenz && size_fakenz < sn_size[child])) {
+          nz_fakenz = total_art_nz;
+          size_fakenz = sn_size[child];
+          child_fakenz = child;
         }
 
         child = next_child[child];
       }
 
-      if (size_smallest < kSnSizeRelax && sn_size[sn] < kSnSizeRelax) {
-        // smallest supernode is small enough to be merged with parent
+      if (nz_fakenz <= max_artificial_nz) {
+        // merging creates fewer nonzeros than the maximum allowed
 
         // update information of parent
-        sn_size[sn] += size_smallest;
-        fake_nz_[sn] = nz_smallest;
+        sn_size[sn] += size_fakenz;
+        fake_nz_[sn] = nz_fakenz;
 
         // count number of merged supernodes
         ++merged_sn_;
 
         // save information about merging of supernodes
-        merged_into_[child_smallest] = sn;
+        merged_into_[child_fakenz] = sn;
 
         // remove child from linked list of children
         child = first_child[sn];
-        if (child == child_smallest) {
+        if (child == child_fakenz) {
           // child_smallest is the first child
-          first_child[sn] = next_child[child_smallest];
+          first_child[sn] = next_child[child_fakenz];
         } else {
-          while (next_child[child] != child_smallest) {
+          while (next_child[child] != child_fakenz) {
             child = next_child[child];
           }
           // now child is the previous child of child_smallest
-          next_child[child] = next_child[child_smallest];
+          next_child[child] = next_child[child_fakenz];
         }
 
       } else {
@@ -622,6 +489,83 @@ void Analyse::relaxSupernodesSize() {
       }
     }
   }
+
+  // compute total number of artificial nonzeros and artificial ops for this
+  // value of max_artificial_nz
+  double temp_art_nz{};
+  double temp_art_ops{};
+  for (Int sn = 0; sn < sn_count_; ++sn) {
+    if (merged_into_[sn] == -1) {
+      temp_art_nz += fake_nz_[sn];
+
+      const double nn = sn_size[sn];
+      const double cc = clique_size[sn];
+      temp_art_ops += (nn + cc) * (nn + cc) * nn - (nn + cc) * nn * (nn + 1) +
+                      nn * (nn + 1) * (2 * nn + 1) / 6;
+    }
+  }
+  temp_art_ops -= dense_ops_norelax_;
+
+  // if enough fake nz or ops have been added, stop.
+  const double ratio_fake = temp_art_ops / (temp_art_ops + dense_ops_norelax_);
+
+  return ratio_fake;
+}
+
+void Analyse::relaxSupernodes() {
+  // Child which produces smallest number of fake nonzeros is merged if
+  // resulting sn has fewer than max_artificial_nz fake nonzeros.
+  // Multiple values of max_artificial_nz are tried, chosen with bisection
+  // method, until the percentage of artificial nonzeros is in the range [1,2]%.
+
+  int64_t max_artificial_nz = kStartThreshRelax;
+  int64_t largest_below = -1;
+  int64_t smallest_above = -1;
+
+  double best_dist_ratio = kHighsInf;
+  int64_t best_max_art_nz = -1;
+
+  for (Int iter = 0; iter < kMaxIterRelax; ++iter) {
+    // relax the supernodes and obtain the ratio of how many new ops have been
+    // added with the current value of max_artificial_nz
+    const double ratio_fake = doRelaxSupernodes(max_artificial_nz);
+
+    // store the best ratio, in case a good ratio is never found
+    double dist_ratio_fake = std::min(std::abs(ratio_fake - kLowerRatioRelax),
+                                      std::abs(ratio_fake - kUpperRatioRelax));
+    if (dist_ratio_fake < best_dist_ratio) {
+      best_dist_ratio = dist_ratio_fake;
+      best_max_art_nz = max_artificial_nz;
+    }
+
+    // try to find ratio in interval [0.01,0.02] using bisection
+    if (ratio_fake < kLowerRatioRelax) {
+      // ratio too small
+      largest_below = max_artificial_nz;
+      if (smallest_above == -1) {
+        max_artificial_nz *= 2;
+      } else {
+        max_artificial_nz = (largest_below + smallest_above) / 2;
+      }
+    } else if (ratio_fake > kUpperRatioRelax) {
+      // ratio too large
+      smallest_above = max_artificial_nz;
+      if (largest_below == -1) {
+        max_artificial_nz /= 2;
+      } else {
+        max_artificial_nz = (largest_below + smallest_above) / 2;
+      }
+    } else {
+      // good ratio
+      return;
+    }
+  }
+
+  // If reach here, no good ratio was found within kMaxIterRelax
+  // To avoid having a catastrophically bad ratio in pathological problems,
+  // choose the best ratio found
+
+  doRelaxSupernodes(best_max_art_nz);
 }
 
 void Analyse::afterRelaxSn() {
@@ -690,7 +634,7 @@ void Analyse::afterRelaxSn() {
       }
 
       // keep track of total number of artificial nonzeros
-      artificial_nz_ += (int64_t)fake_nz_[sn];
+      artificial_nz_ += fake_nz_[sn];
 
       // Compute number of indices for new sn.
       // This is equal to the number of columns in the new sn plus the clique
@@ -904,7 +848,7 @@ void Analyse::relativeIndClique() {
     const Int sn_clique_size = sn_column_size - sn_size;
 
     // count number of assembly operations during factorise
-    sparse_ops_ += sn_clique_size * (sn_clique_size + 1) / 2;
+    sparse_ops_ += (double)sn_clique_size * (sn_clique_size + 1) / 2;
 
     relind_clique_[sn].resize(sn_clique_size);
 
@@ -1295,7 +1239,7 @@ Int Analyse::run(Symbolic& S) {
 #if HIPO_TIMING_LEVEL >= 2
   Clock clock_items;
 #endif
-  if (Int metis_status = getPermutation()) return kRetMetisError;
+  if (getPermutation(S.metisNo2hop())) return kRetMetisError;
 #if HIPO_TIMING_LEVEL >= 2
   data_.sumTime(kTimeAnalyseMetis, clock_items.stop());
 #endif
@@ -1357,18 +1301,9 @@ Int Analyse::run(Symbolic& S) {
   computeBlockStart();
   computeCriticalPath();
 
-  // Too many nonzeros for the integer type selected
-  if (nz_factor_ >= std::numeric_limits<Int>::max()) {
-    if (log_) log_->printDevInfo("Integer overflow in analyse phase\n");
-    return kRetIntOverflow;
-  }
-
   // move relevant stuff into S
   S.n_ = n_;
   S.sn_ = sn_count_;
-
-  S.sn_ = sn_count_;
-  S.n_ = n_;
   S.nz_ = nz_factor_;
   S.fillin_ = (double)nz_factor_ / nz_;
   S.artificial_nz_ = artificial_nz_;
@@ -1378,6 +1313,7 @@ Int Analyse::run(Symbolic& S) {
   S.largest_front_ = *std::max_element(sn_indices_.begin(), sn_indices_.end());
   S.serial_storage_ = serial_storage_;
   S.flops_ = dense_ops_;
+  S.block_size_ = nb_;
 
   // compute largest supernode
   std::vector<Int> sn_size(sn_start_.begin() + 1, sn_start_.end());
@@ -1391,14 +1327,18 @@ Int Analyse::run(Symbolic& S) {
     if (i <= 100) S.sn_size_100_++;
   }
 
+  // Too many nonzeros for the integer type selected.
+  // Check after statistics have been moved into S, so that info is accessible
+  // for debug logging.
+  if (nz_factor_ >= kHighsIInf) {
+    if (log_) log_->printDevInfo("Integer overflow in analyse phase\n");
+    return kRetIntOverflow;
+  }
+
   // permute signs of pivots
   S.pivot_sign_ = std::move(signs_);
   permuteVector(S.pivot_sign_, perm_);
 
-  S.nz_ = nz_factor_;
-  S.flops_ = dense_ops_;
-  S.spops_ = sparse_ops_;
-  S.critops_ = critical_ops_;
   S.iperm_ = std::move(iperm_);
   S.rows_ = std::move(rows_sn_);
   S.ptr_ = std::move(ptr_sn_);
@@ -1411,6 +1351,8 @@ Int Analyse::run(Symbolic& S) {
 
 #if HIPO_TIMING_LEVEL >= 1
   data_.sumTime(kTimeAnalyse, clock_total.stop());
+#else
+  (void)data_;  // to avoid an unused-private-field warning
 #endif
 
   return kRetOk;

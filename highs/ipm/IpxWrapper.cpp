@@ -1,3 +1,4 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /*                                                                       */
 /*    This file is part of the HiGHS linear optimization suite           */
 /*                                                                       */
@@ -62,6 +63,10 @@ HighsStatus solveLpIpx(const HighsOptions& options, HighsTimer& timer,
   resetModelStatusAndHighsInfo(model_status, highs_info);
   // Create the LpSolver instance
   ipx::LpSolver lps;
+  // Use the current HiGHS time as an offset for the lps.control_
+  // elapsed time
+  lps.setTimerOffset(timer.read());
+
   // Set IPX parameters
   //
   // Cannot set internal IPX parameters directly since they are
@@ -120,8 +125,9 @@ HighsStatus solveLpIpx(const HighsOptions& options, HighsTimer& timer,
 
   parameters.analyse_basis_data =
       kHighsAnalysisLevelNlaData & options.highs_analysis_level;
-  // Determine the run time allowed for IPX
-  parameters.time_limit = options.time_limit - timer.read();
+  // Now that the lps.control_ elapsed time includes the HiGHS time,
+  // can use the HiGHS time limit
+  parameters.time_limit = options.time_limit;
   parameters.ipm_maxiter =
       options.ipm_iteration_limit - highs_info.ipm_iteration_count;
   // Determine if crossover is to be run or not
@@ -453,12 +459,18 @@ HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
 
   // Create solver instance
   hipo::Solver hipo{};
+  // This creates ipx::LpSolver ipx_lps_, in case HiPO has to switch
+  // to IPX, so use the current HiGHS time as an offset for the
+  // ipx_lps.control_ elapsed time
+  hipo.setIpxTimerOffset(timer.read());
 
   hipo::Options hipo_options{};
 
   hipo_options.display = true;
   if (!options.output_flag | !options.log_to_console)
     hipo_options.display = false;
+
+  hipo_options.log_options = &options.log_options;
 
   // Debug option is already considered through log_options.log_dev_level in
   // hipo::LogHighs::debug
@@ -497,13 +509,24 @@ HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
 
   // Potentially control if ipx is used for refinement and if it is displayed
   // hipo_options.refine_with_ipx = true;
-  // hipo_options.display_ipx = true;
+  hipo_options.display_ipx = true;
 
-  // Option parallel for now is just "on", "off", "choose".
-  // hipo can accept also partially on, to select only tree or node parallelism.
-  // It is worth considering whether this choice should be exposed to the user.
-  if (options.parallel == kHighsOnString)
-    hipo_options.parallel = hipo::kOptionParallelOn;
+  // if option parallel is on, it can be refined by option hipo_parallel_type
+  if (options.parallel == kHighsOnString) {
+    if (options.hipo_parallel_type == kHipoTreeString)
+      hipo_options.parallel = hipo::kOptionParallelTreeOnly;
+    else if (options.hipo_parallel_type == kHipoNodeString)
+      hipo_options.parallel = hipo::kOptionParallelNodeOnly;
+    else if (options.hipo_parallel_type == kHipoBothString)
+      hipo_options.parallel = hipo::kOptionParallelOn;
+    else {
+      highsLogUser(options.log_options, HighsLogType::kError,
+                   "Unknown value of option %s\n", kHipoParallelString.c_str());
+      model_status = HighsModelStatus::kSolveError;
+      return HighsStatus::kError;
+    }
+  }
+  // otherwise, option hipo_parallel_type is ignored
   else if (options.parallel == kHighsOffString)
     hipo_options.parallel = hipo::kOptionParallelOff;
   else {
@@ -520,20 +543,20 @@ HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
     hipo_options.nla = hipo::kOptionNlaChoose;
   } else {
     highsLogUser(options.log_options, HighsLogType::kError,
-                 "Unknown value of option hipo_system\n");
+                 "Unknown value of option %s\n", kHipoSystemString.c_str());
     model_status = HighsModelStatus::kSolveError;
     return HighsStatus::kError;
   }
 
-  // ===========================================================================
-  // TO DO
-  // - consider adding options for parallel tree/node
-  // - block size for dense factorisation can have large impact on performance
-  //   and depends on the specific architecture. It may be worth exposing it to
-  //   the user as an advanced option.
-  // ===========================================================================
+  // block size option
+  hipo_options.block_size = options.hipo_block_size;
 
-  hipo.set(hipo_options, options.log_options, callback, timer);
+  // metis options
+  hipo_options.metis_no2hop = options.hipo_metis_no2hop;
+
+  hipo.setOptions(hipo_options);
+  hipo.setTimer(timer);
+  hipo.setCallback(callback);
 
   // Transform problem to correct formulation
   hipo::Int num_col, num_row;

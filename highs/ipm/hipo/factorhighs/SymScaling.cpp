@@ -7,9 +7,9 @@
 
 namespace hipo {
 
-void product(const std::vector<double>& x, std::vector<double>& y,
-             const std::vector<Int>& ptr, const std::vector<Int>& rows,
-             const std::vector<double>& N) {
+static void product(const std::vector<double>& x, std::vector<double>& y,
+                    const std::vector<Int>& ptr, const std::vector<Int>& rows,
+                    const std::vector<double>& N) {
   // Multiply by matrix E, i.e. matrix A with all entries equal to one, in lower
   // triangular form, and sum component-wise product of N with x.
   // E * x + N .* x= y
@@ -30,10 +30,10 @@ void product(const std::vector<double>& x, std::vector<double>& y,
   // multiply by N
   for (Int i = 0; i < n; ++i) y[i] += N[i] * x[i];
 }
-void CG_for_CR_scaling(const std::vector<double>& b, std::vector<double>& x,
-                       const std::vector<double>& N,
-                       const std::vector<Int>& ptr,
-                       const std::vector<Int>& rows) {
+static void CG_for_CR_scaling(const std::vector<double>& b, std::vector<double>& x,
+                              const std::vector<double>& N,
+                              const std::vector<Int>& ptr,
+                              const std::vector<Int>& rows) {
   Int n = N.size();
 
   // initial residual
@@ -171,7 +171,7 @@ void JacekScalingSym(const std::vector<Int>& ptr, const std::vector<Int>& rows,
   for (Int iter = 0; iter < 10; ++iter) {
     // inf norm of columns
     std::vector<double> col_norms(n);
-    std::vector<double> col_min(n, std::numeric_limits<double>::max());
+    std::vector<double> col_min(n, kHighsInf);
     for (Int col = 0; col < n; ++col) {
       for (Int el = ptr[col]; el < ptr[col + 1]; ++el) {
         Int row = rows[el];

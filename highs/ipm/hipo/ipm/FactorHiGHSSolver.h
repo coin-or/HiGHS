@@ -13,19 +13,17 @@
 namespace hipo {
 
 class FactorHiGHSSolver : public LinearSolver {
-  // symbolic factorisation
-  Symbolic S_;
-
-  // numeric factorisation
-  Numeric N_;
-
   // object to perform factorisation
   FHsolver FH_;
+
+  // symbolic factorisation
+  Symbolic S_;
 
   // normal equations data
   std::vector<Int> ptrNE_, rowsNE_;
   std::vector<double> valNE_;
-  HighsSparseMatrix AT_;
+  std::vector<Int> ptrNE_rw_, idxNE_rw_;
+  std::vector<Int> corr_NE_;
 
   const Regularisation& regul_;
 
@@ -33,21 +31,26 @@ class FactorHiGHSSolver : public LinearSolver {
   IpmData* data_ = nullptr;
   const LogHighs& log_;
 
-  Int chooseNla(const Model& model, Options& options);
-  Int setNla(const Model& model, Options& options);
-  void setParallel(Options& options);
-  Int buildNEstructureDense(
-      const HighsSparseMatrix& A,
-      int64_t max_num_nz = std::numeric_limits<Int>::max());
-  Int buildNEstructureSparse(
-      const HighsSparseMatrix& A,
-      int64_t max_num_nz = std::numeric_limits<Int>::max());
+  const Model& model_;
+  Options& options_;
+
+  Int chooseNla();
+  Int setNla();
+  void setParallel();
+
+  Int buildNEstructure(const HighsSparseMatrix& A,
+                       int64_t nz_limit = kHighsIInf);
   Int buildNEvalues(const HighsSparseMatrix& A,
                     const std::vector<double>& scaling);
+  void freeNEmemory();
+
+  Int analyseAS(Symbolic& S);
+  Int analyseNE(Symbolic& S, int64_t nz_limit = kHighsIInf);
 
  public:
-  FactorHiGHSSolver(const Options& options, const Regularisation& regul, Info* info,
-                    IpmData* record, const LogHighs& log);
+  FactorHiGHSSolver(Options& options, const Model& model,
+                    const Regularisation& regul, Info* info, IpmData* record,
+                    const LogHighs& log);
 
   // Override functions
   Int factorAS(const HighsSparseMatrix& A,
@@ -59,11 +62,12 @@ class FactorHiGHSSolver : public LinearSolver {
   Int solveAS(const std::vector<double>& rhs_x,
               const std::vector<double>& rhs_y, std::vector<double>& lhs_x,
               std::vector<double>& lhs_y) override;
-  Int setup(const Model& model, Options& options) override;
+  Int setup() override;
   void clear() override;
   double flops() const override;
   double spops() const override;
   double nz() const override;
+  void getReg(std::vector<double>& reg) override;
 };
 
 }  // namespace hipo

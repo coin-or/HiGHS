@@ -166,6 +166,21 @@ class Highs {
                                  const HighsInt iObj = -1);
 
   /**
+   * @brief Get number of linear objectives from the incumbent model
+   */
+  HighsInt getNumLinearObjectives() const {
+    return multi_linear_objective_.size();
+  }
+
+  /**
+   * @brief Get a linear objective from the incumbent model
+   */
+  const HighsLinearObjective& getLinearObjective(const HighsInt idx) const {
+    assert(idx >= 0 && idx < int(multi_linear_objective_.size()));
+    return multi_linear_objective_[idx];
+  }
+
+  /**
    * @brief Clear the multiple linear objective data
    */
   HighsStatus clearLinearObjectives();
@@ -467,6 +482,13 @@ class Highs {
   }
 
   /**
+   * @brief Return an LP associated with a MIP and its solution, with
+   * each integer variable fixed to the value it takes in the MIP
+   * solution. If no solution is available, an error is returned.
+   */
+  HighsStatus getFixedLp(HighsLp& lp) const;
+
+  /**
    * @brief Return a const reference to the incumbent LP
    */
   const HighsLp& getLp() const { return model_.lp_; }
@@ -574,6 +596,13 @@ class Highs {
                                  const bool constraint,
                                  const HighsInt method = 0,
                                  const double ill_conditioning_bound = 1e-4);
+
+  /**
+   * @brief Get the suggested objective and bound scaling for the incumbent
+   * model
+   */
+  HighsStatus getObjectiveBoundScaling(HighsInt& suggested_objective_scale,
+                                       HighsInt& suggested_bound_scale);
 
   /**
    * @brief Get (any) irreducible infeasible subsystem (IIS)
@@ -1237,6 +1266,11 @@ class Highs {
   HighsStatus openLogFile(const std::string& log_file = "");
 
   /**
+   * @brief Close any open log file
+   */
+  HighsStatus closeLogFile();
+
+  /**
    * @brief Interpret common qualifiers to string values
    */
   std::string presolveStatusToString(
@@ -1272,14 +1306,14 @@ class Highs {
   }
 
   /**
-   * @Brief Put a copy of the current iterate - basis; invertible
+   * @brief Put a copy of the current iterate - basis; invertible
    * representation and dual edge weights - into storage within
    * HSimplexNla. Advanced method: for HiGHS MIP solver
    */
   HighsStatus putIterate();
 
   /**
-   * @Brief Get a copy of the iterate stored within HSimplexNla and
+   * @brief Get a copy of the iterate stored within HSimplexNla and
    * overwrite the current iterate. Advanced method: for HiGHS MIP
    * solver
    */
@@ -1314,7 +1348,7 @@ class Highs {
                                        HVector& row_ep_buffer);
 
   /**
-   * @Brief Get the primal simplex phase 1 dual values. Advanced
+   * @brief Get the primal simplex phase 1 dual values. Advanced
    * method: for HiGHS IIS calculation
    */
   const std::vector<double>& getPrimalPhase1Dual() const {
@@ -1592,6 +1626,9 @@ class Highs {
   // Invalidates the model status, solution_ and info_
   void invalidateModelStatusSolutionAndInfo();
   //
+  // Invalidates the model status and info_
+  void invalidateModelStatusAndInfo();
+  //
   // Sets model status to HighsModelStatus::kNotset
   void invalidateModelStatus();
   //
@@ -1660,6 +1697,8 @@ class Highs {
                                          const HighsVarType* usr_inegrality);
   HighsStatus changeCostsInterface(HighsIndexCollection& index_collection,
                                    const double* usr_col_cost);
+
+  bool feasibleWrtBounds(const bool columns = true) const;
   HighsStatus changeColBoundsInterface(HighsIndexCollection& index_collection,
                                        const double* usr_col_lower,
                                        const double* usr_col_upper);
@@ -1728,6 +1767,10 @@ class Highs {
   HighsStatus handleInfCost();
   void restoreInfCost(HighsStatus& return_status);
   HighsStatus optionChangeAction();
+
+  HighsStatus userScaleModel(HighsUserScaleData& data);
+  HighsStatus userScaleSolution(HighsUserScaleData& data,
+                                bool update_kkt = false);
   HighsStatus computeIllConditioning(HighsIllConditioning& ill_conditioning,
                                      const bool constraint,
                                      const HighsInt method,
