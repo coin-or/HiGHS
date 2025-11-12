@@ -10,3 +10,4 @@ The HiPO release exposed various issues flagged up via GitHub and email.
 
 Added singleton column stuffing to MIP presolve - see Gamrath et al., Progress in presolving for mixed integer programming. Math. Prog. Comp. 7, 367–398 (2015).
 
+## Build changes
