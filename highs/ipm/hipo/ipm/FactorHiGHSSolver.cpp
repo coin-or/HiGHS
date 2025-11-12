@@ -317,16 +317,13 @@ Int FactorHiGHSSolver::solveNE(const std::vector<double>& rhs,
   lhs = rhs;
 
   Clock clock;
-  Int solve_count;
-  double final_res;
-  if (FH_.solve(lhs, &solve_count, &final_res)) return kStatusErrorSolve;
+  if (FH_.solve(lhs)) return kStatusErrorSolve;
   if (info_) {
     info_->solve_time += clock.stop();
-    info_->solve_number += solve_count;
+    info_->solve_number++;
   }
   if (data_) {
-    data_->back().num_solves += solve_count;
-    data_->back().omega = std::max(data_->back().omega, final_res);
+    data_->back().num_solves++;
   }
 
   return kStatusOk;
@@ -347,16 +344,13 @@ Int FactorHiGHSSolver::solveAS(const std::vector<double>& rhs_x,
   rhs.insert(rhs.end(), rhs_y.begin(), rhs_y.end());
 
   Clock clock;
-  Int solve_count;
-  double final_res;
-  if (FH_.solve(rhs, &solve_count, &final_res)) return kStatusErrorSolve;
+  if (FH_.solve(rhs)) return kStatusErrorSolve;
   if (info_) {
     info_->solve_time += clock.stop();
-    info_->solve_number += solve_count;
+    info_->solve_number++;
   }
   if (data_) {
-    data_->back().num_solves += solve_count;
-    data_->back().omega = std::max(data_->back().omega, final_res);
+    data_->back().num_solves++;
   }
 
   // split lhs
@@ -369,6 +363,9 @@ Int FactorHiGHSSolver::solveAS(const std::vector<double>& rhs_x,
 double FactorHiGHSSolver::flops() const { return S_.flops(); }
 double FactorHiGHSSolver::spops() const { return S_.spops(); }
 double FactorHiGHSSolver::nz() const { return (double)S_.nz(); }
+void FactorHiGHSSolver::getReg(std::vector<double>& reg) {
+  return FH_.getRegularisation(reg);
+}
 
 Int FactorHiGHSSolver::analyseAS(Symbolic& S) {
   // Perform analyse phase of augmented system and return symbolic factorisation
@@ -393,7 +390,7 @@ Int FactorHiGHSSolver::analyseAS(Symbolic& S) {
   Int status = FH_.analyse(S, rowsLower, ptrLower, pivot_signs);
   if (info_) info_->analyse_AS_time = clock.stop();
 
-  if (status && log_.debug(1)) {
+  if (status && log_.debug(2)) {
     log_.print("Failed augmented system:");
     S.print(log_, true);
   }
@@ -432,7 +429,7 @@ Int FactorHiGHSSolver::analyseNE(Symbolic& S, int64_t nz_limit) {
   Int status = FH_.analyse(S, rowsNE_, ptrNE_, pivot_signs);
   if (info_) info_->analyse_NE_time = clock.stop();
 
-  if (status && log_.debug(1)) {
+  if (status && log_.debug(2)) {
     log_.print("Failed normal equations:");
     S.print(log_, true);
   }

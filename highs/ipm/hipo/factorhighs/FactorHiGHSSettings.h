@@ -47,10 +47,6 @@ const Int kBlockParallelThreshold = 5;
 // regularisation
 const double kDynamicDiagCoeff = 1e-24;
 
-// refinement
-const Int kMaxRefinementIter = 3;
-const double kRefinementTolerance = 1e-12;
-
 // metis
 const Int kMetisSeed = 42;
 

@@ -5,6 +5,7 @@
 
 #include "Info.h"
 #include "IpmData.h"
+#include "LinearSolver.h"
 #include "Model.h"
 #include "ipm/hipo/auxiliary/IntConfig.h"
 
@@ -20,6 +21,12 @@ struct NewtonDir {
   std::vector<double> zu{};
 
   NewtonDir(Int m, Int n);
+  void clear();
+  void add(const NewtonDir& d);
+};
+
+struct Residuals {
+  std::vector<double> r1, r2, r3, r4, r5, r6;
 };
 
 struct Iterate {
@@ -33,7 +40,7 @@ struct Iterate {
   std::vector<double> x, xl, xu, y, zl, zu;
 
   // residuals
-  std::vector<double> res1, res2, res3, res4, res5, res6;
+  Residuals res;
 
   // Newton direction
   NewtonDir delta;
@@ -49,6 +56,12 @@ struct Iterate {
 
   // regularisation values
   Regularisation& regul;
+  std::vector<double> total_reg;
+  double* Rp;
+  double* Rd;
+
+  // residuals of linear system for iterative refinement
+  Residuals ires;
 
   // ===================================================================================
   // Functions to construct, clear and check for nan or inf
@@ -59,14 +72,15 @@ struct Iterate {
   void clearIter();
   void clearRes();
   void clearDir();
+  void clearIres();
 
   // check if any component is nan or infinite
   bool isNan() const;
   bool isInf() const;
   bool isResNan() const;
   bool isResInf() const;
-  bool isDirNan() const;
-  bool isDirInf() const;
+  bool isDirNan(const NewtonDir& d) const;
+  bool isDirInf(const NewtonDir& d) const;
 
   // ===================================================================================
   // Compute:
@@ -133,13 +147,14 @@ struct Iterate {
   // (the computation of res7 takes into account only the components for which
   // the correspoding upper/lower bounds are finite)
   // ===================================================================================
-  std::vector<double> residual7() const;
+  std::vector<double> residual7(const Residuals& r) const;
 
   // ===================================================================================
   // Compute:
   //  res8 = res1 + A * Theta * res7
   // ===================================================================================
-  std::vector<double> residual8(const std::vector<double>& res7) const;
+  std::vector<double> residual8(const Residuals& r,
+                                const std::vector<double>& res7) const;
 
   // ===================================================================================
   // Extract solution to be returned to user:
@@ -175,6 +190,13 @@ struct Iterate {
   // unscaled.
   // ===================================================================================
   void finalResiduals(Info& info) const;
+
+  // ===================================================================================
+  // Compute residual of 6x6 linear system for iterative refinement.
+  // ===================================================================================
+  void residuals6x6(const NewtonDir& d);
+
+  void setReg(LinearSolver& LS, OptionNla opt);
 };
 
 }  // namespace hipo

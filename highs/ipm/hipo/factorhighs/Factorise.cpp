@@ -74,29 +74,17 @@ Factorise::Factorise(const Symbolic& S, const std::vector<Int>& rowsA,
     min_diag_ = std::min(min_diag_, val);
   }
 
-  // infinity norm of columns of A
-  inf_norm_cols_.assign(n_, 0.0);
-  for (Int col = 0; col < n_; ++col) {
-    for (Int el = ptrA_[col]; el < ptrA_[col + 1]; ++el) {
-      Int row = rowsA_[el];
-      double val = valA_[el];
-      inf_norm_cols_[col] = std::max(inf_norm_cols_[col], std::abs(val));
-      if (row != col)
-        inf_norm_cols_[row] = std::max(inf_norm_cols_[row], std::abs(val));
-    }
-  }
-
   // one norm of columns of A
-  one_norm_cols_.assign(n_, 0.0);
+  std::vector<double> one_norm_cols(n_, 0.0);
   for (Int col = 0; col < n_; ++col) {
     for (Int el = ptrA_[col]; el < ptrA_[col + 1]; ++el) {
       Int row = rowsA_[el];
       double val = valA_[el];
-      one_norm_cols_[col] += std::abs(val);
-      if (row != col) one_norm_cols_[row] += std::abs(val);
+      one_norm_cols[col] += std::abs(val);
+      if (row != col) one_norm_cols[row] += std::abs(val);
     }
   }
-  A_norm1_ = *std::max_element(one_norm_cols_.begin(), one_norm_cols_.end());
+  A_norm1_ = *std::max_element(one_norm_cols.begin(), one_norm_cols.end());
 
   data_.setNorms(A_norm1_, max_diag_);
 }
@@ -421,11 +409,6 @@ bool Factorise::run(Numeric& num) {
   num.total_reg_ = std::move(total_reg_);
   num.swaps_ = std::move(swaps_);
   num.pivot_2x2_ = std::move(pivot_2x2_);
-  num.ptrA_ = std::move(ptrA_);
-  num.rowsA_ = std::move(rowsA_);
-  num.valA_ = std::move(valA_);
-  num.one_norm_cols_ = std::move(one_norm_cols_);
-  num.inf_norm_cols_ = std::move(inf_norm_cols_);
   num.data_ = &data_;
 
 #if HIPO_TIMING_LEVEL >= 1
