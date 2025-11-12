@@ -46,6 +46,10 @@ const Int kMinRowsForDensity = 2000;
 const Int kMaxIterRefine = 3;
 const double kTolRefine = 1e-12;
 
+// parameters for scaling
+const double kSmallBoundDiff = 1e-3;
+const double kLargeBoundDiff = 1e3;
+
 // static regularisation
 struct Regularisation {
   double primal = 1e-12;

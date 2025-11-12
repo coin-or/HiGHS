@@ -72,7 +72,6 @@ class Model {
       inf_norm_rows_;
 
   void reformulate();
-  void scale();
   void preprocess();
   void denseColumns();
   Int checkData(const Int num_var, const Int num_con, const double* obj,
@@ -80,6 +79,13 @@ class Model {
                 const Int* A_ptr, const Int* A_rows, const double* A_vals,
                 const char* constraints) const;
   void computeNorms();
+
+  void scale();
+  bool needScaling();
+  void applyScaling();
+  void CRscaling();
+  void onePassNormScaling();
+  void boundScaling();
 
  public:
   // Initialise the model
