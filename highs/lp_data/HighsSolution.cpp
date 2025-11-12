@@ -55,7 +55,7 @@ void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
                       HighsInfo& highs_info) {
   HighsPrimalDualErrors primal_dual_errors;
   getLpKktFailures(options, lp, solution, basis, highs_info,
-                   primal_dual_errors);
+                   primal_dual_errors, false);
 }
 
 void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
@@ -64,7 +64,7 @@ void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
                       HighsPrimalDualErrors& primal_dual_errors,
                       const bool get_residuals) {
   getKktFailures(options, false, lp, lp.col_cost_, solution, highs_info,
-                 get_residuals);
+                 get_residuals, basis.valid);
   getPrimalDualBasisErrors(options, lp, solution, basis, primal_dual_errors);
   getPrimalDualGlpsolErrors(options, lp, lp.col_cost_, solution,
                             primal_dual_errors);
@@ -73,7 +73,8 @@ void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
 void getKktFailures(const HighsOptions& options, const bool is_qp,
                     const HighsLp& lp, const std::vector<double>& gradient,
                     const HighsSolution& solution, HighsInfo& highs_info,
-                    const bool get_residuals) {
+                    const bool get_residuals,
+		    const bool basic_solution) {
   double primal_feasibility_tolerance = options.primal_feasibility_tolerance;
   double dual_feasibility_tolerance = options.dual_feasibility_tolerance;
   double primal_residual_tolerance = options.primal_residual_tolerance;
@@ -444,7 +445,7 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
     // Determine the sum of complementarity violations
     const bool have_values = getComplementarityViolations(
         lp, solution, optimality_tolerance, num_complementarity_violation,
-        max_complementarity_violation);
+        max_complementarity_violation, basic_solution);
     assert(have_values);
   }
 
@@ -955,7 +956,8 @@ bool getComplementarityViolations(const HighsLp& lp,
                                   const HighsSolution& solution,
                                   const double optimality_tolerance,
                                   HighsInt& num_complementarity_violation,
-                                  double& max_complementarity_violation) {
+                                  double& max_complementarity_violation,
+				  const bool basic_solution) {
   num_complementarity_violation = kHighsIllegalComplementarityCount;
   max_complementarity_violation = kHighsIllegalComplementarityViolation;
   if (!solution.dual_valid) return false;
@@ -983,11 +985,13 @@ bool getComplementarityViolations(const HighsLp& lp,
     const double dual_residual = std::fabs(dual);
     const double complementarity_violation = primal_residual * dual_residual;
     if (complementarity_violation > optimality_tolerance) {
-      printf("getComplementarityViolations: %s %d has (primal / dual) residual (%g / %g) violation = %g\n",
-	     is_col ? "column" : "row",
-	     is_col ? int(iVar) : int(iRow),
-	     primal_residual, dual_residual,
-	     complementarity_violation);
+      if (basic_solution) {
+	printf("getComplementarityViolations: %s %d has (primal / dual) residual (%g / %g) violation = %g\n",
+	       is_col ? "column" : "row",
+	       is_col ? int(iVar) : int(iRow),
+	       primal_residual, dual_residual,
+	       complementarity_violation);
+      }
       num_complementarity_violation++;
     }
     max_complementarity_violation =
