@@ -220,10 +220,10 @@ Int denseFactFH(char format, Int n, Int k, Int nb, double* A, double* B,
             // schur_buf contains Schur complement in hybrid format (with full
             // diagonal blocks). Store it by columns in B (with full diagonal
             // blocks).
-            for (Int buf_row = 0; buf_row < nrow; ++buf_row) {
-              const Int N = ncol;
-              callAndTime_daxpy(N, 1.0, &schur_buf[buf_row * ncol], 1,
-                                &B[B_offset + buf_row], nrow, data);
+            for (Int buf_col = 0; buf_col < ncol; ++buf_col) {
+              const Int N = nrow;
+              callAndTime_daxpy(N, 1.0, &schur_buf[buf_col], ncol,
+                                &B[B_offset + buf_col * nrow], 1, data);
             }
           }
 
