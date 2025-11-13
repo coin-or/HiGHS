@@ -35,11 +35,20 @@ enum OptionParallel {
   kOptionParallelDefault = kOptionParallelChoose
 };
 
+enum OptionScaling {
+  kOptionScalingMin = 0,
+  kOptionCRscaling = kOptionScalingMin,
+  kOptionNormScaling,
+  kOptionScalingMax = kOptionNormScaling,
+  kOptionScalingDefault = kOptionCRscaling
+};
+
 struct Options {
   // Solver options
   OptionNla nla = kOptionNlaDefault;
   OptionCrossover crossover = kOptionCrossoverDefault;
   OptionParallel parallel = kOptionParallelDefault;
+  OptionScaling scaling = kOptionScalingDefault;
 
   // Metis options
   bool metis_no2hop = false;

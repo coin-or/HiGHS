@@ -445,6 +445,11 @@
 - Type: boolean
 - Default: false
 
+## hipo\_scaling
+- HiPO scaling strategy: "curtis-reid" or "norm"
+- Type: string
+- Default: "curtis-reid"
+
 ## pdlp\_scaling
 - Scaling option for PDLP solver: Default = true
 - Type: boolean
