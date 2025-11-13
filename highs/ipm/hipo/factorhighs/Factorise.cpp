@@ -7,6 +7,7 @@
 #include "FactorHiGHSSettings.h"
 #include "FormatHandler.h"
 #include "HybridHybridFormatHandler.h"
+#include "HybridPackedFormatHandler.h"
 #include "ReturnValues.h"
 #include "SymScaling.h"
 #include "ipm/hipo/auxiliary/Auxiliary.h"
