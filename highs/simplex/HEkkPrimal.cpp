@@ -1968,8 +1968,12 @@ void HEkkPrimal::phase2UpdatePrimal(const bool initialise) {
   // ignored. If they aren't ignored, then violations lead to either
   // identification of infeasibilities (and return to Phase 1) or
   // shifting of bounds to accommodate them.
+  //
+  // primal_correction_strategy is defined (const) as
+  // kSimplexPrimalCorrectionStrategyAlways
   const bool ignore_bounds =
       primal_correction_strategy == kSimplexPrimalCorrectionStrategyInRebuild;
+  assert(primal_correction_strategy == kSimplexPrimalCorrectionStrategyAlways);
   HighsInt to_entry;
   const bool use_col_indices = ekk_instance_.simplex_nla_.sparseLoopStyle(
       col_aq.count, num_row, to_entry);
@@ -1990,6 +1994,8 @@ void HEkkPrimal::phase2UpdatePrimal(const bool initialise) {
     if (!bound_violated) continue;
     // A bound is violated
     if (primal_correction_strategy == kSimplexPrimalCorrectionStrategyNone) {
+      // Not used
+      assert(111 == 222);
       // @primal_infeasibility calculation
       double primal_infeasibility;
       if (bound_violated < 0) {
@@ -2004,6 +2010,8 @@ void HEkkPrimal::phase2UpdatePrimal(const bool initialise) {
         primal_infeasible = true;
       }
     } else if (ignore_bounds) {
+      // Not used
+      assert(111 == 333);
       double ignored_violation;
       if (bound_violated < 0) {
         ignored_violation = lower - value;
@@ -2029,6 +2037,7 @@ void HEkkPrimal::phase2UpdatePrimal(const bool initialise) {
         info.baseLower_[iRow] = info.workLower_[iCol];
         info.workLowerShift_[iCol] += bound_shift;
       }
+      info.bounds_shifted = true;
       assert(bound_shift > 0);
     }
   }
