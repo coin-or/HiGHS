@@ -493,8 +493,10 @@ void HEkkPrimal::solvePhase1() {
     if (variable_in < 0) {
       // Optimal in phase 1, so should have primal infeasibilities
       assert(info.num_primal_infeasibilities > 0);
-      if (ekk_instance_.info_.bounds_perturbed) {
-        // Remove any bound perturbations and return to phase 1
+      if (ekk_instance_.info_.bounds_shifted ||
+	  ekk_instance_.info_.bounds_perturbed) {
+        // Remove any bound shifts or perturbations and return to
+        // phase 1
         cleanup();
       } else {
         ekk_instance_.model_status_ = HighsModelStatus::kInfeasible;
@@ -622,8 +624,10 @@ void HEkkPrimal::solvePhase2() {
     // There is no candidate in CHUZR, so probably primal unbounded
     highsLogDev(options.log_options, HighsLogType::kInfo,
                 "primal-phase-2-unbounded\n");
-    if (ekk_instance_.info_.bounds_perturbed) {
-      // If the bounds have been perturbed, clean up and return
+    if (ekk_instance_.info_.bounds_shifted ||
+	ekk_instance_.info_.bounds_perturbed) {
+      // If the bounds have been shifted or perturbed, clean up and
+      // return
       cleanup();
       // If there are primal infeasibilities, go back to phase 1
       if (ekk_instance_.info_.num_primal_infeasibilities > 0)
@@ -644,7 +648,8 @@ void HEkkPrimal::solvePhase2() {
 
 void HEkkPrimal::cleanup() {
   HighsSimplexInfo& info = ekk_instance_.info_;
-  if (!info.bounds_perturbed) return;
+  if (!info.bounds_shifted &&
+      !info.bounds_perturbed) return;
   highsLogDev(ekk_instance_.options_->log_options, HighsLogType::kDetailed,
               "primal-cleanup-shift\n");
   // Remove perturbation and don't permit further perturbation
@@ -1940,6 +1945,9 @@ void HEkkPrimal::considerInfeasibleValueIn() {
                  info.workLower_[variable_in], bound_shift);
       info.workLowerShift_[variable_in] += bound_shift;
     }
+    // Surely better to record this
+    //
+    //    info.bounds_shifted = true;
     info.bounds_perturbed = true;
   }
   ekk_instance_.invalidatePrimalMaxSumInfeasibilityRecord();
@@ -2091,6 +2099,9 @@ bool HEkkPrimal::correctPrimal(const bool initialise) {
         num_primal_correction++;
         max_primal_correction = max(bound_shift, max_primal_correction);
         sum_primal_correction += bound_shift;
+	// Surely better to record this
+	//
+	// info.bounds_shifted = true;
         info.bounds_perturbed = true;
       } else {
         // Bound perturbation is not permitted

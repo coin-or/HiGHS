@@ -192,6 +192,7 @@ void HEkk::clearEkkDataInfo() {
   info.backtracking_basis_.clear();
   info.backtracking_basis_costs_shifted_ = false;
   info.backtracking_basis_costs_perturbed_ = false;
+  info.backtracking_basis_bounds_shifted_ = false;
   info.backtracking_basis_bounds_perturbed_ = false;
   info.backtracking_basis_workShift_.clear();
   info.backtracking_basis_workLowerShift_.clear();
@@ -221,6 +222,7 @@ void HEkk::clearEkkDataInfo() {
   info.allow_bound_perturbation = true;
   info.costs_shifted = false;
   info.costs_perturbed = false;
+  info.bounds_shifted = false;
   info.bounds_perturbed = false;
 
   info.num_primal_infeasibilities = kHighsIllegalInfeasibilityCount;
@@ -1877,6 +1879,8 @@ bool HEkk::getBacktrackingBasis() {
   basis_ = info_.backtracking_basis_;
   info_.costs_shifted = (info_.backtracking_basis_costs_shifted_ != 0);
   info_.costs_perturbed = (info_.backtracking_basis_costs_perturbed_ != 0);
+  info_.bounds_shifted = (info_.backtracking_basis_bounds_shifted_ != 0);
+  info_.bounds_perturbed = (info_.backtracking_basis_bounds_perturbed_ != 0);
   info_.workShift_ = info_.backtracking_basis_workShift_;
   const HighsInt num_tot = lp_.num_col_ + lp_.num_row_;
   for (HighsInt iVar = 0; iVar < num_tot; iVar++)
@@ -1901,6 +1905,7 @@ void HEkk::putBacktrackingBasis(
   info_.backtracking_basis_.basicIndex_ = basicIndex_before_compute_factor;
   info_.backtracking_basis_costs_shifted_ = info_.costs_shifted;
   info_.backtracking_basis_costs_perturbed_ = info_.costs_perturbed;
+  info_.backtracking_basis_bounds_shifted_ = info_.bounds_shifted;
   info_.backtracking_basis_bounds_perturbed_ = info_.bounds_perturbed;
   info_.backtracking_basis_workShift_ = info_.workShift_;
   const HighsInt num_tot = lp_.num_col_ + lp_.num_row_;
@@ -2539,6 +2544,7 @@ void HEkk::initialiseBound(const SimplexAlgorithm algorithm,
                            const HighsInt solve_phase, const bool perturb) {
   initialiseLpColBound();
   initialiseLpRowBound();
+  info_.bounds_shifted = false;
   info_.bounds_perturbed = false;
   // Primal simplex bounds are either from the LP or perturbed
   if (algorithm == SimplexAlgorithm::kPrimal) {
@@ -3518,7 +3524,8 @@ HighsStatus HEkk::returnFromSolve(const HighsStatus return_status) {
     case HighsModelStatus::kInfeasible: {
       // Primal infeasibility has been identified in primal phase 1,
       // or proved in dual phase 2. There should be no primal
-      // perturbations
+      // perturbations or shifts
+      assert(!info_.bounds_shifted);
       assert(!info_.bounds_perturbed);
       if (exit_algorithm_ == SimplexAlgorithm::kPrimal) {
         // Reset the simplex costs and recompute duals after primal
@@ -3535,6 +3542,7 @@ HighsStatus HEkk::returnFromSolve(const HighsStatus return_status) {
       // Dual simplex has identified dual infeasibility in phase
       // 1. There should be no dual perturbations
       assert(exit_algorithm_ == SimplexAlgorithm::kDual);
+      assert(!info_.costs_shifted);
       assert(!info_.costs_perturbed);
       // Reset the simplex bounds and recompute primals
       initialiseBound(SimplexAlgorithm::kDual, kSolvePhase2);
@@ -3548,7 +3556,10 @@ HighsStatus HEkk::returnFromSolve(const HighsStatus return_status) {
       // Primal simplex has identified unboundedness in phase 2. There
       // should be no primal or dual perturbations
       assert(exit_algorithm_ == SimplexAlgorithm::kPrimal);
-      assert(!info_.costs_perturbed && !info_.bounds_perturbed);
+      assert(!info_.costs_shifted);
+      assert(!info_.costs_perturbed);
+      assert(!info_.bounds_shifted);
+      assert(!info_.bounds_perturbed);
       computeSimplexInfeasible();
       // Primal solution should be feasible
       assert(info_.num_primal_infeasibilities == 0);
@@ -3597,6 +3608,9 @@ HighsStatus HEkk::returnFromSolve(const HighsStatus return_status) {
   } else {
     return_dual_solution_status_ = kSolutionStatusInfeasible;
   }
+  // Basic duals are nonzero
+  //  assert(debugZeroBasicDuals());
+  assert(debugNoShiftsOrPerturbations());
   computePrimalObjectiveValue();
   if (!options_->log_dev_level) {
     const bool force = true;

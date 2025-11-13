@@ -1693,3 +1693,44 @@ HighsDebugStatus HEkk::debugSimplexDualInfeasible(const std::string message,
         info.sum_dual_infeasibilities);
   return HighsDebugStatus::kOk;
 }
+
+bool HEkk::debugZeroBasicDuals() const {
+  const std::vector<double>dual = this->info_.workDual_;
+  const std::vector<HighsInt>basis = this->basis_.basicIndex_;
+  for (HighsInt iRow = 0; iRow < this->lp_.num_row_; iRow++)
+    if (dual[basis[iRow]]) {
+      return false;
+    }
+  return true;
+}
+
+bool HEkk::debugNoShiftsOrPerturbations() const {
+  switch (model_status_) {
+    case HighsModelStatus::kOptimal: {
+      if (this->info_.costs_shifted ||
+	  this->info_.costs_perturbed ||
+	  this->info_.bounds_shifted ||
+	  this->info_.bounds_perturbed) {
+	return false;
+      }
+      break;
+    }
+    case HighsModelStatus::kInfeasible: {
+      if (this->info_.bounds_shifted ||
+	  this->info_.bounds_perturbed) {
+	return false;
+      }
+      break;
+    }
+    case HighsModelStatus::kUnboundedOrInfeasible: {
+      if (this->info_.costs_shifted ||
+	  this->info_.costs_perturbed) {
+	return false;
+      }
+      break;
+    }
+    default:
+      return true;
+  }
+  return true;
+}
