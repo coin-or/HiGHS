@@ -2773,6 +2773,10 @@ void HEkkPrimal::getBasicPrimalInfeasibility() {
   max_primal_infeasibility = 0;
   sum_primal_infeasibility = 0;
 
+  // #2643
+  HighsInt debug_num_primal_infeasibility = 0;
+  double debug_max_primal_infeasibility = 0;
+  double debug_sum_primal_infeasibility = 0;
   for (HighsInt iRow = 0; iRow < num_row; iRow++) {
     double value = info.baseValue_[iRow];
     double lower = info.baseLower_[iRow];
@@ -2790,6 +2794,19 @@ void HEkkPrimal::getBasicPrimalInfeasibility() {
       max_primal_infeasibility =
           std::max(primal_infeasibility, max_primal_infeasibility);
       sum_primal_infeasibility += primal_infeasibility;
+    }
+    double debug_primal_infeasibility = 0;
+    if (value < lower) {
+      debug_primal_infeasibility = lower - value;
+    } else if (value > upper) {
+      debug_primal_infeasibility = value - upper;
+    }
+    if (debug_primal_infeasibility > 0) {
+      if (debug_primal_infeasibility > primal_feasibility_tolerance)
+	debug_num_primal_infeasibility++;
+      debug_max_primal_infeasibility =
+	std::max(debug_primal_infeasibility, debug_max_primal_infeasibility);
+      debug_sum_primal_infeasibility += debug_primal_infeasibility;
     }
   }
   if (updated_num_primal_infeasibility >= 0) {
