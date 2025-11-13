@@ -564,6 +564,17 @@ HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
   }
   hipo_options.ordering = options.hipo_ordering;
 
+  if (options.hipo_scaling == kHipoCRscaling) {
+    hipo_options.scaling = hipo::kOptionCRscaling;
+  } else if (options.hipo_scaling == kHipoNormScaling) {
+    hipo_options.scaling = hipo::kOptionNormScaling;
+  } else {
+    highsLogUser(options.log_options, HighsLogType::kError,
+                 "Unknown value of option %s\n", kHipoScalingString.c_str());
+    model_status = HighsModelStatus::kSolveError;
+    return HighsStatus::kError;
+  }
+
   // block size option
   hipo_options.block_size = options.hipo_block_size;
 

@@ -445,6 +445,11 @@
 - Range: {0, 2147483647}
 - Default: 128
 
+## hipo\_scaling
+- HiPO scaling strategy: "curtis-reid" or "norm"
+- Type: string
+- Default: "curtis-reid"
+
 ## pdlp\_scaling
 - Scaling option for PDLP solver: Default = true
 - Type: boolean
