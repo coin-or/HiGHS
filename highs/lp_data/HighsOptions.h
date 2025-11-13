@@ -315,6 +315,10 @@ const string kHipoMetisString = "metis";
 const string kHipoAmdString = "amd";
 const string kHipoRcmString = "rcm";
 
+const string kHipoScalingString = "hipo_scaling";
+const string kHipoCRscaling = "curtis-reid";
+const string kHipoNormScaling = "norm";
+
 struct HighsOptionsStruct {
   // Run-time options read from the command line
   std::string presolve;
@@ -381,6 +385,7 @@ struct HighsOptionsStruct {
   std::string hipo_parallel_type;
   std::string hipo_ordering;
   HighsInt hipo_block_size;
+  std::string hipo_scaling;
 
   // Options for PDLP solver
   bool pdlp_scaling;
@@ -553,6 +558,7 @@ struct HighsOptionsStruct {
         hipo_parallel_type(""),
         hipo_ordering(""),
         hipo_block_size(0),
+        hipo_scaling(""),
         pdlp_scaling(false),
         pdlp_iteration_limit(0),
         pdlp_e_restart_method(0),
@@ -1290,6 +1296,13 @@ class HighsOptions : public HighsOptionsStruct {
         "hipo_block_size", "Block size for dense linear algebra within HiPO",
         advanced, &hipo_block_size, 0, 128, kHighsIInf);
     records.push_back(record_int);
+
+    record_string =
+        new OptionRecordString(kHipoScalingString,
+                               "HiPO scaling option: \"curtis-reid\" "
+                               "or \"norm\".",
+                               advanced, &hipo_scaling, kHipoCRscaling);
+    records.push_back(record_string);
 
     record_bool = new OptionRecordBool(
         "pdlp_scaling", "Scaling option for PDLP solver: Default = true",
