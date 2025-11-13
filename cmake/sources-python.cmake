@@ -183,6 +183,7 @@ set(hipo_sources_python
     highs/ipm/hipo/ipm/Iterate.cpp
     highs/ipm/hipo/ipm/LogHighs.cpp
     highs/ipm/hipo/ipm/Model.cpp
+    highs/ipm/hipo/ipm/Refine.cpp
     highs/ipm/hipo/ipm/Solver.cpp)
 
 set(hipo_headers_python
