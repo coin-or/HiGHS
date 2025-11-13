@@ -20,6 +20,7 @@
 #include "lp_data/HConst.h"
 #include "pdlp/cupdlp/cupdlp.h"  // For pdlpLogging
 #include "restart.hpp"
+#include "pdlp_gpu_debug.hpp"
 
 #define PDHG_CHECK_INTERVAL 40
 static constexpr double kDivergentMovement = 1e10;
@@ -490,8 +491,8 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
   }
 
   // --- 0. Using PowerMethod to estimate the largest eigenvalue ---
-  initializeStepSizes();
   setupGpu();
+  initializeStepSizes();
   PrimalDualParams working_params = params_;
   working_params.omega = std::sqrt(stepsize_.dual_step / stepsize_.primal_step);
   working_params.eta = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
@@ -515,8 +516,7 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
   linalg::project_bounds(lp_, x_current_);
   linalg::project_bounds(lp_, x_sum_);
   linalg::project_bounds(lp_, x_avg_);
-  //linalg::Ax(lp, x_current_, Ax_cache_);
-  linalgGpuAx(x_current_, Ax_cache_);
+  linalg::Ax(lp, x_current_, Ax_cache_);
   std::vector<double> Ax_avg = Ax_cache_;
   std::vector<double> ATy_avg(lp.num_col_, 0.0);
 
@@ -648,9 +648,17 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         // Recompute Ax and ATy for the restarted iterates
         hipdlpTimerStart(kHipdlpClockMatrixMultiply);
         linalg::Ax(lp, x_current_, Ax_cache_);
+        std::vector<double> cup_ax = Ax_cache_;
+        std::vector<double> gpu_ax(lp_.num_row_,0.0);
+        linalgGpuAx(x_current_, gpu_ax);
+        bool are_ax_same = vecDiff(cup_ax, gpu_ax, 1e-12,"restart Ax");
         hipdlpTimerStop(kHipdlpClockMatrixMultiply);
         hipdlpTimerStart(kHipdlpClockMatrixTransposeMultiply);
         linalg::ATy(lp, y_current_, ATy_cache_);
+        std::vector<double> cup_aty = ATy_cache_;
+        std::vector<double> gpu_aty(lp_.num_col_,0.0);
+        linalgGpuATy(y_current_, gpu_aty);
+        bool are_aty_same = vecDiff(cup_aty, gpu_aty, 1e-12,"restart ATy");
         hipdlpTimerStop(kHipdlpClockMatrixTransposeMultiply);
 
         restart_scheme_.SetLastRestartIter(iter);
@@ -822,10 +830,18 @@ void PDLPSolver::computeAverageIterate(std::vector<double>& ax_avg,
 
   hipdlpTimerStart(kHipdlpClockAverageIterateMatrixMultiply);
   linalg::Ax(lp_, x_avg_, ax_avg);
+  std::vector<double> cup_ax = ax_avg;
+  std::vector<double> gpu_ax(lp_.num_row_,0.0);
+  linalgGpuAx(x_avg_, gpu_ax);
+  bool are_ax_same = vecDiff(cup_ax, gpu_ax, 1e-12,"computeAverageIterate");
   hipdlpTimerStop(kHipdlpClockAverageIterateMatrixMultiply);
 
   hipdlpTimerStart(kHipdlpClockAverageIterateMatrixTransposeMultiply);
   linalg::ATy(lp_, y_avg_, aty_avg);
+  std::vector<double> cup_aty = aty_avg;
+  std::vector<double> gpu_aty(lp_.num_col_,0.0);
+  linalgGpuATy(y_avg_, gpu_aty);
+  bool are_aty_same = vecDiff(cup_aty, gpu_aty, 1e-12,"computeAverageIterate");
   hipdlpTimerStop(kHipdlpClockAverageIterateMatrixTransposeMultiply);
 
   debug_pdlp_data_.ax_average_norm = linalg::vector_norm_squared(ax_avg);
@@ -1138,7 +1154,15 @@ double PDLPSolver::PowerMethod() {
       //
       // Compute A'Ax = A'(Ax)
       linalg::Ax(lp, x_vec, y_vec);
+      std::vector<double> ax_cpu = y_vec;  // For timing consistency
+      std::vector<double> ax_gpu(lp.num_row_);
+      linalgGpuAx(x_vec, ax_gpu);
+      bool are_same = vecDiff(ax_cpu, ax_gpu, 1e-12, "Power method Ax");
       linalg::ATy(lp, y_vec, z_vec);  // Note: ATy computes A' * vector
+      std::vector<double> atx_cpu = z_vec;  // For timing consistency
+      std::vector<double> atx_gpu(lp.num_col_);
+      linalgGpuATy(y_vec, atx_gpu);
+      are_same = vecDiff(atx_cpu, atx_gpu, 1e-12, "Power method A'Tx");
 
       // Estimate the squared operator norm (largest eigenvalue of A'A)
       op_norm_sq = linalg::dot(
@@ -1432,6 +1456,10 @@ void PDLPSolver::updateIteratesFixed() {
 
   hipdlpTimerStart(kHipdlpClockMatrixMultiply);
   linalg::Ax(lp_, x_next_, Ax_next_);
+  std::vector<double> cup_ax = Ax_next_;
+  std::vector<double> gpu_ax(lp_.num_row_,0.0);
+  linalgGpuAx(x_next_, gpu_ax);
+  bool are_ax_same = vecDiff(cup_ax, gpu_ax, 1e-12,"updateIteratesFixed");
   hipdlpTimerStop(kHipdlpClockMatrixMultiply);
 
   hipdlpTimerStart(kHipdlpClockProjectY);
@@ -1440,6 +1468,10 @@ void PDLPSolver::updateIteratesFixed() {
 
   hipdlpTimerStart(kHipdlpClockMatrixTransposeMultiply);
   linalg::ATy(lp_, y_next_, ATy_next_);
+  std::vector<double> cup_aty = ATy_next_;
+  std::vector<double> gpu_aty(lp_.num_col_,0.0);
+  linalgGpuATy(y_next_, gpu_aty);
+  bool are_aty_same = vecDiff(cup_aty, gpu_aty, 1e-12,"updateIteratesFixed");
   hipdlpTimerStop(kHipdlpClockMatrixTransposeMultiply);
 }
 
@@ -1487,6 +1519,10 @@ void PDLPSolver::updateIteratesAdaptive() {
 
     hipdlpTimerStart(kHipdlpClockMatrixMultiply);
     linalg::Ax(lp_, xupdate, axupdate);
+    std::vector<double> cup_ax = axupdate;
+    std::vector<double> gpu_ax(lp_.num_row_,0.0);
+    linalgGpuAx(xupdate, gpu_ax);
+    bool are_ax_same = vecDiff(cup_ax, gpu_ax, 1e-12,"updateIteratesAdaptive");
     hipdlpTimerStop(kHipdlpClockMatrixMultiply);
 
     // Dual update with timing
@@ -1496,6 +1532,10 @@ void PDLPSolver::updateIteratesAdaptive() {
 
     hipdlpTimerStart(kHipdlpClockMatrixTransposeMultiply);
     linalg::ATy(lp_, yupdate, atyupdate);
+    std::vector<double> cup_aty = atyupdate;
+    std::vector<double> gpu_aty(lp_.num_col_,0.0);
+    linalgGpuATy(yupdate, gpu_aty);
+    bool are_aty_same = vecDiff(cup_aty, gpu_aty, 1e-12,"updateIteratesAdaptive");
     hipdlpTimerStop(kHipdlpClockMatrixTransposeMultiply);
 
     // Compute deltas
@@ -1671,15 +1711,14 @@ void PDLPSolver::setupGpu(){
   const std::vector<double>& h_a_val = lp_csr.value_;
 
   //3. Allocate and copy A's CSR data to GPU
-  CUDA_CHECK(cudaMalloc((void**)&d_a_row_ptr_, (a_num_cols_ + 1) * sizeof(int)));
+  CUDA_CHECK(cudaMalloc((void**)&d_a_row_ptr_, (a_num_rows_ + 1) * sizeof(int)));
   CUDA_CHECK(cudaMalloc((void**)&d_a_col_ind_, a_nnz_ * sizeof(int)));
   CUDA_CHECK(cudaMalloc((void**)&d_a_val_, a_nnz_ * sizeof(double)));
-
-  CUDA_CHECK(cudaMemcpy(d_a_row_ptr_, h_a_row_ptr.data(), (a_num_cols_ + 1) * sizeof(int), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_a_row_ptr_, h_a_row_ptr.data(), (a_num_rows_ + 1) * sizeof(int), cudaMemcpyHostToDevice));
   CUDA_CHECK(cudaMemcpy(d_a_col_ind_, h_a_col_ind.data(), a_nnz_ * sizeof(int), cudaMemcpyHostToDevice));
   CUDA_CHECK(cudaMemcpy(d_a_val_, h_a_val.data(), a_nnz_ * sizeof(double), cudaMemcpyHostToDevice));
 
-  CUSPARSE_CHECK(cusparseCreateCsr(&mat_a_T_csr_, a_num_cols_, a_num_rows_, a_nnz_,
+  CUSPARSE_CHECK(cusparseCreateCsr(&mat_a_csr_, a_num_rows_, a_num_cols_, a_nnz_,
                                     d_a_row_ptr_, d_a_col_ind_, d_a_val_,
                                     CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
                                     CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F));
@@ -1689,15 +1728,16 @@ void PDLPSolver::setupGpu(){
   const std::vector<int>& h_at_col_ind = lp_.a_matrix_.index_;
   const std::vector<double>& h_at_val = lp_.a_matrix_.value_;
 
-  CUDA_CHECK(cudaMalloc((void**)&d_at_row_ptr_, (a_num_rows_ + 1) * sizeof(int)));
+  CUDA_CHECK(cudaMalloc((void**)&d_at_row_ptr_, (a_num_cols_ + 1) * sizeof(int)));  // Fixed!
   CUDA_CHECK(cudaMalloc((void**)&d_at_col_ind_, a_nnz_ * sizeof(int)));
-  CUDA_CHECK(cudaMalloc((void**)&d_at_val_, a_nnz_ * sizeof(double)));  
+  CUDA_CHECK(cudaMalloc((void**)&d_at_val_, a_nnz_ * sizeof(double)));
 
-  CUDA_CHECK(cudaMemcpy(d_at_row_ptr_, h_at_row_ptr.data(), (a_num_rows_ + 1) * sizeof(int), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_at_row_ptr_, h_at_row_ptr.data(), (a_num_cols_ + 1) * sizeof(int), cudaMemcpyHostToDevice));
   CUDA_CHECK(cudaMemcpy(d_at_col_ind_, h_at_col_ind.data(), a_nnz_ * sizeof(int), cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemcpy(d_at_val_, h_at_val.data(), a_nnz_ * sizeof(double), cudaMemcpyHostToDevice));  
+  CUDA_CHECK(cudaMemcpy(d_at_val_, h_at_val.data(), a_nnz_ * sizeof(double), cudaMemcpyHostToDevice));
 
-  CUSPARSE_CHECK(cusparseCreateCsr(&mat_a_csr_, a_num_rows_, a_num_cols_, a_nnz_,
+  // Create AT descriptor with swapped dimensions
+  CUSPARSE_CHECK(cusparseCreateCsr(&mat_a_T_csr_, a_num_cols_, a_num_rows_, a_nnz_,  // Dimensions swapped!
                                     d_at_row_ptr_, d_at_col_ind_, d_at_val_,
                                     CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
                                     CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F));
