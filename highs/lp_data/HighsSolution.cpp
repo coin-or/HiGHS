@@ -54,8 +54,8 @@ void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
                       const HighsSolution& solution, const HighsBasis& basis,
                       HighsInfo& highs_info) {
   HighsPrimalDualErrors primal_dual_errors;
-  getLpKktFailures(options, lp, solution, basis, highs_info,
-                   primal_dual_errors, false);
+  getLpKktFailures(options, lp, solution, basis, highs_info, primal_dual_errors,
+                   false);
 }
 
 void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
@@ -73,8 +73,7 @@ void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
 void getKktFailures(const HighsOptions& options, const bool is_qp,
                     const HighsLp& lp, const std::vector<double>& gradient,
                     const HighsSolution& solution, HighsInfo& highs_info,
-                    const bool get_residuals,
-		    const bool basic_solution) {
+                    const bool get_residuals, const bool basic_solution) {
   double primal_feasibility_tolerance = options.primal_feasibility_tolerance;
   double dual_feasibility_tolerance = options.dual_feasibility_tolerance;
   double primal_residual_tolerance = options.primal_residual_tolerance;
@@ -957,7 +956,7 @@ bool getComplementarityViolations(const HighsLp& lp,
                                   const double optimality_tolerance,
                                   HighsInt& num_complementarity_violation,
                                   double& max_complementarity_violation,
-				  const bool basic_solution) {
+                                  const bool basic_solution) {
   num_complementarity_violation = kHighsIllegalComplementarityCount;
   max_complementarity_violation = kHighsIllegalComplementarityViolation;
   if (!solution.dual_valid) return false;
@@ -986,11 +985,11 @@ bool getComplementarityViolations(const HighsLp& lp,
     const double complementarity_violation = primal_residual * dual_residual;
     if (complementarity_violation > optimality_tolerance) {
       if (basic_solution) {
-	printf("getComplementarityViolations: %s %d has (primal / dual) residual (%g / %g) violation = %g\n",
-	       is_col ? "column" : "row",
-	       is_col ? int(iVar) : int(iRow),
-	       primal_residual, dual_residual,
-	       complementarity_violation);
+        printf(
+            "getComplementarityViolations: %s %d has (primal / dual) residual "
+            "(%g / %g) violation = %g\n",
+            is_col ? "column" : "row", is_col ? int(iVar) : int(iRow),
+            primal_residual, dual_residual, complementarity_violation);
       }
       num_complementarity_violation++;
     }

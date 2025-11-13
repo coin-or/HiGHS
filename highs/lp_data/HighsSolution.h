@@ -82,8 +82,8 @@ void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
 void getKktFailures(const HighsOptions& options, const bool is_qp,
                     const HighsLp& lp, const std::vector<double>& gradient,
                     const HighsSolution& solution, HighsInfo& highs_info,
-                    const bool get_residuals,// = false,
-		    const bool basic_solution = false);
+                    const bool get_residuals,  // = false,
+                    const bool basic_solution = false);
 
 void getVariableKktFailures(const double primal_feasibility_tolerance,
                             const double dual_feasibility_tolerance,
@@ -109,7 +109,7 @@ bool getComplementarityViolations(const HighsLp& lp,
                                   const double optimality_tolerance,
                                   HighsInt& num_complementarity_violations,
                                   double& max_complementarity_violation,
-				  const bool basic_solution = false);
+                                  const bool basic_solution = false);
 
 bool computeDualObjectiveValue(const HighsModel& model,
                                const HighsSolution& solution,

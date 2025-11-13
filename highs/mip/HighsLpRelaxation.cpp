@@ -1153,18 +1153,19 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
   }
   if (use_simplex) {
     const HighsLp& lp = lpsolver.getLp();
-    const bool check_lp = lp.num_col_ == 9 && lp.num_row_ == 23 && lp.a_matrix_.numNz() == 200;
+    const bool check_lp = this->numSolved == 8 && lp.num_col_ == 9 &&
+                          lp.num_row_ == 23 && lp.a_matrix_.numNz() == 200;
     if (check_lp) {
       printf("HighsLpRelaxation::run Checking solution of LP\n");
       lpsolver.setOptionValue("output_flag", true);
-      lpsolver.setOptionValue("log_dev_level", 3);
-      lpsolver.setOptionValue("highs_analysis_level", 4);
-    }      
+      lpsolver.setOptionValue("log_dev_level", 1);  // 3);
+      //      lpsolver.setOptionValue("highs_analysis_level", 4);
+    }
     callstatus = lpsolver.run();
     if (check_lp) {
       lpsolver.setOptionValue("output_flag", false);
       lpsolver.setOptionValue("log_dev_level", 0);
-    }      
+    }
   }
   // Revert the value of lpsolver.options_.solver
   lpsolver.setOptionValue("solver", solver);

@@ -2897,13 +2897,15 @@ HighsStatus Highs::lpKktCheck(const HighsLp& lp, const std::string& message) {
             info.max_relative_dual_residual_error, dual_residual_tolerance);
       }
       if (info.num_complementarity_violations) {
-	if (!this->options_.output_flag) {
-	  printf("Highs::lpKktCheck With basis num_complementarity_violations = %d\n",
-		 int(info.num_complementarity_violations));
-	  this->options_.output_flag = true;
-	  this->writeSolution("", 1);
-	  this->lpKktCheck(lp, message);
-	}
+        if (!this->options_.output_flag) {
+          printf(
+              "Highs::lpKktCheck With basis num_complementarity_violations = "
+              "%d\n",
+              int(info.num_complementarity_violations));
+          this->options_.output_flag = true;
+          this->writeSolution("", 1);
+          this->lpKktCheck(lp, message);
+        }
       }
       assert(info.num_complementarity_violations == 0);
       assert(info.primal_dual_objective_error <= optimality_tolerance);
