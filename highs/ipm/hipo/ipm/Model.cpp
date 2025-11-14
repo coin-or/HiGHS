@@ -425,6 +425,9 @@ void Model::scale(OptionScaling opt) {
     }
   }
 
+  assert(!isNanVector(colscale_) && !isNanVector(rowscale_) &&
+         !isInfVector(colscale_) && !isInfVector(rowscale_));
+
   applyScaling();
 }
 
