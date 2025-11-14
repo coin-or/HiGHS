@@ -14,7 +14,7 @@ Int Solver::load(const Int num_var, const Int num_con, const double* obj,
                  const Int* A_ptr, const Int* A_rows, const double* A_vals,
                  const char* constraints, double offset) {
   if (model_.init(num_var, num_con, obj, rhs, lower, upper, A_ptr, A_rows,
-                  A_vals, constraints, offset))
+                  A_vals, constraints, offset, options_.scaling))
     return kStatusBadModel;
 
   m_ = model_.m();

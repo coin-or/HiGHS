@@ -9,7 +9,7 @@ namespace hipo {
 Int Model::init(const Int num_var, const Int num_con, const double* obj,
                 const double* rhs, const double* lower, const double* upper,
                 const Int* A_ptr, const Int* A_rows, const double* A_vals,
-                const char* constraints, double offset) {
+                const char* constraints, double offset, OptionScaling opt) {
   // copy the input into the model
 
   if (checkData(num_var, num_con, obj, rhs, lower, upper, A_ptr, A_rows, A_vals,
@@ -45,7 +45,7 @@ Int Model::init(const Int num_var, const Int num_con, const double* obj,
   constraints_ = std::vector<char>(constraints, constraints + m_);
 
   preprocess();
-  scale();
+  scale(opt);
   reformulate();
   denseColumns();
   computeNorms();
@@ -317,17 +317,14 @@ void Model::print(const LogHighs& log) const {
   }
   if (std::isinf(bmin)) bmin = 0.0;
 
-  // compute max and min for bounds
+  // compute max and min inerval for bounds
   double boundmin = kHighsInf;
   double boundmax = 0.0;
   for (Int i = 0; i < n_; ++i) {
-    if (lower_[i] != 0.0 && std::isfinite(lower_[i])) {
-      boundmin = std::min(boundmin, std::abs(lower_[i]));
-      boundmax = std::max(boundmax, std::abs(lower_[i]));
-    }
-    if (upper_[i] != 0.0 && std::isfinite(upper_[i])) {
-      boundmin = std::min(boundmin, std::abs(upper_[i]));
-      boundmax = std::max(boundmax, std::abs(upper_[i]));
+    if (std::isfinite(lower_[i]) && std::isfinite(upper_[i])) {
+      const double interval = std::abs(upper_[i] - lower_[i]);
+      boundmin = std::min(boundmin, interval);
+      boundmax = std::max(boundmax, interval);
     }
   }
   if (std::isinf(boundmin)) boundmin = 0.0;
@@ -405,7 +402,7 @@ static double roundToPowerOf2(double d) {
   return std::ldexp(1.0, exp);
 }
 
-void Model::scale() {
+void Model::scale(OptionScaling opt) {
   // Compute scaling:
   // A -> R * A * C
   // b -> R * b
@@ -420,7 +417,16 @@ void Model::scale() {
   colscale_.resize(n_, 1.0);
   rowscale_.resize(m_, 1.0);
 
-  CRscaling();
+  if (opt == kOptionCRscaling) {
+    CRscaling();
+  } else if (opt == kOptionNormScaling) {
+    const Int num_passes = 2;
+    for (Int pass = 0; pass < num_passes; ++pass) {
+      onePassNormScaling();
+      boundScaling();
+    }
+  }
+
   applyScaling();
 }
 
@@ -434,8 +440,6 @@ bool Model::needScaling() {
     }
   }
 
-  return false;
-
   // check bounds
   for (Int i = 0; i < n_; ++i) {
     if (std::isfinite(lower_[i]) && std::isfinite(upper_[i])) {
@@ -443,6 +447,8 @@ bool Model::needScaling() {
       if (diff < kSmallBoundDiff || diff > kLargeBoundDiff) return true;
     }
   }
+
+  return false;
 }
 
 void Model::CRscaling() {
@@ -483,8 +489,8 @@ void Model::applyScaling() {
 }
 
 void Model::onePassNormScaling() {
-  // Compute a single pass of infinity-norm row scaling and a single pass of
-  // infinity-norm col scaling.
+  // Compute a single pass of infinity-norm geo-mean row scaling and col
+  // scaling.
 
   // infinity norm of rows
   std::vector<double> norm_rows(m_);
@@ -500,7 +506,7 @@ void Model::onePassNormScaling() {
 
   // apply row scaling
   for (Int i = 0; i < m_; ++i)
-    rowscale_[i] *= roundToPowerOf2(1.0 / norm_rows[i]);
+    rowscale_[i] *= roundToPowerOf2(1.0 / std::sqrt(norm_rows[i]));
 
   // infinity norm of columns
   std::vector<double> norm_cols(n_);
@@ -516,20 +522,24 @@ void Model::onePassNormScaling() {
 
   // apply col scaling
   for (Int i = 0; i < n_; ++i)
-    colscale_[i] *= roundToPowerOf2(1.0 / norm_cols[i]);
+    colscale_[i] *= roundToPowerOf2(1.0 / std::sqrt(norm_cols[i]));
 }
 
 void Model::boundScaling() {
+  // Compute scaling so that bound intervals (upper-lower) are not too small or
+  // too large.
+
   for (Int i = 0; i < n_; ++i) {
     if (std::isfinite(lower_[i]) && std::isfinite(upper_[i])) {
-      const double l = lower_[i] * colscale_[i];
-      const double u = upper_[i] * colscale_[i];
+      const double l = lower_[i] / colscale_[i];
+      const double u = upper_[i] / colscale_[i];
       const double diff = std::abs(u - l);
 
       if (diff < kSmallBoundDiff)
-        colscale_[i] *= roundToPowerOf2(kSmallBoundDiff / diff);
-      else if (diff > kLargeBoundDiff)
-        colscale_[i] *= roundToPowerOf2(kLargeBoundDiff / diff);
+        colscale_[i] *= roundToPowerOf2(diff / kSmallBoundDiff);
+      else if (diff > kLargeBoundDiff) {
+        colscale_[i] *= roundToPowerOf2(diff / kLargeBoundDiff);
+      }
     }
   }
 }

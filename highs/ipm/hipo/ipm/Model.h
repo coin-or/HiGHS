@@ -7,6 +7,7 @@
 
 #include "CurtisReidScaling.h"
 #include "LogHighs.h"
+#include "Options.h"
 #include "ipm/hipo/auxiliary/IntConfig.h"
 #include "ipm/ipx/lp_solver.h"
 #include "util/HighsSparseMatrix.h"
@@ -80,7 +81,7 @@ class Model {
                 const char* constraints) const;
   void computeNorms();
 
-  void scale();
+  void scale(OptionScaling opt);
   bool needScaling();
   void applyScaling();
   void CRscaling();
@@ -92,7 +93,7 @@ class Model {
   Int init(const Int num_var, const Int num_con, const double* obj,
            const double* rhs, const double* lower, const double* upper,
            const Int* A_ptr, const Int* A_rows, const double* A_vals,
-           const char* constraints, double offset);
+           const char* constraints, double offset, OptionScaling opt);
 
   // Print information of model
   void print(const LogHighs& log) const;
