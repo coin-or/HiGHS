@@ -82,7 +82,6 @@ class Model {
   void computeNorms();
 
   void scale(OptionScaling opt);
-  bool needScaling();
   void applyScaling();
   void CRscaling();
   void onePassNormScaling();

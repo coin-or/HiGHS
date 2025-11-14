@@ -412,8 +412,6 @@ void Model::scale(OptionScaling opt) {
   // z -> C * z
   // where R is row scaling, C is col scaling.
 
-  if (!needScaling()) return;
-
   colscale_.resize(n_, 1.0);
   rowscale_.resize(m_, 1.0);
 
@@ -430,29 +428,20 @@ void Model::scale(OptionScaling opt) {
   applyScaling();
 }
 
-bool Model::needScaling() {
-  bool need_scaling = false;
-
-  // check entries of A
-  for (Int col = 0; col < n_; ++col) {
-    for (Int el = A_.start_[col]; el < A_.start_[col + 1]; ++el) {
-      if (std::abs(A_.value_[el]) != 1.0) return true;
-    }
-  }
-
-  // check bounds
-  for (Int i = 0; i < n_; ++i) {
-    if (std::isfinite(lower_[i]) && std::isfinite(upper_[i])) {
-      const double diff = std::abs(lower_[i] - upper_[i]);
-      if (diff < kSmallBoundDiff || diff > kLargeBoundDiff) return true;
-    }
-  }
-
-  return false;
-}
-
 void Model::CRscaling() {
   // Curtis-Reid scaling
+
+  bool need_scaling = false;
+  for (Int col = 0; col < n_; ++col) {
+    for (Int el = A_.start_[col]; el < A_.start_[col + 1]; ++el) {
+      if (std::abs(A_.value_[el]) != 1.0) {
+        need_scaling = true;
+        break;
+      }
+    }
+  }
+
+  if (!need_scaling) return;
 
   // Compute exponents for CR scaling of matrix A
   std::vector<Int> colexp(n_);
