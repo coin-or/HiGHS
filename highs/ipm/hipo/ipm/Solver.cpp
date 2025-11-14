@@ -32,6 +32,7 @@ Int Solver::load(const Int num_var, const Int num_con, const double* obj,
 void Solver::setOptions(const Options& options) {
   options_ = options;
   if (options_.display) logH_.setOptions(options_.log_options);
+  control_.setOptions(options_);
 }
 void Solver::setCallback(HighsCallback& callback) {
   control_.setCallback(callback);
