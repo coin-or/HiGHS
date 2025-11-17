@@ -4763,8 +4763,7 @@ HighsStatus Highs::returnFromOptimizeModel(const HighsStatus run_return_status,
   }
 
   // Unless solved as a MIP, report on the solution
-  const bool solved_as_mip = !options_.solver.compare(kHighsChooseString) &&
-                             model_.isMip() && !options_.solve_relaxation;
+  const bool solved_as_mip = model_.isMip() && !options_.solve_relaxation;
   if (!solved_as_mip) reportSolvedLpQpStats();
   return returnFromHighs(return_status);
 }
