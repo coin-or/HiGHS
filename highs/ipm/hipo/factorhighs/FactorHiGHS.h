@@ -80,15 +80,15 @@ class FHsolver {
   // Perform analyse phase of matrix with sparsity pattern given by rows and
   // ptr, and store symbolic factorisation in object S.
   // See ReturnValues.h for errors.
-  Int analyse(Symbolic& S, const std::vector<Int>& rows,
-              const std::vector<Int>& ptr, const std::vector<Int>& signs);
+  Int analyse(Symbolic& S, const std::vector<Int64>& rows,
+              const std::vector<Int64>& ptr, const std::vector<Int>& signs);
 
   // Perform factorise phase of matrix given by rows, ptr, vals, and store
   // numerical factorisation in object N. Matrix is moved into the object, so
   // rows, ptr, vals are invalid afterwards.
   // See ReturnValues.h for errors.
-  Int factorise(const Symbolic& S, const std::vector<Int>& rows,
-                const std::vector<Int>& ptr, const std::vector<double>& vals);
+  Int factorise(const Symbolic& S, const std::vector<Int64>& rows,
+                const std::vector<Int64>& ptr, const std::vector<double>& vals);
 
   // Perform solve phase with rhs given by x, which is overwritten with the
   // solution.

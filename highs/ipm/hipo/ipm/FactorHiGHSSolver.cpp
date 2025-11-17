@@ -25,20 +25,21 @@ void FactorHiGHSSolver::clear() {
   FH_.newIter();
 }
 
-static Int getASstructure(const HighsSparseMatrix& A, std::vector<Int>& ptr,
-                          std::vector<Int>& rows) {
+static Int getASstructure(const HighsSparseMatrix& A, std::vector<Int64>& ptr,
+                          std::vector<Int64>& rows) {
   // Augmented system structure
 
   Int nA = A.num_col_;
   Int mA = A.num_row_;
   Int nzA = A.numNz();
 
-  if (nA + nzA + mA > kHighsIInf) return kStatusOoM;
+  // size of the matrix must fit into HighsInt
+  if ((Int64)nA + mA + 1 > (Int64)kHighsIInf) return kStatusOoM;
 
-  ptr.resize(nA + mA + 1);
-  rows.resize(nA + nzA + mA);
+  ptr.resize((Int64)nA + mA + 1);
+  rows.resize((Int64)nA + nzA + mA);
 
-  Int next = 0;
+  Int64 next = 0;
 
   for (Int i = 0; i < nA; ++i) {
     // diagonal element
@@ -47,7 +48,7 @@ static Int getASstructure(const HighsSparseMatrix& A, std::vector<Int>& ptr,
 
     // column of A
     for (Int el = A.start_[i]; el < A.start_[i + 1]; ++el) {
-      rows[next] = A.index_[el] + nA;
+      rows[next] = nA + A.index_[el];
       ++next;
     }
 
@@ -86,9 +87,9 @@ Int FactorHiGHSSolver::buildNEvalues(const HighsSparseMatrix& A,
     // go along the entries of the row, and then down each column.
     // this builds the lower triangular part of the row-th column of AAt.
 
-    for (Int el = ptrNE_rw_[row]; el < ptrNE_rw_[row + 1]; ++el) {
-      Int col = idxNE_rw_[el];
-      Int corr = corr_NE_[el];
+    for (Int el = ptrA_rw_[row]; el < ptrA_rw_[row + 1]; ++el) {
+      Int col = idxA_rw_[el];
+      Int corr = corr_A_[el];
 
       const double theta =
           scaling.empty() ? 1.0 : 1.0 / (scaling[col] + regul_.primal);
@@ -111,7 +112,7 @@ Int FactorHiGHSSolver::buildNEvalues(const HighsSparseMatrix& A,
     // intersection of row with rows below finished.
 
     // read from work, using indices of column "row" of AAt
-    for (Int el = ptrNE_[row]; el < ptrNE_[row + 1]; ++el) {
+    for (Int64 el = ptrNE_[row]; el < ptrNE_[row + 1]; ++el) {
       Int index = rowsNE_[el];
       valNE_[el] = work[index];
       work[index] = 0.0;
@@ -122,7 +123,7 @@ Int FactorHiGHSSolver::buildNEvalues(const HighsSparseMatrix& A,
 }
 
 Int FactorHiGHSSolver::buildNEstructure(const HighsSparseMatrix& A,
-                                        int64_t nz_limit) {
+                                        Int64 nz_limit) {
   // Build lower triangular structure of AAt.
   // This approach uses a column-wise copy of A, a partial row-wise copy and a
   // vector of corresponding indices.
@@ -132,23 +133,23 @@ Int FactorHiGHSSolver::buildNEstructure(const HighsSparseMatrix& A,
   // create partial row-wise representation without values, and array or
   // corresponding indices between cw and rw representation
   {
-    ptrNE_rw_.assign(A.num_row_ + 1, 0);
-    idxNE_rw_.assign(A.numNz(), 0);
+    ptrA_rw_.assign(A.num_row_ + 1, 0);
+    idxA_rw_.assign(A.numNz(), 0);
 
     // pointers of row-start
-    for (Int el = 0; el < A.numNz(); ++el) ptrNE_rw_[A.index_[el] + 1]++;
-    for (Int i = 0; i < A.num_row_; ++i) ptrNE_rw_[i + 1] += ptrNE_rw_[i];
+    for (Int el = 0; el < A.numNz(); ++el) ptrA_rw_[A.index_[el] + 1]++;
+    for (Int i = 0; i < A.num_row_; ++i) ptrA_rw_[i + 1] += ptrA_rw_[i];
 
-    std::vector<Int> temp = ptrNE_rw_;
-    corr_NE_.assign(A.numNz(), 0);
+    std::vector<Int> temp = ptrA_rw_;
+    corr_A_.assign(A.numNz(), 0);
 
     // rw-indices and corresponding indices created together
     for (Int col = 0; col < A.num_col_; ++col) {
       for (Int el = A.start_[col]; el < A.start_[col + 1]; ++el) {
         Int row = A.index_[el];
 
-        corr_NE_[temp[row]] = el;
-        idxNE_rw_[temp[row]] = col;
+        corr_A_[temp[row]] = el;
+        idxA_rw_[temp[row]] = col;
         temp[row]++;
       }
     }
@@ -158,7 +159,7 @@ Int FactorHiGHSSolver::buildNEstructure(const HighsSparseMatrix& A,
   rowsNE_.clear();
 
   // ptr is allocated its exact size
-  ptrNE_.resize(A.num_row_ + 1, 0);
+  ptrNE_.resize((Int64)A.num_row_ + 1, 0);
 
   // keep track if given entry is nonzero, in column considered
   std::vector<bool> is_nz(A.num_row_, false);
@@ -172,9 +173,9 @@ Int FactorHiGHSSolver::buildNEstructure(const HighsSparseMatrix& A,
 
     Int nz_in_col = 0;
 
-    for (Int el = ptrNE_rw_[row]; el < ptrNE_rw_[row + 1]; ++el) {
-      Int col = idxNE_rw_[el];
-      Int corr = corr_NE_[el];
+    for (Int el = ptrA_rw_[row]; el < ptrA_rw_[row + 1]; ++el) {
+      Int col = idxA_rw_[el];
+      Int corr = corr_A_[el];
 
       // for each nonzero in the row, go down corresponding column, starting
       // from current position
@@ -195,11 +196,10 @@ Int FactorHiGHSSolver::buildNEstructure(const HighsSparseMatrix& A,
     // intersection of row with rows below finished.
 
     // if the total number of nonzeros exceeds the maximum, return error
-    if ((int64_t)ptrNE_[row] + (int64_t)nz_in_col >= nz_limit)
-      return kStatusOoM;
+    if (ptrNE_[row] + (Int64)nz_in_col >= nz_limit) return kStatusOoM;
 
     // update pointers
-    ptrNE_[row + 1] = ptrNE_[row] + nz_in_col;
+    ptrNE_[row + 1] = ptrNE_[row] + (Int64)nz_in_col;
 
     // now assign indices
     for (Int i = 0; i < nz_in_col; ++i) {
@@ -221,20 +221,20 @@ Int FactorHiGHSSolver::factorAS(const HighsSparseMatrix& A,
   Clock clock;
 
   // initialise
-  std::vector<Int> ptrLower;
-  std::vector<Int> rowsLower;
+  std::vector<Int64> ptrLower;
+  std::vector<Int64> rowsLower;
   std::vector<double> valLower;
 
   Int nA = A.num_col_;
   Int mA = A.num_row_;
   Int nzA = A.numNz();
 
-  ptrLower.resize(nA + mA + 1);
-  rowsLower.resize(nA + nzA + mA);
-  valLower.resize(nA + nzA + mA);
+  ptrLower.resize((Int64)nA + mA + 1);
+  rowsLower.resize((Int64)nA + nzA + mA);
+  valLower.resize((Int64)nA + nzA + mA);
 
   // build lower triangle
-  Int next = 0;
+  Int64 next = 0;
 
   for (Int i = 0; i < nA; ++i) {
     // diagonal element
@@ -281,10 +281,6 @@ Int FactorHiGHSSolver::factorNE(const HighsSparseMatrix& A,
 
   Clock clock;
 
-  Int nA = A.num_col_;
-  Int mA = A.num_row_;
-  Int nzA = A.numNz();
-
   // build matrix
   Int status = buildNEvalues(A, scaling);
   if (info_) info_->matrix_time += clock.stop();
@@ -296,8 +292,8 @@ Int FactorHiGHSSolver::factorNE(const HighsSparseMatrix& A,
   clock.start();
   // make copies of structure, because factorise object will take ownership and
   // modify them.
-  std::vector<Int> ptrNE(ptrNE_);
-  std::vector<Int> rowsNE(rowsNE_);
+  std::vector<Int64> ptrNE(ptrNE_);
+  std::vector<Int64> rowsNE(rowsNE_);
   if (FH_.factorise(S_, rowsNE, ptrNE, valNE_)) return kStatusErrorFactorise;
   if (info_) {
     info_->factor_time += clock.stop();
@@ -374,7 +370,8 @@ Int FactorHiGHSSolver::analyseAS(Symbolic& S) {
   log_.printDevInfo("Building AS structure\n");
 
   Clock clock;
-  std::vector<Int> ptrLower, rowsLower;
+  std::vector<Int64> ptrLower;
+  std::vector<Int64> rowsLower;
   if (Int status = getASstructure(model_.A(), ptrLower, rowsLower))
     return status;
   if (info_) info_->matrix_structure_time = clock.stop();
@@ -402,14 +399,14 @@ void FactorHiGHSSolver::freeNEmemory() {
   // Swap NE data structures with empty vectors, to guarantee that memory is
   // freed.
 
-  std::vector<Int>().swap(ptrNE_);
-  std::vector<Int>().swap(rowsNE_);
-  std::vector<Int>().swap(ptrNE_rw_);
-  std::vector<Int>().swap(idxNE_rw_);
-  std::vector<Int>().swap(corr_NE_);
+  std::vector<Int64>().swap(ptrNE_);
+  std::vector<Int64>().swap(rowsNE_);
+  std::vector<Int>().swap(ptrA_rw_);
+  std::vector<Int>().swap(idxA_rw_);
+  std::vector<Int>().swap(corr_A_);
 }
 
-Int FactorHiGHSSolver::analyseNE(Symbolic& S, int64_t nz_limit) {
+Int FactorHiGHSSolver::analyseNE(Symbolic& S, Int64 nz_limit) {
   // Perform analyse phase of augmented system and return symbolic factorisation
   // in object S and the status. If building the matrix failed, the status is
   // set to OoM.
@@ -464,7 +461,7 @@ Int FactorHiGHSSolver::chooseNla() {
   } else {
     // If NE has more nonzeros than the factor of AS, then it's likely that AS
     // will be preferred, so stop computation of NE.
-    int64_t NE_nz_limit = symb_AS.nz() * kSymbNzMult;
+    Int64 NE_nz_limit = symb_AS.nz() * kSymbNzMult;
     if (failure_AS || NE_nz_limit > kHighsIInf) NE_nz_limit = kHighsIInf;
 
     Int NE_status = analyseNE(symb_NE, NE_nz_limit);
