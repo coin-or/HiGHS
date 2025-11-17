@@ -195,8 +195,11 @@ Int FactorHiGHSSolver::buildNEstructure(const HighsSparseMatrix& A,
     }
     // intersection of row with rows below finished.
 
-    // if the total number of nonzeros exceeds the maximum, return error
-    if (ptrNE_[row] + (Int64)nz_in_col >= nz_limit) return kStatusOoM;
+    // if the total number of nonzeros exceeds the maximum, return error.
+    // All integers are 64-bit, so no overflow is possible in practice. The
+    // limit may not be set.
+    if (nz_limit > 0 && ptrNE_[row] + (Int64)nz_in_col >= nz_limit)
+      return kStatusOoM;
 
     // update pointers
     ptrNE_[row + 1] = ptrNE_[row] + (Int64)nz_in_col;
@@ -462,7 +465,7 @@ Int FactorHiGHSSolver::chooseNla() {
     // If NE has more nonzeros than the factor of AS, then it's likely that AS
     // will be preferred, so stop computation of NE.
     Int64 NE_nz_limit = symb_AS.nz() * kSymbNzMult;
-    if (failure_AS || NE_nz_limit > kHighsIInf) NE_nz_limit = kHighsIInf;
+    if (failure_AS) NE_nz_limit = -1;
 
     Int NE_status = analyseNE(symb_NE, NE_nz_limit);
     if (NE_status) failure_NE = true;

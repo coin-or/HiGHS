@@ -39,13 +39,13 @@ class FactorHiGHSSolver : public LinearSolver {
   Int setNla();
   void setParallel();
 
-  Int buildNEstructure(const HighsSparseMatrix& A, Int64 nz_limit = kHighsIInf);
+  Int buildNEstructure(const HighsSparseMatrix& A, Int64 nz_limit = -1);
   Int buildNEvalues(const HighsSparseMatrix& A,
                     const std::vector<double>& scaling);
   void freeNEmemory();
 
   Int analyseAS(Symbolic& S);
-  Int analyseNE(Symbolic& S, Int64 nz_limit = kHighsIInf);
+  Int analyseNE(Symbolic& S, Int64 nz_limit = -1);
 
  public:
   FactorHiGHSSolver(Options& options, const Model& model,
