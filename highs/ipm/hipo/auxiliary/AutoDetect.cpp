@@ -1,5 +1,10 @@
 #include "AutoDetect.h"
 
+#include <stdint.h>
+
+#define IDXTYPEWIDTH 64
+#include "metis.h"
+
 namespace hipo {
 
 extern "C" {
@@ -63,4 +68,34 @@ std::string getBlasIntegerModelString() {
   }
 }
 
+int getMetisIntegerType() {
+  idx_t options[METIS_NOPTIONS];
+  for (int i = 0; i < METIS_NOPTIONS; ++i) options[i] = -1;
+
+  // if Metis is using 32-bit internally, this should set ptype to 0 and objtype
+  // to 1, which should trigger an error. If it uses 64-bit then everything
+  // should be fine.
+  options[METIS_OPTION_PTYPE] = 1;
+
+  idx_t n = 3;
+  idx_t ptr[4] = {0, 2, 4, 6};
+  idx_t rows[6] = {1, 2, 0, 2, 0, 1};
+  idx_t perm[3], iperm[3];
+
+  idx_t status = METIS_NodeND(&n, ptr, rows, NULL, options, perm, iperm);
+
+  int metis_int = 0;
+  if (status == METIS_OK) {
+    if (perm[0] != 0 || perm[1] != 1 || perm[2] != 2)
+      metis_int = -1;
+    else
+      metis_int = 64;
+  } else if (status == METIS_ERROR_INPUT) {
+    metis_int = 32;
+  } else {
+    metis_int = -1;
+  }
+
+  return metis_int;
+}
 }  // namespace hipo

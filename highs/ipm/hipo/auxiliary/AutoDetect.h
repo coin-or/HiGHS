@@ -9,7 +9,8 @@ enum class BlasIntegerModel { not_set, unknown, lp64, ilp64 };
 BlasIntegerModel getBlasIntegerModel();
 std::string getBlasIntegerModelString();
 
-
+// Detect Metis integer type
+int getMetisIntegerType();
 
 }  // namespace hipo
 

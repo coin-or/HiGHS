@@ -4,6 +4,7 @@
 #include <cmath>
 #include <iostream>
 
+#include "ipm/hipo/auxiliary/AutoDetect.h"
 #include "ipm/hipo/auxiliary/Log.h"
 #include "parallel/HighsParallel.h"
 
@@ -43,6 +44,8 @@ void Solver::solve() {
     info_.status = kStatusBadModel;
     return;
   }
+
+  if (checkMetis()) return;
 
   // iterate object needs to be initialised before potentially interrupting
   it_.reset(new Iterate(model_, regul_));
@@ -1080,6 +1083,21 @@ bool Solver::checkInterrupt() {
     terminate = true;
   }
   return terminate;
+}
+
+bool Solver::checkMetis() {
+  Int metis_int = getMetisIntegerType();
+  if (metis_int == 32) {
+    logH_.printe("Metis should be compiled with 64-bit integers\n");
+    info_.status = kStatusError;
+    return true;
+  } else if (metis_int < 0) {
+    logH_.printe("Something went wrong checking Metis\n");
+    info_.status = kStatusError;
+    return true;
+  }
+
+  return false;
 }
 
 void Solver::printHeader() const {

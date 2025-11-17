@@ -1074,9 +1074,6 @@ void Analyse::reorderChildren() {
     // frontal size
     const Int64 fr = col_count_[sn_start_[sn]];
 
-    // very unlikely to happen
-    if (fr > int32_limit) return;
-
     // compute storage based on format used
     computeStorage(fr, sz, frontal_entries[sn], clique_entries[sn]);
 
