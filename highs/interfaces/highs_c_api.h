@@ -145,17 +145,21 @@ static const char* const kHighsCallbackDataOutCutpoolUpperName =
     "cutpool_upper";
 
 const HighsInt kHighsIisStrategyLight = 0;
-const HighsInt kHighsIisStrategyFromLpRowPriority = 1;  // WIP
-const HighsInt kHighsIisStrategyFromLpColPriority = 2;  // WIP
+// Forces full IIS calculation as before - ie with the
+// kIisStrategyIrreducible = 4 bit set, as well as the
+// kIisStrategyFromLp = 2 bit set, and possibly the
+// kIisStrategyColPriority = 8 bit set
+const HighsInt kHighsIisStrategyFromLpRowPriority = 6;
+const HighsInt kHighsIisStrategyFromLpColPriority = 14;
 
 const HighsInt kHighsIisBoundFree = 1;
 const HighsInt kHighsIisBoundLower = 2;
 const HighsInt kHighsIisBoundUpper = 3;
 const HighsInt kHighsIisBoundBoxed = 4;
 
-const HighsInt kHighsIisStatusInConflict = 0;
-const HighsInt kHighsIisStatusNotInConflict = 1;
-const HighsInt kHighsIisStatusMaybeInConflict = 2;
+const HighsInt kHighsIisStatusNotInConflict = -1;
+const HighsInt kHighsIisStatusMaybeInConflict = 0;
+const HighsInt kHighsIisStatusInConflict = 1;
 
 #ifdef __cplusplus
 extern "C" {

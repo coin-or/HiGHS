@@ -1044,10 +1044,9 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used()) {
   py::enum_<IisStrategy>(m, "IisStrategy", py::module_local())
       .value("kIisStrategyMin", IisStrategy::kIisStrategyMin)
       .value("kIisStrategyLight", IisStrategy::kIisStrategyLight)
-      .value("kIisStrategyFromLpRowPriority",
-             IisStrategy::kIisStrategyFromLpRowPriority)
-      .value("kIisStrategyFromLpColPriority",
-             IisStrategy::kIisStrategyFromLpColPriority)
+      .value("kIisStrategyFromRay", IisStrategy::kIisStrategyFromRay)
+      .value("kIisStrategyFromLp", IisStrategy::kIisStrategyFromLp)
+      .value("kIisStrategyColPriority", IisStrategy::kIisStrategyColPriority)
       .value("kIisStrategyMax", IisStrategy::kIisStrategyMax)
       .export_values();
   py::enum_<IisBoundStatus>(m, "IisBoundStatus", py::module_local())
@@ -1498,8 +1497,9 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used()) {
 
   py::class_<HighsIis>(m, "HighsIis", py::module_local())
       .def(py::init<>())
-      .def("invalidate", &HighsIis::invalidate)
+      .def("clear", &HighsIis::clear)
       .def_readwrite("valid", &HighsIis::valid_)
+      .def_readwrite("status", &HighsIis::status_)
       .def_readwrite("strategy", &HighsIis::strategy_)
       .def_readwrite("col_index", &HighsIis::col_index_)
       .def_readwrite("row_index", &HighsIis::row_index_)

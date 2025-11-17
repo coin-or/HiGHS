@@ -42,15 +42,19 @@ only be used for LPs. The full IIS calculation is expensive, since it
 requires the solution of multiple LPs. Although there is a prototype
 implementation, it is not as robust or efficient as it will
 be. Otherwise, there is a simple, cheap test that looks for
-infeasibility due to incompatible variable oe constraint bounds, or
+infeasibility due to incompatible variable or constraint bounds, or
 constraint bounds that cannot be satisfied given the range of values
 on the constraint activity implied by bounds on variables.
 
-The choice of IIS strategy is defined by the [iis_strategy](@id option-iis-strategy) option, which can take the value
+The choice of IIS strategy is defined by the [iis_strategy](@ref option-iis-strategy) option. This a bit map
 
-- `kIisStrategyLight` = 0: The cheap test
-- `kIisStrategyFromLpRowPriority` = 1: The full IIS calculation, aiming to have a minimal number of rows in the IIS
-- `kIisStrategyFromLpColPriority` = 2: The full IIS calculation, aiming to have a minimal number of columns in the IIS
+- 0 => "light strategy", which is always performed when Highs::getIis is called
+- 1 => From dual ray, which is currently unavailable
+- 2 => From the whole LP (solving an elasticity LP repeatedly (fixing positive elastic variables at zero) until no more elastic variables are positive, and using the fixed elastic variables to determine a set of infeasible rows, for which there is a corresponding set of columns with nonzeros in those rows that form an infeasibility set (IS)
+- 4 => Attempt to reduce the IS to an ISS
+- 8 => Prioritize low numbers of columns (rather than low numbers of rows) when reducing the IS
+
+Hence, by just setting the 2-bit, an IS is formed reliably, and at no great expense (for an LP)
 
 ### IIS-related methods in the `Highs` class
 
