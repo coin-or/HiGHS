@@ -33,22 +33,22 @@
 namespace hipo {
 
 // supernode amalgamation
-const Int kStartThreshRelax = 256;
+const Int64 kStartThreshRelax = 256;
 const double kUpperRatioRelax = 0.02;
 const double kLowerRatioRelax = 0.01;
-const Int kMaxIterRelax = 20;
-const Int kSnSizeRelax = 16;
+const Int64 kMaxIterRelax = 20;
+const Int64 kSnSizeRelax = 16;
 
 // dense factorisation
 const double kAlphaBK = 0.01;  //(sqrt(17.0) + 1.0) / 8.0;
-const Int kBlockGrainSize = 1;
-const Int kBlockParallelThreshold = 5;
+const Int64 kBlockGrainSize = 1;
+const Int64 kBlockParallelThreshold = 5;
 
 // regularisation
 const double kDynamicDiagCoeff = 1e-24;
 
 // metis
-const Int kMetisSeed = 42;
+const Int64 kMetisSeed = 42;
 
 struct Regul {
   double primal{};

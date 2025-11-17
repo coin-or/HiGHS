@@ -287,7 +287,7 @@ void DataCollector::printIter(const Log& log) const {
                 "    reg   swap    2x2    ws | "
                 " max_reg   max_ws    norm1     maxdiag|\n";
 
-  for (Int i = 0; i < iter_data_record_.size(); ++i) {
+  for (Int64 i = 0; i < iter_data_record_.size(); ++i) {
     const IterData& iter = iter_data_record_[i];
 
     log_stream << integer(i, 3) << "  |";

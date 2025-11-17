@@ -377,7 +377,7 @@ Int FactorHiGHSSolver::analyseAS(Symbolic& S) {
   if (info_) info_->matrix_structure_time = clock.stop();
 
   // create vector of signs of pivots
-  std::vector<Int> pivot_signs(model_.A().num_col_ + model_.A().num_row_, -1);
+  std::vector<Int64> pivot_signs(model_.A().num_col_ + model_.A().num_row_, -1);
   for (Int i = 0; i < model_.A().num_row_; ++i)
     pivot_signs[model_.A().num_col_ + i] = 1;
 
@@ -418,7 +418,7 @@ Int FactorHiGHSSolver::analyseNE(Symbolic& S, Int64 nz_limit) {
   if (info_) info_->matrix_structure_time = clock.stop();
 
   // create vector of signs of pivots
-  std::vector<Int> pivot_signs(model_.A().num_row_, 1);
+  std::vector<Int64> pivot_signs(model_.A().num_row_, 1);
 
   log_.printDevInfo("Performing NE analyse phase\n");
 

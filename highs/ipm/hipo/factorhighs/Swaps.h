@@ -6,12 +6,12 @@
 
 namespace hipo {
 
-void permuteWithSwaps(double* x, const Int* swaps, Int n, bool reverse = false);
+void permuteWithSwaps(double* x, const Int64* swaps, Int64 n, bool reverse = false);
 
-void swapCols(char uplo, Int n, double* A, Int lda, Int i, Int j, Int* swaps,
-              Int* sign, DataCollector& data);
+void swapCols(char uplo, Int64 n, double* A, Int64 lda, Int64 i, Int64 j, Int64* swaps,
+              Int64* sign, DataCollector& data);
 
-void applySwaps(const Int* swaps, Int nrow, Int ncol, double* R,
+void applySwaps(const Int64* swaps, Int64 nrow, Int64 ncol, double* R,
                 DataCollector& data);
 
 }  // namespace hipo

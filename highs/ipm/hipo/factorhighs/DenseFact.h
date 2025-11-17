@@ -30,18 +30,19 @@ namespace hipo {
 */
 
 // dense factorisation kernel
-Int denseFactK(char uplo, Int n, double* A, Int lda, Int* pivot_sign,
-               double thresh, const Regul& regul, double* totalreg, Int* swaps,
-               double* pivot_2x2, DataCollector& data);
+Int64 denseFactK(char uplo, Int64 n, double* A, Int64 lda, Int64* pivot_sign,
+                 double thresh, const Regul& regul, double* totalreg,
+                 Int64* swaps, double* pivot_2x2, DataCollector& data);
 
 // dense partial factorisation, in "hybrid formats"
-Int denseFactFH(char format, Int n, Int k, Int nb, double* A, double* B,
-                const Int* pivot_sign, double thresh, const Regul& regul,
-                double* totalreg, Int* swaps, double* pivot_2x2, bool parnode,
-                DataCollector& data);
+Int64 denseFactFH(char format, Int64 n, Int64 k, Int64 nb, double* A, double* B,
+                  const Int64* pivot_sign, double thresh, const Regul& regul,
+                  double* totalreg, Int64* swaps, double* pivot_2x2,
+                  bool parnode, DataCollector& data);
 
 // function to convert A from lower packed, to lower-blocked-hybrid format
-Int denseFactFP2FH(double* A, Int nrow, Int ncol, Int nb, DataCollector& data);
+Int64 denseFactFP2FH(double* A, Int64 nrow, Int64 ncol, Int64 nb,
+                     DataCollector& data);
 
 }  // namespace hipo
 

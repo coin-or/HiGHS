@@ -13,19 +13,19 @@ class dgemmParalleliser {
   const double* P_;
   const double* R_;
   double* Q_;
-  const Int col_;
-  const Int jb_;
+  const Int64 col_;
+  const Int64 jb_;
   DataCollector& data_;
 
  public:
-  dgemmParalleliser(const double* P, const double* R, double* Q, Int col,
-                    Int jb, DataCollector& data);
+  dgemmParalleliser(const double* P, const double* R, double* Q, Int64 col,
+                    Int64 jb, DataCollector& data);
 
-  void run(Int start, Int end, double beta) const;
+  void run(Int64 start, Int64 end, double beta) const;
 };
 
-void dgemmParallel(const double* P, const double* R, double* Q, Int col, Int jb,
-                   Int row, Int nb, double beta, DataCollector& data);
+void dgemmParallel(const double* P, const double* R, double* Q, Int64 col, Int64 jb,
+                   Int64 row, Int64 nb, double beta, DataCollector& data);
 
 }  // namespace hipo
 

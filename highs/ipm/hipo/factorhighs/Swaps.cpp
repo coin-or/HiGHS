@@ -4,24 +4,24 @@
 
 namespace hipo {
 
-void permuteWithSwaps(double* x, const Int* swaps, Int n, bool reverse) {
+void permuteWithSwaps(double* x, const Int64* swaps, Int64 n, bool reverse) {
   // Apply swaps to vector x of length n
 
   if (!reverse) {
     // apply the swaps in forward order
-    for (Int i = 0; i < n; ++i) {
+    for (Int64 i = 0; i < n; ++i) {
       if (swaps[i] != i) std::swap(x[i], x[swaps[i]]);
     }
   } else {
     // apply the swaps in backward order
-    for (Int i = n - 1; i >= 0; --i) {
+    for (Int64 i = n - 1; i >= 0; --i) {
       if (swaps[i] != i) std::swap(x[i], x[swaps[i]]);
     }
   }
 }
 
-void swapCols(char uplo, Int n, double* A, Int lda, Int i, Int j, Int* swaps,
-              Int* sign, DataCollector& data) {
+void swapCols(char uplo, Int64 n, double* A, Int64 lda, Int64 i, Int64 j, Int64* swaps,
+              Int64* sign, DataCollector& data) {
   // Exchange rows/cols i and j of symmetric matrix A
 
   // make sure that i < j
@@ -55,10 +55,10 @@ void swapCols(char uplo, Int n, double* A, Int lda, Int i, Int j, Int* swaps,
   data.countSwap();
 }
 
-void applySwaps(const Int* swaps, Int nrow, Int ncol, double* R,
+void applySwaps(const Int64* swaps, Int64 nrow, Int64 ncol, double* R,
                 DataCollector& data) {
   // apply the column swaps to block R
-  for (Int i = 0; i < ncol; ++i) {
+  for (Int64 i = 0; i < ncol; ++i) {
     if (swaps[i] != i) {
       // swap col i and col swaps[i]
       callAndTime_dswap(nrow, &R[i], ncol, &R[swaps[i]], ncol, data);

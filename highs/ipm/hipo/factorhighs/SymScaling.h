@@ -10,16 +10,16 @@ namespace hipo {
 
 // Scalings for symmetric matrices, provided as lower triangular.
 
-void CurtisReidScalingSym(const std::vector<Int>& ptr,
-                          const std::vector<Int>& rows,
+void CurtisReidScalingSym(const std::vector<Int64>& ptr,
+                          const std::vector<Int64>& rows,
                           const std::vector<double>& val,
                           std::vector<double>& colscale);
 
-void RuizScalingSym(const std::vector<Int>& ptr, const std::vector<Int>& rows,
+void RuizScalingSym(const std::vector<Int64>& ptr, const std::vector<Int64>& rows,
                     const std::vector<double>& val,
                     std::vector<double>& colscale);
 
-void JacekScalingSym(const std::vector<Int>& ptr, const std::vector<Int>& rows,
+void JacekScalingSym(const std::vector<Int64>& ptr, const std::vector<Int64>& rows,
                      const std::vector<double>& val,
                      std::vector<double>& colscale);
 

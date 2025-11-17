@@ -7,7 +7,7 @@
 
 namespace hipo {
 
-FHsolver::FHsolver(const Log* log, Int block_size)
+FHsolver::FHsolver(const Log* log, Int64 block_size)
     : log_{log}, nb_{block_size > 0 ? block_size : default_nb_} {
 #ifdef HIPO_COLLECT_EXPENSIVE_DATA
   if (log_)
@@ -34,21 +34,21 @@ void FHsolver::setRegularisation(double reg_p, double reg_d) {
   regul_.dual = reg_d;
 }
 
-Int FHsolver::analyse(Symbolic& S, const std::vector<Int64>& rows,
-                      const std::vector<Int64>& ptr,
-                      const std::vector<Int>& signs) {
+Int64 FHsolver::analyse(Symbolic& S, const std::vector<Int64>& rows,
+                        const std::vector<Int64>& ptr,
+                        const std::vector<Int64>& signs) {
   Analyse an_obj(rows, ptr, signs, nb_, log_, data_);
   return an_obj.run(S);
 }
 
-Int FHsolver::factorise(const Symbolic& S, const std::vector<Int64>& rows,
-                        const std::vector<Int64>& ptr,
-                        const std::vector<double>& vals) {
+Int64 FHsolver::factorise(const Symbolic& S, const std::vector<Int64>& rows,
+                          const std::vector<Int64>& ptr,
+                          const std::vector<double>& vals) {
   Factorise fact_obj(S, rows, ptr, vals, regul_, log_, data_, sn_columns_);
   return fact_obj.run(N_);
 }
 
-Int FHsolver::solve(std::vector<double>& x) { return N_.solve(x); }
+Int64 FHsolver::solve(std::vector<double>& x) { return N_.solve(x); }
 
 void FHsolver::getRegularisation(std::vector<double>& reg) { N_.getReg(reg); }
 

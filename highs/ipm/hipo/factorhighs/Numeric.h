@@ -20,7 +20,7 @@ class Numeric {
   const std::vector<std::vector<double>>* sn_columns_ = nullptr;
 
   // swaps of columns for each supernode, ordered locally within a block
-  std::vector<std::vector<Int>> swaps_{};
+  std::vector<std::vector<Int64>> swaps_{};
 
   // information about 2x2 pivots
   std::vector<std::vector<double>> pivot_2x2_{};
@@ -40,7 +40,7 @@ class Numeric {
 
  public:
   // Full solve
-  Int solve(std::vector<double>& x) const;
+  Int64 solve(std::vector<double>& x) const;
   void getReg(std::vector<double>& reg);
 };
 

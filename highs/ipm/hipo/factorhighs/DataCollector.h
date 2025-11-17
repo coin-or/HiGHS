@@ -21,10 +21,10 @@ struct IterData {
   double minL = kHighsInf;
   double maxL = 0.0;
   double max_reg = 0.0;
-  Int n_reg_piv = 0;
-  Int n_swap = 0;
-  Int n_2x2 = 0;
-  Int n_wrong_sign = 0;
+  Int64 n_reg_piv = 0;
+  Int64 n_swap = 0;
+  Int64 n_2x2 = 0;
+  Int64 n_wrong_sign = 0;
   double max_wrong_sign = 0.0;
   double M_norm1;
   double M_maxdiag;
@@ -53,7 +53,7 @@ struct IterData {
 class DataCollector {
   // Record of times and BLAS calls
   std::vector<double> times{};
-  std::vector<Int> blas_calls{};
+  std::vector<Int64> blas_calls{};
 
   // record of data of ipm iterations
   std::vector<IterData> iter_data_record_{};

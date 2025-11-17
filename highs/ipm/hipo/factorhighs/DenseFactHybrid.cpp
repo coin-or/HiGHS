@@ -11,10 +11,10 @@ namespace hipo {
 
 // Factorisation with "hybrid formats".
 
-Int denseFactFH(char format, Int n, Int k, Int nb, double* A, double* B,
-                const Int* pivot_sign, double thresh, const Regul& regval,
-                double* totalreg, Int* swaps, double* pivot_2x2, bool parnode,
-                DataCollector& data) {
+Int64 denseFactFH(char format, Int64 n, Int64 k, Int64 nb, double* A, double* B,
+                  const Int64* pivot_sign, double thresh, const Regul& regval,
+                  double* totalreg, Int64* swaps, double* pivot_2x2,
+                  bool parnode, DataCollector& data) {
   // ===========================================================================
   // Partial blocked factorisation
   // Matrix A is in format FH
@@ -34,24 +34,24 @@ Int denseFactFH(char format, Int n, Int k, Int nb, double* A, double* B,
   if (n == 0) return kRetOk;
 
   // number of blocks of columns
-  const Int n_blocks = (k - 1) / nb + 1;
+  const Int64 n_blocks = (k - 1) / nb + 1;
 
   // start of diagonal blocks
-  std::vector<Int> diag_start(n_blocks);
+  std::vector<Int64> diag_start(n_blocks);
   getDiagStart(n, k, nb, n_blocks, diag_start);
 
   // size of blocks
-  const Int diag_size = nb * nb;
-  const Int full_size = nb * nb;
+  const Int64 diag_size = nb * nb;
+  const Int64 full_size = nb * nb;
 
   // buffer for copy of block column
   std::vector<double> T(n * nb);
 
   // number of rows/columns in the Schur complement
-  const Int ns = n - k;
+  const Int64 ns = n - k;
 
   // number of blocks in Schur complement
-  const Int s_blocks = (ns - 1) / nb + 1;
+  const Int64 s_blocks = (ns - 1) / nb + 1;
 
   // buffer for full-format of block of columns of Schur complement
   std::vector<double> schur_buf;
@@ -60,24 +60,24 @@ Int denseFactFH(char format, Int n, Int k, Int nb, double* A, double* B,
   // ===========================================================================
   // LOOP OVER BLOCKS
   // ===========================================================================
-  for (Int j = 0; j < n_blocks; ++j) {
+  for (Int64 j = 0; j < n_blocks; ++j) {
     // j is the index of the block column
 
     // jb is the number of columns
-    const Int jb = std::min(nb, k - nb * j);
+    const Int64 jb = std::min(nb, k - nb * j);
 
     // size of current block could be smaller than diag_size and full_size
-    const Int this_diag_size = jb * jb;
-    const Int this_full_size = nb * jb;
+    const Int64 this_diag_size = jb * jb;
+    const Int64 this_full_size = nb * jb;
 
     // diagonal block j
     double* D = &A[diag_start[j]];
 
     // number of rows left below block j
-    const Int M = n - nb * j - jb;
+    const Int64 M = n - nb * j - jb;
 
     // block of columns below diagonal block j
-    const Int R_pos = diag_start[j] + this_diag_size;
+    const Int64 R_pos = diag_start[j] + this_diag_size;
     double* R = &A[R_pos];
 
     // ===========================================================================
@@ -85,16 +85,16 @@ Int denseFactFH(char format, Int n, Int k, Int nb, double* A, double* B,
     // ===========================================================================
     double max_in_R = -1.0;
     if (jb == 1) {
-      for (Int i = 0; i < M * jb; ++i)
+      for (Int64 i = 0; i < M * jb; ++i)
         max_in_R = std::max(max_in_R, std::abs(R[i]));
     }
 
     double* regul_current = &totalreg[j * nb];
-    std::vector<Int> pivot_sign_current(&pivot_sign[j * nb],
-                                        &pivot_sign[j * nb] + jb);
-    Int* swaps_current = &swaps[j * nb];
+    std::vector<Int64> pivot_sign_current(&pivot_sign[j * nb],
+                                          &pivot_sign[j * nb] + jb);
+    Int64* swaps_current = &swaps[j * nb];
     double* pivot_2x2_current = &pivot_2x2[j * nb];
-    Int info =
+    Int64 info =
         denseFactK('U', jb, D, jb, pivot_sign_current.data(), thresh, regval,
                    regul_current, swaps_current, pivot_2x2_current, data);
     if (info != 0) return info;
@@ -118,8 +118,8 @@ Int denseFactFH(char format, Int n, Int k, Int nb, double* A, double* B,
       callAndTime_dcopy(jb * M, R, 1, T.data(), 1, data);
 
       // solve block R with pivots
-      Int step = 1;
-      for (Int col = 0; col < jb; col += step) {
+      Int64 step = 1;
+      for (Int64 col = 0; col < jb; col += step) {
         if (pivot_2x2_current[col] == 0.0) {
           // 1x1 pivots
           step = 1;
@@ -151,7 +151,7 @@ Int denseFactFH(char format, Int n, Int k, Int nb, double* A, double* B,
 
       // check entries of L
       /*double max_in_R = -1.0;
-      for (Int i = 0; i < M * jb; ++i) {
+      for (Int64 i = 0; i < M * jb; ++i) {
         max_in_R = std::max(max_in_R, std::abs(R[i]));
       }
       if (max_in_R > 1e8) printf("%.1e, %5d %5d\n", max_in_R, jb, M);*/
@@ -159,15 +159,15 @@ Int denseFactFH(char format, Int n, Int k, Int nb, double* A, double* B,
       // ===========================================================================
       // UPDATE FRONTAL
       // ===========================================================================
-      Int offset{};
+      Int64 offset{};
 
       // go through remaining blocks of columns
-      for (Int jj = j + 1; jj < n_blocks; ++jj) {
+      for (Int64 jj = j + 1; jj < n_blocks; ++jj) {
         // number of columns in block jj
-        const Int col_jj = std::min(nb, k - nb * jj);
+        const Int64 col_jj = std::min(nb, k - nb * jj);
 
         // number of rows in block jj
-        const Int row_jj = n - nb * jj;
+        const Int64 row_jj = n - nb * jj;
 
         const double* P = &T[offset];
         double* Q = &A[diag_start[jj]];
@@ -192,15 +192,15 @@ Int denseFactFH(char format, Int n, Int k, Int nb, double* A, double* B,
       // UPDATE SCHUR COMPLEMENT
       // ===========================================================================
       if (k < n) {
-        Int B_offset{};
+        Int64 B_offset{};
 
         // go through blocks of columns of the Schur complement
-        for (Int sb = 0; sb < s_blocks; ++sb) {
+        for (Int64 sb = 0; sb < s_blocks; ++sb) {
           // number of rows of the block
-          const Int nrow = ns - nb * sb;
+          const Int64 nrow = ns - nb * sb;
 
           // number of columns of the block
-          const Int ncol = std::min(nb, nrow);
+          const Int64 ncol = std::min(nb, nrow);
 
           const double* P = &T[offset];
           double* Q = format == 'P' ? schur_buf.data() : &B[B_offset];
@@ -220,8 +220,8 @@ Int denseFactFH(char format, Int n, Int k, Int nb, double* A, double* B,
             // schur_buf contains Schur complement in hybrid format (with full
             // diagonal blocks). Store it by columns in B (with full diagonal
             // blocks).
-            for (Int buf_row = 0; buf_row < nrow; ++buf_row) {
-              const Int N = ncol;
+            for (Int64 buf_row = 0; buf_row < nrow; ++buf_row) {
+              const Int64 N = ncol;
               callAndTime_daxpy(N, 1.0, &schur_buf[buf_row * ncol], 1,
                                 &B[B_offset + buf_row], nrow, data);
             }
@@ -241,7 +241,8 @@ Int denseFactFH(char format, Int n, Int k, Int nb, double* A, double* B,
   return kRetOk;
 }
 
-Int denseFactFP2FH(double* A, Int nrow, Int ncol, Int nb, DataCollector& data) {
+Int64 denseFactFP2FH(double* A, Int64 nrow, Int64 ncol, Int64 nb,
+                     DataCollector& data) {
   // ===========================================================================
   // Packed to Hybrid conversion
   // Matrix A on  input is in format FP
@@ -255,15 +256,15 @@ Int denseFactFP2FH(double* A, Int nrow, Int ncol, Int nb, DataCollector& data) {
 
   std::vector<double> buf(nrow * nb);
 
-  Int startAtoBuf = 0;
-  Int startBuftoA = 0;
+  Int64 startAtoBuf = 0;
+  Int64 startBuftoA = 0;
 
-  for (Int k = 0; k <= (ncol - 1) / nb; ++k) {
+  for (Int64 k = 0; k <= (ncol - 1) / nb; ++k) {
     // Number of columns in the block. Can be smaller than nb for last block.
-    const Int block_size = std::min(nb, ncol - k * nb);
+    const Int64 block_size = std::min(nb, ncol - k * nb);
 
     // Number of rows in the block
-    const Int row_size = nrow - k * nb;
+    const Int64 row_size = nrow - k * nb;
 
     // Copy block into buf
     callAndTime_dcopy(row_size * block_size, &A[startAtoBuf], 1, buf.data(), 1,
@@ -272,8 +273,8 @@ Int denseFactFP2FH(double* A, Int nrow, Int ncol, Int nb, DataCollector& data) {
 
     // Copy columns back into A, row by row.
     // One call of dcopy_ for each row of the block of columns.
-    for (Int i = 0; i < row_size; ++i) {
-      const Int N = block_size;
+    for (Int64 i = 0; i < row_size; ++i) {
+      const Int64 N = block_size;
       callAndTime_dcopy(N, &buf[i], row_size, &A[startBuftoA], 1, data);
       startBuftoA += N;
     }

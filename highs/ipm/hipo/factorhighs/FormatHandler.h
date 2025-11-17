@@ -33,32 +33,32 @@ class FormatHandler {
   const Regul& regul_;
 
   // supernode being processed
-  const Int sn_{};
+  const Int64 sn_{};
 
   // block size
-  const Int nb_{};
+  const Int64 nb_{};
 
   // size of the supernode
-  const Int sn_size_{};
+  const Int64 sn_size_{};
 
   // size of the front
-  const Int ldf_{};
+  const Int64 ldf_{};
 
   // size of the clique
-  const Int ldc_{};
+  const Int64 ldc_{};
 
   // local copies to be moved at the end
   std::vector<double>& frontal_;
   std::vector<double> clique_{};
   std::vector<double> local_reg_{};
-  std::vector<Int> swaps_{};
+  std::vector<Int64> swaps_{};
   std::vector<double> pivot_2x2_{};
 
  public:
-  FormatHandler(const Symbolic& S, Int sn, const Regul& regul,
+  FormatHandler(const Symbolic& S, Int64 sn, const Regul& regul,
                 std::vector<double>& frontal);
   void terminate(std::vector<double>& clique, std::vector<double>& total_reg,
-                 std::vector<Int>& swaps, std::vector<double>& pivot_2x2);
+                 std::vector<Int64>& swaps, std::vector<double>& pivot_2x2);
 
   // avoid copies
   FormatHandler(const FormatHandler&) = delete;
@@ -73,14 +73,14 @@ class FormatHandler {
   // =================================================================
   virtual void initFrontal() = 0;
   virtual void initClique() = 0;
-  virtual void assembleFrontal(Int i, Int j, double val) = 0;
-  virtual void assembleFrontalMultiple(Int num,
-                                       const std::vector<double>& child, Int nc,
-                                       Int child_sn, Int row, Int col, Int i,
-                                       Int j) = 0;
-  virtual void assembleClique(const std::vector<double>& child, Int nc,
-                              Int child_sn) = 0;
-  virtual Int denseFactorise(double reg_thresh) = 0;
+  virtual void assembleFrontal(Int64 i, Int64 j, double val) = 0;
+  virtual void assembleFrontalMultiple(Int64 num,
+                                       const std::vector<double>& child, Int64 nc,
+                                       Int64 child_sn, Int64 row, Int64 col, Int64 i,
+                                       Int64 j) = 0;
+  virtual void assembleClique(const std::vector<double>& child, Int64 nc,
+                              Int64 child_sn) = 0;
+  virtual Int64 denseFactorise(double reg_thresh) = 0;
 
   // =================================================================
   // Virtual functions.
@@ -88,8 +88,6 @@ class FormatHandler {
   // =================================================================
   virtual void extremeEntries() {}
 };
-
-const Int extra_space = 10;
 
 }  // namespace hipo
 
