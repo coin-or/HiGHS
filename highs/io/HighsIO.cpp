@@ -14,6 +14,7 @@
 #include <cstdarg>
 #include <cstdio>
 
+#include "ipm/hipo/auxiliary/AutoDetect.h"
 #include "lp_data/HighsLp.h"
 #include "lp_data/HighsOptions.h"
 
@@ -34,6 +35,9 @@ void highsLogHeader(const HighsLogOptions& log_options,
 #else
   highsLogUser(log_options, HighsLogType::kInfo, "Using blas: unknown\n");
 #endif
+
+  highsLogUser(log_options, HighsLogType::kInfo, "Blas integer model: %s\n",
+               hipo::getBlasIntegerModelString().c_str());
 #endif
 }
 
