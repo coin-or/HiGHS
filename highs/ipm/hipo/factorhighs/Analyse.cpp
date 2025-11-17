@@ -1333,11 +1333,6 @@ Int64 Analyse::run(Symbolic& S) {
   computeBlockStart();
   computeCriticalPath();
 
-  if (checkOverflow()) {
-    if (log_) log_->printe("Integer overflow in analyse phase\n");
-    return kRetIntOverflow;
-  }
-
   // move relevant stuff into S
   S.n_ = n_;
   S.sn_ = sn_count_;
@@ -1362,6 +1357,11 @@ Int64 Analyse::run(Symbolic& S) {
     if (i == 1) S.sn_size_1_++;
     if (i <= 10) S.sn_size_10_++;
     if (i <= 100) S.sn_size_100_++;
+  }
+
+  if (checkOverflow()) {
+    if (log_) log_->printe("Integer overflow in analyse phase\n");
+    return kRetIntOverflow;
   }
 
   // permute signs of pivots
