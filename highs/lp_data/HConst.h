@@ -20,9 +20,9 @@
 const std::string kHighsCopyrightStatement =
     "Copyright (c) 2025 HiGHS under MIT licence terms";
 
-const size_t kHighsSize_tInf = std::numeric_limits<size_t>::max();
-const HighsInt kHighsIInf = std::numeric_limits<HighsInt>::max();
-const HighsInt kHighsIInf32 = std::numeric_limits<int>::max();
+const size_t kHighsSize_tInf = (std::numeric_limits<size_t>::max)();
+const HighsInt kHighsIInf = (std::numeric_limits<HighsInt>::max)();
+const HighsInt kHighsIInf32 = (std::numeric_limits<int>::max)();
 const double kHighsInf = std::numeric_limits<double>::infinity();
 const double kHighsUndefined = kHighsInf;
 const double kHighsTiny = 1e-14;
@@ -31,6 +31,7 @@ const double kHighsZero = 1e-50;
 const std::string kHighsOffString = "off";
 const std::string kHighsChooseString = "choose";
 const std::string kHighsOnString = "on";
+const HighsInt kHighsMaxStringLength = 512;
 const HighsInt kSimplexConcurrencyLimit = 8;
 const double kRunningAverageMultiplier = 0.05;
 
@@ -275,25 +276,43 @@ enum PresolveRuleType : int {
   kPresolveRuleProbing,
   kPresolveRuleMax = kPresolveRuleProbing,
   kPresolveRuleLastAllowOff = kPresolveRuleMax,
-  kPresolveRuleCount,
+  kPresolveRuleCount
 };
 
 enum IisStrategy : int {
   kIisStrategyMin = 0,
   kIisStrategyLight = kIisStrategyMin,  // 0
-  kIisStrategyFromLpRowPriority,        // 1
-  kIisStrategyFromLpColPriority,        // 2
-  //  kIisStrategyFromRayRowPriority,                     // 3
-  //  kIisStrategyFromRayColPriority,                     // 4
-  kIisStrategyMax = kIisStrategyFromLpColPriority
+  kIisStrategyFromRay = 1,
+  kIisStrategyFromLp = 2,
+  kIisStrategyIrreducible = 4,
+  kIisStrategyColPriority = 8,
+  kIisStrategyRelaxation = 16,
+  kIisStrategyDefault = kIisStrategyLight,
+  kIisStrategyMax = kIisStrategyFromRay + kIisStrategyFromLp +
+                    kIisStrategyIrreducible + kIisStrategyColPriority +
+                    kIisStrategyRelaxation
 };
 
 enum IisStatus {
-  kIisStatusMin = 0,
-  kIisStatusInConflict = kIisStatusMin,  // 0
-  kIisStatusNotInConflict,               // 1
-  kIisStatusMaybeInConflict,             // 2
-  kIisStatusMax = kIisStatusMaybeInConflict
+  kIisStatusMin = -1,
+  kIisStatusNotInConflict = kIisStatusMin,  // -1
+  kIisStatusMaybeInConflict,                // 0
+  kIisStatusInConflict,                     // 1
+  kIisStatusMax = kIisStatusInConflict
+};
+
+enum SubSolverIndex : int {
+  kSubSolverMip = 0,
+  kSubSolverSimplexBasis,
+  kSubSolverSimplexNoBasis,
+  kSubSolverHipo,
+  kSubSolverIpx,
+  kSubSolverHipoAc,
+  kSubSolverIpxAc,
+  kSubSolverPdlp,
+  kSubSolverQpAsm,
+  kSubSolverSubMip,
+  kSubSolverCount
 };
 
 // Default KKT tolerance

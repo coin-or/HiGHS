@@ -177,15 +177,6 @@ HighsStatus highs_mipPostsolve(Highs* h, const HighsSolution& solution) {
   return h->postsolve(solution);
 }
 
-std::tuple<HighsStatus, HighsInt, HighsInt> highs_getObjectiveBoundScaling(Highs* h) {
-  HighsInt suggested_user_objective_scaling;
-  HighsInt suggested_user_bound_scaling;
-  HighsStatus status =
-    h->getObjectiveBoundScaling(suggested_user_objective_scaling,
-				suggested_user_bound_scaling);
-  return std::make_tuple(status, suggested_user_objective_scaling, suggested_user_bound_scaling);
-}
-
 HighsStatus highs_writeSolution(Highs* h, const std::string filename,
                                 const HighsInt style) {
   return h->writeSolution(filename, style);
@@ -199,12 +190,6 @@ std::tuple<HighsStatus, HighsRanging> highs_getRanging(Highs* h) {
   HighsRanging ranging;
   HighsStatus status = h->getRanging(ranging);
   return std::make_tuple(status, ranging);
-}
-
-std::tuple<HighsStatus, double> highs_getDualObjectiveValue(Highs* h) {
-  double dual_objective_value;
-  HighsStatus status = h->getDualObjectiveValue(dual_objective_value);
-  return std::make_tuple(status, dual_objective_value);
 }
 
 std::tuple<HighsStatus, dense_array_t<HighsInt>> highs_getBasicVariables(
@@ -1059,10 +1044,9 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used()) {
   py::enum_<IisStrategy>(m, "IisStrategy", py::module_local())
       .value("kIisStrategyMin", IisStrategy::kIisStrategyMin)
       .value("kIisStrategyLight", IisStrategy::kIisStrategyLight)
-      .value("kIisStrategyFromLpRowPriority",
-             IisStrategy::kIisStrategyFromLpRowPriority)
-      .value("kIisStrategyFromLpColPriority",
-             IisStrategy::kIisStrategyFromLpColPriority)
+      .value("kIisStrategyFromRay", IisStrategy::kIisStrategyFromRay)
+      .value("kIisStrategyFromLp", IisStrategy::kIisStrategyFromLp)
+      .value("kIisStrategyColPriority", IisStrategy::kIisStrategyColPriority)
       .value("kIisStrategyMax", IisStrategy::kIisStrategyMax)
       .export_values();
   py::enum_<IisBoundStatus>(m, "IisBoundStatus", py::module_local())
@@ -1220,8 +1204,8 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used()) {
       .def_readwrite("objective_bound", &HighsOptions::objective_bound)
       .def_readwrite("objective_target", &HighsOptions::objective_target)
       .def_readwrite("threads", &HighsOptions::threads)
+      .def_readwrite("user_objective_scale", &HighsOptions::user_objective_scale)
       .def_readwrite("user_bound_scale", &HighsOptions::user_bound_scale)
-      .def_readwrite("user_cost_scale", &HighsOptions::user_cost_scale)
       .def_readwrite("highs_debug_level", &HighsOptions::highs_debug_level)
       .def_readwrite("highs_analysis_level",
                      &HighsOptions::highs_analysis_level)
@@ -1370,7 +1354,6 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used()) {
           py::arg("local_upper_penalty") = py::none(),
           py::arg("local_rhs_penalty") = py::none())
       .def("getIis", &Highs::getIis)
-      .def("getObjectiveBoundScaling", &highs_getObjectiveBoundScaling)
       .def("presolve", &Highs::presolve,
            py::call_guard<py::gil_scoped_release>())
       .def("writeSolution", &highs_writeSolution)
@@ -1420,7 +1403,7 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used()) {
       .def("getModelPresolveStatus", &Highs::getModelPresolveStatus)
       .def("getRanging", &highs_getRanging)
       .def("getObjectiveValue", &Highs::getObjectiveValue)
-      .def("getDualObjectiveValue", &highs_getDualObjectiveValue)
+      .def("getDualObjectiveValue", &Highs::getDualObjectiveValue)
       .def("getBasicVariables", &highs_getBasicVariables)
       .def("getBasisInverseRow", &highs_getBasisInverseRow)
       .def("getBasisInverseRowSparse", &highs_getBasisInverseRowSparse)
@@ -1514,14 +1497,16 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used()) {
 
   py::class_<HighsIis>(m, "HighsIis", py::module_local())
       .def(py::init<>())
-      .def("invalidate", &HighsIis::invalidate)
+      .def("clear", &HighsIis::clear)
       .def_readwrite("valid", &HighsIis::valid_)
+      .def_readwrite("status", &HighsIis::status_)
       .def_readwrite("strategy", &HighsIis::strategy_)
       .def_readwrite("col_index", &HighsIis::col_index_)
       .def_readwrite("row_index", &HighsIis::row_index_)
       .def_readwrite("col_bound", &HighsIis::col_bound_)
       .def_readwrite("row_bound", &HighsIis::row_bound_)
-      .def_readwrite("info", &HighsIis::info_);
+      .def_readwrite("info", &HighsIis::info_)
+      .def_readwrite("model", &HighsIis::model_);
   // structs
   py::class_<HighsSolution>(m, "HighsSolution", py::module_local())
       .def(py::init<>())
