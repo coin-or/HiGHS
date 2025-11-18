@@ -352,10 +352,10 @@ TEST_CASE("hi-pdlp", "[pdlp]") {
   h.setOptionValue("kkt_tolerance", kkt_tolerance);
   h.setOptionValue("presolve", "off");
 
-  HighsInt pdlp_features_off = //0
-      // kPdlpScalingOff +
-      // kPdlpRestartOff
-      kPdlpAdaptiveStepSizeOff
+  HighsInt pdlp_features_off = 0 +
+       kPdlpScalingOff +
+       kPdlpRestartOff +
+       kPdlpAdaptiveStepSizeOff
       ;
   h.setOptionValue("pdlp_features_off", pdlp_features_off);
 

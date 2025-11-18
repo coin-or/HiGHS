@@ -21,6 +21,7 @@
 #include "pdlp/cupdlp/cupdlp.h"  // For pdlpLogging
 #include "restart.hpp"
 #include "pdlp_gpu_debug.hpp"
+#include "pdhg_kernels.h"
 
 #define PDHG_CHECK_INTERVAL 40
 static constexpr double kDivergentMovement = 1e10;
@@ -513,10 +514,17 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
   // Use member variables for iterates for cleaner state management
   x_current_ = x;
   y_current_ = y;
-  linalg::project_bounds(lp_, x_current_);
+#ifdef CUPDLP_GPU
+  launchKernelUpdateX(0.0);
+  CUDA_CHECK(cudaMemcpy(d_x_current_, d_x_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
+  CUDA_CHECK(cudaMemcpy(d_x_sum_, d_x_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
+  linalgGpuAx(d_x_current_, d_ax_current_);
+#endif
+
   linalg::project_bounds(lp_, x_sum_);
   linalg::project_bounds(lp_, x_avg_);
   linalg::Ax(lp, x_current_, Ax_cache_);
+
   std::vector<double> Ax_avg = Ax_cache_;
   std::vector<double> ATy_avg(lp.num_col_, 0.0);
 
@@ -554,6 +562,15 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
 
     bool_checking = (bool_checking || iter % PDHG_CHECK_INTERVAL == 0);
     if (bool_checking) {
+#ifdef CUPDLP_GPU
+      // **VERIFICATION**: Before checking, copy GPU state to host
+      CUDA_CHECK(cudaMemcpy(x_current_.data(), d_x_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+      CUDA_CHECK(cudaMemcpy(y_current_.data(), d_y_current_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
+      CUDA_CHECK(cudaMemcpy(Ax_cache_.data(), d_ax_current_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
+      CUDA_CHECK(cudaMemcpy(ATy_cache_.data(), d_aty_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+      CUDA_CHECK(cudaMemcpy(x_sum_.data(), d_x_sum_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+      CUDA_CHECK(cudaMemcpy(y_sum_.data(), d_y_sum_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
+#endif
       hipdlpTimerStart(kHipdlpClockAverageIterate);
       computeAverageIterate(Ax_avg, ATy_avg);
       hipdlpTimerStop(kHipdlpClockAverageIterate);
@@ -648,17 +665,26 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         // Recompute Ax and ATy for the restarted iterates
         hipdlpTimerStart(kHipdlpClockMatrixMultiply);
         linalg::Ax(lp, x_current_, Ax_cache_);
-        std::vector<double> cup_ax = Ax_cache_;
-        std::vector<double> gpu_ax(lp_.num_row_,0.0);
-        linalgGpuAx(x_current_, gpu_ax);
-        bool are_ax_same = vecDiff(cup_ax, gpu_ax, 1e-12,"restart Ax");
+
+#ifdef CUPDLP_GPU
+        launchKernelUpdateX(stepsize_.primal_step);
+        linalgGpuAx(d_x_next_, d_ax_next_);
+        launchKernelUpdateY(stepsize_.dual_step);
+        linalgGpuATy(d_y_next_, d_aty_next_);
+
+        std::vector<double> x_next_gpu(a_num_cols_);
+        std::vector<double> y_next_gpu(a_num_rows_);
+        std::vector<double> ax_next_gpu(a_num_rows_);
+        std::vector<double> aty_next_gpu(a_num_cols_);
+        CUDA_CHECK(cudaMemcpy(x_next_gpu.data(), d_x_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(y_next_gpu.data(), d_y_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(ax_next_gpu.data(), d_ax_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(aty_next_gpu.data(), d_aty_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+#endif
+
         hipdlpTimerStop(kHipdlpClockMatrixMultiply);
         hipdlpTimerStart(kHipdlpClockMatrixTransposeMultiply);
         linalg::ATy(lp, y_current_, ATy_cache_);
-        std::vector<double> cup_aty = ATy_cache_;
-        std::vector<double> gpu_aty(lp_.num_col_,0.0);
-        linalgGpuATy(y_current_, gpu_aty);
-        bool are_aty_same = vecDiff(cup_aty, gpu_aty, 1e-12,"restart ATy");
         hipdlpTimerStop(kHipdlpClockMatrixTransposeMultiply);
 
         restart_scheme_.SetLastRestartIter(iter);
@@ -767,6 +793,12 @@ void PDLPSolver::initialize() {
   dSlackNeg_.resize(lp_.num_col_, 0.0);
   dSlackPosAvg_.resize(lp_.num_col_, 0.0);
   dSlackNegAvg_.resize(lp_.num_col_, 0.0);
+
+  CUDA_CHECK(cudaMemset(d_x_current_, 0, a_num_cols_ * sizeof(double)));
+  CUDA_CHECK(cudaMemset(d_y_current_, 0, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMemset(d_x_sum_, 0, a_num_cols_ * sizeof(double)));
+  CUDA_CHECK(cudaMemset(d_y_sum_, 0, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMemset(d_aty_current_, 0, a_num_cols_ * sizeof(double)));
 }
 
 // Update primal weight
@@ -830,18 +862,10 @@ void PDLPSolver::computeAverageIterate(std::vector<double>& ax_avg,
 
   hipdlpTimerStart(kHipdlpClockAverageIterateMatrixMultiply);
   linalg::Ax(lp_, x_avg_, ax_avg);
-  std::vector<double> cup_ax = ax_avg;
-  std::vector<double> gpu_ax(lp_.num_row_,0.0);
-  linalgGpuAx(x_avg_, gpu_ax);
-  bool are_ax_same = vecDiff(cup_ax, gpu_ax, 1e-12,"computeAverageIterate");
   hipdlpTimerStop(kHipdlpClockAverageIterateMatrixMultiply);
 
   hipdlpTimerStart(kHipdlpClockAverageIterateMatrixTransposeMultiply);
   linalg::ATy(lp_, y_avg_, aty_avg);
-  std::vector<double> cup_aty = aty_avg;
-  std::vector<double> gpu_aty(lp_.num_col_,0.0);
-  linalgGpuATy(y_avg_, gpu_aty);
-  bool are_aty_same = vecDiff(cup_aty, gpu_aty, 1e-12,"computeAverageIterate");
   hipdlpTimerStop(kHipdlpClockAverageIterateMatrixTransposeMultiply);
 
   debug_pdlp_data_.ax_average_norm = linalg::vector_norm_squared(ax_avg);
@@ -1154,15 +1178,7 @@ double PDLPSolver::PowerMethod() {
       //
       // Compute A'Ax = A'(Ax)
       linalg::Ax(lp, x_vec, y_vec);
-      std::vector<double> ax_cpu = y_vec;  // For timing consistency
-      std::vector<double> ax_gpu(lp.num_row_);
-      linalgGpuAx(x_vec, ax_gpu);
-      bool are_same = vecDiff(ax_cpu, ax_gpu, 1e-12, "Power method Ax");
       linalg::ATy(lp, y_vec, z_vec);  // Note: ATy computes A' * vector
-      std::vector<double> atx_cpu = z_vec;  // For timing consistency
-      std::vector<double> atx_gpu(lp.num_col_);
-      linalgGpuATy(y_vec, atx_gpu);
-      are_same = vecDiff(atx_cpu, atx_gpu, 1e-12, "Power method A'Tx");
 
       // Estimate the squared operator norm (largest eigenvalue of A'A)
       op_norm_sq = linalg::dot(
@@ -1456,10 +1472,6 @@ void PDLPSolver::updateIteratesFixed() {
 
   hipdlpTimerStart(kHipdlpClockMatrixMultiply);
   linalg::Ax(lp_, x_next_, Ax_next_);
-  std::vector<double> cup_ax = Ax_next_;
-  std::vector<double> gpu_ax(lp_.num_row_,0.0);
-  linalgGpuAx(x_next_, gpu_ax);
-  bool are_ax_same = vecDiff(cup_ax, gpu_ax, 1e-12,"updateIteratesFixed");
   hipdlpTimerStop(kHipdlpClockMatrixMultiply);
 
   hipdlpTimerStart(kHipdlpClockProjectY);
@@ -1468,11 +1480,23 @@ void PDLPSolver::updateIteratesFixed() {
 
   hipdlpTimerStart(kHipdlpClockMatrixTransposeMultiply);
   linalg::ATy(lp_, y_next_, ATy_next_);
-  std::vector<double> cup_aty = ATy_next_;
-  std::vector<double> gpu_aty(lp_.num_col_,0.0);
-  linalgGpuATy(y_next_, gpu_aty);
-  bool are_aty_same = vecDiff(cup_aty, gpu_aty, 1e-12,"updateIteratesFixed");
   hipdlpTimerStop(kHipdlpClockMatrixTransposeMultiply);
+
+#ifdef CUPDLP_GPU
+        launchKernelUpdateX(stepsize_.primal_step);
+        linalgGpuAx(d_x_next_, d_ax_next_);
+        launchKernelUpdateY(stepsize_.dual_step);
+        linalgGpuATy(d_y_next_, d_aty_next_);
+
+        std::vector<double> x_next_gpu(a_num_cols_);
+        std::vector<double> y_next_gpu(a_num_rows_);
+        std::vector<double> ax_next_gpu(a_num_rows_);
+        std::vector<double> aty_next_gpu(a_num_cols_);
+        CUDA_CHECK(cudaMemcpy(x_next_gpu.data(), d_x_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(y_next_gpu.data(), d_y_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(ax_next_gpu.data(), d_ax_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(aty_next_gpu.data(), d_aty_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+#endif
 }
 
 void PDLPSolver::updateIteratesAdaptive() {
@@ -1519,10 +1543,6 @@ void PDLPSolver::updateIteratesAdaptive() {
 
     hipdlpTimerStart(kHipdlpClockMatrixMultiply);
     linalg::Ax(lp_, xupdate, axupdate);
-    std::vector<double> cup_ax = axupdate;
-    std::vector<double> gpu_ax(lp_.num_row_,0.0);
-    linalgGpuAx(xupdate, gpu_ax);
-    bool are_ax_same = vecDiff(cup_ax, gpu_ax, 1e-12,"updateIteratesAdaptive");
     hipdlpTimerStop(kHipdlpClockMatrixMultiply);
 
     // Dual update with timing
@@ -1532,10 +1552,6 @@ void PDLPSolver::updateIteratesAdaptive() {
 
     hipdlpTimerStart(kHipdlpClockMatrixTransposeMultiply);
     linalg::ATy(lp_, yupdate, atyupdate);
-    std::vector<double> cup_aty = atyupdate;
-    std::vector<double> gpu_aty(lp_.num_col_,0.0);
-    linalgGpuATy(yupdate, gpu_aty);
-    bool are_aty_same = vecDiff(cup_aty, gpu_aty, 1e-12,"updateIteratesAdaptive");
     hipdlpTimerStop(kHipdlpClockMatrixTransposeMultiply);
 
     // Compute deltas
@@ -1742,19 +1758,42 @@ void PDLPSolver::setupGpu(){
                                     CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
                                     CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F));
   
-  //5. Allocate device vectors
-  CUDA_CHECK(cudaMalloc(&d_x_, a_num_cols_ * sizeof(double)));
-  CUDA_CHECK(cudaMalloc(&d_y_, a_num_rows_ * sizeof(double)));
-  CUDA_CHECK(cudaMalloc(&d_ax_, a_num_rows_ * sizeof(double)));
-  CUDA_CHECK(cudaMalloc(&d_aty_, a_num_cols_ * sizeof(double)));  
+  CUDA_CHECK(cudaMalloc(&d_col_cost_, a_num_cols_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_col_lower_, a_num_cols_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_col_upper_, a_num_cols_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_row_lower_, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_is_equality_row_, a_num_rows_ * sizeof(bool)));                                  
+  CUDA_CHECK(cudaMalloc(&d_x_current_, a_num_cols_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_y_current_, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_x_next_, a_num_cols_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_y_next_, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_ax_current_, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_aty_current_, a_num_cols_ * sizeof(double)));  
+  CUDA_CHECK(cudaMalloc(&d_ax_next_, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_aty_next_, a_num_cols_ * sizeof(double))); 
+  CUDA_CHECK(cudaMalloc(&d_x_sum_, a_num_cols_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_y_sum_, a_num_rows_ * sizeof(double)));
+
+  CUDA_CHECK(cudaMemcpy(d_col_cost_, lp_.col_cost_.data(), a_num_cols_ * sizeof(double), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_col_lower_, lp_.col_lower_.data(), a_num_cols_ * sizeof(double), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_col_upper_, lp_.col_upper_.data(), a_num_cols_ * sizeof(double), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_row_lower_, lp_.row_lower_.data(), a_num_rows_ * sizeof(double), cudaMemcpyHostToDevice));
+  std::vector<uint8_t> temp_equality(a_num_rows_);
+  for (size_t i = 0; i < a_num_rows_; ++i) {
+      temp_equality[i] = is_equality_row_[i] ? 1 : 0;
+  }
+
+  // Copy to device
+  CUDA_CHECK(cudaMemcpy(d_is_equality_row_, temp_equality.data(), 
+                        a_num_rows_ * sizeof(uint8_t), cudaMemcpyHostToDevice));
   
   //6. Preallocate buffer for cuSPARSE SpMV
   //Buffer for Ax 
   double alpha = 1.0;
   double beta = 0.0;
   cusparseDnVecDescr_t vec_x, vec_ax;
-  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_x, a_num_cols_, d_x_, CUDA_R_64F));
-  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_ax, a_num_rows_, d_ax_, CUDA_R_64F));
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_x, a_num_cols_, d_x_current_, CUDA_R_64F));
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_ax, a_num_rows_, d_ax_current_, CUDA_R_64F));
 
   CUSPARSE_CHECK(cusparseSpMV_bufferSize(
       cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
@@ -1767,8 +1806,8 @@ void PDLPSolver::setupGpu(){
 
   //Buffer for ATy
   cusparseDnVecDescr_t vec_y, vec_aty;
-  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_y, a_num_rows_, d_y_, CUDA_R_64F));
-  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_aty, a_num_cols_, d_aty_, CUDA_R_64F));
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_y, a_num_rows_, d_y_current_, CUDA_R_64F));
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_aty, a_num_cols_, d_aty_current_, CUDA_R_64F));
   CUSPARSE_CHECK(cusparseSpMV_bufferSize(
       cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
       &alpha, mat_a_T_csr_, vec_y, &beta, vec_aty, CUDA_R_64F,
@@ -1790,22 +1829,32 @@ void PDLPSolver::cleanupGpu(){
   CUDA_CHECK(cudaFree(d_at_row_ptr_));
   CUDA_CHECK(cudaFree(d_at_col_ind_));
   CUDA_CHECK(cudaFree(d_at_val_));
-  CUDA_CHECK(cudaFree(d_x_));
-  CUDA_CHECK(cudaFree(d_y_));
-  CUDA_CHECK(cudaFree(d_ax_));
-  CUDA_CHECK(cudaFree(d_aty_));
+  CUDA_CHECK(cudaFree(d_col_cost_));
+  CUDA_CHECK(cudaFree(d_col_lower_));
+  CUDA_CHECK(cudaFree(d_col_upper_));
+  CUDA_CHECK(cudaFree(d_row_lower_));
+  CUDA_CHECK(cudaFree(d_is_equality_row_));
+  CUDA_CHECK(cudaFree(d_x_current_));
+  CUDA_CHECK(cudaFree(d_y_current_));
+  CUDA_CHECK(cudaFree(d_x_next_));
+  CUDA_CHECK(cudaFree(d_y_next_));
+  CUDA_CHECK(cudaFree(d_ax_current_));
+  CUDA_CHECK(cudaFree(d_aty_current_));
+  CUDA_CHECK(cudaFree(d_ax_next_));
+  CUDA_CHECK(cudaFree(d_aty_next_));
+  CUDA_CHECK(cudaFree(d_x_sum_));
+  CUDA_CHECK(cudaFree(d_y_sum_));
   CUDA_CHECK(cudaFree(d_spmv_buffer_ax_));
   CUDA_CHECK(cudaFree(d_spmv_buffer_aty_));
 }
 
-void PDLPSolver::linalgGpuAx(const std::vector<double>& x, std::vector<double>& ax){
-  CUDA_CHECK(cudaMemcpy(d_x_, x.data(), a_num_cols_ * sizeof(double), cudaMemcpyHostToDevice));
+void PDLPSolver::linalgGpuAx(const double* d_x_in, double* d_ax_out){
   // Ax = 1.0 * A * x + 0.0 * ax
   double alpha = 1.0;
   double beta = 0.0;
   cusparseDnVecDescr_t vec_x, vec_ax;
-  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_x, a_num_cols_, d_x_, CUDA_R_64F));
-  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_ax, a_num_rows_, d_ax_, CUDA_R_64F));
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_x, a_num_cols_, (void*)d_x_in, CUDA_R_64F));
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_ax, a_num_rows_, d_ax_out, CUDA_R_64F));
   if(spmv_buffer_size_ax_ == 0){
     CUSPARSE_CHECK(cusparseSpMV_bufferSize(
         cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
@@ -1818,20 +1867,17 @@ void PDLPSolver::linalgGpuAx(const std::vector<double>& x, std::vector<double>& 
       cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
       &alpha, mat_a_csr_, vec_x, &beta, vec_ax, CUDA_R_64F,
       CUSPARSE_SPMV_CSR_ALG2, d_spmv_buffer_ax_));
-  CUDA_CHECK(cudaMemcpy(ax.data(), d_ax_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
   CUSPARSE_CHECK(cusparseDestroyDnVec(vec_x));
   CUSPARSE_CHECK(cusparseDestroyDnVec(vec_ax));
 }
 
-void PDLPSolver::linalgGpuATy(const std::vector<double>& y,
-                       std::vector<double>& aty){
-  CUDA_CHECK(cudaMemcpy(d_y_, y.data(), a_num_rows_ * sizeof(double), cudaMemcpyHostToDevice));
+void PDLPSolver::linalgGpuATy(const double* d_y_in, double* d_aty_out){
   // ATy = 1.0 * A^T * y + 0.0 * aty
   double alpha = 1.0;
   double beta = 0.0;
   cusparseDnVecDescr_t vec_y, vec_aty;
-  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_y, a_num_rows_, d_y_, CUDA_R_64F));
-  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_aty, a_num_cols_, d_aty_, CUDA_R_64F));
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_y, a_num_rows_, (void*)d_y_in, CUDA_R_64F));
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_aty, a_num_cols_, d_aty_out, CUDA_R_64F));
   if(spmv_buffer_size_aty_ == 0){
     CUSPARSE_CHECK(cusparseSpMV_bufferSize(
         cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
@@ -1843,7 +1889,30 @@ void PDLPSolver::linalgGpuATy(const std::vector<double>& y,
       cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
       &alpha, mat_a_T_csr_, vec_y, &beta, vec_aty, CUDA_R_64F,
       CUSPARSE_SPMV_CSR_ALG2, d_spmv_buffer_aty_));
-  CUDA_CHECK(cudaMemcpy(aty.data(), d_aty_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
   CUSPARSE_CHECK(cusparseDestroyDnVec(vec_y));
   CUSPARSE_CHECK(cusparseDestroyDnVec(vec_aty));
+}
+
+void PDLPSolver::launchKernelUpdateX(double primal_step) {
+    launchKernelUpdateX_wrapper(
+        d_x_next_, d_x_current_, d_aty_current_,
+        d_col_cost_, d_col_lower_, d_col_upper_,
+        primal_step, a_num_cols_);
+    CUDA_CHECK(cudaGetLastError());
+}
+
+void PDLPSolver::launchKernelUpdateY(double dual_step) {
+  launchKernelUpdateY_wrapper(
+      d_y_next_, d_y_current_, d_ax_current_,
+      d_row_lower_, d_is_equality_row_,
+      dual_step, a_num_rows_);
+  CUDA_CHECK(cudaGetLastError());
+}
+
+void PDLPSolver::launchKernelUpdateAverages(double weight) {
+  launchKernelUpdateAverages_wrapper(
+      d_x_sum_, d_y_sum_,
+      d_x_next_, d_y_next_,
+      weight, a_num_cols_, a_num_rows_);
+  CUDA_CHECK(cudaGetLastError());
 }

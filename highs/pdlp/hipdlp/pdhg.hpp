@@ -21,7 +21,7 @@
 #include <cuda_runtime.h>
 #include <cusparse.h>
 
-#include "Highs.h"
+//#include "Highs.h"
 #include "linalg.hpp"
 #include "logger.hpp"
 #include "pdlp/HiPdlpTimer.h"
@@ -172,10 +172,8 @@ class PDLPSolver {
   // --- GPU methods ---
   void setupGpu();
   void cleanupGpu();
-  void linalgGpuAx(const std::vector<double>& x,
-                      std::vector<double>& ax);
-  void linalgGpuATy(const std::vector<double>& y,
-                       std::vector<double>& aty);
+  void linalgGpuAx(const double* d_x_in, double* d_ax_out);
+  void linalgGpuATy(const double* d_y_in, double* d_aty_out);
   
   // --- Helpers for error checking ---
   #define CUDA_CHECK(call) \
@@ -206,7 +204,6 @@ class PDLPSolver {
   double* d_a_val_ = nullptr;
 
   // Matrix A^T in CSR format (for Aty)
-  // creat by resuing A's CSC data on GPU
   cusparseSpMatDescr_t mat_a_T_csr_ = nullptr;
   int* d_at_row_ptr_ = nullptr;
   int* d_at_col_ind_ = nullptr;
@@ -216,16 +213,31 @@ class PDLPSolver {
   int a_num_rows_ = 0;
   int a_num_cols_ = 0;
   int a_nnz_ = 0;
-  double* d_x_ = nullptr;
-  double* d_y_ = nullptr;
-  double* d_ax_ = nullptr;
-  double* d_aty_ = nullptr;
+  double* d_col_cost_ = nullptr;
+  double* d_col_lower_ = nullptr;
+  double* d_col_upper_ = nullptr;
+  double* d_row_lower_ = nullptr;
+  bool* d_is_equality_row_ = nullptr;
+  double* d_x_current_ = nullptr;
+  double* d_y_current_ = nullptr;
+  double* d_x_next_ = nullptr;
+  double* d_y_next_ = nullptr;
+  double* d_ax_current_ = nullptr;  // Replaces host-side Ax_cache_
+  double* d_aty_current_ = nullptr; // Replaces host-side ATy_cache_
+  double* d_ax_next_ = nullptr;
+  double* d_aty_next_ = nullptr;
+  double* d_x_sum_ = nullptr;
+  double* d_y_sum_ = nullptr;
 
   // Temporary buffer for SpMV
   void* d_spmv_buffer_ax_ = nullptr;
   size_t spmv_buffer_size_ax_ = 0;
   void* d_spmv_buffer_aty_ = nullptr;
   size_t spmv_buffer_size_aty_ = 0;
+
+  void launchKernelUpdateX(double primal_step);
+  void launchKernelUpdateY(double dual_step);
+  void launchKernelUpdateAverages(double weight);
 };
 
 #endif
