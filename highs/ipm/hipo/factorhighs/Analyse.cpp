@@ -13,16 +13,19 @@
 #include "ipm/hipo/auxiliary/Log.h"
 
 // define correct int type for Metis before header is included
+#ifdef HIGHSINT64
 #define IDXTYPEWIDTH 64
+#else
+#define IDXTYPEWIDTH 32
+#endif
 #include "metis.h"
-
 namespace hipo {
 
 const Int64 int32_limit = std::numeric_limits<int32_t>::max();
 const Int64 int64_limit = std::numeric_limits<int64_t>::max();
 
-Analyse::Analyse(const std::vector<Int64>& rows, const std::vector<Int64>& ptr,
-                 const std::vector<Int64>& signs, Int64 nb, const Log* log,
+Analyse::Analyse(const std::vector<Int>& rows, const std::vector<Int>& ptr,
+                 const std::vector<Int>& signs, Int64 nb, const Log* log,
                  DataCollector& data)
     : log_{log}, data_{data} {
   // Input the symmetric matrix to be analysed in CSC format.
@@ -43,7 +46,7 @@ Analyse::Analyse(const std::vector<Int64>& rows, const std::vector<Int64>& ptr,
 
   // Permute the matrix with identical permutation, to extract upper triangular
   // part, if the input is not lower triangular.
-  std::vector<Int64> id_perm(n_);
+  std::vector<Int> id_perm(n_);
   for (Int64 i = 0; i < n_; ++i) id_perm[i] = i;
   permute(id_perm);
 
@@ -71,9 +74,8 @@ Int64 Analyse::getPermutation(bool metis_no2hop) {
   // Build temporary full copy of the matrix, to be used for Metis.
   // NB: Metis adjacency list should not contain the vertex itself, so diagonal
   // element is skipped.
-  // In Metis, ptr and rows have the same type, so use Int64 for both.
 
-  std::vector<Int64> work(n_, 0);
+  std::vector<Int> work(n_, 0);
 
   // go through the columns to count nonzeros
   for (Int64 j = 0; j < n_; ++j) {
@@ -92,10 +94,10 @@ Int64 Analyse::getPermutation(bool metis_no2hop) {
   }
 
   // compute column pointers from column counts
-  std::vector<Int64> temp_ptr(n_ + 1, 0);
+  std::vector<Int> temp_ptr(n_ + 1, 0);
   counts2Ptr(temp_ptr, work);
 
-  std::vector<Int64> temp_rows(temp_ptr.back(), 0);
+  std::vector<Int> temp_rows(temp_ptr.back(), 0);
 
   for (Int64 j = 0; j < n_; ++j) {
     for (Int64 el = ptr_upper_[j]; el < ptr_upper_[j + 1]; ++el) {
@@ -125,12 +127,8 @@ Int64 Analyse::getPermutation(bool metis_no2hop) {
 
   if (log_) log_->printDevInfo("Running Metis\n");
 
-  // temporary data with 64-bit integers
-  Int64 n64 = n_;
-  std::vector<Int64> perm64(n_), iperm64(n_);
-
-  Int64 status = METIS_NodeND(&n64, temp_ptr.data(), temp_rows.data(), NULL,
-                              options, perm64.data(), iperm64.data());
+  Int64 status = METIS_NodeND(&n_, temp_ptr.data(), temp_rows.data(), NULL,
+                              options, perm_.data(), iperm_.data());
 
   if (log_) log_->printDevInfo("Metis done\n");
   if (status != METIS_OK) {
@@ -138,21 +136,15 @@ Int64 Analyse::getPermutation(bool metis_no2hop) {
     return kRetMetisError;
   }
 
-  // put 64-bit permutation back into 32-bit vectors
-  for (Int64 i = 0; i < n_; ++i) {
-    perm_[i] = perm64[i];
-    iperm_[i] = iperm64[i];
-  }
-
   return kRetOk;
 }
 
-void Analyse::permute(const std::vector<Int64>& iperm) {
+void Analyse::permute(const std::vector<Int>& iperm) {
   // Symmetric permutation of the upper triangular matrix based on inverse
   // permutation iperm.
   // The resulting matrix is upper triangular, regardless of the input matrix.
 
-  std::vector<Int64> work(n_, 0);
+  std::vector<Int> work(n_, 0);
 
   // go through the columns to count the nonzeros
   for (Int64 j = 0; j < n_; ++j) {
@@ -175,13 +167,13 @@ void Analyse::permute(const std::vector<Int64>& iperm) {
     }
   }
 
-  std::vector<Int64> new_ptr(n_ + 1);
+  std::vector<Int> new_ptr(n_ + 1);
 
   // get column pointers by summing the count of nonzeros in each column.
   // copy column pointers into work
   counts2Ptr(new_ptr, work);
 
-  std::vector<Int64> new_rows(new_ptr.back());
+  std::vector<Int> new_rows(new_ptr.back());
 
   // go through the columns to assign row indices
   for (Int64 j = 0; j < n_; ++j) {
@@ -261,7 +253,7 @@ void Analyse::postorder() {
   }
 
   // Permute elimination tree based on postorder
-  std::vector<Int64> ipost(n_);
+  std::vector<Int> ipost(n_);
   inversePerm(postorder_, ipost);
   std::vector<Int64> new_parent(n_);
   for (Int64 i = 0; i < n_; ++i) {
@@ -684,7 +676,7 @@ void Analyse::afterRelaxSn() {
   // sn merging.
 
   // permutation to apply to the existing one
-  std::vector<Int64> new_perm(n_);
+  std::vector<Int> new_perm(n_);
 
   // index to write into new_perm
   Int64 start{};
@@ -697,7 +689,7 @@ void Analyse::afterRelaxSn() {
   }
 
   // obtain inverse permutation
-  std::vector<Int64> new_iperm(n_);
+  std::vector<Int> new_iperm(n_);
   inversePerm(new_perm, new_iperm);
 
   // =================================================
@@ -1123,7 +1115,7 @@ void Analyse::reorderChildren() {
   // Create supernodal permutation
   // =================================================
   // build supernodal permutation with dfs
-  std::vector<Int64> sn_perm(sn_count_);
+  std::vector<Int> sn_perm(sn_count_);
   Int64 start{};
   for (Int64 sn = 0; sn < sn_count_; ++sn) {
     if (sn_parent_[sn] == -1) dfsPostorder(sn, start, head, next, sn_perm);
@@ -1135,7 +1127,7 @@ void Analyse::reorderChildren() {
   // Given the supernodal permutation, find the nodal permutation
 
   // permutation to apply to the existing one
-  std::vector<Int64> new_perm(n_);
+  std::vector<Int> new_perm(n_);
 
   // index to write into new_perm
   start = 0;
@@ -1148,13 +1140,13 @@ void Analyse::reorderChildren() {
   }
 
   // obtain inverse permutation
-  std::vector<Int64> new_iperm(n_);
+  std::vector<Int> new_iperm(n_);
   inversePerm(new_perm, new_iperm);
 
   // =================================================
   // Create new sn elimination tree
   // =================================================
-  std::vector<Int64> isn_perm(sn_count_);
+  std::vector<Int> isn_perm(sn_count_);
   inversePerm(sn_perm, isn_perm);
   std::vector<Int64> new_sn_parent(sn_count_);
   for (Int64 i = 0; i < sn_count_; ++i) {

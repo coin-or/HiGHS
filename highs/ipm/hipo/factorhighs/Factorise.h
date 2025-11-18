@@ -13,8 +13,8 @@ namespace hipo {
 class Factorise {
  public:
   // matrix to factorise
-  std::vector<Int64> rowsA_{};
-  std::vector<Int64> ptrA_{};
+  std::vector<Int> rowsA_{};
+  std::vector<Int> ptrA_{};
   std::vector<double> valA_{};
   Int64 n_{};
   Int64 nzA_{};
@@ -65,12 +65,12 @@ class Factorise {
   DataCollector& data_;
 
  public:
-  void permute(const std::vector<Int64>& iperm);
+  void permute(const std::vector<Int>& iperm);
   void processSupernode(Int64 sn);
 
  public:
-  Factorise(const Symbolic& S, const std::vector<Int64>& rowsA,
-            const std::vector<Int64>& ptrA, const std::vector<double>& valA,
+  Factorise(const Symbolic& S, const std::vector<Int>& rowsA,
+            const std::vector<Int>& ptrA, const std::vector<double>& valA,
             const Regul& regul, const Log* log, DataCollector& data,
             std::vector<std::vector<double>>& sn_columns);
 

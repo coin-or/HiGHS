@@ -38,7 +38,7 @@ class Symbolic {
   Int64 sn_size_100_{};
 
   // Inverse permutation
-  std::vector<Int64> iperm_{};
+  std::vector<Int> iperm_{};
 
   // Sparsity pattern of each supernode of L
   std::vector<Int64> rows_{};
@@ -92,7 +92,7 @@ class Symbolic {
   // - pivot_sign_[i] = -1 is pivot i is supposed to be negative.
   // This is used when regularising the pivots, to know the sign that the pivot
   // should have.
-  std::vector<Int64> pivot_sign_{};
+  std::vector<Int> pivot_sign_{};
 
   // Starting position of diagonal blocks for hybrid formats
   std::vector<std::vector<Int64>> clique_block_start_{};
@@ -126,10 +126,10 @@ class Symbolic {
   bool parNode() const;
   bool metisNo2hop() const;
   const std::vector<Int64>& ptr() const;
-  const std::vector<Int64>& iperm() const;
+  const std::vector<Int>& iperm() const;
   const std::vector<Int64>& snParent() const;
   const std::vector<Int64>& snStart() const;
-  const std::vector<Int64>& pivotSign() const;
+  const std::vector<Int>& pivotSign() const;
 
   void print(const Log& log, bool verbose = false) const;
 };

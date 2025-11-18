@@ -64,7 +64,7 @@ Int64 HybridHybridFormatHandler::denseFactorise(double reg_thresh) {
 
   // find the position within pivot_sign corresponding to this supernode
   Int64 sn_start = S_->snStart(sn_);
-  const Int64* pivot_sign = &S_->pivotSign().data()[sn_start];
+  const Int* pivot_sign = &S_->pivotSign().data()[sn_start];
 
   status = denseFactFH('H', ldf_, sn_size_, S_->blockSize(), frontal_.data(),
                        clique_.data(), pivot_sign, reg_thresh, regul_,

@@ -2,14 +2,15 @@
 
 #include <stdint.h>
 
-#define IDXTYPEWIDTH 64
+// declare Metis with 32-bit integers for the test
+#define IDXTYPEWIDTH 32
 #include "metis.h"
 
 // Weird tricks to detect the integer type width used by BLAS and Metis.
 // These are technically undefined behaviour, because they rely on using a
-// function declaration that involves int64_t, while the actual implementation
-// may use a different type. Their behaviour may depend on the endianness of the
-// CPU (?).
+// function declaration that involves a certain integer type, while the actual
+// implementation may use a different one. Their behaviour may depend on the
+// endianness of the CPU (?).
 
 namespace hipo {
 
@@ -80,10 +81,9 @@ IntegerModel getMetisIntegerModel() {
     idx_t options[METIS_NOPTIONS];
     for (int i = 0; i < METIS_NOPTIONS; ++i) options[i] = -1;
 
-    // if Metis is using 32-bit internally, this should set ptype to 0 and
-    // objtype to 1, which should trigger an error. If it uses 64-bit then
-    // everything should be fine.
-    options[METIS_OPTION_PTYPE] = 1;
+    // if 32 bits are used, this sets iptype to 2, otherwise it sets objtype to
+    // a wrong value
+    options[METIS_OPTION_IPTYPE] = 2;
 
     idx_t n = 3;
     idx_t ptr[4] = {0, 2, 4, 6};
@@ -96,9 +96,9 @@ IntegerModel getMetisIntegerModel() {
       if (perm[0] != 0 || perm[1] != 1 || perm[2] != 2)
         metis_model = IntegerModel::unknown;
       else
-        metis_model = IntegerModel::ilp64;
+        metis_model = IntegerModel::lp64;
     } else if (status == METIS_ERROR_INPUT) {
-      metis_model = IntegerModel::lp64;
+      metis_model = IntegerModel::ilp64;
     } else {
       metis_model = IntegerModel::unknown;
     }

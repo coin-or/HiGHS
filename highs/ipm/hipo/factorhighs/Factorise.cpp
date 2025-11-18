@@ -15,8 +15,8 @@
 
 namespace hipo {
 
-Factorise::Factorise(const Symbolic& S, const std::vector<Int64>& rowsA,
-                     const std::vector<Int64>& ptrA,
+Factorise::Factorise(const Symbolic& S, const std::vector<Int>& rowsA,
+                     const std::vector<Int>& ptrA,
                      const std::vector<double>& valA, const Regul& regul,
                      const Log* log, DataCollector& data,
                      std::vector<std::vector<double>>& sn_columns)
@@ -49,8 +49,8 @@ Factorise::Factorise(const Symbolic& S, const std::vector<Int64>& rowsA,
   nzA_ = ptrA_.back();
 
   // Double transpose to sort columns
-  std::vector<Int64> temp_ptr(n_ + 1);
-  std::vector<Int64> temp_rows(nzA_);
+  std::vector<Int> temp_ptr(n_ + 1);
+  std::vector<Int> temp_rows(nzA_);
   std::vector<double> temp_val(nzA_);
   transpose(ptrA_, rowsA_, valA_, temp_ptr, temp_rows, temp_val);
   transpose(temp_ptr, temp_rows, temp_val, ptrA_, rowsA_, valA_);
@@ -89,12 +89,12 @@ Factorise::Factorise(const Symbolic& S, const std::vector<Int64>& rowsA,
   data_.setNorms(A_norm1_, max_diag_);
 }
 
-void Factorise::permute(const std::vector<Int64>& iperm) {
+void Factorise::permute(const std::vector<Int>& iperm) {
   // Symmetric permutation of the lower triangular matrix A based on inverse
   // permutation iperm.
   // The resulting matrix is lower triangular, regardless of the input matrix.
 
-  std::vector<Int64> work(n_, 0);
+  std::vector<Int> work(n_, 0);
 
   // go through the columns to count the nonzeros
   for (Int64 j = 0; j < n_; ++j) {
@@ -117,13 +117,13 @@ void Factorise::permute(const std::vector<Int64>& iperm) {
     }
   }
 
-  std::vector<Int64> new_ptr(n_ + 1);
+  std::vector<Int> new_ptr(n_ + 1);
 
   // get column pointers by summing the count of nonzeros in each column.
   // copy column pointers into work
   counts2Ptr(new_ptr, work);
 
-  std::vector<Int64> new_rows(new_ptr.back());
+  std::vector<Int> new_rows(new_ptr.back());
   std::vector<double> new_val(new_ptr.back());
 
   // go through the columns to assign row indices

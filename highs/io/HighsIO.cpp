@@ -29,14 +29,20 @@ void highsLogHeader(const HighsLogOptions& log_options,
                githash_text.c_str(), kHighsCopyrightStatement.c_str());
 
 #ifdef HIPO
+  std::string blas_model =
+      hipo::getIntegerModelString(hipo::getBlasIntegerModel());
+
 #ifdef BLAS_LIBRARIES
-  highsLogUser(
-      log_options, HighsLogType::kInfo, "Using blas: %s - %s\n", BLAS_LIBRARIES,
-      hipo::getIntegerModelString(hipo::getBlasIntegerModel()).c_str());
+  highsLogUser(log_options, HighsLogType::kInfo, "Using blas: %s - %s\n",
+               BLAS_LIBRARIES, blas_model.c_str());
 #else
-  highsLogUser(
-      log_options, HighsLogType::kInfo, "Using blas: unknown - %s\n",
-      hipo::getIntegerModelString(hipo::getBlasIntegerModel()).c_str());
+#ifdef HIPO_USES_OPENBLAS
+  highsLogUser(log_options, HighsLogType::kInfo, "Using blas: OpenBLAS - %s\n",
+               blas_model.c_str());
+#else
+  highsLogUser(log_options, HighsLogType::kInfo, "Using blas: unknown - %s\n",
+               blas_model.c_str());
+#endif
 #endif
 #endif
 }

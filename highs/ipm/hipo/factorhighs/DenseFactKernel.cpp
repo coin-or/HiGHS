@@ -52,7 +52,7 @@ static void staticReg(double& pivot, Int64 sign, const Regul& regval,
 }
 
 static bool blockBunchKaufman(Int64 j, Int64 n, double* A, Int64 lda,
-                              Int64* swaps, Int64* sign, double thresh,
+                              Int64* swaps, Int* sign, double thresh,
                               const Regul& regval, double* totalreg,
                               DataCollector& data) {
   // Perform Bunch-Kaufman pivoting within a block of the supernode (see Schenk,
@@ -151,7 +151,7 @@ static bool blockBunchKaufman(Int64 j, Int64 n, double* A, Int64 lda,
   return flag_2x2;
 }
 
-Int64 denseFactK(char uplo, Int64 n, double* A, Int64 lda, Int64* pivot_sign,
+Int64 denseFactK(char uplo, Int64 n, double* A, Int64 lda, Int* pivot_sign,
                  double thresh, const Regul& regval, double* totalreg,
                  Int64* swaps, double* pivot_2x2, DataCollector& data) {
   // ===========================================================================

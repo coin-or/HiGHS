@@ -11,19 +11,18 @@
 
 namespace hipo {
 
-void counts2Ptr(std::vector<Int64>& ptr, std::vector<Int64>& w);
-void inversePerm(const std::vector<Int64>& perm, std::vector<Int64>& iperm);
+void inversePerm(const std::vector<Int>& perm, std::vector<Int>& iperm);
 void subtreeSize(const std::vector<Int64>& parent, std::vector<Int64>& sizes);
-void transpose(const std::vector<Int64>& ptr, const std::vector<Int64>& rows,
-               std::vector<Int64>& ptrT, std::vector<Int64>& rowsT);
-void transpose(const std::vector<Int64>& ptr, const std::vector<Int64>& rows,
-               const std::vector<double>& val, std::vector<Int64>& ptrT,
-               std::vector<Int64>& rowsT, std::vector<double>& valT);
+void transpose(const std::vector<Int>& ptr, const std::vector<Int>& rows,
+               std::vector<Int>& ptrT, std::vector<Int>& rowsT);
+void transpose(const std::vector<Int>& ptr, const std::vector<Int>& rows,
+               const std::vector<double>& val, std::vector<Int>& ptrT,
+               std::vector<Int>& rowsT, std::vector<double>& valT);
 void childrenLinkedList(const std::vector<Int64>& parent,
                         std::vector<Int64>& head, std::vector<Int64>& next);
 void reverseLinkedList(std::vector<Int64>& head, std::vector<Int64>& next);
 void dfsPostorder(Int64 node, Int64& start, std::vector<Int64>& head,
-                  const std::vector<Int64>& next, std::vector<Int64>& order);
+                  const std::vector<Int64>& next, std::vector<Int>& order);
 void processEdge(Int64 j, Int64 i, const std::vector<Int64>& first,
                  std::vector<Int64>& maxfirst, std::vector<Int64>& delta,
                  std::vector<Int64>& prevleaf, std::vector<Int64>& ancestor);
@@ -31,14 +30,30 @@ Int64 getDiagStart(Int64 n, Int64 k, Int64 nb, Int64 n_blocks,
                    std::vector<Int64>& start, bool triang = false);
 
 template <typename T>
-void permuteVector(std::vector<T>& v, const std::vector<Int64>& perm) {
+void counts2Ptr(std::vector<T>& ptr, std::vector<T>& w) {
+  // Given the column counts in the vector w (of size n),
+  // compute the column pointers in the vector ptr (of size n+1),
+  // and copy the first n pointers back into w.
+
+  T temp_nz{};
+  T n = w.size();
+  for (T j = 0; j < n; ++j) {
+    ptr[j] = temp_nz;
+    temp_nz += w[j];
+    w[j] = ptr[j];
+  }
+  ptr[n] = temp_nz;
+}
+
+template <typename T>
+void permuteVector(std::vector<T>& v, const std::vector<Int>& perm) {
   // Permute vector v according to permutation perm.
   std::vector<T> temp_v(v);
   for (Int64 i = 0; i < v.size(); ++i) v[i] = temp_v[perm[i]];
 }
 
 template <typename T>
-void permuteVectorInverse(std::vector<T>& v, const std::vector<Int64>& iperm) {
+void permuteVectorInverse(std::vector<T>& v, const std::vector<Int>& iperm) {
   // Permute vector v according to inverse permutation iperm.
   std::vector<T> temp_v(v);
   for (Int64 i = 0; i < v.size(); ++i) v[iperm[i]] = temp_v[i];

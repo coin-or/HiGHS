@@ -4,27 +4,12 @@
 
 namespace hipo {
 
-void counts2Ptr(std::vector<Int64>& ptr, std::vector<Int64>& w) {
-  // Given the column counts in the vector w (of size n),
-  // compute the column pointers in the vector ptr (of size n+1),
-  // and copy the first n pointers back into w.
-
-  Int64 temp_nz{};
-  Int64 n = w.size();
-  for (Int64 j = 0; j < n; ++j) {
-    ptr[j] = temp_nz;
-    temp_nz += w[j];
-    w[j] = ptr[j];
-  }
-  ptr[n] = temp_nz;
-}
-
-void inversePerm(const std::vector<Int64>& perm, std::vector<Int64>& iperm) {
+void inversePerm(const std::vector<Int>& perm, std::vector<Int>& iperm) {
   // Given the permutation perm, produce the inverse permutation iperm.
   // perm[i] : i-th entry to use in the new order.
   // iperm[i]: where entry i is located in the new order.
 
-  for (Int64 i = 0; i < perm.size(); ++i) {
+  for (Int i = 0; i < perm.size(); ++i) {
     iperm[perm[i]] = i;
   }
 }
@@ -41,56 +26,56 @@ void subtreeSize(const std::vector<Int64>& parent, std::vector<Int64>& sizes) {
   }
 }
 
-void transpose(const std::vector<Int64>& ptr, const std::vector<Int64>& rows,
-               std::vector<Int64>& ptrT, std::vector<Int64>& rowsT) {
+void transpose(const std::vector<Int>& ptr, const std::vector<Int>& rows,
+               std::vector<Int>& ptrT, std::vector<Int>& rowsT) {
   // Compute the transpose of the matrix and return it in rowsT and ptrT
 
-  Int64 n = ptr.size() - 1;
+  Int n = ptr.size() - 1;
 
-  std::vector<Int64> work(n);
+  std::vector<Int> work(n);
 
   // count the entries in each row into work
-  for (Int64 i = 0; i < ptr.back(); ++i) {
+  for (Int i = 0; i < ptr.back(); ++i) {
     ++work[rows[i]];
   }
 
   // sum row sums to obtain pointers
   counts2Ptr(ptrT, work);
 
-  for (Int64 j = 0; j < n; ++j) {
-    for (Int64 el = ptr[j]; el < ptr[j + 1]; ++el) {
-      Int64 i = rows[el];
+  for (Int j = 0; j < n; ++j) {
+    for (Int el = ptr[j]; el < ptr[j + 1]; ++el) {
+      Int i = rows[el];
 
       // entry (i,j) becomes entry (j,i)
-      Int64 pos = work[i]++;
+      Int pos = work[i]++;
       rowsT[pos] = j;
     }
   }
 }
 
-void transpose(const std::vector<Int64>& ptr, const std::vector<Int64>& rows,
-               const std::vector<double>& val, std::vector<Int64>& ptrT,
-               std::vector<Int64>& rowsT, std::vector<double>& valT) {
+void transpose(const std::vector<Int>& ptr, const std::vector<Int>& rows,
+               const std::vector<double>& val, std::vector<Int>& ptrT,
+               std::vector<Int>& rowsT, std::vector<double>& valT) {
   // Compute the transpose of the matrix and return it in rowsT, ptrT and valT
 
-  Int64 n = ptr.size() - 1;
+  Int n = ptr.size() - 1;
 
-  std::vector<Int64> work(n);
+  std::vector<Int> work(n);
 
   // count the entries in each row into work
-  for (Int64 i = 0; i < ptr.back(); ++i) {
+  for (Int i = 0; i < ptr.back(); ++i) {
     ++work[rows[i]];
   }
 
   // sum row sums to obtain pointers
   counts2Ptr(ptrT, work);
 
-  for (Int64 j = 0; j < n; ++j) {
-    for (Int64 el = ptr[j]; el < ptr[j + 1]; ++el) {
-      Int64 i = rows[el];
+  for (Int j = 0; j < n; ++j) {
+    for (Int el = ptr[j]; el < ptr[j + 1]; ++el) {
+      Int i = rows[el];
 
       // entry (i,j) becomes entry (j,i)
-      Int64 pos = work[i]++;
+      Int pos = work[i]++;
       rowsT[pos] = j;
       valT[pos] = val[el];
     }
@@ -140,7 +125,7 @@ void reverseLinkedList(std::vector<Int64>& head, std::vector<Int64>& next) {
 }
 
 void dfsPostorder(Int64 node, Int64& start, std::vector<Int64>& head,
-                  const std::vector<Int64>& next, std::vector<Int64>& order) {
+                  const std::vector<Int64>& next, std::vector<Int>& order) {
   // Perform depth first search starting from root node and order the nodes
   // starting from the value start. head and next contain the linked list of
   // children.

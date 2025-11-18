@@ -31,7 +31,9 @@ Int64 Symbolic::ptr(Int64 i) const { return ptr_[i]; }
 Int64 Symbolic::snStart(Int64 i) const { return sn_start_[i]; }
 Int64 Symbolic::snParent(Int64 i) const { return sn_parent_[i]; }
 Int64 Symbolic::relindCols(Int64 i) const { return relind_cols_[i]; }
-Int64 Symbolic::relindClique(Int64 i, Int64 j) const { return relind_clique_[i][j]; }
+Int64 Symbolic::relindClique(Int64 i, Int64 j) const {
+  return relind_clique_[i][j];
+}
 Int64 Symbolic::consecutiveSums(Int64 i, Int64 j) const {
   return consecutive_sums_[i][j];
 }
@@ -46,10 +48,10 @@ bool Symbolic::parNode() const { return parallel_node_; }
 bool Symbolic::metisNo2hop() const { return metis_no2hop_; }
 
 const std::vector<Int64>& Symbolic::ptr() const { return ptr_; }
-const std::vector<Int64>& Symbolic::iperm() const { return iperm_; }
+const std::vector<Int>& Symbolic::iperm() const { return iperm_; }
 const std::vector<Int64>& Symbolic::snParent() const { return sn_parent_; }
 const std::vector<Int64>& Symbolic::snStart() const { return sn_start_; }
-const std::vector<Int64>& Symbolic::pivotSign() const { return pivot_sign_; }
+const std::vector<Int>& Symbolic::pivotSign() const { return pivot_sign_; }
 
 static std::string memoryString(double mem) {
   std::stringstream ss;

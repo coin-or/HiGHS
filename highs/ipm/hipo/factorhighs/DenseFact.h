@@ -30,13 +30,13 @@ namespace hipo {
 */
 
 // dense factorisation kernel
-Int64 denseFactK(char uplo, Int64 n, double* A, Int64 lda, Int64* pivot_sign,
+Int64 denseFactK(char uplo, Int64 n, double* A, Int64 lda, Int* pivot_sign,
                  double thresh, const Regul& regul, double* totalreg,
                  Int64* swaps, double* pivot_2x2, DataCollector& data);
 
 // dense partial factorisation, in "hybrid formats"
 Int64 denseFactFH(char format, Int64 n, Int64 k, Int64 nb, double* A, double* B,
-                  const Int64* pivot_sign, double thresh, const Regul& regul,
+                  const Int* pivot_sign, double thresh, const Regul& regul,
                   double* totalreg, Int64* swaps, double* pivot_2x2,
                   bool parnode, DataCollector& data);
 

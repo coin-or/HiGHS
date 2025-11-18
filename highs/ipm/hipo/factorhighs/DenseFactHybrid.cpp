@@ -12,7 +12,7 @@ namespace hipo {
 // Factorisation with "hybrid formats".
 
 Int64 denseFactFH(char format, Int64 n, Int64 k, Int64 nb, double* A, double* B,
-                  const Int64* pivot_sign, double thresh, const Regul& regval,
+                  const Int* pivot_sign, double thresh, const Regul& regval,
                   double* totalreg, Int64* swaps, double* pivot_2x2,
                   bool parnode, DataCollector& data) {
   // ===========================================================================
@@ -90,7 +90,7 @@ Int64 denseFactFH(char format, Int64 n, Int64 k, Int64 nb, double* A, double* B,
     }
 
     double* regul_current = &totalreg[j * nb];
-    std::vector<Int64> pivot_sign_current(&pivot_sign[j * nb],
+    std::vector<Int> pivot_sign_current(&pivot_sign[j * nb],
                                           &pivot_sign[j * nb] + jb);
     Int64* swaps_current = &swaps[j * nb];
     double* pivot_2x2_current = &pivot_2x2[j * nb];

@@ -9,17 +9,17 @@ namespace hipo {
 // Generic integer type from HiGHS
 typedef HighsInt Int;
 
-// Integer type for indices of matrices in HiPO and factorisation
+// Integer type for factorisation
 typedef int64_t Int64;
 
-// The matrix (AS or NE) size must fit into Int.
-// Type Int64 is used only for the nonzeros of the matrix and during the
-// factorisation.
+// The matrix (AS or NE) is formed using Int, so it must have fewer than
+// kHighsIInf nonzero entries. Metis works with the same type as Int, so it must
+// be compiled accordingly.
 //
-// For NE, AS, factorisations:
-// - ptr and rows are std::vector<Index>.
-// - ptr can be accessed with Int, rows and val must be accessed with Index.
-// - rows[i] can be stored as Int, ptr[i] must be stored as Index.
+// The factorisation uses Int64 everywhere, apart from where it interfaces with
+// the matrix stored using Int.
+// BLAS is 32-bit, so the vectors used by BLAS must be addressable with 32-bit
+// integers.
 //
 
 }  // namespace hipo

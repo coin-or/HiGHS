@@ -17,30 +17,30 @@ class Analyse {
   bool ready_ = false;
 
   // Matrix to be factorised, stored in upper and lower triangular format
-  std::vector<Int64> rows_upper_{};
-  std::vector<Int64> ptr_upper_{};
-  std::vector<Int64> rows_lower_{};
-  std::vector<Int64> ptr_lower_{};
+  std::vector<Int> rows_upper_{};
+  std::vector<Int> ptr_upper_{};
+  std::vector<Int> rows_lower_{};
+  std::vector<Int> ptr_lower_{};
 
   // info about matrix and factor
-  Int64 n_{};
+  Int n_{};
   Int64 nz_{};
   Int64 nz_factor_{};
   double dense_ops_{};
   double dense_ops_norelax_{};
   double sparse_ops_{};
   double critical_ops_{};
-  std::vector<Int64> signs_{};
+  std::vector<Int> signs_{};
 
   // Permutation and inverse permutation from Metis
-  std::vector<Int64> perm_{};
-  std::vector<Int64> iperm_{};
+  std::vector<Int> perm_{};
+  std::vector<Int> iperm_{};
 
   // Elimination tree
   std::vector<Int64> parent_{};
 
   // postorder of the elimination tree
-  std::vector<Int64> postorder_{};
+  std::vector<Int> postorder_{};
 
   // number of entries in each column of L
   std::vector<Int64> col_count_{};
@@ -85,7 +85,7 @@ class Analyse {
 
   // Functions to perform analyse phase
   Int64 getPermutation(bool metis_no2hop);
-  void permute(const std::vector<Int64>& iperm);
+  void permute(const std::vector<Int>& iperm);
   void eTree();
   void postorder();
   void colCount();
@@ -107,8 +107,8 @@ class Analyse {
 
  public:
   // Constructor: matrix must be in lower triangular format
-  Analyse(const std::vector<Int64>& rows, const std::vector<Int64>& ptr,
-          const std::vector<Int64>& signs, Int64 nb, const Log* log,
+  Analyse(const std::vector<Int>& rows, const std::vector<Int>& ptr,
+          const std::vector<Int>& signs, Int64 nb, const Log* log,
           DataCollector& data);
 
   // Run analyse phase and save the result in Symbolic object S

@@ -1087,14 +1087,15 @@ bool Solver::checkInterrupt() {
 
 bool Solver::checkMetis() {
   IntegerModel metis_model = getMetisIntegerModel();
-  if (metis_model == IntegerModel::lp64) {
-    logH_.printe("Metis should be compiled with 64-bit integers\n");
+
+  if ((metis_model == IntegerModel::lp64 && sizeof(Int) != 4) ||
+      (metis_model == IntegerModel::ilp64 && sizeof(Int) != 8)) {
+    logH_.printe(
+        "Metis should be compiled with the same integer type as HiGHS\n");
     info_.status = kStatusError;
     return true;
   } else if (metis_model == IntegerModel::unknown) {
-    logH_.printe("Something went wrong checking Metis\n");
-    info_.status = kStatusError;
-    return true;
+    logH_.printw("Metis integer type cannot be checked\n");
   }
 
   return false;
