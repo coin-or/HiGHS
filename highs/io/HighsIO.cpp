@@ -30,11 +30,13 @@ void highsLogHeader(const HighsLogOptions& log_options,
 
 #ifdef HIPO
 #ifdef BLAS_LIBRARIES
-  highsLogUser(log_options, HighsLogType::kInfo, "Using blas: %s - %s\n",
-               BLAS_LIBRARIES, hipo::getBlasIntegerModelString().c_str());
+  highsLogUser(
+      log_options, HighsLogType::kInfo, "Using blas: %s - %s\n", BLAS_LIBRARIES,
+      hipo::getIntegerModelString(hipo::getBlasIntegerModel()).c_str());
 #else
-  highsLogUser(log_options, HighsLogType::kInfo, "Using blas: unknown - %s\n",
-               hipo::getBlasIntegerModelString().c_str());
+  highsLogUser(
+      log_options, HighsLogType::kInfo, "Using blas: unknown - %s\n",
+      hipo::getIntegerModelString(hipo::getBlasIntegerModel()).c_str());
 #endif
 #endif
 }

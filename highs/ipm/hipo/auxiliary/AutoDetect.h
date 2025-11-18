@@ -5,12 +5,13 @@
 
 namespace hipo {
 // Detect BLAS integer model
-enum class BlasIntegerModel { not_set, unknown, lp64, ilp64 };
-BlasIntegerModel getBlasIntegerModel();
-std::string getBlasIntegerModelString();
+enum class IntegerModel { not_set, unknown, lp64, ilp64 };
+IntegerModel getBlasIntegerModel();
 
 // Detect Metis integer type
-int getMetisIntegerType();
+IntegerModel getMetisIntegerModel();
+
+std::string getIntegerModelString(IntegerModel i);
 
 }  // namespace hipo
 

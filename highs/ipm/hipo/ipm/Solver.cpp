@@ -1086,12 +1086,12 @@ bool Solver::checkInterrupt() {
 }
 
 bool Solver::checkMetis() {
-  Int metis_int = getMetisIntegerType();
-  if (metis_int == 32) {
+  IntegerModel metis_model = getMetisIntegerModel();
+  if (metis_model == IntegerModel::lp64) {
     logH_.printe("Metis should be compiled with 64-bit integers\n");
     info_.status = kStatusError;
     return true;
-  } else if (metis_int < 0) {
+  } else if (metis_model == IntegerModel::unknown) {
     logH_.printe("Something went wrong checking Metis\n");
     info_.status = kStatusError;
     return true;

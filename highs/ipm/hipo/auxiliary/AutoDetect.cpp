@@ -5,12 +5,18 @@
 #define IDXTYPEWIDTH 64
 #include "metis.h"
 
+// Weird tricks to detect the integer type width used by BLAS and Metis.
+// These are technically undefined behaviour, because they rely on using a
+// function declaration that involves int64_t, while the actual implementation
+// may use a different type. Their behaviour may depend on the endianness of the
+// CPU (?).
+
 namespace hipo {
 
 extern "C" {
 int64_t cblas_isamax(const int64_t N, const float* X, const int64_t incX);
 }
-BlasIntegerModel getBlasIntegerModel() {
+IntegerModel getBlasIntegerModel() {
   // Test if BLAS uses 32-bit integers (LP64) or 64-bit integers (ILP64) at
   // runtime. Inspired by libblastrampoline's autodetection.c
 
@@ -19,9 +25,9 @@ BlasIntegerModel getBlasIntegerModel() {
   // isamax returns 0. If the correct value of 3 is passed, it returns 2
   // instead.
 
-  static BlasIntegerModel blas_model = BlasIntegerModel::not_set;
+  static IntegerModel blas_model = IntegerModel::not_set;
 
-  if (blas_model == BlasIntegerModel::not_set) {
+  if (blas_model == IntegerModel::not_set) {
     // This is a very negative 64-bit number, but it is just 3 if only the lower
     // 32 bits are used.
     const int64_t n = 0xffffffff00000003;
@@ -36,66 +42,68 @@ BlasIntegerModel getBlasIntegerModel() {
 
     if (max_idx == 0) {
       // isamax read negative n and returned 0, so it's using ilp64
-      blas_model = BlasIntegerModel::ilp64;
+      blas_model = IntegerModel::ilp64;
 
     } else if (max_idx == 2) {
       // isamax read correct n and returned 2, so it's using lp64
-      blas_model = BlasIntegerModel::lp64;
+      blas_model = IntegerModel::lp64;
 
     } else {
       // something went wrong
-      blas_model = BlasIntegerModel::unknown;
+      blas_model = IntegerModel::unknown;
     }
   }
 
   return blas_model;
 }
-std::string getBlasIntegerModelString() {
-  BlasIntegerModel blas_model = getBlasIntegerModel();
 
-  switch (blas_model) {
-    case BlasIntegerModel::not_set:
+std::string getIntegerModelString(IntegerModel i) {
+  switch (i) {
+    case IntegerModel::not_set:
       return "Not set";
 
-    case BlasIntegerModel::unknown:
+    case IntegerModel::unknown:
       return "Unknown";
 
-    case BlasIntegerModel::lp64:
+    case IntegerModel::lp64:
       return "LP64";
 
-    case BlasIntegerModel::ilp64:
+    case IntegerModel::ilp64:
       return "ILP64";
   }
 }
 
-int getMetisIntegerType() {
-  idx_t options[METIS_NOPTIONS];
-  for (int i = 0; i < METIS_NOPTIONS; ++i) options[i] = -1;
+IntegerModel getMetisIntegerModel() {
+  static IntegerModel metis_model = IntegerModel::not_set;
 
-  // if Metis is using 32-bit internally, this should set ptype to 0 and objtype
-  // to 1, which should trigger an error. If it uses 64-bit then everything
-  // should be fine.
-  options[METIS_OPTION_PTYPE] = 1;
+  if (metis_model == IntegerModel::not_set) {
+    idx_t options[METIS_NOPTIONS];
+    for (int i = 0; i < METIS_NOPTIONS; ++i) options[i] = -1;
 
-  idx_t n = 3;
-  idx_t ptr[4] = {0, 2, 4, 6};
-  idx_t rows[6] = {1, 2, 0, 2, 0, 1};
-  idx_t perm[3], iperm[3];
+    // if Metis is using 32-bit internally, this should set ptype to 0 and
+    // objtype to 1, which should trigger an error. If it uses 64-bit then
+    // everything should be fine.
+    options[METIS_OPTION_PTYPE] = 1;
 
-  idx_t status = METIS_NodeND(&n, ptr, rows, NULL, options, perm, iperm);
+    idx_t n = 3;
+    idx_t ptr[4] = {0, 2, 4, 6};
+    idx_t rows[6] = {1, 2, 0, 2, 0, 1};
+    idx_t perm[3], iperm[3];
 
-  int metis_int = 0;
-  if (status == METIS_OK) {
-    if (perm[0] != 0 || perm[1] != 1 || perm[2] != 2)
-      metis_int = -1;
-    else
-      metis_int = 64;
-  } else if (status == METIS_ERROR_INPUT) {
-    metis_int = 32;
-  } else {
-    metis_int = -1;
+    idx_t status = METIS_NodeND(&n, ptr, rows, NULL, options, perm, iperm);
+
+    if (status == METIS_OK) {
+      if (perm[0] != 0 || perm[1] != 1 || perm[2] != 2)
+        metis_model = IntegerModel::unknown;
+      else
+        metis_model = IntegerModel::ilp64;
+    } else if (status == METIS_ERROR_INPUT) {
+      metis_model = IntegerModel::lp64;
+    } else {
+      metis_model = IntegerModel::unknown;
+    }
   }
 
-  return metis_int;
+  return metis_model;
 }
 }  // namespace hipo
