@@ -115,15 +115,17 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
     for (HighsInt i = lp.a_matrix_.start_[col];
          i != lp.a_matrix_.start_[col + 1]; ++i) {
       HighsInt row = lp.a_matrix_.index_[i];
+      if (rowtype[row] == RowType::kUnusuable) continue;
       double val = lp.a_matrix_.value_[i];
       rowscore[row].first += std::abs(val * transLp.getColFractionality(col));
       rowscore[row].second += std::abs(val);
     }
   }
   for (HighsInt row = 0; row != lp.num_row_; ++row) {
-    if (rowscore[row].second > 0) {
+    if (rowscore[row].second > mip.mipdata_->feastol) {
       rowscore[row].first /= rowscore[row].second;
-      rowscore[row].second = 1;
+    } else {
+      rowscore[row].first = 0.0;
     }
   }
 
@@ -293,7 +295,8 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
               const std::vector<std::pair<HighsInt, HighsInt>>& colArcs,
               const std::vector<std::pair<HighsInt, double>>& arcRows,
               HighsInt& row, double& weight) {
-            for (HighsInt arcRow = colArcs[bestArcCol].first; arcRow != colArcs[bestArcCol].second; ++arcRow) {
+            for (HighsInt arcRow = colArcs[bestArcCol].first;
+                 arcRow != colArcs[bestArcCol].second; ++arcRow) {
               HighsInt r = arcRows[arcRow].first;
               double w = -val / arcRows[arcRow].second;
               if (!isRowInCurrentPath(r) && checkWeight(w)) {
