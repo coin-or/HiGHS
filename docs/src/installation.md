@@ -51,7 +51,7 @@ On Windows, do not forget to specify configuration type
 cmake --build build --config Release
 ```
 
-If a different version of Metis is used, make sure that it is compiled with 64-bit integers, or HiGHS will fail.
+If you compile HiGHS with 64-bit integers (HIGHSINT64=ON), then Metis must also be compiled with 64-bit integers.
 
 ### HiPO
 
