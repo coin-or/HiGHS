@@ -76,6 +76,7 @@ Int64 Analyse::getPermutation(bool metis_no2hop) {
   // element is skipped.
 
   std::vector<Int> work(n_, 0);
+  Int64 total_nz = 0;
 
   // go through the columns to count nonzeros
   for (Int64 j = 0; j < n_; ++j) {
@@ -90,7 +91,14 @@ Int64 Analyse::getPermutation(bool metis_no2hop) {
 
       // duplicated on the lower part of column i
       ++work[i];
+
+      total_nz += 2;
     }
+  }
+
+  if (total_nz > kHighsIInf) {
+    if (log_) log_->printe("Integer overflow while preparing Metis\n");
+    return kRetIntOverflow;
   }
 
   // compute column pointers from column counts
