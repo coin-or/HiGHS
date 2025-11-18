@@ -15,6 +15,7 @@
 #include "mip/HighsLpRelaxation.h"
 #include "mip/HighsMipSolverData.h"
 #include "mip/HighsTransformedLp.h"
+#include "pdqsort.h"
 
 enum class RowType : int8_t {
   kUnusuable = -2,
@@ -58,10 +59,7 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
   }
 
   std::vector<HighsInt> numContinuous(lp.num_row_);
-  // Score will be used for deciding order in which rows get aggregated
-  // TODO: The second entry is currently a hacky way to store the norm
-  std::vector<std::pair<double, double>> rowscore(lp.num_row_,
-                                                  std::make_pair(0.0, 0.0));
+
   size_t maxAggrRowSize = 0;
   for (HighsInt col : mip.mipdata_->continuous_cols) {
     if (transLp.boundDistance(col) == 0.0) continue;
@@ -70,10 +68,6 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
     for (HighsInt i = lp.a_matrix_.start_[col];
          i != lp.a_matrix_.start_[col + 1]; ++i) {
       ++numContinuous[lp.a_matrix_.index_[i]];
-      // Add the fractional score of the row
-      rowscore[i].first +=
-          lp.a_matrix_.value_[i] * transLp.getFracVbEstimate(col);
-      rowscore[i].second += lp.a_matrix_.value_[i];
     }
   }
 
@@ -112,6 +106,25 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
     colSubstitutions[col].first = i;
     colSubstitutions[col].second = val;
     rowtype[i] = RowType::kUnusuable;
+  }
+
+  // Score will be used for deciding order in which rows get aggregated
+  std::vector<std::pair<double, double>> rowscore(lp.num_row_,
+                                                  std::make_pair(0.0, 0.0));
+  for (HighsInt col = 0; col != lp.num_col_; ++col) {
+    for (HighsInt i = lp.a_matrix_.start_[col];
+         i != lp.a_matrix_.start_[col + 1]; ++i) {
+      HighsInt row = lp.a_matrix_.index_[i];
+      double val = lp.a_matrix_.value_[i];
+      rowscore[row].first += std::abs(val * transLp.getColFractionality(col));
+      rowscore[row].second += std::abs(val);
+    }
+  }
+  for (HighsInt row = 0; row != lp.num_row_; ++row) {
+    if (rowscore[row].second > 0) {
+      rowscore[row].first /= rowscore[row].second;
+      rowscore[row].second = 1;
+    }
   }
 
   // for each continuous variable with nonzero transformed solution value
@@ -170,6 +183,20 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
 
     colInArcs[col].second = inArcRows.size();
     colOutArcs[col].second = outArcRows.size();
+
+    // Sort the in and outgoing arcs by their scores
+    pdqsort(inArcRows.begin() + colInArcs[col].first,
+            inArcRows.begin() + colInArcs[col].second,
+            [&](const std::pair<HighsInt, double>& i,
+                const std::pair<HighsInt, double>& j) {
+              return rowscore[i.first] > rowscore[j.first];
+            });
+    pdqsort(outArcRows.begin() + colOutArcs[col].first,
+            outArcRows.begin() + colOutArcs[col].second,
+            [&](const std::pair<HighsInt, double>& i,
+                const std::pair<HighsInt, double>& j) {
+              return rowscore[i.first] > rowscore[j.first];
+            });
   }
 
   HighsCutGeneration cutGen(lpRelaxation, cutpool);
@@ -266,31 +293,9 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
               const std::vector<std::pair<HighsInt, HighsInt>>& colArcs,
               const std::vector<std::pair<HighsInt, double>>& arcRows,
               HighsInt& row, double& weight) {
-            HighsInt arcRow = randgen.integer(colArcs[bestArcCol].first,
-                                              colArcs[bestArcCol].second);
-            HighsInt r = arcRows[arcRow].first;
-            double w = -val / arcRows[arcRow].second;
-            if (!isRowInCurrentPath(r) && checkWeight(w)) {
-              row = r;
-              weight = w;
-              return true;
-            }
-
-            for (HighsInt nextRow = arcRow + 1;
-                 nextRow < colArcs[bestArcCol].second; ++nextRow) {
-              r = arcRows[nextRow].first;
-              w = -val / arcRows[nextRow].second;
-              if (!isRowInCurrentPath(r) && checkWeight(w)) {
-                row = r;
-                weight = w;
-                return true;
-              }
-            }
-
-            for (HighsInt nextRow = colArcs[bestArcCol].first; nextRow < arcRow;
-                 ++nextRow) {
-              r = arcRows[nextRow].first;
-              w = -val / arcRows[nextRow].second;
+            for (HighsInt arcRow = colArcs[bestArcCol].first; arcRow != colArcs[bestArcCol].second; ++arcRow) {
+              HighsInt r = arcRows[arcRow].first;
+              double w = -val / arcRows[arcRow].second;
               if (!isRowInCurrentPath(r) && checkWeight(w)) {
                 row = r;
                 weight = w;

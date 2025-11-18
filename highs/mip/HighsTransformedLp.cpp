@@ -32,6 +32,7 @@ HighsTransformedLp::HighsTransformedLp(const HighsLpRelaxation& lprelaxation,
                  std::make_pair(-1, HighsImplications::VarBound()));
   boundTypes.resize(numTransformedCol);
   vectorsum.setDimension(numTransformedCol);
+  colFractionality.resize(lprelaxation.numCols());
 
   for (HighsInt col : mipsolver.mipdata_->continuous_cols) {
     mipsolver.mipdata_->implications.cleanupVarbounds(col);
@@ -57,9 +58,26 @@ HighsTransformedLp::HighsTransformedLp(const HighsLpRelaxation& lprelaxation,
     if (ubDist[col] <= mipsolver.mipdata_->feastol) ubDist[col] = 0.0;
 
     boundDist[col] = std::min(lbDist[col], ubDist[col]);
+
+    if (lbDist[col] <= ubDist[col] && lbDist[col] <= simpleLbDist[col] &&
+        bestVlb[col].first != -1) {
+      const double frac =
+          std::min(lpSolution.col_value[bestVlb[col].first],
+                   1 - lpSolution.col_value[bestVlb[col].first]);
+      colFractionality[col] = bestVlb[col].second.coef * frac;
+    } else if (ubDist[col] <= lbDist[col] && ubDist[col] <= simpleUbDist[col] &&
+               bestVub[col].first != -1) {
+      const double frac =
+          std::min(lpSolution.col_value[bestVub[col].first],
+                   1 - lpSolution.col_value[bestVub[col].first]);
+      colFractionality[col] = bestVub[col].second.coef * frac;
+    }
   }
 
   for (HighsInt col : mipsolver.mipdata_->integral_cols) {
+    double frac =
+        lpSolution.col_value[col] - std::floor(lpSolution.col_value[col]);
+    colFractionality[col] = std::min(frac, 1 - frac);
     double bestub = mipsolver.mipdata_->domain.col_upper_[col];
     double bestlb = mipsolver.mipdata_->domain.col_lower_[col];
 

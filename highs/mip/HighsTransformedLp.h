@@ -16,7 +16,6 @@
 
 #include <vector>
 
-#include "HighsLpRelaxation.h"
 #include "lp_data/HConst.h"
 #include "mip/HighsImplications.h"
 #include "util/HighsCDouble.h"
@@ -38,6 +37,7 @@ class HighsTransformedLp {
   std::vector<double> lbDist;
   std::vector<double> ubDist;
   std::vector<double> boundDist;
+  std::vector<double> colFractionality;
   enum class BoundType : uint8_t {
     kSimpleUb,
     kSimpleLb,
@@ -53,28 +53,8 @@ class HighsTransformedLp {
 
   double boundDistance(HighsInt col) const { return boundDist[col]; }
 
-  // TODO: Should this simple be calculated when we initialise the transLp?
-  double getFracVbEstimate(HighsInt col) const {
-    HighsInt vbCol = -1;
-    double vbCoef = 0.0;
-    if (ubDist[col] <= lbDist[col] && bestVlb[col].first != -1) {
-      vbCol = bestVlb[col].first;
-      vbCoef = bestVlb[col].second.coef;
-    } else if (lbDist[col] <= ubDist[col] && bestVub[col].first != -1) {
-      vbCol = bestVub[col].first;
-      vbCoef = bestVub[col].second.coef;
-    } else if (bestVlb[col].first != -1) {
-      vbCol = bestVlb[col].first;
-      vbCoef = bestVlb[col].second.coef;
-    } else if (bestVub[col].first != -1) {
-      vbCol = bestVub[col].first;
-      vbCoef = bestVub[col].second.coef;
-    }
-    if (vbCol == -1) return 0;
-    // TODO: This differs from the SCIP definition? Their frac can be > 1?
-    double val = vbCoef * lprelaxation.solutionValue(col);
-    double frac = std::max(val - std::floor(val), 0.0);
-    return std::min(frac, 1 - frac);
+  double getColFractionality(HighsInt col) const {
+    return colFractionality[col];
   }
 
   bool transform(std::vector<double>& vals, std::vector<double>& upper,
