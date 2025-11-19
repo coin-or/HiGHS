@@ -34,7 +34,7 @@ __global__ void kernelUpdateX(
 // === KERNEL 2: Update Y (Dual Step) ===
 __global__ void kernelUpdateY(
     double* d_y_new, const double* d_y_old,
-    const double* d_ax_old, const double* d_ax_new,
+    const double* d_ax_old, const double* d_ax_new,  
     const double* d_rhs, const bool* d_is_equality,
     double dual_step, int n_rows)
 {
@@ -80,11 +80,12 @@ void launchKernelUpdateX_wrapper(
         d_cost, d_lower, d_upper,
         primal_step, n_cols);
     
-    cudaGetLastError(); // or your error checking
+    cudaGetLastError(); 
 }
+
 void launchKernelUpdateY_wrapper(
     double* d_y_new, const double* d_y_old,
-    const double* d_ax_old, const double* d_ax_new,
+    const double* d_ax_old, const double* d_ax_new, 
     const double* d_rhs, const bool* d_is_equality,
     double dual_step, int n_rows) 
 {
@@ -97,8 +98,9 @@ void launchKernelUpdateY_wrapper(
         d_rhs, d_is_equality,
         dual_step, n_rows);
     
-    cudaGetLastError(); // or your error checking
+    cudaGetLastError();
 }
+
 void launchKernelUpdateAverages_wrapper(
     double* d_x_sum, double* d_y_sum,
     const double* d_x_next, const double* d_y_next,
@@ -111,6 +113,6 @@ void launchKernelUpdateAverages_wrapper(
         d_x_sum, d_y_sum,
         d_x_next, d_y_next,
         weight, n_cols, n_rows);
-    cudaGetLastError(); // or your error checking
+    cudaGetLastError();
 }
 } // extern "C"

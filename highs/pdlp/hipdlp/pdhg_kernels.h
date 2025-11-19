@@ -10,9 +10,10 @@ void launchKernelUpdateX_wrapper(
     double primal_step, int n_cols);
 
 void launchKernelUpdateY_wrapper(
-    double* d_y_new, const double* d_y_old, const double* d_ax,
+    double* d_y_new, const double* d_y_old,
+    const double* d_ax_old, const double* d_ax_new, 
     const double* d_row_lower, const bool* d_is_equality,
-    double dual_step, int n_rows);  
+    double dual_step, int n_rows);
 
 void launchKernelUpdateAverages_wrapper(
     double* d_x_sum, double* d_y_sum,

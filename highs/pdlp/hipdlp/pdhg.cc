@@ -518,6 +518,7 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
   launchKernelUpdateX(0.0);
   CUDA_CHECK(cudaMemcpy(d_x_current_, d_x_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
   CUDA_CHECK(cudaMemcpy(d_x_sum_, d_x_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
+  CUDA_CHECK(cudaMemcpy(d_x_avg_, d_x_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
   linalgGpuAx(d_x_current_, d_ax_current_);
 #endif
 
@@ -570,6 +571,10 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
       CUDA_CHECK(cudaMemcpy(ATy_cache_.data(), d_aty_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
       CUDA_CHECK(cudaMemcpy(x_sum_.data(), d_x_sum_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
       CUDA_CHECK(cudaMemcpy(y_sum_.data(), d_y_sum_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
+      CUDA_CHECK(cudaMemcpy(x_avg_.data(), d_x_avg_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+      CUDA_CHECK(cudaMemcpy(y_avg_.data(), d_y_avg_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
+
+      
 #endif
       hipdlpTimerStart(kHipdlpClockAverageIterate);
       computeAverageIterate(Ax_avg, ATy_avg);
@@ -703,6 +708,11 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
     debug_pdlp_data_.ax_norm = linalg::vector_norm(Ax_cache_);
     debug_pdlp_data_.aty_norm = linalg::vector_norm(ATy_cache_);
 
+#ifdef CUPDLP_GPU
+    CUDA_CHECK(cudaMemcpy(d_x_next_, d_x_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_y_next_, d_y_current_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToDevice));
+#endif
+
     switch (params_.step_size_strategy) {
       case StepSizeStrategy::FIXED:
         updateIteratesFixed();
@@ -744,10 +754,22 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
     updateAverageIterates(x_next_, y_next_, working_params, inner_iter);
     hipdlpTimerStop(kHipdlpClockAverageIterate);
 
+#ifdef CUPDLP_GPU
+    // Update average iterates on GPU
+    double dMeanStepSize = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
+    launchKernelUpdateAverages(dMeanStepSize);
+    sum_weights_gpu_ += dMeanStepSize;
+#endif  
+
     // --- 7. Prepare for next iteration ---
     x_current_ = x_next_;
     y_current_ = y_next_;
-    // iteration
+#ifdef CUPDLP_GPU
+    CUDA_CHECK(cudaMemcpy(d_x_current_, d_x_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_y_current_, d_y_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_ax_current_, d_ax_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_aty_current_, d_aty_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
+#endif
   }
 
   // --- 8. Handle Max Iterations Reached ---
@@ -793,12 +815,6 @@ void PDLPSolver::initialize() {
   dSlackNeg_.resize(lp_.num_col_, 0.0);
   dSlackPosAvg_.resize(lp_.num_col_, 0.0);
   dSlackNegAvg_.resize(lp_.num_col_, 0.0);
-
-  CUDA_CHECK(cudaMemset(d_x_current_, 0, a_num_cols_ * sizeof(double)));
-  CUDA_CHECK(cudaMemset(d_y_current_, 0, a_num_rows_ * sizeof(double)));
-  CUDA_CHECK(cudaMemset(d_x_sum_, 0, a_num_cols_ * sizeof(double)));
-  CUDA_CHECK(cudaMemset(d_y_sum_, 0, a_num_rows_ * sizeof(double)));
-  CUDA_CHECK(cudaMemset(d_aty_current_, 0, a_num_cols_ * sizeof(double)));
 }
 
 // Update primal weight
@@ -1483,19 +1499,39 @@ void PDLPSolver::updateIteratesFixed() {
   hipdlpTimerStop(kHipdlpClockMatrixTransposeMultiply);
 
 #ifdef CUPDLP_GPU
-        launchKernelUpdateX(stepsize_.primal_step);
-        linalgGpuAx(d_x_next_, d_ax_next_);
-        launchKernelUpdateY(stepsize_.dual_step);
-        linalgGpuATy(d_y_next_, d_aty_next_);
+  // Add this check before the memcpy
+if (d_x_next_ == nullptr) {
+    std::cerr << "Error1: d_x_next_ is null!" << std::endl;
+    return;
+}
+  launchKernelUpdateX(stepsize_.primal_step);
+  CUDA_CHECK(cudaDeviceSynchronize());
+  linalgGpuAx(d_x_next_, d_ax_next_);
+  CUDA_CHECK(cudaDeviceSynchronize());
+  launchKernelUpdateY(stepsize_.dual_step);
+  CUDA_CHECK(cudaDeviceSynchronize());
+  linalgGpuATy(d_y_next_, d_aty_next_);
+  CUDA_CHECK(cudaDeviceSynchronize());
 
-        std::vector<double> x_next_gpu(a_num_cols_);
-        std::vector<double> y_next_gpu(a_num_rows_);
-        std::vector<double> ax_next_gpu(a_num_rows_);
-        std::vector<double> aty_next_gpu(a_num_cols_);
-        CUDA_CHECK(cudaMemcpy(x_next_gpu.data(), d_x_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(y_next_gpu.data(), d_y_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(ax_next_gpu.data(), d_ax_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(aty_next_gpu.data(), d_aty_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+  // Add this check before the memcpy
+if (d_x_next_ == nullptr) {
+    std::cerr << "Error2: d_x_next_ is null!" << std::endl;
+    return;
+}
+
+  std::vector<double> x_next_gpu(a_num_cols_);
+  std::vector<double> y_next_gpu(a_num_rows_);
+  std::vector<double> ax_next_gpu(a_num_rows_);
+  std::vector<double> aty_next_gpu(a_num_cols_);
+  CUDA_CHECK(cudaMemcpy(x_next_gpu.data(), d_x_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(y_next_gpu.data(), d_y_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(ax_next_gpu.data(), d_ax_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(aty_next_gpu.data(), d_aty_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+
+  bool x_match = vecDiff(x_next_gpu, x_next_, 1e-12, "UpdateIteratesFixed x");
+  bool y_match = vecDiff(y_next_gpu, y_next_, 1e-12, "UpdateIteratesFixed y");
+  bool ax_match = vecDiff(ax_next_gpu, Ax_next_, 1e-12, "UpdateIteratesFixed Ax");
+  bool aty_match = vecDiff(aty_next_gpu, ATy_next_, 1e-12, "UpdateIteratesFixed ATy");
 #endif
 }
 
@@ -1765,6 +1801,8 @@ void PDLPSolver::setupGpu(){
   CUDA_CHECK(cudaMalloc(&d_is_equality_row_, a_num_rows_ * sizeof(bool)));                                  
   CUDA_CHECK(cudaMalloc(&d_x_current_, a_num_cols_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_y_current_, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_x_avg_, a_num_cols_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_y_avg_, a_num_rows_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_x_next_, a_num_cols_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_y_next_, a_num_rows_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_ax_current_, a_num_rows_ * sizeof(double)));
@@ -1815,6 +1853,19 @@ void PDLPSolver::setupGpu(){
   CUDA_CHECK(cudaMalloc(&d_spmv_buffer_aty_, spmv_buffer_size_aty_)); 
   CUSPARSE_CHECK(cusparseDestroyDnVec(vec_y));
   CUSPARSE_CHECK(cusparseDestroyDnVec(vec_aty));
+
+  CUDA_CHECK(cudaMemset(d_x_current_, 0, a_num_cols_ * sizeof(double)));
+  CUDA_CHECK(cudaMemset(d_y_current_, 0, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMemset(d_x_avg_, 0, a_num_cols_ * sizeof(double)));
+  CUDA_CHECK(cudaMemset(d_y_avg_, 0, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMemset(d_x_next_, 0, a_num_cols_ * sizeof(double)));
+  CUDA_CHECK(cudaMemset(d_y_next_, 0, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMemset(d_ax_current_, 0, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMemset(d_ax_next_, 0, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMemset(d_x_sum_, 0, a_num_cols_ * sizeof(double)));
+  CUDA_CHECK(cudaMemset(d_y_sum_, 0, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMemset(d_aty_current_, 0, a_num_cols_ * sizeof(double)));
+  sum_weights_gpu_ = 0.0;
 
   highsLogUser(params_.log_options_, HighsLogType::kInfo, "GPU setup complete. Matrix A (CSR) and A^T (CSR) transferred to device.\n");
 }
@@ -1902,11 +1953,12 @@ void PDLPSolver::launchKernelUpdateX(double primal_step) {
 }
 
 void PDLPSolver::launchKernelUpdateY(double dual_step) {
-  launchKernelUpdateY_wrapper(
-      d_y_next_, d_y_current_, d_ax_current_,
-      d_row_lower_, d_is_equality_row_,
-      dual_step, a_num_rows_);
-  CUDA_CHECK(cudaGetLastError());
+    launchKernelUpdateY_wrapper(
+        d_y_next_, d_y_current_,
+        d_ax_current_, d_ax_next_, 
+        d_row_lower_, d_is_equality_row_,
+        dual_step, a_num_rows_);
+    CUDA_CHECK(cudaGetLastError());
 }
 
 void PDLPSolver::launchKernelUpdateAverages(double weight) {

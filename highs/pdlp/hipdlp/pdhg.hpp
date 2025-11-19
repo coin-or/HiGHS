@@ -220,6 +220,8 @@ class PDLPSolver {
   bool* d_is_equality_row_ = nullptr;
   double* d_x_current_ = nullptr;
   double* d_y_current_ = nullptr;
+  double* d_x_avg_ = nullptr;
+  double* d_y_avg_ = nullptr;
   double* d_x_next_ = nullptr;
   double* d_y_next_ = nullptr;
   double* d_ax_current_ = nullptr;  // Replaces host-side Ax_cache_
@@ -228,6 +230,9 @@ class PDLPSolver {
   double* d_aty_next_ = nullptr;
   double* d_x_sum_ = nullptr;
   double* d_y_sum_ = nullptr;
+
+  //States
+  double sum_weights_gpu_ = 0.0;
 
   // Temporary buffer for SpMV
   void* d_spmv_buffer_ax_ = nullptr;
