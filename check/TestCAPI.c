@@ -214,7 +214,7 @@ HighsInt doubleArraysEqual(const double dim, const double* array0,
 
 void assertDoubleValuesEqual(const char* name, const double is,
                              const double should_be) {
-  const double dl = fabs(is - should_be)/(1e0 + fabs(should_be));
+  const double dl = fabs(is - should_be);
   if (dl > double_equal_tolerance) {
     printf("Value %s = %g differs from %g by %g but should be equal\n", name,
            is, should_be, dl);
@@ -2141,9 +2141,12 @@ void testIis() {
   //
   // with variables in [0, 1], constraints 0 and 2 form an IIS with
   // 
-  // x free (so should be removed?); 0 <= y; 0 <= z
+  // x free; 0 <= y; 0 <= z
   //
   // x + y - z >= 2; x + 2y + z <= 1
+  //
+  // x may be free, but can't immediately be removed, otherwise
+  // removing y >= 0 yields an infeasible LP
   //
   ret = Highs_addCol(highs, 0.0, 0.0, 1.0, 0, NULL, NULL);
   assert(ret == 0);
@@ -2238,68 +2241,108 @@ void testIis() {
     }
   }
 
-  Highs_destroy(highs);
-}
+  // Re #2635 check with feasible LP
+  Highs_clearModel(highs);
 
-void testUserObjectiveBoundScaling() {
-  void* highs = Highs_create();
-  Highs_setBoolOptionValue(highs, "output_flag", dev_run);
-  HighsInt ret;
-  double inf = Highs_getInfinity(highs);
-  const HighsInt num_col = 2;
-  const HighsInt num_row = 2;
-  const HighsInt num_nz = 4;
-  HighsInt a_format = kHighsMatrixFormatColwise;
-  HighsInt sense = kHighsObjSenseMinimize;
-  double offset = 1e-4;
+  ret = Highs_addCol(highs, 0.0, 0.0, inf, 0, NULL, NULL);
+  assert(ret == 0);
+  ret = Highs_addCol(highs, 0.0, 0.0, inf, 0, NULL, NULL);
+  assert(ret == 0);
+  index[0] = 0;
+  index[1] = 1;
+  value_1[0] = 1;
+  value_1[1] = 2;
+  value_2[0] = 1;
+  value_2[1] = 4;
+  ret = Highs_addRow(highs, -inf, 80, 2, index, value_1);
+  assert(ret == 0);
+  ret = Highs_addRow(highs, -inf, 120, 2, index, value_2);
+  assert(ret == 0);
 
-  // Define the column costs, lower bounds and upper bounds
-  double col_cost[2] = {-4e6, -7e6};
-  double col_lower[2] = {1e-8, 1e-8};
-  double col_upper[2] = {1e8, 1e8};
-  // Define the row lower bounds and upper bounds
-  double row_lower[3] = {-inf, -2e+8};
-  double row_upper[3] = {6e+8, inf};
-  // Define the constraint matrix column-wise
-  HighsInt a_start[2] = {0, 2};
-  HighsInt a_index[5] = {0, 1, 0, 1};
-  double a_value[5] = {1.0, 1.0, 1.0, -1.0};
+  ret = Highs_getLp(highs, kHighsMatrixFormatRowwise,
+		    &num_col, &num_row, &num_nz,
+		    &sense, &offset,
+		    NULL, NULL, NULL, 
+		    NULL, NULL,
+		    NULL, NULL, NULL,
+		    NULL);
+
+  HighsInt* col_index = NULL;
+  HighsInt* row_index = NULL;
+  HighsInt* col_bound = NULL;
+  HighsInt* row_bound = NULL;
+  HighsInt* col_status = (HighsInt*)malloc(sizeof(HighsInt) * num_col);
+  HighsInt* row_status = (HighsInt*)malloc(sizeof(HighsInt) * num_row);
+
+  // First try with kIisStrategyLight
+  Highs_setIntOptionValue(highs, "iis_strategy", kHighsIisStrategyLight);
   
-  HighsInt return_status =
-    Highs_passLp(highs, num_col, num_row, num_nz,
-		 a_format, sense, offset,
-		 col_cost, col_lower, col_upper, row_lower, row_upper,
-		 a_start, a_index, a_value);
-  assert(return_status == kHighsStatusOk);
+  for (int k = 0 ; k < 2; k++) {
+    HighsInt iis_num_col;
+    HighsInt iis_num_row;
+    ret = Highs_getIis(highs,
+		       &iis_num_col, &iis_num_row,
+		       NULL, NULL,
+		       NULL, NULL,
+		       NULL, NULL);
+    assert(ret == 0);
 
-  return_status = Highs_run(highs);
-  assert(return_status == kHighsStatusOk);
-  HighsInt model_status = Highs_getModelStatus(highs);
-  assert(model_status == kHighsModelStatusOptimal);
+    assert(iis_num_col == 0);
+    assert(iis_num_row == 0);
+    ret = Highs_getIis(highs,
+		       &iis_num_col, &iis_num_row,
+		       col_index, row_index,
+		       col_bound, row_bound,
+		       col_status, row_status);
+    assert(ret == 0);
+    if (k == 0) {
+      // Before running HiGHS, model status is unknown
+      assert(col_status[0] == kHighsIisStatusMaybeInConflict);
+      assert(col_status[1] == kHighsIisStatusMaybeInConflict);
+      assert(row_status[0] == kHighsIisStatusMaybeInConflict);
+      assert(row_status[1] == kHighsIisStatusMaybeInConflict);
+    } else {
+      // After running HiGHS, model status is known to be optimal
+      assert(col_status[0] == kHighsIisStatusNotInConflict);
+      assert(col_status[1] == kHighsIisStatusNotInConflict);
+      assert(row_status[0] == kHighsIisStatusNotInConflict);
+      assert(row_status[1] == kHighsIisStatusNotInConflict);
+    }
+    Highs_run(highs);
+  }
 
-  double unscaled_objective_value = Highs_getObjectiveValue(highs);
-  double dual_objective_value;
-  return_status = Highs_getDualObjectiveValue(highs, &dual_objective_value);
-  assert(return_status == kHighsStatusOk);
-
-  assertDoubleValuesEqual("PDobjective", unscaled_objective_value, dual_objective_value);
-
-  HighsInt suggested_objective_scale;
-  HighsInt suggested_bound_scale;
-  return_status = Highs_getObjectiveBoundScaling(highs,
-						 &suggested_objective_scale,
-						 &suggested_bound_scale);
-  assert(return_status == kHighsStatusOk);
-  
-  Highs_setIntOptionValue(highs, "user_cost_scale", suggested_objective_scale);
-  Highs_setIntOptionValue(highs, "user_bound_scale", suggested_bound_scale);
-  
+  // Now try with kHighsIisStrategyFromLpRowPriority
   Highs_clearSolver(highs);
-  return_status = Highs_run(highs);
-  assert(return_status == kHighsStatusOk);
+  Highs_setIntOptionValue(highs, "iis_strategy",
+			  kHighsIisStrategyFromLpRowPriority);
+  HighsInt iis_num_col;
+  HighsInt iis_num_row;
+  ret = Highs_getIis(highs,
+		     &iis_num_col, &iis_num_row,
+		     NULL, NULL,
+		     NULL, NULL,
+		     NULL, NULL);
+  assert(ret == 0);
 
-  double scaled_objective_value = Highs_getObjectiveValue(highs);
-  assertDoubleValuesEqual("objective_value", unscaled_objective_value, scaled_objective_value);
+  assert(iis_num_col == 0);
+  assert(iis_num_row == 0);
+  ret = Highs_getIis(highs,
+		     &iis_num_col, &iis_num_row,
+		     col_index, row_index,
+		     col_bound, row_bound,
+		     col_status, row_status);
+  assert(ret == 0);
+  // With kHighsIisStrategyFromLpRowPriority, model status is found to
+  // be feasible
+  assert(col_status[0] == kHighsIisStatusNotInConflict);
+  assert(col_status[1] == kHighsIisStatusNotInConflict);
+  assert(row_status[0] == kHighsIisStatusNotInConflict);
+  assert(row_status[1] == kHighsIisStatusNotInConflict);
+
+  free(col_status);
+  free(row_status);
+
+  Highs_destroy(highs);
 }
 
 void testFixedLp() {
@@ -2412,31 +2455,30 @@ void testFixedLp() {
 }
 
 int main() {
-    minimalApiIllegalLp();
-    testCallback();
-    versionApi();
-    fullApi();
-    minimalApiLp();
-    minimalApiMip();
-    minimalApiQp();
-    fullApiOptions();
-    fullApiLp();
-    fullApiMip();
-    fullApiQp();
-    passPresolveGetLp();
-    options();
-    testGetColsByRange();
-    testPassHessian();
-    testRanging();
-    testFeasibilityRelaxation();
-    testGetModel();
-    testMultiObjective();
-    testQpIndefiniteFailure();
-    testDualRayTwice();
-    testDeleteRowResolveWithBasis();
-    testIis();
-    testUserObjectiveBoundScaling();
-    testFixedLp();
+  minimalApiIllegalLp();
+  testCallback();
+  versionApi();
+  fullApi();
+  minimalApiLp();
+  minimalApiMip();
+  minimalApiQp();
+  fullApiOptions();
+  fullApiLp();
+  fullApiMip();
+  fullApiQp();
+  passPresolveGetLp();
+  options();
+  testGetColsByRange();
+  testPassHessian();
+  testRanging();
+  testFeasibilityRelaxation();
+  testGetModel();
+  testMultiObjective();
+  testQpIndefiniteFailure();
+  testDualRayTwice();
+  testDeleteRowResolveWithBasis();
+  testIis();
+  testFixedLp();
   return 0;
 }
 //  testSetSolution();

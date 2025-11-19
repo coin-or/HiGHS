@@ -1228,6 +1228,26 @@ class Highs {
   HighsStatus setBasis();
 
   /**
+   * @brief Return a const reference to the internal sub-solver call and time
+   * instance
+   */
+  const HighsSubSolverCallTime& getSubSolverCallTime() const {
+    return sub_solver_call_time_;
+  }
+
+  /**
+   * @brief Report internal sub-solver call and time instance
+   */
+  void reportSubSolverCallTime() const;
+
+  /**
+   * @brief Initialise the internal sub-solver call and time instance
+   */
+  void initialiseSubSolverCallTime() {
+    this->sub_solver_call_time_.initialise();
+  }
+
+  /**
    * @brief Run IPX crossover from a given HighsSolution instance and,
    * if successful, set the internal HighsBasis and HighsSolution
    * instance
@@ -1521,6 +1541,8 @@ class Highs {
 
   HighsPresolveLog presolve_log_;
 
+  HighsSubSolverCallTime sub_solver_call_time_;
+
   HighsInt max_threads = 0;
   // This is strictly for debugging. It's used to check whether
   // returnFromOptimizeModel() was called after the previous call to
@@ -1586,7 +1608,7 @@ class Highs {
   // Invalidates all solver data in Highs class members by calling
   // invalidateModelStatus(), invalidateSolution(), invalidateBasis(),
   // invalidateRanging(), invalidateInfo(), invalidateEkk() and
-  // invalidateIis()
+  // clearIis()
   void invalidateSolverData();
 
   // Invalidates all solver dual data in Highs class members by calling
@@ -1619,8 +1641,8 @@ class Highs {
   // Invalidates ekk_instance_
   void invalidateEkk();
 
-  // Invalidates iis_
-  void invalidateIis();
+  // Clears iis_
+  void clearIis();
 
   HighsStatus returnFromWriteSolution(FILE* file,
                                       const HighsStatus return_status);
@@ -1706,9 +1728,8 @@ class Highs {
   HighsStatus getIisInterfaceReturn(const HighsStatus return_status);
 
   HighsStatus elasticityFilterReturn(
-      const HighsStatus return_status, const bool feasible_model,
-      const std::string& original_model_name, const HighsInt original_num_col,
-      const HighsInt original_num_row,
+      const HighsStatus return_status, const std::string& original_model_name,
+      const HighsInt original_num_col, const HighsInt original_num_row,
       const std::vector<double>& original_col_cost,
       const std::vector<double>& original_col_lower,
       const std::vector<double> original_col_upper,
@@ -1719,8 +1740,7 @@ class Highs {
                                const double* local_lower_penalty,
                                const double* local_upper_penalty,
                                const double* local_rhs_penalty,
-                               const bool get_infeasible_row,
-                               std::vector<HighsInt>& infeasible_row_subset);
+                               const bool get_iis = false);
   HighsStatus extractIis(HighsInt& num_iis_col, HighsInt& num_iis_row,
                          HighsInt* iis_col_index, HighsInt* iis_row_index,
                          HighsInt* iis_col_bound, HighsInt* iis_row_bound);

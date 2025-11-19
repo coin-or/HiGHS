@@ -230,7 +230,8 @@ HighsStatus solveLpCupdlp(const HighsOptions& options, HighsTimer& timer,
       assert(111 == 777);
     }
 #if CUPDLP_DEBUG
-    if (local_log_level > 0) analysePdlpSolution(options, lp, highs_solution);
+    if (options.log_dev_level >= kHighsLogDevLevelDetailed)
+      analysePdlpSolution(options, lp, highs_solution);
 #endif
   } else {
     // Failure return from LP_SolvePDHG
