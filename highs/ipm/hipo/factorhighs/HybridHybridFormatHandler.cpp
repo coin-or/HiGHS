@@ -1,5 +1,7 @@
 #include "HybridHybridFormatHandler.h"
 
+#include <cstring>
+
 #include "CallAndTimeBlas.h"
 #include "DataCollector.h"
 #include "DenseFact.h"
