@@ -1343,8 +1343,7 @@ bool HighsCutGeneration::generateCut(HighsTransformedLp& transLp,
   }
 #endif
 
-  // Try to generate a lifted simple generalized flow cover cut
-  bool flowCoverSuccess = false;
+  // Copy data to later generate lifted simple generalized flow cover cut
   std::vector<double> flowCoverVals;
   std::vector<HighsInt> flowCoverInds;
   double flowCoverRhs = rhs_;
@@ -1354,30 +1353,26 @@ bool HighsCutGeneration::generateCut(HighsTransformedLp& transLp,
       lpRelaxation.getMipSolver().options_mip_->mip_cut_flow_cover) {
     flowCoverVals = vals_;
     flowCoverInds = inds_;
-    flowCoverSuccess = tryGenerateFlowCoverCut(
-        transLp, flowCoverInds, flowCoverVals, flowCoverRhs, flowCoverEfficacy);
+    genFlowCover = true;
+  } else {
+    genFlowCover = false;
   }
 
-  bool cmirSuccess = false;
   bool intsPositive = true;
-  bool hasUnboundedInts = false;
-  bool hasGeneralInts = false;
-  bool hasContinuous = false;
-  if (!transLp.transform(vals_, upper, solval, inds_, rhs_, intsPositive)) {
-    cmirSuccess = false;
-    goto postprocess;
-  }
+  if (!transLp.transform(vals_, upper, solval, inds_, rhs_, intsPositive))
+    return false;
 
   rowlen = inds_.size();
   this->inds = inds_.data();
   this->vals = vals_.data();
   this->rhs = rhs_;
   complementation.clear();
+  bool hasUnboundedInts = false;
+  bool hasGeneralInts = false;
+  bool hasContinuous = false;
   if (!preprocessBaseInequality(hasUnboundedInts, hasGeneralInts,
-                                hasContinuous)) {
-    cmirSuccess = false;
-    goto postprocess;
-  }
+                                hasContinuous))
+    return false;
 
   // it can happen that there is an unbounded integer variable during the
   // transform call so that the integers are not transformed to positive values.
@@ -1397,13 +1392,9 @@ bool HighsCutGeneration::generateCut(HighsTransformedLp& transLp,
   }
 
   // try to generate a cut
-  if (!tryGenerateCut(
-          inds_, vals_, hasUnboundedInts, hasGeneralInts, hasContinuous,
-          std::max(0.9 * flowCoverEfficacy, 10 * feastol),
-          onlyInitialCMIRScale)) {
-    cmirSuccess = false;
-    goto postprocess;
-  }
+  if (!tryGenerateCut(inds_, vals_, hasUnboundedInts, hasGeneralInts,
+                      hasContinuous, 10 * feastol, onlyInitialCMIRScale))
+    return false;
 
   // remove the complementation if exists
   removeComplementation();
@@ -1416,24 +1407,53 @@ bool HighsCutGeneration::generateCut(HighsTransformedLp& transLp,
       vals[i] = vals[rowlen];
     }
   }
-  cmirSuccess = true;
-
-postprocess:
-  if (!cmirSuccess && !flowCoverSuccess) return false;
 
   // transform the cut back into the original space, i.e. remove the bound
   // substitution and replace implicit slack variables
-  if (cmirSuccess) {
-    rhs_ = (double)rhs;
-    vals_.resize(rowlen);
-    inds_.resize(rowlen);
-    if (!transLp.untransform(vals_, inds_, rhs_)) return false;
-  } else {
-    rhs_ = flowCoverRhs;
-    std::swap(vals_, flowCoverVals);
-    std::swap(inds_, flowCoverInds);
-    integralSupport = false;
-    integralCoefficients = false;
+  rhs_ = (double)rhs;
+  vals_.resize(rowlen);
+  inds_.resize(rowlen);
+  if (!transLp.untransform(vals_, inds_, rhs_)) return false;
+
+  const auto& sol = lpRelaxation.getSolution().col_value;
+
+  // Try to generate a lifted simple generalized flow cover cut
+  if (genFlowCover) {
+    bool flowCoverSuccess = tryGenerateFlowCoverCut(
+        transLp, flowCoverInds, flowCoverVals, flowCoverRhs, flowCoverEfficacy);
+    if (flowCoverSuccess) {
+      HighsInt rowlen_ = inds_.size();
+      double viol = -rhs_;
+      double sqrnorm = 0;
+      double efficacy = 0;
+      for (HighsInt i = 0; i != rowlen_; ++i) {
+        HighsInt col = inds_[i];
+        viol += vals_[i] * sol[col];
+        if (vals_[i] >= 0 &&
+            sol[col] <=
+                lpRelaxation.getMipSolver().mipdata_->domain.col_lower_[col] +
+                    lpRelaxation.getMipSolver().mipdata_->feastol)
+          continue;
+        if (vals_[i] < 0 &&
+            sol[col] >=
+                lpRelaxation.getMipSolver().mipdata_->domain.col_upper_[col] -
+                    lpRelaxation.getMipSolver().mipdata_->feastol)
+          continue;
+        sqrnorm += vals_[i] * vals_[i];
+      }
+      if (sqrnorm == 0) {
+        efficacy = 0;
+      } else {
+        efficacy = viol / sqrt(sqrnorm);
+      }
+      if (flowCoverSuccess && flowCoverEfficacy > 1.2 * efficacy) {
+        rhs_ = flowCoverRhs;
+        std::swap(vals_, flowCoverVals);
+        std::swap(inds_, flowCoverInds);
+        integralSupport = false;
+        integralCoefficients = false;
+      }
+    }
   }
 
   rowlen = inds_.size();
@@ -1455,7 +1475,6 @@ postprocess:
 
   // finally determine the violation of the cut in the original space
   HighsCDouble violation = -rhs_;
-  const auto& sol = lpRelaxation.getSolution().col_value;
   for (HighsInt i = 0; i != rowlen; ++i) violation += sol[inds[i]] * vals_[i];
 
   if (violation <= 10 * feastol) return false;
@@ -1973,11 +1992,7 @@ bool HighsCutGeneration::tryGenerateCut(std::vector<HighsInt>& inds_,
       rhs = tmpRhs;
     } else {
       // accept cut and increase minimum efficiency requirement for cmir cut
-      if (minEfficacy > 10 * feastol) {
-        minMirEfficacy = std::max(minEfficacy, efficacy + 10 * feastol);
-      } else {
-        minMirEfficacy += efficacy;
-      }
+      minMirEfficacy += efficacy;
       std::swap(tmpRhs, rhs);
     }
   }
