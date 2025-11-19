@@ -17,8 +17,8 @@ namespace hipo {
 
 // level 1
 
-void callAndTime_daxpy(Int64 n, double da, const double* dx, Int64 incx,
-                       double* dy, Int64 incy, DataCollector& data) {
+void callAndTime_daxpy(Int n, double da, const double* dx, Int incx, double* dy,
+                       Int incy, DataCollector& data) {
 #if HIPO_TIMING_LEVEL >= 3
   Clock clock;
 #endif
@@ -28,8 +28,8 @@ void callAndTime_daxpy(Int64 n, double da, const double* dx, Int64 incx,
 #endif
 }
 
-void callAndTime_dcopy(Int64 n, const double* dx, Int64 incx, double* dy,
-                       Int64 incy, DataCollector& data) {
+void callAndTime_dcopy(Int n, const double* dx, Int incx, double* dy, Int incy,
+                       DataCollector& data) {
 #if HIPO_TIMING_LEVEL >= 3
   Clock clock;
 #endif
@@ -39,7 +39,7 @@ void callAndTime_dcopy(Int64 n, const double* dx, Int64 incx, double* dy,
 #endif
 }
 
-void callAndTime_dscal(Int64 n, const double da, double* dx, Int64 incx,
+void callAndTime_dscal(Int n, const double da, double* dx, Int incx,
                        DataCollector& data) {
 #if HIPO_TIMING_LEVEL >= 3
   Clock clock;
@@ -50,7 +50,7 @@ void callAndTime_dscal(Int64 n, const double da, double* dx, Int64 incx,
 #endif
 }
 
-void callAndTime_dswap(Int64 n, double* dx, Int64 incx, double* dy, Int64 incy,
+void callAndTime_dswap(Int n, double* dx, Int incx, double* dy, Int incy,
                        DataCollector& data) {
 #if HIPO_TIMING_LEVEL >= 3
   Clock clock;
@@ -63,10 +63,9 @@ void callAndTime_dswap(Int64 n, double* dx, Int64 incx, double* dy, Int64 incy,
 
 // level 2
 
-void callAndTime_dgemv(char trans, Int64 m, Int64 n, double alpha,
-                       const double* A, Int64 lda, const double* x, Int64 incx,
-                       double beta, double* y, Int64 incy,
-                       DataCollector& data) {
+void callAndTime_dgemv(char trans, Int m, Int n, double alpha, const double* A,
+                       Int lda, const double* x, Int incx, double beta,
+                       double* y, Int incy, DataCollector& data) {
 #if HIPO_TIMING_LEVEL >= 3
   Clock clock;
 #endif
@@ -77,8 +76,8 @@ void callAndTime_dgemv(char trans, Int64 m, Int64 n, double alpha,
 #endif
 }
 
-void callAndTime_dtpsv(char uplo, char trans, char diag, Int64 n,
-                       const double* ap, double* x, Int64 incx,
+void callAndTime_dtpsv(char uplo, char trans, char diag, Int n,
+                       const double* ap, double* x, Int incx,
                        DataCollector& data) {
 #if HIPO_TIMING_LEVEL >= 3
   Clock clock;
@@ -90,9 +89,8 @@ void callAndTime_dtpsv(char uplo, char trans, char diag, Int64 n,
 #endif
 }
 
-void callAndTime_dtrsv(char uplo, char trans, char diag, Int64 n,
-                       const double* A, Int64 lda, double* x, Int64 incx,
-                       DataCollector& data) {
+void callAndTime_dtrsv(char uplo, char trans, char diag, Int n, const double* A,
+                       Int lda, double* x, Int incx, DataCollector& data) {
 #if HIPO_TIMING_LEVEL >= 3
   Clock clock;
 #endif
@@ -103,9 +101,9 @@ void callAndTime_dtrsv(char uplo, char trans, char diag, Int64 n,
 #endif
 }
 
-void callAndTime_dger(Int64 m, Int64 n, double alpha, const double* x,
-                      Int64 incx, const double* y, Int64 incy, double* A,
-                      Int64 lda, DataCollector& data) {
+void callAndTime_dger(Int m, Int n, double alpha, const double* x, Int incx,
+                      const double* y, Int incy, double* A, Int lda,
+                      DataCollector& data) {
 #if HIPO_TIMING_LEVEL >= 3
   Clock clock;
 #endif
@@ -117,10 +115,10 @@ void callAndTime_dger(Int64 m, Int64 n, double alpha, const double* x,
 
 // level 3
 
-void callAndTime_dgemm(char transa, char transb, Int64 m, Int64 n, Int64 k,
-                       double alpha, const double* A, Int64 lda,
-                       const double* B, Int64 ldb, double beta, double* C,
-                       Int64 ldc, DataCollector& data) {
+void callAndTime_dgemm(char transa, char transb, Int m, Int n, Int k,
+                       double alpha, const double* A, Int lda, const double* B,
+                       Int ldb, double beta, double* C, Int ldc,
+                       DataCollector& data) {
 #if HIPO_TIMING_LEVEL >= 3
   Clock clock;
 #endif
@@ -131,9 +129,9 @@ void callAndTime_dgemm(char transa, char transb, Int64 m, Int64 n, Int64 k,
 #endif
 }
 
-void callAndTime_dsyrk(char uplo, char trans, Int64 n, Int64 k, double alpha,
-                       const double* A, Int64 lda, double beta, double* C,
-                       Int64 ldc, DataCollector& data) {
+void callAndTime_dsyrk(char uplo, char trans, Int n, Int k, double alpha,
+                       const double* A, Int lda, double beta, double* C,
+                       Int ldc, DataCollector& data) {
 #if HIPO_TIMING_LEVEL >= 3
   Clock clock;
 #endif
@@ -144,9 +142,9 @@ void callAndTime_dsyrk(char uplo, char trans, Int64 n, Int64 k, double alpha,
 #endif
 }
 
-void callAndTime_dtrsm(char side, char uplo, char trans, char diag, Int64 m,
-                       Int64 n, double alpha, const double* A, Int64 lda,
-                       double* B, Int64 ldb, DataCollector& data) {
+void callAndTime_dtrsm(char side, char uplo, char trans, char diag, Int m,
+                       Int n, double alpha, const double* A, Int lda, double* B,
+                       Int ldb, DataCollector& data) {
 #if HIPO_TIMING_LEVEL >= 3
   Clock clock;
 #endif

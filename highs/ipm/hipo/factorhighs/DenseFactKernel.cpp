@@ -12,16 +12,16 @@ namespace hipo {
 
 // Dense Factorisation kernel
 
-static std::pair<Int64, double> maxInCol(Int64 j, Int64 n, Int64 m, double* A,
-                                         Int64 lda) {
+static std::pair<Int, double> maxInCol(Int j, Int n, Int m, double* A,
+                                       Int lda) {
   // Given the symemtric matrix A, of size nxn, accessed with leading dimension
   // lda, in upper triangular format, ignoring rows 0:j-1, find the maximum in
   // row/col m.
 
   double maxval = -1.0;
-  Int64 r = -1;
+  Int r = -1;
   // scan column m, rows j:m-1
-  for (Int64 row = j; row < m; ++row) {
+  for (Int row = j; row < m; ++row) {
     double val = std::abs(A[row + lda * m]);
     if (val > maxval) {
       maxval = val;
@@ -29,7 +29,7 @@ static std::pair<Int64, double> maxInCol(Int64 j, Int64 n, Int64 m, double* A,
     }
   }
   // scan row m, columns m+1:n
-  for (Int64 col = m + 1; col < n; ++col) {
+  for (Int col = m + 1; col < n; ++col) {
     double val = std::abs(A[m + lda * col]);
     if (val > maxval) {
       maxval = val;
@@ -39,7 +39,7 @@ static std::pair<Int64, double> maxInCol(Int64 j, Int64 n, Int64 m, double* A,
   return {r, maxval};
 }
 
-static void staticReg(double& pivot, Int64 sign, const Regul& regval,
+static void staticReg(double& pivot, Int sign, const Regul& regval,
                       double& totalreg) {
   // apply static regularisation
 
@@ -51,10 +51,9 @@ static void staticReg(double& pivot, Int64 sign, const Regul& regval,
   totalreg = pivot - old_pivot;
 }
 
-static bool blockBunchKaufman(Int64 j, Int64 n, double* A, Int64 lda,
-                              Int64* swaps, Int* sign, double thresh,
-                              const Regul& regval, double* totalreg,
-                              DataCollector& data) {
+static bool blockBunchKaufman(Int j, Int n, double* A, Int lda, Int* swaps,
+                              Int* sign, double thresh, const Regul& regval,
+                              double* totalreg, DataCollector& data) {
   // Perform Bunch-Kaufman pivoting within a block of the supernode (see Schenk,
   // Gartner, ETNA 2006).
   // It works only for upper triangular A.
@@ -68,9 +67,9 @@ static bool blockBunchKaufman(Int64 j, Int64 n, double* A, Int64 lda,
   bool flag_2x2 = false;
 
   // Find largest diagonal entry in the residual part of the block
-  Int64 ind_max_diag = -1;
+  Int ind_max_diag = -1;
   double max_diag = -1.0;
-  for (Int64 i = j; i < n; ++i) {
+  for (Int i = j; i < n; ++i) {
     double val = std::abs(A[i + lda * i]);
     if (val > max_diag) {
       max_diag = val;
@@ -85,7 +84,7 @@ static bool blockBunchKaufman(Int64 j, Int64 n, double* A, Int64 lda,
   // Max in column j of diagonal block
   auto res = maxInCol(j, n, j, A, lda);
   double gamma_j = res.second;
-  Int64 r = res.first;
+  Int r = res.first;
   double Ajj = sign[j] > 0 ? A[j + lda * j] + regval.dual
                            : A[j + lda * j] - regval.primal;
 
@@ -151,9 +150,9 @@ static bool blockBunchKaufman(Int64 j, Int64 n, double* A, Int64 lda,
   return flag_2x2;
 }
 
-Int64 denseFactK(char uplo, Int64 n, double* A, Int64 lda, Int* pivot_sign,
-                 double thresh, const Regul& regval, double* totalreg,
-                 Int64* swaps, double* pivot_2x2, DataCollector& data) {
+Int denseFactK(char uplo, Int n, double* A, Int lda, Int* pivot_sign,
+               double thresh, const Regul& regval, double* totalreg, Int* swaps,
+               double* pivot_2x2, DataCollector& data) {
   // ===========================================================================
   // Factorisation kernel
   // Matrix A is in format F
@@ -176,15 +175,15 @@ Int64 denseFactK(char uplo, Int64 n, double* A, Int64 lda, Int* pivot_sign,
     if (!swaps || !pivot_2x2) return kRetInvalidInput;
 
     // initialise order of pivots
-    for (Int64 i = 0; i < n; ++i) swaps[i] = i;
+    for (Int i = 0; i < n; ++i) swaps[i] = i;
 
     // allocate space for copy of col(s)
     std::vector<double> temp(n - 1);
     std::vector<double> temp2(n - 1);
 
-    Int64 step = 1;
+    Int step = 1;
 
-    for (Int64 j = 0; j < n; j += step) {
+    for (Int j = 0; j < n; j += step) {
       bool flag_2x2 = false;
 
 #ifdef HIPO_PIVOTING
@@ -216,7 +215,7 @@ Int64 denseFactK(char uplo, Int64 n, double* A, Int64 lda, Int* pivot_sign,
         // save reciprocal of pivot
         A[j + lda * j] = 1.0 / Ajj;
 
-        const Int64 M = n - j - 1;
+        const Int M = n - j - 1;
         if (M > 0) {
           // make copy of row
           callAndTime_dcopy(M, &A[j + (j + 1) * lda], lda, temp.data(), 1,
@@ -254,7 +253,7 @@ Int64 denseFactK(char uplo, Int64 n, double* A, Int64 lda, Int* pivot_sign,
         A[j + 1 + lda * (j + 1)] = i_d2;
         pivot_2x2[j] = i_off;
 
-        const Int64 M = n - j - 2;
+        const Int M = n - j - 2;
         if (M > 0) {
           double* r1 = &A[j + (j + 2) * lda];
           double* r2 = &A[j + 1 + (j + 2) * lda];

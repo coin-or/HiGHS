@@ -10,8 +10,8 @@ void IpmMatrix::reset(const HighsSparseMatrix& A,
 }
 
 void IpmMatrix::apply(std::vector<double>& x) const {
-  const Int64 n = A_->num_col_;
-  const Int64 m = A_->num_row_;
+  const Int n = A_->num_col_;
+  const Int m = A_->num_row_;
 
   if (use_as_) {
     // compute [y_1; y_2] = [-Theta^-1 * x_1 + A^T * x_2; A * x_1]
@@ -27,7 +27,7 @@ void IpmMatrix::apply(std::vector<double>& x) const {
     A_->alphaProductPlusY(1.0, x_2, y_1, true);
 
     // y_1 -= Theta^-1 * x_1
-    for (Int64 i = 0; i < n; ++i) y_1[i] -= (*scaling_)[i] * x_1[i];
+    for (Int i = 0; i < n; ++i) y_1[i] -= (*scaling_)[i] * x_1[i];
 
     // y_2 = A * x_1
     A_->alphaProductPlusY(1.0, x_1, y_2);
@@ -46,7 +46,7 @@ void IpmMatrix::apply(std::vector<double>& x) const {
     A_->alphaProductPlusY(1.0, x, w, true);
 
     // w = Theta * w
-    for (Int64 i = 0; i < n; ++i) w[i] /= (*scaling_)[i];
+    for (Int i = 0; i < n; ++i) w[i] /= (*scaling_)[i];
 
     // x = A * w
     A_->alphaProductPlusY(1.0, w, x);
@@ -62,9 +62,9 @@ void NeDiagPrec::reset(const HighsSparseMatrix& A,
   diag.assign(A.num_row_, 0.0);
 
   // build diagonal of normal equations
-  for (Int64 c = 0; c < A.num_col_; ++c) {
-    for (Int64 el = A.start_[c]; el < A.start_[c + 1]; ++el) {
-      Int64 r = A.index_[el];
+  for (Int c = 0; c < A.num_col_; ++c) {
+    for (Int el = A.start_[c]; el < A.start_[c + 1]; ++el) {
+      Int r = A.index_[el];
       double v = A.value_[el];
 
       diag[r] += v * v / scaling[c];
@@ -72,11 +72,11 @@ void NeDiagPrec::reset(const HighsSparseMatrix& A,
   }
 
   // compute inverse of diagonal entries
-  for (Int64 i = 0; i < diag.size(); ++i) diag[i] = 1.0 / diag[i];
+  for (Int i = 0; i < diag.size(); ++i) diag[i] = 1.0 / diag[i];
 }
 void NeDiagPrec::apply(std::vector<double>& x) const {
   // apply diagonal preconditioner
-  for (Int64 i = 0; i < diag.size(); ++i) x[i] *= diag[i];
+  for (Int i = 0; i < diag.size(); ++i) x[i] *= diag[i];
 }
 
 }  // namespace hipo

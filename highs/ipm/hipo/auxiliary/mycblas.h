@@ -6,11 +6,6 @@
 // Provide definition for cblas functions
 // Based on Netlib implementation
 
-// NB:
-// Blas is declared as using 64-bit integers.
-// The library that gets actually linked may use 32- or 64-bit integers,
-// depending on the integer model.
-
 enum CBLAS_ORDER { CblasRowMajor = 101, CblasColMajor = 102 };
 enum CBLAS_TRANSPOSE {
   CblasNoTrans = 111,
@@ -25,61 +20,63 @@ enum CBLAS_SIDE { CblasLeft = 141, CblasRight = 142 };
 extern "C" {
 #endif
 
+typedef int32_t blasint;
+
 // level 1
 
-void cblas_daxpy(const hipo::Int64 n, const double alpha, const double* x,
-                 const hipo::Int64 incx, double* y, const hipo::Int64 incy);
-void cblas_dcopy(const hipo::Int64 n, const double* x, const hipo::Int64 incx,
-                 double* y, const hipo::Int64 incy);
-void cblas_dscal(const hipo::Int64 n, const double alpha, double* x,
-                 const hipo::Int64 incx);
-void cblas_dswap(const hipo::Int64 n, double* x, const hipo::Int64 incx,
-                 double* y, const hipo::Int64 incy);
+void cblas_daxpy(const blasint n, const double alpha, const double* x,
+                 const blasint incx, double* y, const blasint incy);
+void cblas_dcopy(const blasint n, const double* x, const blasint incx,
+                 double* y, const blasint incy);
+void cblas_dscal(const blasint n, const double alpha, double* x,
+                 const blasint incx);
+void cblas_dswap(const blasint n, double* x, const blasint incx, double* y,
+                 const blasint incy);
 
 // level 2
 
 void cblas_dgemv(const enum CBLAS_ORDER order,
-                 const enum CBLAS_TRANSPOSE transa, const hipo::Int64 M,
-                 const hipo::Int64 n, const double alpha, const double* A,
-                 const hipo::Int64 lda, const double* x, const hipo::Int64 incx,
-                 const double beta, double* y, const hipo::Int64 incy);
+                 const enum CBLAS_TRANSPOSE transa, const blasint M,
+                 const blasint n, const double alpha, const double* A,
+                 const blasint lda, const double* x, const blasint incx,
+                 const double beta, double* y, const blasint incy);
 
 void cblas_dtpsv(const enum CBLAS_ORDER order, const enum CBLAS_UPLO uplo,
                  const enum CBLAS_TRANSPOSE transa, const enum CBLAS_DIAG diag,
-                 const hipo::Int64 n, const double* ap, double* x,
-                 const hipo::Int64 incx);
+                 const blasint n, const double* ap, double* x,
+                 const blasint incx);
 
 void cblas_dtrsv(const enum CBLAS_ORDER order, const enum CBLAS_UPLO uplo,
                  const enum CBLAS_TRANSPOSE transa, const enum CBLAS_DIAG diag,
-                 const hipo::Int64 n, const double* a, const hipo::Int64 lda,
-                 double* x, const hipo::Int64 incx);
+                 const blasint n, const double* a, const blasint lda, double* x,
+                 const blasint incx);
 
-void cblas_dger(const enum CBLAS_ORDER order, const hipo::Int64 m,
-                const hipo::Int64 n, const double alpha, const double* x,
-                const hipo::Int64 incx, const double* y, const hipo::Int64 incy,
-                double* A, const hipo::Int64 lda);
+void cblas_dger(const enum CBLAS_ORDER order, const blasint m, const blasint n,
+                const double alpha, const double* x, const blasint incx,
+                const double* y, const blasint incy, double* A,
+                const blasint lda);
 
 // level 3
 
 void cblas_dgemm(const enum CBLAS_ORDER order,
                  const enum CBLAS_TRANSPOSE transa,
-                 const enum CBLAS_TRANSPOSE transb, const hipo::Int64 m,
-                 const hipo::Int64 n, const hipo::Int64 k, const double alpha,
-                 const double* A, const hipo::Int64 lda, const double* B,
-                 const hipo::Int64 ldb, const double beta, double* C,
-                 const hipo::Int64 ldc);
+                 const enum CBLAS_TRANSPOSE transb, const blasint m,
+                 const blasint n, const blasint k, const double alpha,
+                 const double* A, const blasint lda, const double* B,
+                 const blasint ldb, const double beta, double* C,
+                 const blasint ldc);
 
 void cblas_dsyrk(const enum CBLAS_ORDER order, const enum CBLAS_UPLO uplo,
-                 const enum CBLAS_TRANSPOSE trans, const hipo::Int64 n,
-                 const hipo::Int64 k, const double alpha, const double* a,
-                 const hipo::Int64 lda, const double beta, double* C,
-                 const hipo::Int64 ldc);
+                 const enum CBLAS_TRANSPOSE trans, const blasint n,
+                 const blasint k, const double alpha, const double* a,
+                 const blasint lda, const double beta, double* C,
+                 const blasint ldc);
 
 void cblas_dtrsm(const enum CBLAS_ORDER order, const enum CBLAS_SIDE side,
                  const enum CBLAS_UPLO uplo, const enum CBLAS_TRANSPOSE transa,
-                 const enum CBLAS_DIAG diag, const hipo::Int64 m,
-                 const hipo::Int64 n, const double alpha, const double* a,
-                 const hipo::Int64 lda, double* b, const hipo::Int64 ldb);
+                 const enum CBLAS_DIAG diag, const blasint m, const blasint n,
+                 const double alpha, const double* a, const blasint lda,
+                 double* b, const blasint ldb);
 
 #ifdef __cplusplus
 }

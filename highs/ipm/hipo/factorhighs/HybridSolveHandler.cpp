@@ -11,7 +11,7 @@ namespace hipo {
 
 HybridSolveHandler::HybridSolveHandler(
     const Symbolic& S, const std::vector<std::vector<double>>& sn_columns,
-    const std::vector<std::vector<Int64>>& swaps,
+    const std::vector<std::vector<Int>>& swaps,
     const std::vector<std::vector<double>>& pivot_2x2)
     : SolveHandler(S, sn_columns), swaps_{swaps}, pivot_2x2_{pivot_2x2} {}
 
@@ -25,44 +25,44 @@ void HybridSolveHandler::forwardSolve(std::vector<double>& x) const {
   Clock clock;
 #endif
 
-  const Int64 nb = S_.blockSize();
+  const Int nb = S_.blockSize();
 
-  for (Int64 sn = 0; sn < S_.sn(); ++sn) {
+  for (Int sn = 0; sn < S_.sn(); ++sn) {
     // leading size of supernode
-    const Int64 ldSn = S_.ptr(sn + 1) - S_.ptr(sn);
+    const Int ldSn = S_.ptr(sn + 1) - S_.ptr(sn);
 
     // number of columns in the supernode
-    const Int64 sn_size = S_.snStart(sn + 1) - S_.snStart(sn);
+    const Int sn_size = S_.snStart(sn + 1) - S_.snStart(sn);
 
     // first colums of the supernode
-    const Int64 sn_start = S_.snStart(sn);
+    const Int sn_start = S_.snStart(sn);
 
     // index to access S->rows for this supernode
     const Int64 start_row = S_.ptr(sn);
 
     // number of blocks of columns
-    const Int64 n_blocks = (sn_size - 1) / nb + 1;
+    const Int n_blocks = (sn_size - 1) / nb + 1;
 
     // index to access snColumns[sn]
     Int64 SnCol_ind{};
 
     // go through blocks of columns for this supernode
-    for (Int64 j = 0; j < n_blocks; ++j) {
+    for (Int j = 0; j < n_blocks; ++j) {
       // number of columns in the block
-      const Int64 jb = std::min(nb, sn_size - nb * j);
+      const Int jb = std::min(nb, sn_size - nb * j);
 
       // number of entries in diagonal part
-      const Int64 diag_entries = jb * jb;
+      const Int diag_entries = jb * jb;
 
       // index to access vector x
-      const Int64 x_start = sn_start + nb * j;
+      const Int x_start = sn_start + nb * j;
 
 #ifdef HIPO_PIVOTING
 #if HIPO_TIMING_LEVEL >= 2
       clock.start();
 #endif
       // apply swaps to portion of rhs that is affected
-      const Int64* current_swaps = &swaps_[sn][nb * j];
+      const Int* current_swaps = &swaps_[sn][nb * j];
       permuteWithSwaps(&x[x_start], current_swaps, jb);
 #if HIPO_TIMING_LEVEL >= 2
       if (data_) data_->sumTime(kTimeSolveSolve_swap, clock.stop());
@@ -78,7 +78,7 @@ void HybridSolveHandler::forwardSolve(std::vector<double>& x) const {
       SnCol_ind += diag_entries;
 
       // temporary space for gemv
-      const Int64 gemv_space = ldSn - nb * j - jb;
+      const Int gemv_space = ldSn - nb * j - jb;
       std::vector<double> y(gemv_space);
 
       callAndTime_dgemv('T', jb, gemv_space, 1.0, &sn_columns_[sn][SnCol_ind],
@@ -92,8 +92,8 @@ void HybridSolveHandler::forwardSolve(std::vector<double>& x) const {
       clock.start();
 #endif
       // scatter solution of gemv
-      for (Int64 i = 0; i < gemv_space; ++i) {
-        const Int64 row = S_.rows(start_row + nb * j + jb + i);
+      for (Int i = 0; i < gemv_space; ++i) {
+        const Int row = S_.rows(start_row + nb * j + jb + i);
         x[row] -= y[i];
       }
 #if HIPO_TIMING_LEVEL >= 2
@@ -124,46 +124,46 @@ void HybridSolveHandler::backwardSolve(std::vector<double>& x) const {
   Clock clock;
 #endif
 
-  const Int64 nb = S_.blockSize();
+  const Int nb = S_.blockSize();
 
   // go through the sn in reverse order
-  for (Int64 sn = S_.sn() - 1; sn >= 0; --sn) {
+  for (Int sn = S_.sn() - 1; sn >= 0; --sn) {
     // leading size of supernode
-    const Int64 ldSn = S_.ptr(sn + 1) - S_.ptr(sn);
+    const Int ldSn = S_.ptr(sn + 1) - S_.ptr(sn);
 
     // number of columns in the supernode
-    const Int64 sn_size = S_.snStart(sn + 1) - S_.snStart(sn);
+    const Int sn_size = S_.snStart(sn + 1) - S_.snStart(sn);
 
     // first colums of the supernode
-    const Int64 sn_start = S_.snStart(sn);
+    const Int sn_start = S_.snStart(sn);
 
     // index to access S->rows for this supernode
     const Int64 start_row = S_.ptr(sn);
 
     // number of blocks of columns
-    const Int64 n_blocks = (sn_size - 1) / nb + 1;
+    const Int n_blocks = (sn_size - 1) / nb + 1;
 
     // index to access snColumns[sn]
     // initialised with the total number of entries of snColumns[sn]
     Int64 SnCol_ind = sn_columns_[sn].size();
 
     // go through blocks of columns for this supernode in reverse order
-    for (Int64 j = n_blocks - 1; j >= 0; --j) {
+    for (Int j = n_blocks - 1; j >= 0; --j) {
       // number of columns in the block
-      const Int64 jb = std::min(nb, sn_size - nb * j);
+      const Int jb = std::min(nb, sn_size - nb * j);
 
       // number of entries in diagonal part
-      const Int64 diag_entries = jb * jb;
+      const Int diag_entries = jb * jb;
 
       // index to access vector x
-      const Int64 x_start = sn_start + nb * j;
+      const Int x_start = sn_start + nb * j;
 
 #ifdef HIPO_PIVOTING
 #if HIPO_TIMING_LEVEL >= 2
       clock.start();
 #endif
       // apply swaps to portion of rhs that is affected
-      const Int64* current_swaps = &swaps_[sn][nb * j];
+      const Int* current_swaps = &swaps_[sn][nb * j];
       permuteWithSwaps(&x[x_start], current_swaps, jb);
 #if HIPO_TIMING_LEVEL >= 2
       if (data_) data_->sumTime(kTimeSolveSolve_swap, clock.stop());
@@ -171,15 +171,15 @@ void HybridSolveHandler::backwardSolve(std::vector<double>& x) const {
 #endif
 
       // temporary space for gemv
-      const Int64 gemv_space = ldSn - nb * j - jb;
+      const Int gemv_space = ldSn - nb * j - jb;
       std::vector<double> y(gemv_space);
 
 #if HIPO_TIMING_LEVEL >= 2
       clock.start();
 #endif
       // scatter entries into y
-      for (Int64 i = 0; i < gemv_space; ++i) {
-        const Int64 row = S_.rows(start_row + nb * j + jb + i);
+      for (Int i = 0; i < gemv_space; ++i) {
+        const Int row = S_.rows(start_row + nb * j + jb + i);
         y[i] = x[row];
       }
 #if HIPO_TIMING_LEVEL >= 2
@@ -223,35 +223,35 @@ void HybridSolveHandler::diagSolve(std::vector<double>& x) const {
   Clock clock;
 #endif
 
-  const Int64 nb = S_.blockSize();
+  const Int nb = S_.blockSize();
 
-  for (Int64 sn = 0; sn < S_.sn(); ++sn) {
+  for (Int sn = 0; sn < S_.sn(); ++sn) {
     // leading size of supernode
-    const Int64 ldSn = S_.ptr(sn + 1) - S_.ptr(sn);
+    const Int ldSn = S_.ptr(sn + 1) - S_.ptr(sn);
 
     // number of columns in the supernode
-    const Int64 sn_size = S_.snStart(sn + 1) - S_.snStart(sn);
+    const Int sn_size = S_.snStart(sn + 1) - S_.snStart(sn);
 
     // first colums of the supernode
-    const Int64 sn_start = S_.snStart(sn);
+    const Int sn_start = S_.snStart(sn);
 
     // number of blocks of columns
-    const Int64 n_blocks = (sn_size - 1) / nb + 1;
+    const Int n_blocks = (sn_size - 1) / nb + 1;
 
     // index to access diagonal part of block
-    Int64 diag_start{};
+    Int diag_start{};
 
     // go through blocks of columns for this supernode
-    for (Int64 j = 0; j < n_blocks; ++j) {
+    for (Int j = 0; j < n_blocks; ++j) {
       // number of columns in the block
-      const Int64 jb = std::min(nb, sn_size - nb * j);
+      const Int jb = std::min(nb, sn_size - nb * j);
 
 #ifdef HIPO_PIVOTING
 #if HIPO_TIMING_LEVEL >= 2
       clock.start();
 #endif
       // apply swaps to portion of rhs that is affected
-      const Int64* current_swaps = &swaps_[sn][nb * j];
+      const Int* current_swaps = &swaps_[sn][nb * j];
       permuteWithSwaps(&x[sn_start + nb * j], current_swaps, jb);
 #if HIPO_TIMING_LEVEL >= 2
       if (data_) data_->sumTime(kTimeSolveSolve_swap, clock.stop());
@@ -263,10 +263,10 @@ void HybridSolveHandler::diagSolve(std::vector<double>& x) const {
 #endif
 
       const double* current_2x2 = &pivot_2x2_[sn][nb * j];
-      Int64 step = 1;
+      Int step = 1;
 
       // go through columns of block
-      for (Int64 col = 0; col < jb; col += step) {
+      for (Int col = 0; col < jb; col += step) {
         if (current_2x2[col] == 0.0) {
           // 1x1 pivots
           step = 1;

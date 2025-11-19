@@ -13,7 +13,7 @@
 
 namespace hipo {
 
-Int64 Numeric::solve(std::vector<double>& x) const {
+Int Numeric::solve(std::vector<double>& x) const {
   // Return the number of solves performed
 
   if (!sn_columns_ || !S_) return kRetInvalidPointer;

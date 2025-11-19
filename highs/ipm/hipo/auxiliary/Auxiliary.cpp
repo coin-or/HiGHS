@@ -14,14 +14,14 @@ void inversePerm(const std::vector<Int>& perm, std::vector<Int>& iperm) {
   }
 }
 
-void subtreeSize(const std::vector<Int64>& parent, std::vector<Int64>& sizes) {
+void subtreeSize(const std::vector<Int>& parent, std::vector<Int>& sizes) {
   // Compute sizes of subtrees of the tree given by parent
 
-  Int64 n = parent.size();
+  Int n = parent.size();
   sizes.assign(n, 1);
 
-  for (Int64 i = 0; i < n; ++i) {
-    Int64 k = parent[i];
+  for (Int i = 0; i < n; ++i) {
+    Int k = parent[i];
     if (k != -1) sizes[k] += sizes[i];
   }
 }
@@ -82,8 +82,8 @@ void transpose(const std::vector<Int>& ptr, const std::vector<Int>& rows,
   }
 }
 
-void childrenLinkedList(const std::vector<Int64>& parent,
-                        std::vector<Int64>& head, std::vector<Int64>& next) {
+void childrenLinkedList(const std::vector<Int>& parent, std::vector<Int>& head,
+                        std::vector<Int>& next) {
   // Create linked lists of children in elimination tree.
   // parent gives the dependencies of the tree,
   // head[node] is the first child of node,
@@ -91,27 +91,27 @@ void childrenLinkedList(const std::vector<Int64>& parent,
   // next[next[head[node]]] is the third child...
   // until -1 is reached.
 
-  Int64 n = parent.size();
+  Int n = parent.size();
   head.assign(n, -1);
   next.assign(n, -1);
-  for (Int64 node = n - 1; node >= 0; --node) {
+  for (Int node = n - 1; node >= 0; --node) {
     if (parent[node] == -1) continue;
     next[node] = head[parent[node]];
     head[parent[node]] = node;
   }
 }
 
-void reverseLinkedList(std::vector<Int64>& head, std::vector<Int64>& next) {
+void reverseLinkedList(std::vector<Int>& head, std::vector<Int>& next) {
   // Reverse the linked list of children of each node.
   // If a node has children (a -> b -> c -> -1), the reverse list contains
   // children (c -> b -> a -> -1).
 
-  const Int64 n = head.size();
+  const Int n = head.size();
 
-  for (Int64 node = 0; node < n; ++node) {
-    Int64 prev_node = -1;
-    Int64 curr_node = head[node];
-    Int64 next_node = -1;
+  for (Int node = 0; node < n; ++node) {
+    Int prev_node = -1;
+    Int curr_node = head[node];
+    Int next_node = -1;
 
     while (curr_node != -1) {
       next_node = next[curr_node];
@@ -124,18 +124,18 @@ void reverseLinkedList(std::vector<Int64>& head, std::vector<Int64>& next) {
   }
 }
 
-void dfsPostorder(Int64 node, Int64& start, std::vector<Int64>& head,
-                  const std::vector<Int64>& next, std::vector<Int>& order) {
+void dfsPostorder(Int node, Int& start, std::vector<Int>& head,
+                  const std::vector<Int>& next, std::vector<Int>& order) {
   // Perform depth first search starting from root node and order the nodes
   // starting from the value start. head and next contain the linked list of
   // children.
 
-  std::stack<Int64> stack;
+  std::stack<Int> stack;
   stack.push(node);
 
   while (!stack.empty()) {
-    const Int64 current = stack.top();
-    const Int64 child = head[current];
+    const Int current = stack.top();
+    const Int child = head[current];
 
     if (child == -1) {
       // no children left to order,
@@ -151,9 +151,9 @@ void dfsPostorder(Int64 node, Int64& start, std::vector<Int64>& head,
   }
 }
 
-void processEdge(Int64 j, Int64 i, const std::vector<Int64>& first,
-                 std::vector<Int64>& maxfirst, std::vector<Int64>& delta,
-                 std::vector<Int64>& prevleaf, std::vector<Int64>& ancestor) {
+void processEdge(Int j, Int i, const std::vector<Int>& first,
+                 std::vector<Int>& maxfirst, std::vector<Int>& delta,
+                 std::vector<Int>& prevleaf, std::vector<Int>& ancestor) {
   // Process edge of skeleton matrix.
   // Taken from Tim Davis "Direct Methods for Sparse Linear Systems".
 
@@ -166,21 +166,21 @@ void processEdge(Int64 j, Int64 i, const std::vector<Int64>& first,
   maxfirst[i] = first[j];
 
   // previous leaf of ith row subtree
-  Int64 jprev = prevleaf[i];
+  Int jprev = prevleaf[i];
 
   // A(i,j) is in the skeleton matrix
   delta[j]++;
 
   if (jprev != -1) {
     // find least common ancestor of jprev and j
-    Int64 q = jprev;
+    Int q = jprev;
     while (q != ancestor[q]) {
       q = ancestor[q];
     }
 
     // path compression
-    Int64 sparent;
-    for (Int64 s = jprev; s != q; s = sparent) {
+    Int sparent;
+    for (Int s = jprev; s != q; s = sparent) {
       sparent = ancestor[s];
       ancestor[s] = q;
     }
@@ -193,16 +193,16 @@ void processEdge(Int64 j, Int64 i, const std::vector<Int64>& first,
   prevleaf[i] = j;
 }
 
-Int64 getDiagStart(Int64 n, Int64 k, Int64 nb, Int64 n_blocks,
+Int64 getDiagStart(Int n, Int k, Int nb, Int n_blocks,
                    std::vector<Int64>& start, bool triang) {
   // start position of diagonal blocks for blocked dense formats
   start.assign(n_blocks, 0);
-  for (Int64 i = 1; i < n_blocks; ++i) {
+  for (Int i = 1; i < n_blocks; ++i) {
     start[i] = start[i - 1] + nb * (n - (i - 1) * nb);
     if (triang) start[i] -= nb * (nb - 1) / 2;
   }
 
-  Int64 jb = std::min(nb, k - (n_blocks - 1) * nb);
+  Int jb = std::min(nb, k - (n_blocks - 1) * nb);
   Int64 result = start.back() + (n - (n_blocks - 1) * nb) * jb;
   if (triang) result -= jb * (jb - 1) / 2;
   return result;

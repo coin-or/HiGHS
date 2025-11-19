@@ -16,8 +16,9 @@ typedef int64_t Int64;
 // kHighsIInf nonzero entries. Metis works with the same type as Int, so it must
 // be compiled accordingly.
 //
-// The factorisation uses Int64 everywhere, apart from where it interfaces with
-// the matrix stored using Int.
+// The factorisation uses a combination of Int and Int64. Int64 is used only
+// where needed, i.e. when dealing with nonzeros of the factor or when checking
+// overflows.
 // BLAS is 32-bit, so the vectors used by BLAS must be addressable with 32-bit
 // integers.
 //

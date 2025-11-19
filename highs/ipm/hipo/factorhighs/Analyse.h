@@ -24,7 +24,7 @@ class Analyse {
 
   // info about matrix and factor
   Int n_{};
-  Int64 nz_{};
+  Int nz_{};
   Int64 nz_factor_{};
   double dense_ops_{};
   double dense_ops_norelax_{};
@@ -37,40 +37,40 @@ class Analyse {
   std::vector<Int> iperm_{};
 
   // Elimination tree
-  std::vector<Int64> parent_{};
+  std::vector<Int> parent_{};
 
   // postorder of the elimination tree
   std::vector<Int> postorder_{};
 
   // number of entries in each column of L
-  std::vector<Int64> col_count_{};
+  std::vector<Int> col_count_{};
 
   // sparsity pattern of supernodes of L
-  std::vector<Int64> rows_sn_{};
+  std::vector<Int> rows_sn_{};
   std::vector<Int64> ptr_sn_{};
 
-  std::vector<Int64> sn_indices_{};
+  std::vector<Int> sn_indices_{};
 
   // fundamental supernodes information
-  Int64 sn_count_{};
+  Int sn_count_{};
   Int64 artificial_nz_{};
-  std::vector<Int64> sn_belong_{};
-  std::vector<Int64> sn_start_{};
-  std::vector<Int64> sn_parent_{};
+  std::vector<Int> sn_belong_{};
+  std::vector<Int> sn_start_{};
+  std::vector<Int> sn_parent_{};
 
   // temporary storage for relaxing supernodes
   std::vector<Int64> fake_nz_{};
-  std::vector<Int64> merged_into_{};
-  Int64 merged_sn_{};
+  std::vector<Int> merged_into_{};
+  Int merged_sn_{};
 
   // relative indices of original columns wrt L columns
-  std::vector<Int64> relind_cols_{};
+  std::vector<Int> relind_cols_{};
 
   // relative indices of clique wrt parent
-  std::vector<std::vector<Int64>> relind_clique_{};
+  std::vector<std::vector<Int>> relind_clique_{};
 
   // information about consecutive indices in relindClique
-  std::vector<std::vector<Int64>> consecutive_sums_{};
+  std::vector<std::vector<Int>> consecutive_sums_{};
 
   // estimate of maximum storage
   double serial_storage_{};
@@ -78,13 +78,13 @@ class Analyse {
   std::vector<std::vector<Int64>> clique_block_start_{};
 
   // block size
-  Int64 nb_{};
+  Int nb_{};
 
   const Log* log_;
   DataCollector& data_;
 
   // Functions to perform analyse phase
-  Int64 getPermutation(bool metis_no2hop);
+  Int getPermutation(bool metis_no2hop);
   void permute(const std::vector<Int>& iperm);
   void eTree();
   void postorder();
@@ -98,21 +98,21 @@ class Analyse {
   void relativeIndClique();
   void reorderChildren();
   void computeStorage();
-  void computeStorage(Int64 fr, Int64 sz, double& fr_entries,
+  void computeStorage(Int fr, Int sz, double& fr_entries,
                       double& cl_entries) const;
   void computeCriticalPath();
   void computeBlockStart();
 
-  Int64 checkOverflow() const;
+  Int checkOverflow() const;
 
  public:
   // Constructor: matrix must be in lower triangular format
   Analyse(const std::vector<Int>& rows, const std::vector<Int>& ptr,
-          const std::vector<Int>& signs, Int64 nb, const Log* log,
+          const std::vector<Int>& signs, Int nb, const Log* log,
           DataCollector& data);
 
   // Run analyse phase and save the result in Symbolic object S
-  Int64 run(Symbolic& S);
+  Int run(Symbolic& S);
 };
 
 }  // namespace hipo

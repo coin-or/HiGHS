@@ -218,7 +218,6 @@ set(factor_highs_sources
     ipm/hipo/factorhighs/Numeric.cpp
     ipm/hipo/factorhighs/SolveHandler.cpp
     ipm/hipo/factorhighs/Swaps.cpp
-    ipm/hipo/factorhighs/SymScaling.cpp
     ipm/hipo/factorhighs/Symbolic.cpp)
 
 set(factor_highs_headers
@@ -238,7 +237,6 @@ set(factor_highs_headers
     ipm/hipo/factorhighs/ReturnValues.h
     ipm/hipo/factorhighs/SolveHandler.h
     ipm/hipo/factorhighs/Swaps.h
-    ipm/hipo/factorhighs/SymScaling.h
     ipm/hipo/factorhighs/Symbolic.h
     ipm/hipo/factorhighs/Timing.h)
 

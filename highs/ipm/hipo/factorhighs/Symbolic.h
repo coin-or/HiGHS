@@ -18,12 +18,12 @@ class Symbolic {
   bool metis_no2hop_ = false;
 
   // Size of blocks for dense factorisation
-  Int64 block_size_;
+  Int block_size_;
 
   // Statistics about symbolic factorisation
-  Int64 n_{};
+  Int n_{};
   Int64 nz_{};
-  Int64 sn_{};
+  Int sn_{};
   double fillin_{};
   double flops_{};
   double spops_{};
@@ -31,28 +31,29 @@ class Symbolic {
   Int64 artificial_nz_{};
   double artificial_ops_{};
   double serial_storage_{};
-  Int64 largest_front_{};
-  Int64 largest_sn_{};
-  Int64 sn_size_1_{};
-  Int64 sn_size_10_{};
-  Int64 sn_size_100_{};
+  Int largest_front_{};
+  Int largest_sn_{};
+  Int sn_size_1_{};
+  Int sn_size_10_{};
+  Int sn_size_100_{};
 
   // Inverse permutation
   std::vector<Int> iperm_{};
 
   // Sparsity pattern of each supernode of L
-  std::vector<Int64> rows_{};
+  std::vector<Int> rows_{};
   std::vector<Int64> ptr_{};
+  // NB: difference (ptr_[sn+1] - ptr_[sn]) fits into Int
 
   // Supernodal elimination tree:
   // - sn_parent_[i] gives the parent of supernode i in the supernodal
   //   elimination tree
-  std::vector<Int64> sn_parent_{};
+  std::vector<Int> sn_parent_{};
 
   // Supernode initial node:
   // - sn_start_[i] gives the first node in supernode i.
   //   Supernode i is made of nodes from sn_start_[i] to sn_start_[i+1]-1
-  std::vector<Int64> sn_start_{};
+  std::vector<Int> sn_start_{};
 
   // Relative indices of original columns wrt columns of L.
   // - relind_cols_[i] contains the relative indices of entry i, with respect to
@@ -64,7 +65,7 @@ class Symbolic {
   //   column to which the i-th entry belongs.
   //   This is useful when assemblying the entries of the original matrix into
   //   the frontal matrix.
-  std::vector<Int64> relind_cols_{};
+  std::vector<Int> relind_cols_{};
 
   // Relative indices of clique wrt parent supernode.
   // - relind_clique_[i] contains the local indices of the nonzero rows of the
@@ -75,7 +76,7 @@ class Symbolic {
   //   of supernode sn_parent_[i].
   //   This is useful when summing the generated elements from supernode i into
   //   supernode sn_parent_[i].
-  std::vector<std::vector<Int64>> relind_clique_{};
+  std::vector<std::vector<Int>> relind_clique_{};
 
   // Number of consecutive sums that can be done with one BLAS call.
   // - consecutive_sums_[i] contains information about the assembly of supernode
@@ -85,7 +86,7 @@ class Symbolic {
   //   parent, k consecutive indices are found. This means that instead of doing
   //   k individual sums, we can use one single call to daxpy, with k entries
   //   and increment equal to one.
-  std::vector<std::vector<Int64>> consecutive_sums_{};
+  std::vector<std::vector<Int>> consecutive_sums_{};
 
   // Sign of each pivot (for indefinite factorisation)
   // - pivot_sign_[i] = 1  if pivot i is supposed to be positive.
@@ -109,26 +110,26 @@ class Symbolic {
   double flops() const;
   double spops() const;
   double critops() const;
-  Int64 blockSize() const;
-  Int64 size() const;
-  Int64 sn() const;
+  Int blockSize() const;
+  Int size() const;
+  Int sn() const;
   double fillin() const;
-  Int64 rows(Int64 i) const;
-  Int64 ptr(Int64 i) const;
-  Int64 snStart(Int64 i) const;
-  Int64 snParent(Int64 i) const;
-  Int64 relindCols(Int64 i) const;
-  Int64 relindClique(Int64 i, Int64 j) const;
-  Int64 consecutiveSums(Int64 i, Int64 j) const;
-  Int64 cliqueBlockStart(Int64 sn, Int64 bl) const;
+  Int rows(Int64 i) const;
+  Int64 ptr(Int i) const;
+  Int snStart(Int i) const;
+  Int snParent(Int i) const;
+  Int relindCols(Int i) const;
+  Int relindClique(Int i, Int j) const;
+  Int consecutiveSums(Int i, Int j) const;
+  Int64 cliqueBlockStart(Int sn, Int bl) const;
   Int64 cliqueSize(Int64 sn) const;
   bool parTree() const;
   bool parNode() const;
   bool metisNo2hop() const;
   const std::vector<Int64>& ptr() const;
   const std::vector<Int>& iperm() const;
-  const std::vector<Int64>& snParent() const;
-  const std::vector<Int64>& snStart() const;
+  const std::vector<Int>& snParent() const;
+  const std::vector<Int>& snStart() const;
   const std::vector<Int>& pivotSign() const;
 
   void print(const Log& log, bool verbose = false) const;

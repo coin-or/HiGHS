@@ -18,26 +18,24 @@ void Symbolic::setMetisNo2hop(bool metis_no2hop) {
   metis_no2hop_ = metis_no2hop;
 }
 
-int64_t Symbolic::nz() const { return nz_; }
+Int64 Symbolic::nz() const { return nz_; }
 double Symbolic::flops() const { return flops_; }
 double Symbolic::spops() const { return spops_; }
 double Symbolic::critops() const { return critops_; }
-Int64 Symbolic::blockSize() const { return block_size_; }
-Int64 Symbolic::size() const { return n_; }
-Int64 Symbolic::sn() const { return sn_; }
+Int Symbolic::blockSize() const { return block_size_; }
+Int Symbolic::size() const { return n_; }
+Int Symbolic::sn() const { return sn_; }
 double Symbolic::fillin() const { return fillin_; }
-Int64 Symbolic::rows(Int64 i) const { return rows_[i]; }
-Int64 Symbolic::ptr(Int64 i) const { return ptr_[i]; }
-Int64 Symbolic::snStart(Int64 i) const { return sn_start_[i]; }
-Int64 Symbolic::snParent(Int64 i) const { return sn_parent_[i]; }
-Int64 Symbolic::relindCols(Int64 i) const { return relind_cols_[i]; }
-Int64 Symbolic::relindClique(Int64 i, Int64 j) const {
-  return relind_clique_[i][j];
-}
-Int64 Symbolic::consecutiveSums(Int64 i, Int64 j) const {
+Int Symbolic::rows(Int64 i) const { return rows_[i]; }
+Int64 Symbolic::ptr(Int i) const { return ptr_[i]; }
+Int Symbolic::snStart(Int i) const { return sn_start_[i]; }
+Int Symbolic::snParent(Int i) const { return sn_parent_[i]; }
+Int Symbolic::relindCols(Int i) const { return relind_cols_[i]; }
+Int Symbolic::relindClique(Int i, Int j) const { return relind_clique_[i][j]; }
+Int Symbolic::consecutiveSums(Int i, Int j) const {
   return consecutive_sums_[i][j];
 }
-Int64 Symbolic::cliqueBlockStart(Int64 sn, Int64 bl) const {
+Int64 Symbolic::cliqueBlockStart(Int sn, Int bl) const {
   return clique_block_start_[sn][bl];
 }
 Int64 Symbolic::cliqueSize(Int64 sn) const {
@@ -49,8 +47,8 @@ bool Symbolic::metisNo2hop() const { return metis_no2hop_; }
 
 const std::vector<Int64>& Symbolic::ptr() const { return ptr_; }
 const std::vector<Int>& Symbolic::iperm() const { return iperm_; }
-const std::vector<Int64>& Symbolic::snParent() const { return sn_parent_; }
-const std::vector<Int64>& Symbolic::snStart() const { return sn_start_; }
+const std::vector<Int>& Symbolic::snParent() const { return sn_parent_; }
+const std::vector<Int>& Symbolic::snStart() const { return sn_start_; }
 const std::vector<Int>& Symbolic::pivotSign() const { return pivot_sign_; }
 
 static std::string memoryString(double mem) {

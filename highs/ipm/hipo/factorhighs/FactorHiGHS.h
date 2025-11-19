@@ -62,8 +62,8 @@ class FHsolver {
   Regul regul_;
   Numeric N_;
 
-  const Int64 nb_;  // block size
-  static const Int64 default_nb_ = 128;
+  const Int nb_;  // block size
+  static const Int default_nb_ = 128;
 
   // Columns of factorisation, stored by supernode.
   // This memory is allocated the first time that it is used. Subsequent
@@ -72,7 +72,7 @@ class FHsolver {
 
  public:
   // Create object and initialise DataCollector
-  FHsolver(const Log* log = nullptr, Int64 block_size = default_nb_);
+  FHsolver(const Log* log = nullptr, Int block_size = default_nb_);
 
   // Print collected data (if any) and terminate DataCollector
   ~FHsolver();
@@ -80,19 +80,19 @@ class FHsolver {
   // Perform analyse phase of matrix with sparsity pattern given by rows and
   // ptr, and store symbolic factorisation in object S.
   // See ReturnValues.h for errors.
-  Int64 analyse(Symbolic& S, const std::vector<Int>& rows,
+  Int analyse(Symbolic& S, const std::vector<Int>& rows,
                 const std::vector<Int>& ptr, const std::vector<Int>& signs);
 
   // Perform factorise phase of matrix given by rows, ptr, vals, and store
   // numerical factorisation in object N. Matrix is moved into the object, so
   // rows, ptr, vals are invalid afterwards.
   // See ReturnValues.h for errors.
-  Int64 factorise(const Symbolic& S, const std::vector<Int>& rows,
+  Int factorise(const Symbolic& S, const std::vector<Int>& rows,
                   const std::vector<Int>& ptr, const std::vector<double>& vals);
 
   // Perform solve phase with rhs given by x, which is overwritten with the
   // solution.
-  Int64 solve(std::vector<double>& x);
+  Int solve(std::vector<double>& x);
 
   // If multiple factorisation are performed, call newIter() before each
   // factorisation. This is used only to collect data for debugging, if

@@ -16,19 +16,19 @@ class Factorise {
   std::vector<Int> rowsA_{};
   std::vector<Int> ptrA_{};
   std::vector<double> valA_{};
-  Int64 n_{};
-  Int64 nzA_{};
+  Int n_{};
+  Int nzA_{};
 
   // symbolic factorisation
   const Symbolic& S_;
 
   // children in supernodal elimination tree
-  std::vector<Int64> first_child_{};
-  std::vector<Int64> next_child_{};
+  std::vector<Int> first_child_{};
+  std::vector<Int> next_child_{};
 
   // reverse linked lists of chidlren
-  std::vector<Int64> first_child_reverse_{};
-  std::vector<Int64> next_child_reverse_{};
+  std::vector<Int> first_child_reverse_{};
+  std::vector<Int> next_child_reverse_{};
 
   // generated elements, aka Schur complements.
   std::vector<std::vector<double>> schur_contribution_{};
@@ -39,7 +39,7 @@ class Factorise {
   std::vector<std::vector<double>>& sn_columns_;
 
   // swaps of columns for each supernode, ordered locally within a block
-  std::vector<std::vector<Int64>> swaps_{};
+  std::vector<std::vector<Int>> swaps_{};
 
   // Information about 2x2 pivots.
   // If pivot_2x2[sn][i] == 0, 1x1 pivot was used.
@@ -66,7 +66,7 @@ class Factorise {
 
  public:
   void permute(const std::vector<Int>& iperm);
-  void processSupernode(Int64 sn);
+  void processSupernode(Int sn);
 
  public:
   Factorise(const Symbolic& S, const std::vector<Int>& rowsA,

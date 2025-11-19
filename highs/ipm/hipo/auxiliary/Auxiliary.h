@@ -12,21 +12,21 @@
 namespace hipo {
 
 void inversePerm(const std::vector<Int>& perm, std::vector<Int>& iperm);
-void subtreeSize(const std::vector<Int64>& parent, std::vector<Int64>& sizes);
+void subtreeSize(const std::vector<Int>& parent, std::vector<Int>& sizes);
 void transpose(const std::vector<Int>& ptr, const std::vector<Int>& rows,
                std::vector<Int>& ptrT, std::vector<Int>& rowsT);
 void transpose(const std::vector<Int>& ptr, const std::vector<Int>& rows,
                const std::vector<double>& val, std::vector<Int>& ptrT,
                std::vector<Int>& rowsT, std::vector<double>& valT);
-void childrenLinkedList(const std::vector<Int64>& parent,
-                        std::vector<Int64>& head, std::vector<Int64>& next);
-void reverseLinkedList(std::vector<Int64>& head, std::vector<Int64>& next);
-void dfsPostorder(Int64 node, Int64& start, std::vector<Int64>& head,
-                  const std::vector<Int64>& next, std::vector<Int>& order);
-void processEdge(Int64 j, Int64 i, const std::vector<Int64>& first,
-                 std::vector<Int64>& maxfirst, std::vector<Int64>& delta,
-                 std::vector<Int64>& prevleaf, std::vector<Int64>& ancestor);
-Int64 getDiagStart(Int64 n, Int64 k, Int64 nb, Int64 n_blocks,
+void childrenLinkedList(const std::vector<Int>& parent, std::vector<Int>& head,
+                        std::vector<Int>& next);
+void reverseLinkedList(std::vector<Int>& head, std::vector<Int>& next);
+void dfsPostorder(Int node, Int& start, std::vector<Int>& head,
+                  const std::vector<Int>& next, std::vector<Int>& order);
+void processEdge(Int j, Int i, const std::vector<Int>& first,
+                 std::vector<Int>& maxfirst, std::vector<Int>& delta,
+                 std::vector<Int>& prevleaf, std::vector<Int>& ancestor);
+Int64 getDiagStart(Int n, Int k, Int nb, Int n_blocks,
                    std::vector<Int64>& start, bool triang = false);
 
 template <typename T>
@@ -49,14 +49,14 @@ template <typename T>
 void permuteVector(std::vector<T>& v, const std::vector<Int>& perm) {
   // Permute vector v according to permutation perm.
   std::vector<T> temp_v(v);
-  for (Int64 i = 0; i < v.size(); ++i) v[i] = temp_v[perm[i]];
+  for (Int i = 0; i < v.size(); ++i) v[i] = temp_v[perm[i]];
 }
 
 template <typename T>
 void permuteVectorInverse(std::vector<T>& v, const std::vector<Int>& iperm) {
   // Permute vector v according to inverse permutation iperm.
   std::vector<T> temp_v(v);
-  for (Int64 i = 0; i < v.size(); ++i) v[iperm[i]] = temp_v[i];
+  for (Int i = 0; i < v.size(); ++i) v[iperm[i]] = temp_v[i];
 }
 
 template <typename T>
