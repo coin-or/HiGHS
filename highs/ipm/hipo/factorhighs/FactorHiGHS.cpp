@@ -35,16 +35,17 @@ void FHsolver::setRegularisation(double reg_p, double reg_d) {
 }
 
 Int FHsolver::analyse(Symbolic& S, const std::vector<Int>& rows,
-                        const std::vector<Int>& ptr,
-                        const std::vector<Int>& signs) {
+                      const std::vector<Int>& ptr,
+                      const std::vector<Int>& signs) {
   Analyse an_obj(rows, ptr, signs, nb_, log_, data_);
   return an_obj.run(S);
 }
 
 Int FHsolver::factorise(const Symbolic& S, const std::vector<Int>& rows,
-                          const std::vector<Int>& ptr,
-                          const std::vector<double>& vals) {
-  Factorise fact_obj(S, rows, ptr, vals, regul_, log_, data_, sn_columns_);
+                        const std::vector<Int>& ptr,
+                        const std::vector<double>& vals) {
+  Factorise fact_obj(S, rows, ptr, vals, regul_, log_, data_, sn_columns_,
+                     &serial_stack_);
   return fact_obj.run(N_);
 }
 

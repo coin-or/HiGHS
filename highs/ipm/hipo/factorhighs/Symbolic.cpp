@@ -41,6 +41,7 @@ Int64 Symbolic::cliqueBlockStart(Int sn, Int bl) const {
 Int64 Symbolic::cliqueSize(Int64 sn) const {
   return clique_block_start_[sn].back();
 }
+Int64 Symbolic::maxStackSize() const { return max_stack_size_; }
 bool Symbolic::parTree() const { return parallel_tree_; }
 bool Symbolic::parNode() const { return parallel_node_; }
 bool Symbolic::metisNo2hop() const { return metis_no2hop_; }

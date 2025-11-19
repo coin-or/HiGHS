@@ -11,11 +11,11 @@ namespace hipo {
 
 HybridHybridFormatHandler::HybridHybridFormatHandler(
     const Symbolic& S, Int sn, const Regul& regul, DataCollector& data,
-    std::vector<double>& frontal)
-    : FormatHandler(S, sn, regul, frontal), data_{data} {
+    std::vector<double>& frontal, double* clique_ptr)
+    : FormatHandler(S, sn, regul, frontal, clique_ptr), data_{data} {
   // initialise frontal and clique
   initFrontal();
-  initClique();
+  if (!clique_ptr_) initClique();
 }
 
 void HybridHybridFormatHandler::initFrontal() {
@@ -31,6 +31,7 @@ void HybridHybridFormatHandler::initFrontal() {
 
 void HybridHybridFormatHandler::initClique() {
   clique_.resize(S_->cliqueSize(sn_));
+  clique_ptr_ = clique_.data();
 }
 
 void HybridHybridFormatHandler::assembleFrontal(Int i, Int j, double val) {
@@ -41,9 +42,11 @@ void HybridHybridFormatHandler::assembleFrontal(Int i, Int j, double val) {
   frontal_[diag_start_[block] + ii + ldb * jj] = val;
 }
 
-void HybridHybridFormatHandler::assembleFrontalMultiple(
-    Int num, const std::vector<double>& child, Int nc, Int child_sn, Int row,
-    Int col, Int i, Int j) {
+void HybridHybridFormatHandler::assembleFrontalMultiple(Int num,
+                                                        const double* child,
+                                                        Int nc, Int child_sn,
+                                                        Int row, Int col, Int i,
+                                                        Int j) {
   const Int jblock = col / nb_;
   const Int jb = std::min(nb_, nc - nb_ * jblock);
   const Int row_ = row - jblock * nb_;
@@ -70,15 +73,15 @@ Int HybridHybridFormatHandler::denseFactorise(double reg_thresh) {
   const Int* pivot_sign = &S_->pivotSign().data()[sn_start];
 
   status = denseFactFH('H', ldf_, sn_size_, S_->blockSize(), frontal_.data(),
-                       clique_.data(), pivot_sign, reg_thresh, regul_,
+                       clique_ptr_, pivot_sign, reg_thresh, regul_,
                        local_reg_.data(), swaps_.data(), pivot_2x2_.data(),
                        S_->parNode(), data_);
 
   return status;
 }
 
-void HybridHybridFormatHandler::assembleClique(const std::vector<double>& child,
-                                               Int nc, Int child_sn) {
+void HybridHybridFormatHandler::assembleClique(const double* child, Int nc,
+                                               Int child_sn) {
   // assemble the child clique into the current clique by blocks of columns.
   // within a block, assemble by rows.
 
@@ -142,7 +145,7 @@ void HybridHybridFormatHandler::assembleClique(const std::vector<double>& child,
 
         callAndTime_daxpy(consecutive, 1.0,
                           &child[start_block_c + col_ + jb_c * row_], 1,
-                          &clique_[start_block + j_ + jb * i_], 1, data_);
+                          &clique_ptr_[start_block + j_ + jb * i_], 1, data_);
 
         col += consecutive;
       }

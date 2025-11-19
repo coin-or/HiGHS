@@ -98,6 +98,8 @@ class Symbolic {
   // Starting position of diagonal blocks for hybrid formats
   std::vector<std::vector<Int64>> clique_block_start_{};
 
+  Int64 max_stack_size_{};
+
   friend class Analyse;
 
  public:
@@ -123,6 +125,7 @@ class Symbolic {
   Int consecutiveSums(Int i, Int j) const;
   Int64 cliqueBlockStart(Int sn, Int bl) const;
   Int64 cliqueSize(Int64 sn) const;
+  Int64 maxStackSize() const;
   bool parTree() const;
   bool parNode() const;
   bool metisNo2hop() const;

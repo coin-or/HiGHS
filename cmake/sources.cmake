@@ -205,6 +205,7 @@ set(hipo_headers
 set(factor_highs_sources
     ipm/hipo/factorhighs/Analyse.cpp
     ipm/hipo/factorhighs/CallAndTimeBlas.cpp
+    ipm/hipo/factorhighs/CliqueStack.cpp
     ipm/hipo/factorhighs/DataCollector.cpp
     ipm/hipo/factorhighs/DenseFactHybrid.cpp
     ipm/hipo/factorhighs/DenseFactKernel.cpp
@@ -223,6 +224,7 @@ set(factor_highs_sources
 set(factor_highs_headers
     ipm/hipo/factorhighs/Analyse.h
     ipm/hipo/factorhighs/CallAndTimeBlas.h
+    ipm/hipo/factorhighs/CliqueStack.h
     ipm/hipo/factorhighs/DataCollector.h
     ipm/hipo/factorhighs/DenseFact.h
     ipm/hipo/factorhighs/DgemmParallel.h

@@ -75,6 +75,8 @@ class Analyse {
   // estimate of maximum storage
   double serial_storage_{};
 
+  Int64 max_stack_size_{};
+
   std::vector<std::vector<Int64>> clique_block_start_{};
 
   // block size
@@ -97,12 +99,11 @@ class Analyse {
   void relativeIndCols();
   void relativeIndClique();
   void reorderChildren();
-  void computeStorage();
-  void computeStorage(Int fr, Int sz, double& fr_entries,
-                      double& cl_entries) const;
+  void computeStorage(Int fr, Int sz, Int64& fr_entries,
+                      Int64& cl_entries) const;
   void computeCriticalPath();
   void computeBlockStart();
-
+  void computeStackSize();
   Int checkOverflow() const;
 
  public:

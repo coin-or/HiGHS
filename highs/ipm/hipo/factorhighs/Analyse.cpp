@@ -922,8 +922,8 @@ void Analyse::relativeIndClique() {
   }
 }
 
-void Analyse::computeStorage(Int fr, Int sz, double& fr_entries,
-                             double& cl_entries) const {
+void Analyse::computeStorage(Int fr, Int sz, Int64& fr_entries,
+                             Int64& cl_entries) const {
   // compute storage required by frontal and clique, based on the format used
 
   const Int cl = fr - sz;
@@ -934,89 +934,12 @@ void Analyse::computeStorage(Int fr, Int sz, double& fr_entries,
 
   // clique is stored as a collection of rectangles
   n_blocks = (cl - 1) / nb_ + 1;
-  double schur_size{};
+  Int64 schur_size{};
   for (Int j = 0; j < n_blocks; ++j) {
     const Int jb = std::min(nb_, cl - j * nb_);
-    schur_size += (double)(cl - j * nb_) * jb;
+    schur_size += (Int64)(cl - j * nb_) * jb;
   }
   cl_entries = schur_size;
-}
-
-void Analyse::computeStorage() {
-  std::vector<double> clique_entries(sn_count_);
-  std::vector<double> frontal_entries(sn_count_);
-  std::vector<double> storage(sn_count_);
-  std::vector<double> storage_factors(sn_count_);
-
-  // initialise data of supernodes
-  for (Int sn = 0; sn < sn_count_; ++sn) {
-    // supernode size
-    const Int sz = sn_start_[sn + 1] - sn_start_[sn];
-
-    // frontal size
-    const Int fr = ptr_sn_[sn + 1] - ptr_sn_[sn];
-
-    // compute storage based on format used
-    computeStorage(fr, sz, frontal_entries[sn], clique_entries[sn]);
-
-    // compute number of entries in factors within the subtree
-    storage_factors[sn] += frontal_entries[sn];
-    if (sn_parent_[sn] != -1)
-      storage_factors[sn_parent_[sn]] += storage_factors[sn];
-  }
-
-  // linked lists of children
-  std::vector<Int> head, next;
-  childrenLinkedList(sn_parent_, head, next);
-
-  // go through the supernodes
-  for (Int sn = 0; sn < sn_count_; ++sn) {
-    // leaf node
-    if (head[sn] == -1) {
-      storage[sn] = frontal_entries[sn] + clique_entries[sn];
-      continue;
-    }
-
-    double clique_total_entries{};
-    double factors_total_entries{};
-    Int child = head[sn];
-    while (child != -1) {
-      clique_total_entries += clique_entries[child];
-      factors_total_entries += storage_factors[child];
-      child = next[child];
-    }
-
-    // Compute storage
-    // storage is found as max(storage_1,storage_2), where
-    // storage_1 = max_j storage[j] + \sum_{k up to j-1} clique_entries[k] +
-    //                                                   storage_factors[k]
-    // storage_2 = frontal_entries + clique_entries + clique_total_entries +
-    //             factors_total_entries
-    const double storage_2 = frontal_entries[sn] + clique_entries[sn] +
-                             clique_total_entries + factors_total_entries;
-
-    double clique_partial_entries{};
-    double factors_partial_entries{};
-    double storage_1{};
-
-    child = head[sn];
-    while (child != -1) {
-      double current =
-          storage[child] + clique_partial_entries + factors_partial_entries;
-
-      clique_partial_entries += clique_entries[child];
-      factors_partial_entries += storage_factors[child];
-      storage_1 = std::max(storage_1, current);
-
-      child = next[child];
-    }
-    storage[sn] = std::max(storage_1, storage_2);
-  }
-
-  for (Int sn = 0; sn < sn_count_; ++sn) {
-    // save max storage needed, multiply by 8 because double needs 8 bytes
-    serial_storage_ = std::max(serial_storage_, 8 * storage[sn]);
-  }
 }
 
 void Analyse::computeCriticalPath() {
@@ -1064,8 +987,8 @@ void Analyse::computeCriticalPath() {
 }
 
 void Analyse::reorderChildren() {
-  std::vector<double> clique_entries(sn_count_);
-  std::vector<double> frontal_entries(sn_count_);
+  std::vector<Int64> clique_entries(sn_count_);
+  std::vector<Int64> frontal_entries(sn_count_);
   std::vector<double> storage(sn_count_);
   std::vector<double> storage_factors(sn_count_);
 
@@ -1266,6 +1189,72 @@ Int Analyse::checkOverflow() const {
   return 0;
 }
 
+void Analyse::computeStackSize() {
+  // Compute the minimum size of the stack to process the elimination tree
+  // serially.
+
+  std::vector<Int64> clique_entries(sn_count_);
+  std::vector<Int64> stack_subtrees(sn_count_);
+  Int64 total_frontal{};
+
+  // initialise data of supernodes
+  for (Int sn = 0; sn < sn_count_; ++sn) {
+    // supernode size
+    const Int sz = sn_start_[sn + 1] - sn_start_[sn];
+
+    // frontal size
+    const Int fr = ptr_sn_[sn + 1] - ptr_sn_[sn];
+
+    Int64 frontal_entries{};
+
+    // compute storage based on format used
+    computeStorage(fr, sz, frontal_entries, clique_entries[sn]);
+
+    total_frontal += frontal_entries;
+  }
+
+  // linked lists of children
+  std::vector<Int> head, next;
+  childrenLinkedList(sn_parent_, head, next);
+
+  // go through the supernodes
+  for (Int sn = 0; sn < sn_count_; ++sn) {
+    // leaf node
+    if (head[sn] == -1) {
+      stack_subtrees[sn] = clique_entries[sn];
+      continue;
+    }
+
+    // Compute storage
+    // storage is found as max(storage_1,storage_2), where
+    // storage_1 = max_j stack_size[j] + \sum_{k up to j-1} clique_entries[k]
+    // storage_2 = clique_total_entries (including node itself)
+
+    Int64 clique_partial_entries{};
+    Int64 storage_1{};
+
+    Int child = head[sn];
+    while (child != -1) {
+      Int64 current = stack_subtrees[child] + clique_partial_entries;
+
+      clique_partial_entries += clique_entries[child];
+      storage_1 = std::max(storage_1, current);
+
+      child = next[child];
+    }
+
+    Int64 storage_2 = clique_partial_entries + clique_entries[sn];
+
+    stack_subtrees[sn] = std::max(storage_1, storage_2);
+    max_stack_size_ = std::max(max_stack_size_, stack_subtrees[sn]);
+  }
+
+  // minimum storage in serial is equal to the space needed to store the
+  // factorisation and the maximum size of the stack. Times 8 to obtain the
+  // number of bytes.
+  serial_storage_ = (total_frontal + max_stack_size_) * 8;
+}
+
 Int Analyse::run(Symbolic& S) {
   // Perform analyse phase and store the result into the symbolic object S.
   // After Run returns, the Analyse object is not valid.
@@ -1337,9 +1326,9 @@ Int Analyse::run(Symbolic& S) {
   data_.sumTime(kTimeAnalyseRelInd, clock_items.stop());
 #endif
 
-  computeStorage();
   computeBlockStart();
   computeCriticalPath();
+  computeStackSize();
 
   // move relevant stuff into S
   S.n_ = n_;
@@ -1354,6 +1343,7 @@ Int Analyse::run(Symbolic& S) {
   S.serial_storage_ = serial_storage_;
   S.flops_ = dense_ops_;
   S.block_size_ = nb_;
+  S.max_stack_size_ = max_stack_size_;
 
   // compute largest supernode
   std::vector<Int> sn_size(sn_start_.begin() + 1, sn_start_.end());

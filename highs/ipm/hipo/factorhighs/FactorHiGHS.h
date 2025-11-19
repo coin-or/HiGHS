@@ -1,6 +1,7 @@
 #ifndef FACTOR_HIGHS_H
 #define FACTOR_HIGHS_H
 
+#include "CliqueStack.h"
 #include "DataCollector.h"
 #include "Numeric.h"
 #include "Symbolic.h"
@@ -61,6 +62,7 @@ class FHsolver {
   DataCollector data_;
   Regul regul_;
   Numeric N_;
+  CliqueStack serial_stack_;
 
   const Int nb_;  // block size
   static const Int default_nb_ = 128;
@@ -81,14 +83,14 @@ class FHsolver {
   // ptr, and store symbolic factorisation in object S.
   // See ReturnValues.h for errors.
   Int analyse(Symbolic& S, const std::vector<Int>& rows,
-                const std::vector<Int>& ptr, const std::vector<Int>& signs);
+              const std::vector<Int>& ptr, const std::vector<Int>& signs);
 
   // Perform factorise phase of matrix given by rows, ptr, vals, and store
   // numerical factorisation in object N. Matrix is moved into the object, so
   // rows, ptr, vals are invalid afterwards.
   // See ReturnValues.h for errors.
   Int factorise(const Symbolic& S, const std::vector<Int>& rows,
-                  const std::vector<Int>& ptr, const std::vector<double>& vals);
+                const std::vector<Int>& ptr, const std::vector<double>& vals);
 
   // Perform solve phase with rhs given by x, which is overwritten with the
   // solution.
