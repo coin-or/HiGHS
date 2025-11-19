@@ -180,7 +180,7 @@ class HighsImplications {
                   HighsImplications::VarBound& vub, double ub, bool& redundant,
                   bool& infeasible, bool allowBoundChanges = true) const;
 
-  void applyImplications(HighsDomain& domain, HighsInt col, bool val);
+  void applyImplications(HighsDomain& domain, HighsInt col, HighsInt val);
 };
 
 #endif
