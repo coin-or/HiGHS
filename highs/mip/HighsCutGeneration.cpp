@@ -1353,7 +1353,6 @@ bool HighsCutGeneration::generateCut(HighsTransformedLp& transLp,
       lpRelaxation.getMipSolver().options_mip_->mip_cut_flow_cover) {
     flowCoverVals = vals_;
     flowCoverInds = inds_;
-    genFlowCover = true;
   } else {
     genFlowCover = false;
   }
@@ -1446,7 +1445,7 @@ bool HighsCutGeneration::generateCut(HighsTransformedLp& transLp,
       } else {
         efficacy = viol / sqrt(sqrnorm);
       }
-      if (flowCoverSuccess && flowCoverEfficacy > 1.2 * efficacy) {
+      if (flowCoverEfficacy > 1.2 * efficacy) {
         rhs_ = flowCoverRhs;
         std::swap(vals_, flowCoverVals);
         std::swap(inds_, flowCoverInds);
