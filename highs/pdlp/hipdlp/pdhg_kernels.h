@@ -20,6 +20,10 @@ void launchKernelUpdateAverages_wrapper(
     const double* d_x_current, const double* d_y_current,
     double weight, int n_cols, int n_rows);
 
+void launchKernelScaleVector_wrapper(
+    double* d_out, const double* d_in, 
+    double scale, int n);
+
 #ifdef __cplusplus
 }
 #endif

@@ -65,6 +65,15 @@ __global__ void kernelUpdateAverages(
   }
 }
 
+__global__ void kernelScaleVector(
+    double* d_out, const double* d_in, 
+    double scale, int n)
+{
+  CUDA_GRID_STRIDE_LOOP(i, n) {
+    d_out[i] = d_in[i] * scale;
+  }
+}
+
 // Add C++ wrapper functions to launch the kernels
 extern "C" {
 void launchKernelUpdateX_wrapper(
@@ -113,6 +122,19 @@ void launchKernelUpdateAverages_wrapper(
         d_x_sum, d_y_sum,
         d_x_next, d_y_next,
         weight, n_cols, n_rows);
+    cudaGetLastError();
+}
+
+void launchKernelScaleVector_wrapper(
+    double* d_out, const double* d_in, 
+    double scale, int n)
+{
+    const int block_size = 256;
+    dim3 config = GetLaunchConfig(n, block_size);
+    
+    kernelScaleVector<<<config.x, block_size>>>(
+        d_out, d_in, scale, n);
+    
     cudaGetLastError();
 }
 } // extern "C"

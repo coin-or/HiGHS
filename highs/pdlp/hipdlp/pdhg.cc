@@ -574,7 +574,9 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
       CUDA_CHECK(cudaMemcpy(x_avg_.data(), d_x_avg_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
       CUDA_CHECK(cudaMemcpy(y_avg_.data(), d_y_avg_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
 
-      
+      double dScale_gpu = sum_weights_gpu_ > 0.0 ? 1.0 / sum_weights_gpu_ : 0.0;
+      launchKernelScaleVector(d_x_avg_, d_x_sum_, dScale_gpu, lp_.num_col_);
+      launchKernelScaleVector(d_y_avg_, d_y_sum_, dScale_gpu, lp_.num_row_);
 #endif
       hipdlpTimerStart(kHipdlpClockAverageIterate);
       computeAverageIterate(Ax_avg, ATy_avg);
@@ -671,7 +673,7 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         hipdlpTimerStart(kHipdlpClockMatrixMultiply);
         linalg::Ax(lp, x_current_, Ax_cache_);
 
-#ifdef CUPDLP_GPU
+#ifdef CUPDLP_GPU 
         launchKernelUpdateX(stepsize_.primal_step);
         linalgGpuAx(d_x_next_, d_ax_next_);
         launchKernelUpdateY(stepsize_.dual_step);
@@ -1967,4 +1969,9 @@ void PDLPSolver::launchKernelUpdateAverages(double weight) {
       d_x_next_, d_y_next_,
       weight, a_num_cols_, a_num_rows_);
   CUDA_CHECK(cudaGetLastError());
+}
+
+void PDLPSolver::launchKernelScaleVector(double* d_out, const double* d_in, double scale, int n) {
+    launchKernelScaleVector_wrapper(d_out, d_in, scale, n);
+    CUDA_CHECK(cudaGetLastError());
 }

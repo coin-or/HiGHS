@@ -243,6 +243,7 @@ class PDLPSolver {
   void launchKernelUpdateX(double primal_step);
   void launchKernelUpdateY(double dual_step);
   void launchKernelUpdateAverages(double weight);
+  void launchKernelScaleVector(double* d_out, const double* d_in, double scale, int n);
 };
 
 #endif
