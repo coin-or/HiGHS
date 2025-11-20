@@ -381,10 +381,11 @@ void LpSolver::InteriorPointSolve() {
             info_.rel_dresidual > control_.ipm_feasibility_tol())
             info_.status_ipm = IPX_STATUS_imprecise;
     }
-   // Assess the success of analytic centre calculation
+
+    // Assess the success of analytic centre calculation
     if (info_.centring_tried)
       info_.status_ipm = info_.centring_success ? IPX_STATUS_optimal : IPX_STATUS_imprecise;
- }
+}
 
 void LpSolver::RunIPM() {
     IPM ipm(control_);
