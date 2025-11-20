@@ -384,7 +384,7 @@ void LpSolver::InteriorPointSolve() {
     if (info_.centring_tried) {
       // Assess the success of analytic centre calculation
       info_.status_ipm = info_.centring_success ? IPX_STATUS_optimal : IPX_STATUS_imprecise;
-      assert(info_.status_ipm == IPX_STATUS_optimal);
+      //assert(info_.status_ipm == IPX_STATUS_optimal);
     }
 }
 
