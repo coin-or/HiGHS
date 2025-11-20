@@ -252,9 +252,10 @@ void HighsRedcostFixing::addRootRedcost(const HighsMipSolver& mipsolver,
              direction * lurkingBound <= direction * lastBound;
              lurkingBound += step) {
           double fracBound = lurkingBound - bound + shift;
-          double requiredCutoffBound =
-              fracBound * redCost + lpObjective - mipsolver.mipdata_->feastol;
-          if (requiredCutoffBound < mipsolver.mipdata_->lower_bound) continue;
+          double requiredCutoffBound = fracBound * redCost + lpObjective;
+          if (requiredCutoffBound <
+              mipsolver.mipdata_->lower_bound + mipsolver.mipdata_->feastol)
+            continue;
 
           // check if we already have a better lurking bound stored
           bool useful = true;
