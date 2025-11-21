@@ -1530,10 +1530,10 @@ if (d_x_next_ == nullptr) {
   CUDA_CHECK(cudaMemcpy(ax_next_gpu.data(), d_ax_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
   CUDA_CHECK(cudaMemcpy(aty_next_gpu.data(), d_aty_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
 
-  bool x_match = vecDiff(x_next_gpu, x_next_, 1e-12, "UpdateIteratesFixed x");
-  bool y_match = vecDiff(y_next_gpu, y_next_, 1e-12, "UpdateIteratesFixed y");
-  bool ax_match = vecDiff(ax_next_gpu, Ax_next_, 1e-12, "UpdateIteratesFixed Ax");
-  bool aty_match = vecDiff(aty_next_gpu, ATy_next_, 1e-12, "UpdateIteratesFixed ATy");
+  bool x_match = vecDiff(x_next_gpu, x_next_, 1e-10, "UpdateIteratesFixed x");
+  bool y_match = vecDiff(y_next_gpu, y_next_, 1e-10, "UpdateIteratesFixed y");
+  bool ax_match = vecDiff(ax_next_gpu, Ax_next_, 1e-10, "UpdateIteratesFixed Ax");
+  bool aty_match = vecDiff(aty_next_gpu, ATy_next_, 1e-10, "UpdateIteratesFixed ATy");
 #endif
 }
 

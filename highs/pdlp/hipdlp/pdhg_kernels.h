@@ -24,6 +24,16 @@ void launchKernelScaleVector_wrapper(
     double* d_out, const double* d_in, 
     double scale, int n);
 
+void launchCheckConvergenceKernels_wrapper(
+    double* d_results,
+    double* d_slack_pos, double* d_slack_neg,
+    const double* d_x, const double* d_y,
+    const double* d_ax, const double* d_aty,
+    const double* d_col_cost, const double* d_row_lower,
+    const double* d_col_lower, const double* d_col_upper,
+    const bool* d_is_equality,
+    const double* d_col_scale, const double* d_row_scale,
+    int n_cols, int n_rows);
 #ifdef __cplusplus
 }
 #endif

@@ -2,6 +2,15 @@
 #include <device_launch_parameters.h>
 #include <cmath> 
 
+// Define Infinity for GPU 
+#define GPU_INF 1e20 
+
+// Buffer Indices for the reduction array
+#define IDX_PRIMAL_FEAS 0
+#define IDX_DUAL_FEAS   1
+#define IDX_PRIMAL_OBJ  2
+#define IDX_DUAL_OBJ    3
+
 // Utility for robust 1D kernel launches
 #define CUDA_GRID_STRIDE_LOOP(i, n)                                  \
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < (n); \
@@ -74,6 +83,105 @@ __global__ void kernelScaleVector(
   }
 }
 
+// === KERNEL 4: Primal Convergence Check (Row-wise) ===
+__global__ void kernelCheckPrimal(
+  double* d_results,
+  const double* d_ax, const double* d_y,
+  const double* d_row_lower, const double* d_row_scale,
+  const bool* d_is_equality, int n_rows){
+  double local_feas_sq = 0.0;
+  double local_dual_obj = 0.0;
+
+  CUDA_GRID_STRIDE_LOOP(i,n_rows){
+    double val_y = d_y[i];
+    double val_b = d_row_lower[i];
+    double val_ax = d_ax[i];
+
+    if (abs(val_b) < GPU_INF){ 
+      local_dual_obj += val_b * val_y;
+    }
+
+    double residual = val_ax - val_b;
+
+    if (!d_is_equality[i]) {
+      residual = fmin(0.0, residual);
+    }
+
+    if (d_row_scale != nullptr) {
+      residual *= d_row_scale[i];
+    }
+
+    local_feas_sq += residual * residual;
+  }
+
+  // Atomic acculation
+  // To be optimized: use warp-level reduction
+  atomicAdd(&d_results[IDX_PRIMAL_FEAS], local_feas_sq);
+  atomicAdd(&d_results[IDX_DUAL_OBJ], local_dual_obj);
+}
+
+// === KERNEL 5: Dual Convergence Check (Column-wise) ===
+__global__ void kernelCheckDual(
+    double* d_results,          // [1]: D.Feas, [2]: P.Obj, [3]: D.Obj
+    double* d_slack_pos,        // Output
+    double* d_slack_neg,        // Output
+    const double* d_aty,
+    const double* d_x,
+    const double* d_cost,       // c
+    const double* d_col_lower,  // l
+    const double* d_col_upper,  // u
+    const double* d_col_scale,  // Can be nullptr
+    int n_cols)
+{
+  double local_dual_feas_sq = 0.0;
+  double local_primal_obj = 0.0;
+  double local_dual_obj_part = 0.0;
+
+  CUDA_GRID_STRIDE_LOOP(i, n_cols){
+    double val_x = d_x[i];
+    double val_c = d_cost[i];
+    double val_aty = d_aty[i];
+    double val_l = d_col_lower[i];
+    double val_u = d_col_upper[i];
+
+    local_primal_obj += val_c * val_x;
+    double dual_residual = val_c - val_aty;
+
+    double s_pos = 0.0;
+    double s_neg = 0.0;
+
+    if (val_l > -GPU_INF) {
+      s_pos = fmax(0.0, dual_residual);
+    }
+
+    if (val_u < GPU_INF) {
+      s_neg = fmax(0.0, -dual_residual);
+    }
+
+    d_slack_pos[i] = s_pos;
+    d_slack_neg[i] = s_neg;
+
+    double eff_dual_residual = dual_residual - s_pos + s_neg;
+
+    if (d_col_scale != nullptr) {
+      eff_dual_residual *= d_col_scale[i];
+    }
+
+    local_dual_feas_sq += eff_dual_residual * eff_dual_residual;
+
+    double obj_term = 0.0;
+    if (val_l > -GPU_INF) obj_term += val_l * s_pos;
+    if (val_u < GPU_INF) obj_term -= val_u * s_neg;
+
+    local_dual_obj_part += obj_term;
+  }
+
+  // Atomic acculation
+  atomicAdd(&d_results[IDX_DUAL_FEAS], local_dual_feas_sq);
+  atomicAdd(&d_results[IDX_PRIMAL_OBJ], local_primal_obj);
+  atomicAdd(&d_results[IDX_DUAL_OBJ], local_dual_obj_part);
+}
+
 // Add C++ wrapper functions to launch the kernels
 extern "C" {
 void launchKernelUpdateX_wrapper(
@@ -135,6 +243,38 @@ void launchKernelScaleVector_wrapper(
     kernelScaleVector<<<config.x, block_size>>>(
         d_out, d_in, scale, n);
     
+    cudaGetLastError();
+}
+
+void launchCheckConvergenceKernels_wrapper(
+    double* d_results,
+    double* d_slack_pos, double* d_slack_neg,
+    const double* d_x, const double* d_y,
+    const double* d_ax, const double* d_aty,
+    const double* d_col_cost, const double* d_row_lower,
+    const double* d_col_lower, const double* d_col_upper,
+    const bool* d_is_equality,
+    const double* d_col_scale, const double* d_row_scale,
+    int n_cols, int n_rows)
+{
+    // 1. Zero out results
+    cudaMemset(d_results, 0, 4 * sizeof(double));
+
+    int block_size = 256;
+
+    // 2. Launch Primal Kernel
+    dim3 grid_rows = GetLaunchConfig(n_rows, block_size);
+    kernelCheckPrimal<<<grid_rows, block_size>>>(
+        d_results, d_ax, d_y, d_row_lower, d_row_scale, d_is_equality, n_rows
+    );
+
+    // 3. Launch Dual Kernel
+    dim3 grid_cols = GetLaunchConfig(n_cols, block_size);
+    kernelCheckDual<<<grid_cols, block_size>>>(
+        d_results, d_slack_pos, d_slack_neg, d_aty, d_x, 
+        d_col_cost, d_col_lower, d_col_upper, d_col_scale, n_cols
+    );
+
     cudaGetLastError();
 }
 } // extern "C"

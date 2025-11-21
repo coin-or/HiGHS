@@ -233,6 +233,15 @@ class PDLPSolver {
 
   //States
   double sum_weights_gpu_ = 0.0;
+  double* d_convergence_results_ = nullptr; //size 4
+  double* d_dSlackPos_ = nullptr;
+  double* d_dSlackNeg_ = nullptr;
+  double* d_dSlackPosAvg_ = nullptr;
+  double* d_dSlackNegAvg_ = nullptr;
+  bool checkConvergenceGpu(const int iter, 
+      const double* d_x, const double* d_y,
+      const double* d_ax, const double* d_aty,
+      double epsilon, SolverResults& results, const char* type);
 
   // Temporary buffer for SpMV
   void* d_spmv_buffer_ax_ = nullptr;
