@@ -1165,25 +1165,19 @@ void Analyse::computeBlockStart() {
 }
 
 Int Analyse::checkOverflow() const {
-  // Dense matrices frontal and clique must be addressable by 32-bit integers in
-  // order to use 32-bit BLAS.
-
-  // This check is probably excessive, but I keep it for now.
-  // What we really need is that the local numbering used by the BLAS calls does
-  // not overflow 32-bit integers. This should be equivalent to:
-  // largest_front * block_size < int32_limit
+  // In order to use 32-bit BLAS, any data accessed by BLAS must be addressable
+  // using 32-bit integer offset. If BLAS is given a pointer double* A, the
+  // distance between the first and last entry of A used by BLAS needs to be
+  // smaller than int32_limit. Since the matrices are stored in blocked data
+  // structures, and BLAS only uses contiguous data from a given block of
+  // columns, we need to impose that:
+  //   front_size * min(block_size, sn_size) <= int32_limit
 
   for (Int sn = 0; sn < sn_count_; ++sn) {
-    const Int64 clique_size = clique_block_start_[sn].back();
-    if (clique_size > int32_limit) return 1;
-
     const Int sn_size = sn_start_[sn + 1] - sn_start_[sn];
-    const Int n_blocks = (sn_size - 1) / nb_ + 1;
-    const Int ldf = ptr_sn_[sn + 1] - ptr_sn_[sn];
-    std::vector<Int64> diag_start(n_blocks);
-    const Int64 frontal_size =
-        getDiagStart(ldf, sn_size, nb_, n_blocks, diag_start);
-    if (frontal_size > int32_limit) return 1;
+    const Int front_size = ptr_sn_[sn + 1] - ptr_sn_[sn];
+
+    if ((Int64)front_size * std::min(sn_size, nb_) > int32_limit) return 1;
   }
 
   return 0;
