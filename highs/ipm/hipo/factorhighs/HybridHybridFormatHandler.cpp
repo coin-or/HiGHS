@@ -15,6 +15,9 @@ HybridHybridFormatHandler::HybridHybridFormatHandler(
     : FormatHandler(S, sn, regul, frontal, clique_ptr), data_{data} {
   // initialise frontal and clique
   initFrontal();
+
+  // if CliqueStack is used, clique_ptr already points to a valid region of
+  // memory for the clique. Otherwise, allocate it locally.
   if (!clique_ptr_) initClique();
 }
 
@@ -26,7 +29,8 @@ void HybridHybridFormatHandler::initFrontal() {
   frontal_.resize(frontal_size);
   std::memset(frontal_.data(), 0, frontal_size * sizeof(double));
 
-  // extra_space is not needed, but it avoid some weird issue on windows
+  // extra_space is not needed, but if I remove it Windows in debug freezes...
+  // who knows what's happening
 
   // frontal_ is actually allocated just the first time, then the memory is
   // reused from the previous factorisations and just initialised.

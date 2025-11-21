@@ -124,7 +124,7 @@ class Symbolic {
   Int relindClique(Int i, Int j) const;
   Int consecutiveSums(Int i, Int j) const;
   Int64 cliqueBlockStart(Int sn, Int bl) const;
-  Int64 cliqueSize(Int64 sn) const;
+  Int64 cliqueSize(Int sn) const;
   Int64 maxStackSize() const;
   bool parTree() const;
   bool parNode() const;

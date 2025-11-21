@@ -33,14 +33,14 @@ void highsLogHeader(const HighsLogOptions& log_options,
       hipo::getIntegerModelString(hipo::getBlasIntegerModel());
 
 #ifdef BLAS_LIBRARIES
-  highsLogUser(log_options, HighsLogType::kInfo, "Using blas: %s - %s\n",
+  highsLogUser(log_options, HighsLogType::kInfo, "Using BLAS: %s - %s\n",
                BLAS_LIBRARIES, blas_model.c_str());
 #else
 #ifdef HIPO_USES_OPENBLAS
-  highsLogUser(log_options, HighsLogType::kInfo, "Using blas: OpenBLAS - %s\n",
+  highsLogUser(log_options, HighsLogType::kInfo, "Using BLAS: OpenBLAS - %s\n",
                blas_model.c_str());
 #else
-  highsLogUser(log_options, HighsLogType::kInfo, "Using blas: unknown - %s\n",
+  highsLogUser(log_options, HighsLogType::kInfo, "Using BLAS: unknown - %s\n",
                blas_model.c_str());
 #endif
 #endif

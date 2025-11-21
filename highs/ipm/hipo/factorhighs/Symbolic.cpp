@@ -38,7 +38,7 @@ Int Symbolic::consecutiveSums(Int i, Int j) const {
 Int64 Symbolic::cliqueBlockStart(Int sn, Int bl) const {
   return clique_block_start_[sn][bl];
 }
-Int64 Symbolic::cliqueSize(Int64 sn) const {
+Int64 Symbolic::cliqueSize(Int sn) const {
   return clique_block_start_[sn].back();
 }
 Int64 Symbolic::maxStackSize() const { return max_stack_size_; }

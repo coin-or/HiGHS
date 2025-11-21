@@ -12,8 +12,8 @@ namespace hipo {
 HybridSolveHandler::HybridSolveHandler(
     const Symbolic& S, const std::vector<std::vector<double>>& sn_columns,
     const std::vector<std::vector<Int>>& swaps,
-    const std::vector<std::vector<double>>& pivot_2x2)
-    : SolveHandler(S, sn_columns), swaps_{swaps}, pivot_2x2_{pivot_2x2} {}
+    const std::vector<std::vector<double>>& pivot_2x2, DataCollector& data)
+    : SolveHandler(S, sn_columns, data), swaps_{swaps}, pivot_2x2_{pivot_2x2} {}
 
 void HybridSolveHandler::forwardSolve(std::vector<double>& x) const {
   // Forward solve.
@@ -73,7 +73,7 @@ void HybridSolveHandler::forwardSolve(std::vector<double>& x) const {
       clock.start();
 #endif
       callAndTime_dtrsv('U', 'T', 'U', jb, &sn_columns_[sn][SnCol_ind], jb,
-                        &x[x_start], 1, *data_);
+                        &x[x_start], 1, data_);
 
       SnCol_ind += diag_entries;
 
@@ -82,7 +82,7 @@ void HybridSolveHandler::forwardSolve(std::vector<double>& x) const {
       std::vector<double> y(gemv_space);
 
       callAndTime_dgemv('T', jb, gemv_space, 1.0, &sn_columns_[sn][SnCol_ind],
-                        jb, &x[x_start], 1, 0.0, y.data(), 1, *data_);
+                        jb, &x[x_start], 1, 0.0, y.data(), 1, data_);
       SnCol_ind += jb * gemv_space;
 #if HIPO_TIMING_LEVEL >= 2
       if (data_) data_->sumTime(kTimeSolveSolve_dense, clock.stop());
@@ -191,11 +191,11 @@ void HybridSolveHandler::backwardSolve(std::vector<double>& x) const {
 #endif
       SnCol_ind -= jb * gemv_space;
       callAndTime_dgemv('N', jb, gemv_space, -1.0, &sn_columns_[sn][SnCol_ind],
-                        jb, y.data(), 1, 1.0, &x[x_start], 1, *data_);
+                        jb, y.data(), 1, 1.0, &x[x_start], 1, data_);
 
       SnCol_ind -= diag_entries;
       callAndTime_dtrsv('U', 'N', 'U', jb, &sn_columns_[sn][SnCol_ind], jb,
-                        &x[x_start], 1, *data_);
+                        &x[x_start], 1, data_);
 #if HIPO_TIMING_LEVEL >= 2
       if (data_) data_->sumTime(kTimeSolveSolve_dense, clock.stop());
 #endif
