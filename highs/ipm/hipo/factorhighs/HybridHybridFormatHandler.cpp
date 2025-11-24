@@ -1,5 +1,7 @@
 #include "HybridHybridFormatHandler.h"
 
+#include <cstring>
+
 #include "CallAndTimeBlas.h"
 #include "DataCollector.h"
 #include "DenseFact.h"
@@ -19,8 +21,11 @@ HybridHybridFormatHandler::HybridHybridFormatHandler(
 void HybridHybridFormatHandler::initFrontal() {
   const Int n_blocks = (sn_size_ - 1) / nb_ + 1;
   diag_start_.resize(n_blocks);
-  Int64 frontal_size = getDiagStart(ldf_, sn_size_, nb_, n_blocks, diag_start_);
-  frontal_.assign(frontal_size + extra_space, 0.0);
+  Int64 frontal_size =
+      getDiagStart(ldf_, sn_size_, nb_, n_blocks, diag_start_) + extra_space;
+  frontal_.resize(frontal_size);
+  std::memset(frontal_.data(), 0, frontal_size * sizeof(double));
+
   // NB: the plus 10 is not needed, but it avoids weird problems later on.
 
   // frontal_ is actually allocated just the first time, then the memory is
