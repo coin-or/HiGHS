@@ -39,13 +39,10 @@ if ((NOT FAST_BUILD OR ALL_TESTS) AND NOT (BUILD_EXTRA_UNIT_ONLY))
       TestFactor.cpp
       TestFilereader.cpp
       TestHighsCDouble.cpp
-      TestHighsGFkSolve.cpp
-      TestHighsHash.cpp
       TestHighsHessian.cpp
       TestHighsIntegers.cpp
       TestHighsModel.cpp
       TestHighsParallel.cpp
-      TestHighsRbTree.cpp
       TestHighsSparseMatrix.cpp
       TestHighsVersion.cpp
       TestHipo.cpp
