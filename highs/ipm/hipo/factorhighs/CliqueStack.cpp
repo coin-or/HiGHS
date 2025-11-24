@@ -11,11 +11,16 @@ void CliqueStack::init(Int64 stack_size) {
   worksize_ = 0;
   empty_ = false;
 
+  printf("init %d\n", stack_size);
   stack_.resize(stack_size, 0.0);
 }
 
 double* CliqueStack::setup(Int64 clique_size, bool& reallocation) {
   // Clear workspace
+
+  printf("setup %d\n", clique_size);
+
+  printf("stack_size %d, top %d\n", stack_.size(), top_);
 
   assert(!workspace_ && !worksize_);
   reallocation = false;
@@ -44,6 +49,9 @@ const double* CliqueStack::getChild(Int& child_sn) const {
   // Get the top of the stack, in terms of supernode ID of the child and pointer
   // to its data.
 
+  printf("getChild\n");
+  printf("stack_size %d, top %d\n", stack_.size(), top_);
+
   child_sn = sn_pushed_.top().first;
   Int64 child_size = sn_pushed_.top().second;
   const double* child = &stack_[top_ - child_size];
@@ -54,6 +62,9 @@ const double* CliqueStack::getChild(Int& child_sn) const {
 void CliqueStack::popChild() {
   // Remove top child from the stack
 
+  printf("popChild\n");
+  printf("stack_size %d, top %d\n", stack_.size(), top_);
+
   Int64 child_size = sn_pushed_.top().second;
   sn_pushed_.pop();
 
@@ -62,6 +73,9 @@ void CliqueStack::popChild() {
 
 void CliqueStack::pushWork(Int sn) {
   // Put the content of the workspace at the top of the stack
+
+  printf("pushWork\n");
+  printf("stack_size %d, top %d\n", stack_.size(), top_);
 
   if (stack_.size() > 0) {
     // stack_[top_] has lower address than workspace, so no need to resize.

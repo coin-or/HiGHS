@@ -186,6 +186,8 @@ void Factorise::processSupernode(Int sn) {
   // Assemble frontal matrix for supernode sn, perform partial factorisation and
   // store the result.
 
+  printf("Process %d\n", sn);
+
   TaskGroupSpecial tg;
 
   const bool parallel = S_.parTree();
