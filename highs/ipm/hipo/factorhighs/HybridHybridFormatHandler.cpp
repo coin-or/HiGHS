@@ -19,7 +19,7 @@ HybridHybridFormatHandler::HybridHybridFormatHandler(
 void HybridHybridFormatHandler::initFrontal() {
   const Int n_blocks = (sn_size_ - 1) / nb_ + 1;
   diag_start_.resize(n_blocks);
-  Int frontal_size = getDiagStart(ldf_, sn_size_, nb_, n_blocks, diag_start_);
+  Int64 frontal_size = getDiagStart(ldf_, sn_size_, nb_, n_blocks, diag_start_);
   frontal_.assign(frontal_size + extra_space, 0.0);
   // NB: the plus 10 is not needed, but it avoids weird problems later on.
 
@@ -46,7 +46,7 @@ void HybridHybridFormatHandler::assembleFrontalMultiple(
   const Int jb = std::min(nb_, nc - nb_ * jblock);
   const Int row_ = row - jblock * nb_;
   const Int col_ = col - jblock * nb_;
-  const Int start_block = S_->cliqueBlockStart(child_sn, jblock);
+  const Int64 start_block = S_->cliqueBlockStart(child_sn, jblock);
 
   Int block = j / nb_;
   Int ldb = ldf_ - block * nb_;
@@ -86,7 +86,7 @@ void HybridHybridFormatHandler::assembleClique(const std::vector<double>& child,
 
   // go through the blocks of columns of the child sn
   for (Int b = 0; b < n_blocks; ++b) {
-    const Int b_start = S_->cliqueBlockStart(child_sn, b);
+    const Int64 b_start = S_->cliqueBlockStart(child_sn, b);
 
     const Int col_start = row_start;
     const Int col_end = std::min(col_start + nb_, nc);
@@ -113,7 +113,7 @@ void HybridHybridFormatHandler::assembleClique(const std::vector<double>& child,
         const Int jb_c = std::min(nb_, nc - nb_ * jblock_c);
         const Int row_ = row - jblock_c * nb_;
         const Int col_ = col - jblock_c * nb_;
-        const Int start_block_c = b_start;
+        const Int64 start_block_c = b_start;
 
         // sun consecutive entries in a row.
         // consecutive need to be reduced, to account for edge of the block
@@ -137,7 +137,7 @@ void HybridHybridFormatHandler::assembleClique(const std::vector<double>& child,
         const Int jb = std::min(nb_, ldc_ - nb_ * jblock);
         const Int i_ = i - jblock * nb_;
         const Int j_ = j - jblock * nb_;
-        const Int start_block = S_->cliqueBlockStart(sn_, jblock);
+        const Int64 start_block = S_->cliqueBlockStart(sn_, jblock);
 
         const double d_one = 1.0;
         const Int i_one = 1;
