@@ -123,9 +123,6 @@ void HybridHybridFormatHandler::assembleClique(const double* child, Int nc,
 
   Int row_start{};
 
-  // either clique is valid, or it will not be used
-  assert(clique_ptr_ || nc == 0);
-
   // go through the blocks of columns of the child sn
   for (Int b = 0; b < n_blocks; ++b) {
     const Int64 b_start = S_->cliqueBlockStart(child_sn, b);
