@@ -1,5 +1,6 @@
 #include "HybridHybridFormatHandler.h"
 
+#include <cassert>
 #include <cstring>
 
 #include "CallAndTimeBlas.h"
@@ -38,7 +39,7 @@ void HybridHybridFormatHandler::initFrontal() {
 
 void HybridHybridFormatHandler::initClique() {
   clique_.resize(S_->cliqueSize(sn_));
-  clique_ptr_ = clique_.data();
+  if (clique_.size() > 0) clique_ptr_ = clique_.data();
 }
 
 void HybridHybridFormatHandler::assembleFrontal(Int i, Int j, double val) {
@@ -72,6 +73,9 @@ void HybridHybridFormatHandler::assembleFrontalMultiple(Int num,
 Int HybridHybridFormatHandler::denseFactorise(double reg_thresh) {
   Int status;
 
+  // either clique is valid, or clique is not needed
+  assert(clique_ptr_ || ldf_ == sn_size_);
+
   status = denseFactFP2FH(frontal_.data(), ldf_, sn_size_, nb_, data_);
   if (status) return status;
 
@@ -91,6 +95,8 @@ void HybridHybridFormatHandler::assembleClique(const double* child, Int nc,
                                                Int child_sn) {
   // assemble the child clique into the current clique by blocks of columns.
   // within a block, assemble by rows.
+
+  assert(clique_ptr_);
 
   const Int n_blocks = (nc - 1) / nb_ + 1;
 
