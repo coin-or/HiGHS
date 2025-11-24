@@ -22,9 +22,10 @@ void HybridHybridFormatHandler::initFrontal() {
   const Int n_blocks = (sn_size_ - 1) / nb_ + 1;
   diag_start_.resize(n_blocks);
   Int64 frontal_size = getDiagStart(ldf_, sn_size_, nb_, n_blocks, diag_start_);
-  frontal_size = sizeAtLeastOne(frontal_size);
   frontal_.resize(frontal_size);
-  std::memset(frontal_.data(), 0, frontal_size * sizeof(double));
+
+  if (frontal_.size() > 0)
+    std::memset(frontal_.data(), 0, frontal_size * sizeof(double));
 
   // frontal_ is actually allocated just the first time, then the memory is
   // reused from the previous factorisations and just initialised.
@@ -36,11 +37,14 @@ void HybridHybridFormatHandler::initClique() {
 }
 
 void HybridHybridFormatHandler::assembleFrontal(Int i, Int j, double val) {
-  Int block = j / nb_;
-  Int ldb = ldf_ - block * nb_;
-  Int ii = i - block * nb_;
-  Int jj = j - block * nb_;
-  frontal_[diag_start_[block] + ii + ldb * jj] = val;
+  if (frontal_.size() > 0) {
+    Int block = j / nb_;
+    Int ldb = ldf_ - block * nb_;
+    Int ii = i - block * nb_;
+    Int jj = j - block * nb_;
+
+    frontal_[diag_start_[block] + ii + ldb * jj] = val;
+  }
 }
 
 void HybridHybridFormatHandler::assembleFrontalMultiple(Int num,
@@ -48,35 +52,39 @@ void HybridHybridFormatHandler::assembleFrontalMultiple(Int num,
                                                         Int nc, Int child_sn,
                                                         Int row, Int col, Int i,
                                                         Int j) {
-  const Int jblock = col / nb_;
-  const Int jb = std::min(nb_, nc - nb_ * jblock);
-  const Int row_ = row - jblock * nb_;
-  const Int col_ = col - jblock * nb_;
-  const Int64 start_block = S_->cliqueBlockStart(child_sn, jblock);
+  if (frontal_.size() > 0) {
+    const Int jblock = col / nb_;
+    const Int jb = std::min(nb_, nc - nb_ * jblock);
+    const Int row_ = row - jblock * nb_;
+    const Int col_ = col - jblock * nb_;
+    const Int64 start_block = S_->cliqueBlockStart(child_sn, jblock);
 
-  Int block = j / nb_;
-  Int ldb = ldf_ - block * nb_;
-  Int ii = i - block * nb_;
-  Int jj = j - block * nb_;
+    Int block = j / nb_;
+    Int ldb = ldf_ - block * nb_;
+    Int ii = i - block * nb_;
+    Int jj = j - block * nb_;
 
-  callAndTime_daxpy(num, 1.0, &child[start_block + col_ + jb * row_], jb,
-                    &frontal_[diag_start_[block] + ii + ldb * jj], 1, data_);
+    callAndTime_daxpy(num, 1.0, &child[start_block + col_ + jb * row_], jb,
+                      &frontal_[diag_start_[block] + ii + ldb * jj], 1, data_);
+  }
 }
 
 Int HybridHybridFormatHandler::denseFactorise(double reg_thresh) {
-  Int status;
+  Int status = 0;
 
-  status = denseFactFP2FH(frontal_.data(), ldf_, sn_size_, nb_, data_);
-  if (status) return status;
+  if (frontal_.size() > 0) {
+    status = denseFactFP2FH(frontal_.data(), ldf_, sn_size_, nb_, data_);
+    if (status) return status;
 
-  // find the position within pivot_sign corresponding to this supernode
-  Int sn_start = S_->snStart(sn_);
-  const Int* pivot_sign = &S_->pivotSign().data()[sn_start];
+    // find the position within pivot_sign corresponding to this supernode
+    Int sn_start = S_->snStart(sn_);
+    const Int* pivot_sign = &S_->pivotSign().data()[sn_start];
 
-  status = denseFactFH('H', ldf_, sn_size_, S_->blockSize(), frontal_.data(),
-                       clique_ptr_, pivot_sign, reg_thresh, regul_,
-                       local_reg_.data(), swaps_.data(), pivot_2x2_.data(),
-                       S_->parNode(), data_);
+    status = denseFactFH('H', ldf_, sn_size_, S_->blockSize(), frontal_.data(),
+                         clique_ptr_, pivot_sign, reg_thresh, regul_,
+                         local_reg_.data(), swaps_.data(), pivot_2x2_.data(),
+                         S_->parNode(), data_);
+  }
 
   return status;
 }

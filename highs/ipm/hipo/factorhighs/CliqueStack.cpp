@@ -8,8 +8,6 @@
 namespace hipo {
 
 void CliqueStack::init(Int64 stack_size) {
-  stack_size = sizeAtLeastOne(stack_size);
-
   top_ = 0;
   workspace_ = nullptr;
   worksize_ = 0;
@@ -24,18 +22,20 @@ double* CliqueStack::setup(Int64 clique_size, bool& reallocation) {
   assert(!workspace_ && !worksize_);
   reallocation = false;
 
-  // This should not trigger reallocation, because the resize in init is done
-  // with the maximum possible size of the stack.
-  if (top_ + clique_size > stack_.size()) {
-    reallocation = true;
-    stack_.resize(top_ + clique_size, 0.0);
+  if (stack_.size() > 0) {
+    // This should not trigger reallocation, because the resize in init is done
+    // with the maximum possible size of the stack.
+    if (top_ + clique_size > stack_.size()) {
+      reallocation = true;
+      stack_.resize(top_ + clique_size, 0.0);
+    }
+
+    workspace_ = &stack_[top_];
+    worksize_ = clique_size;
+
+    // initialize workspace to zero
+    std::memset(workspace_, 0, worksize_ * sizeof(double));
   }
-
-  workspace_ = &stack_[top_];
-  worksize_ = clique_size;
-
-  // initialize workspace to zero
-  std::memset(workspace_, 0, worksize_ * sizeof(double));
 
   return workspace_;
 }
@@ -65,14 +65,16 @@ void CliqueStack::popChild() {
 void CliqueStack::pushWork(Int sn) {
   // Put the content of the workspace at the top of the stack
 
-  // stack_[top_] has lower address than workspace, so no need to resize.
-  // workspace_ and stack_[top_] do not overlap, so use memcpy
-  std::memcpy(&stack_[top_], workspace_, worksize_ * sizeof(double));
+  if (stack_.size() > 0) {
+    // stack_[top_] has lower address than workspace, so no need to resize.
+    // workspace_ and stack_[top_] do not overlap, so use memcpy
+    std::memcpy(&stack_[top_], workspace_, worksize_ * sizeof(double));
 
-  top_ += worksize_;
+    top_ += worksize_;
 
-  // keep track of supernodes pushed
-  sn_pushed_.push({sn, worksize_});
+    // keep track of supernodes pushed
+    sn_pushed_.push({sn, worksize_});
+  }
 
   worksize_ = 0;
   workspace_ = nullptr;
