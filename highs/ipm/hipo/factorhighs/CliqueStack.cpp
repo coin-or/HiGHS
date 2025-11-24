@@ -3,9 +3,13 @@
 #include <cassert>
 #include <cstring>
 
+#include "ipm/hipo/auxiliary/Auxiliary.h"
+
 namespace hipo {
 
 void CliqueStack::init(Int64 stack_size) {
+  stack_size = sizeAtLeastOne(stack_size);
+
   stack_.resize(stack_size, 0.0);
   top_ = 0;
   workspace_ = nullptr;

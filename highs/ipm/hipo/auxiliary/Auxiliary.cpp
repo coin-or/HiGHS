@@ -208,6 +208,15 @@ Int64 getDiagStart(Int n, Int k, Int nb, Int n_blocks,
   return result;
 }
 
+Int64 sizeAtLeastOne(Int64 size) {
+  // When resizing vectors on windows, if the size is 0, there can be problems
+  // later on accessing the entry at address 0. So always allocate at least one
+  // byte.
+
+  if (0 == size) ++size;
+  return size;
+}
+
 Clock::Clock() { start(); }
 void Clock::start() { t0 = std::chrono::high_resolution_clock::now(); }
 double Clock::stop() const {
