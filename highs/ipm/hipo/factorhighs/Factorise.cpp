@@ -8,7 +8,6 @@
 #include "FormatHandler.h"
 #include "HybridHybridFormatHandler.h"
 #include "ReturnValues.h"
-#include "SymScaling.h"
 #include "ipm/hipo/auxiliary/Auxiliary.h"
 #include "ipm/hipo/auxiliary/Log.h"
 #include "parallel/HighsParallel.h"
@@ -58,12 +57,10 @@ Factorise::Factorise(const Symbolic& S, const std::vector<Int>& rowsA,
   // create linked lists of children in supernodal elimination tree
   childrenLinkedList(S_.snParent(), first_child_, next_child_);
 
-  if (S_.parTree()) {
-    // create reverse linked lists of children
-    first_child_reverse_ = first_child_;
-    next_child_reverse_ = next_child_;
-    reverseLinkedList(first_child_reverse_, next_child_reverse_);
-  }
+  // create reverse linked lists of children
+  first_child_reverse_ = first_child_;
+  next_child_reverse_ = next_child_;
+  reverseLinkedList(first_child_reverse_, next_child_reverse_);
 
   // compute largest diagonal entry in absolute value
   max_diag_ = 0.0;
@@ -188,16 +185,16 @@ void Factorise::processSupernode(Int sn) {
   if (flag_stop_) return;
 
   if (S_.parTree()) {
-    // spawn children of this supernode in reverse order
-    Int child_to_spawn = first_child_reverse_[sn];
+    // spawn children of this supernode in forward order
+    Int child_to_spawn = first_child_[sn];
     while (child_to_spawn != -1) {
       tg.spawn([=]() { processSupernode(child_to_spawn); });
-      child_to_spawn = next_child_reverse_[child_to_spawn];
+      child_to_spawn = next_child_[child_to_spawn];
     }
 
     // wait for first child to finish, before starting the parent (if there is a
     // first child)
-    if (first_child_reverse_[sn] != -1) tg.sync();
+    if (first_child_[sn] != -1) tg.sync();
   }
 
 #if HIPO_TIMING_LEVEL >= 2
@@ -211,10 +208,12 @@ void Factorise::processSupernode(Int sn) {
   const Int sn_end = S_.snStart(sn + 1);
   const Int sn_size = sn_end - sn_begin;
 
+  double* clique_ptr = nullptr;
+
   // initialise the format handler
   // this also allocates space for the frontal matrix and schur complement
-  std::unique_ptr<FormatHandler> FH(
-      new HybridHybridFormatHandler(S_, sn, regul_, data_, sn_columns_[sn]));
+  std::unique_ptr<FormatHandler> FH(new HybridHybridFormatHandler(
+      S_, sn, regul_, data_, sn_columns_[sn], clique_ptr));
 
 #if HIPO_TIMING_LEVEL >= 2
   data_.sumTime(kTimeFactorisePrepare, clock.stop());
@@ -246,18 +245,20 @@ void Factorise::processSupernode(Int sn) {
   // ===================================================
   // Assemble frontal matrices of children
   // ===================================================
-  Int child_sn = first_child_[sn];
+  Int child_sn = first_child_reverse_[sn];
   while (child_sn != -1) {
-    // Schur contribution of the current child
-    std::vector<double>& child_clique = schur_contribution_[child_sn];
+    const double* child_clique;
+    child_clique = schur_contribution_[child_sn].data();
 
     if (S_.parTree()) {
       // sync with spawned child, apart from the first one
-      if (child_sn != first_child_[sn]) tg.sync();
+      if (child_sn != first_child_reverse_[sn]) tg.sync();
 
       if (flag_stop_) return;
 
-      if (child_clique.size() == 0) {
+      child_clique = schur_contribution_[child_sn].data();
+
+      if (!child_clique) {
         if (log_) log_->printDevInfo("Missing child supernode contribution\n");
         flag_stop_ = true;
         return;
@@ -321,7 +322,7 @@ void Factorise::processSupernode(Int sn) {
     schur_contribution_[child_sn].swap(temp_empty);
 
     // move on to the next child
-    child_sn = next_child_[child_sn];
+    child_sn = next_child_reverse_[child_sn];
   }
 
   if (flag_stop_) return;

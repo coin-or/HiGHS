@@ -11,11 +11,11 @@ namespace hipo {
 
 HybridHybridFormatHandler::HybridHybridFormatHandler(
     const Symbolic& S, Int sn, const Regul& regul, DataCollector& data,
-    std::vector<double>& frontal)
-    : FormatHandler(S, sn, regul, frontal), data_{data} {
+    std::vector<double>& frontal, double* clique_ptr)
+    : FormatHandler(S, sn, regul, frontal, clique_ptr), data_{data} {
   // initialise frontal and clique
   initFrontal();
-  initClique();
+  if (!clique_ptr_) initClique();
 }
 
 void HybridHybridFormatHandler::initFrontal() {
@@ -26,7 +26,7 @@ void HybridHybridFormatHandler::initFrontal() {
   frontal_.resize(frontal_size);
   std::memset(frontal_.data(), 0, frontal_size * sizeof(double));
 
-  // NB: the plus 10 is not needed, but it avoids weird problems later on.
+  // extra_space is not needed, but it avoid some weird issue on windows
 
   // frontal_ is actually allocated just the first time, then the memory is
   // reused from the previous factorisations and just initialised.
@@ -34,6 +34,7 @@ void HybridHybridFormatHandler::initFrontal() {
 
 void HybridHybridFormatHandler::initClique() {
   clique_.resize(S_->cliqueSize(sn_));
+  clique_ptr_ = clique_.data();
 }
 
 void HybridHybridFormatHandler::assembleFrontal(Int i, Int j, double val) {
@@ -44,9 +45,11 @@ void HybridHybridFormatHandler::assembleFrontal(Int i, Int j, double val) {
   frontal_[diag_start_[block] + ii + ldb * jj] = val;
 }
 
-void HybridHybridFormatHandler::assembleFrontalMultiple(
-    Int num, const std::vector<double>& child, Int nc, Int child_sn, Int row,
-    Int col, Int i, Int j) {
+void HybridHybridFormatHandler::assembleFrontalMultiple(Int num,
+                                                        const double* child,
+                                                        Int nc, Int child_sn,
+                                                        Int row, Int col, Int i,
+                                                        Int j) {
   const Int jblock = col / nb_;
   const Int jb = std::min(nb_, nc - nb_ * jblock);
   const Int row_ = row - jblock * nb_;
@@ -73,15 +76,15 @@ Int HybridHybridFormatHandler::denseFactorise(double reg_thresh) {
   const Int* pivot_sign = &S_->pivotSign().data()[sn_start];
 
   status = denseFactFH('H', ldf_, sn_size_, S_->blockSize(), frontal_.data(),
-                       clique_.data(), pivot_sign, reg_thresh, regul_,
+                       clique_ptr_, pivot_sign, reg_thresh, regul_,
                        local_reg_.data(), swaps_.data(), pivot_2x2_.data(),
                        S_->parNode(), data_);
 
   return status;
 }
 
-void HybridHybridFormatHandler::assembleClique(const std::vector<double>& child,
-                                               Int nc, Int child_sn) {
+void HybridHybridFormatHandler::assembleClique(const double* child, Int nc,
+                                               Int child_sn) {
   // assemble the child clique into the current clique by blocks of columns.
   // within a block, assemble by rows.
 
@@ -122,8 +125,7 @@ void HybridHybridFormatHandler::assembleClique(const std::vector<double>& child,
 
         // sun consecutive entries in a row.
         // consecutive need to be reduced, to account for edge of the block
-        const Int zeros_stored_row =
-            std::max((Int)0, jb_c - (row - row_start) - 1);
+        const Int zeros_stored_row = std::max(0, jb_c - (row - row_start) - 1);
         Int consecutive = S_->consecutiveSums(child_sn, col);
         const Int left_in_child = col_end - col - zeros_stored_row;
         consecutive = std::min(consecutive, left_in_child);
@@ -144,11 +146,9 @@ void HybridHybridFormatHandler::assembleClique(const std::vector<double>& child,
         const Int j_ = j - jblock * nb_;
         const Int64 start_block = S_->cliqueBlockStart(sn_, jblock);
 
-        const double d_one = 1.0;
-        const Int i_one = 1;
         callAndTime_daxpy(consecutive, 1.0,
                           &child[start_block_c + col_ + jb_c * row_], 1,
-                          &clique_[start_block + j_ + jb * i_], 1, data_);
+                          &clique_ptr_[start_block + j_ + jb * i_], 1, data_);
 
         col += consecutive;
       }
@@ -169,7 +169,7 @@ void HybridHybridFormatHandler::extremeEntries() {
   const Int n_blocks = (sn_size_ - 1) / nb_ + 1;
 
   // index to access frontal
-  Int index{};
+  Int64 index{};
 
   // go through blocks of columns for this supernode
   for (Int j = 0; j < n_blocks; ++j) {
@@ -193,9 +193,9 @@ void HybridHybridFormatHandler::extremeEntries() {
       index += jb - k;
     }
 
-    const Int entries_left = (ldf_ - nb_ * j - jb) * jb;
+    const Int64 entries_left = (Int64)(ldf_ - nb_ * j - jb) * jb;
 
-    for (Int i = 0; i < entries_left; ++i) {
+    for (Int64 i = 0; i < entries_left; ++i) {
       if (frontal_[index] != 0.0) {
         minoffD = std::min(minoffD, std::abs(frontal_[index]));
         maxoffD = std::max(maxoffD, std::abs(frontal_[index]));
