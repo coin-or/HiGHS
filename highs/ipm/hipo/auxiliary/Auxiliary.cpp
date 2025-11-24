@@ -203,7 +203,7 @@ Int64 getDiagStart(Int n, Int k, Int nb, Int n_blocks,
   }
 
   Int jb = std::min(nb, k - (n_blocks - 1) * nb);
-  Int64 result = start.back() + (Int64)(n - (n_blocks - 1) * nb) * jb;
+  Int64 result = start.back() + (n - (n_blocks - 1) * nb) * jb;
   if (triang) result -= jb * (jb - 1) / 2;
   return result;
 }

@@ -151,7 +151,7 @@ Int denseFactFH(char format, Int n, Int k, Int nb, double* A, double* B,
 
       // check entries of L
       /*double max_in_R = -1.0;
-      for (Int i = 0; i < M * jb; ++i) {
+      for (Int64 i = 0; i < M * jb; ++i) {
         max_in_R = std::max(max_in_R, std::abs(R[i]));
       }
       if (max_in_R > 1e8) printf("%.1e, %5d %5d\n", max_in_R, jb, M);*/

@@ -38,13 +38,13 @@ void HybridSolveHandler::forwardSolve(std::vector<double>& x) const {
     const Int sn_start = S_.snStart(sn);
 
     // index to access S->rows for this supernode
-    const Int start_row = S_.ptr(sn);
+    const Int64 start_row = S_.ptr(sn);
 
     // number of blocks of columns
     const Int n_blocks = (sn_size - 1) / nb + 1;
 
     // index to access snColumns[sn]
-    Int SnCol_ind{};
+    Int64 SnCol_ind{};
 
     // go through blocks of columns for this supernode
     for (Int j = 0; j < n_blocks; ++j) {
@@ -138,14 +138,14 @@ void HybridSolveHandler::backwardSolve(std::vector<double>& x) const {
     const Int sn_start = S_.snStart(sn);
 
     // index to access S->rows for this supernode
-    const Int start_row = S_.ptr(sn);
+    const Int64 start_row = S_.ptr(sn);
 
     // number of blocks of columns
     const Int n_blocks = (sn_size - 1) / nb + 1;
 
     // index to access snColumns[sn]
     // initialised with the total number of entries of snColumns[sn]
-    Int SnCol_ind = sn_columns_[sn].size() - extra_space;
+    Int64 SnCol_ind = sn_columns_[sn].size() - extra_space;
 
     // go through blocks of columns for this supernode in reverse order
     for (Int j = n_blocks - 1; j >= 0; --j) {
