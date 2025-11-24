@@ -18,8 +18,14 @@ Factorise::Factorise(const Symbolic& S, const std::vector<Int>& rowsA,
                      const std::vector<Int>& ptrA,
                      const std::vector<double>& valA, const Regul& regul,
                      const Log* log, DataCollector& data,
-                     std::vector<std::vector<double>>& sn_columns)
-    : S_{S}, sn_columns_{sn_columns}, regul_{regul}, log_{log}, data_{data} {
+                     std::vector<std::vector<double>>& sn_columns,
+                     CliqueStack* stack)
+    : S_{S},
+      sn_columns_{sn_columns},
+      regul_{regul},
+      log_{log},
+      data_{data},
+      stack_{stack} {
   // Input the symmetric matrix to be factorised in CSC format and the symbolic
   // factorisation coming from Analyse.
   // Only the lower triangular part of the matrix is used.
@@ -182,9 +188,12 @@ void Factorise::processSupernode(Int sn) {
 
   TaskGroupSpecial tg;
 
+  const bool parallel = S_.parTree();
+  const bool serial = !parallel;
+
   if (flag_stop_) return;
 
-  if (S_.parTree()) {
+  if (parallel) {
     // spawn children of this supernode in forward order
     Int child_to_spawn = first_child_[sn];
     while (child_to_spawn != -1) {
@@ -208,7 +217,15 @@ void Factorise::processSupernode(Int sn) {
   const Int sn_end = S_.snStart(sn + 1);
   const Int sn_size = sn_end - sn_begin;
 
+  // When the tree is processed in serial, use CliqueStack to store the cliques.
+  // Otherwise, use local storage in FormatHandler.
   double* clique_ptr = nullptr;
+  if (serial) {
+    bool reallocation = false;
+    clique_ptr = stack_->setup(S_.cliqueSize(sn), reallocation);
+    if (reallocation && log_)
+      log_->printDevInfo("Reallocation of CliqueStack\n");
+  }
 
   // initialise the format handler
   // this also allocates space for the frontal matrix and schur complement
@@ -247,10 +264,14 @@ void Factorise::processSupernode(Int sn) {
   // ===================================================
   Int child_sn = first_child_reverse_[sn];
   while (child_sn != -1) {
-    const double* child_clique;
-    child_clique = schur_contribution_[child_sn].data();
+    // Child contribution is found:
+    // - in cliquestack, if we are processing the tree in serial.
+    // - in schur_contribution_ if we are processing the tree in parallel.
+    // Children are always summed from last to first.
 
-    if (S_.parTree()) {
+    const double* child_clique;
+
+    if (parallel) {
       // sync with spawned child, apart from the first one
       if (child_sn != first_child_reverse_[sn]) tg.sync();
 
@@ -263,6 +284,10 @@ void Factorise::processSupernode(Int sn) {
         flag_stop_ = true;
         return;
       }
+    } else {
+      Int child;
+      child_clique = stack_->getChild(child);
+      assert(child == child_sn);
     }
 
     // determine size of clique of child
@@ -317,9 +342,12 @@ void Factorise::processSupernode(Int sn) {
 #endif
 
     // Schur contribution of the child is no longer needed
-    // Swap with temporary empty vector to deallocate memory
-    std::vector<double> temp_empty;
-    schur_contribution_[child_sn].swap(temp_empty);
+    if (parallel) {
+      // Swap with temporary empty vector to deallocate memory
+      std::vector<double>().swap(schur_contribution_[child_sn]);
+    } else {
+      stack_->popChild();
+    }
 
     // move on to the next child
     child_sn = next_child_reverse_[child_sn];
@@ -360,6 +388,9 @@ void Factorise::processSupernode(Int sn) {
   // terminate the format handler
   FH->terminate(schur_contribution_[sn], total_reg_, swaps_[sn],
                 pivot_2x2_[sn]);
+
+  if (serial) stack_->pushWork(sn);
+
 #if HIPO_TIMING_LEVEL >= 2
   data_.sumTime(kTimeFactoriseTerminate, clock.stop());
 #endif
@@ -396,6 +427,10 @@ bool Factorise::run(Numeric& num) {
     // sync tasks for root supernodes
     tg.taskWait();
   } else {
+    // processing the tree in serial requires a CliqueStack
+    if (!stack_) return true;
+    if (stack_->empty()) stack_->init(S_.maxStackSize());
+
     // go through each supernode serially
     for (Int sn = 0; sn < S_.sn(); ++sn) {
       processSupernode(sn);
