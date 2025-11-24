@@ -33,7 +33,7 @@ class CliqueStack {
   std::vector<double> stack_;
   double* workspace_;
   Int64 worksize_;
-  Int64 stack_size_ = -1;
+  bool empty_ = true;
 
   // pairs (sn, size) of supernodes that got pushed
   std::stack<std::pair<Int, Int64>> sn_pushed_{};
