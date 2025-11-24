@@ -7,7 +7,7 @@
 namespace hipo {
 
 class HybridHybridFormatHandler : public FormatHandler {
-  std::vector<Int> diag_start_;
+  std::vector<Int64> diag_start_;
   DataCollector& data_;
 
   void initFrontal() override;

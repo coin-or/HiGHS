@@ -37,7 +37,7 @@ Int denseFactFH(char format, Int n, Int k, Int nb, double* A, double* B,
   const Int n_blocks = (k - 1) / nb + 1;
 
   // start of diagonal blocks
-  std::vector<Int> diag_start(n_blocks);
+  std::vector<Int64> diag_start(n_blocks);
   getDiagStart(n, k, nb, n_blocks, diag_start);
 
   // size of blocks

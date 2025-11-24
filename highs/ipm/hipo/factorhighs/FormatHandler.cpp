@@ -13,7 +13,7 @@ FormatHandler::FormatHandler(const Symbolic& S, Int sn, const Regul& regul,
       sn_{sn},
       nb_{S_->blockSize()},
       sn_size_{S_->snStart(sn_ + 1) - S_->snStart(sn_)},
-      ldf_{S_->ptr(sn_ + 1) - S_->ptr(sn_)},
+      ldf_{(Int)(S_->ptr(sn_ + 1) - S_->ptr(sn_))},
       ldc_{ldf_ - sn_size_},
       frontal_{frontal} {
   local_reg_.resize(sn_size_);
