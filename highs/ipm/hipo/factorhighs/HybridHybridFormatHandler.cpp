@@ -14,21 +14,28 @@ HybridHybridFormatHandler::HybridHybridFormatHandler(
     const Symbolic& S, Int sn, const Regul& regul, DataCollector& data,
     std::vector<double>& frontal, double* clique_ptr)
     : FormatHandler(S, sn, regul, frontal, clique_ptr), data_{data} {
+  printf("FH ctor\n");
+
   // initialise frontal and clique
   initFrontal();
 
   // if CliqueStack is used, clique_ptr already points to a valid region of
   // memory for the clique. Otherwise, allocate it locally.
   if (!clique_ptr_) initClique();
+
+  printf("finish FH ctor\n");
 }
 
 void HybridHybridFormatHandler::initFrontal() {
+  printf("initFrontal\n");
   const Int n_blocks = (sn_size_ - 1) / nb_ + 1;
   diag_start_.resize(n_blocks);
   Int64 frontal_size = getDiagStart(ldf_, sn_size_, nb_, n_blocks, diag_start_);
   frontal_size += extra_space_frontal;
   frontal_.resize(frontal_size);
   std::memset(frontal_.data(), 0, frontal_size * sizeof(double));
+
+  printf("finish initFrontal\n");
 
   // NB: extra_space_frontal is not strictly needed. However, it removes some
   // weird problem on windows in debug. Who knows what's happening...
@@ -38,16 +45,24 @@ void HybridHybridFormatHandler::initFrontal() {
 }
 
 void HybridHybridFormatHandler::initClique() {
+  printf("initClique\n");
   clique_.resize(S_->cliqueSize(sn_));
-  if (clique_.size() > 0) clique_ptr_ = clique_.data();
+
+  // If the clique size is zero, do not access the underlying pointer. This
+  // causes strange issues on windows.
+  if (!clique_.empty()) clique_ptr_ = clique_.data();
+
+  printf("finish initClique\n");
 }
 
 void HybridHybridFormatHandler::assembleFrontal(Int i, Int j, double val) {
+  printf("assemble frontal\n");
   Int block = j / nb_;
   Int ldb = ldf_ - block * nb_;
   Int ii = i - block * nb_;
   Int jj = j - block * nb_;
   frontal_[diag_start_[block] + ii + ldb * jj] = val;
+  printf("finish assemble frontal\n");
 }
 
 void HybridHybridFormatHandler::assembleFrontalMultiple(Int num,
@@ -55,6 +70,7 @@ void HybridHybridFormatHandler::assembleFrontalMultiple(Int num,
                                                         Int nc, Int child_sn,
                                                         Int row, Int col, Int i,
                                                         Int j) {
+  printf("assemble frontal multiple\n");
   const Int jblock = col / nb_;
   const Int jb = std::min(nb_, nc - nb_ * jblock);
   const Int row_ = row - jblock * nb_;
@@ -68,9 +84,12 @@ void HybridHybridFormatHandler::assembleFrontalMultiple(Int num,
 
   callAndTime_daxpy(num, 1.0, &child[start_block + col_ + jb * row_], jb,
                     &frontal_[diag_start_[block] + ii + ldb * jj], 1, data_);
+
+  printf("finish assemble frontal multiple\n");
 }
 
 Int HybridHybridFormatHandler::denseFactorise(double reg_thresh) {
+  printf("dense factorise\n");
   Int status;
 
   // either clique is valid, or clique is not needed
@@ -88,6 +107,8 @@ Int HybridHybridFormatHandler::denseFactorise(double reg_thresh) {
                        local_reg_.data(), swaps_.data(), pivot_2x2_.data(),
                        S_->parNode(), data_);
 
+  printf("finish dense factorise\n");
+
   return status;
 }
 
@@ -96,11 +117,14 @@ void HybridHybridFormatHandler::assembleClique(const double* child, Int nc,
   // assemble the child clique into the current clique by blocks of columns.
   // within a block, assemble by rows.
 
-  assert(clique_ptr_);
+  printf("assemble clique\n");
 
   const Int n_blocks = (nc - 1) / nb_ + 1;
 
   Int row_start{};
+
+  // either clique is valid, or it will not be used
+  assert(clique_ptr_ || n_blocks <= 0);
 
   // go through the blocks of columns of the child sn
   for (Int b = 0; b < n_blocks; ++b) {
@@ -166,6 +190,8 @@ void HybridHybridFormatHandler::assembleClique(const double* child, Int nc,
 
     row_start += nb_;
   }
+
+  printf("finish assemble clique\n");
 }
 
 void HybridHybridFormatHandler::extremeEntries() {
