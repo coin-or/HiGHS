@@ -21,12 +21,10 @@ HybridHybridFormatHandler::HybridHybridFormatHandler(
 void HybridHybridFormatHandler::initFrontal() {
   const Int n_blocks = (sn_size_ - 1) / nb_ + 1;
   diag_start_.resize(n_blocks);
-  Int64 frontal_size =
-      getDiagStart(ldf_, sn_size_, nb_, n_blocks, diag_start_) + extra_space;
+  Int64 frontal_size = getDiagStart(ldf_, sn_size_, nb_, n_blocks, diag_start_);
+  frontal_size = sizeAtLeastOne(frontal_size);
   frontal_.resize(frontal_size);
   std::memset(frontal_.data(), 0, frontal_size * sizeof(double));
-
-  // extra_space is not needed, but it avoid some weird issue on windows
 
   // frontal_ is actually allocated just the first time, then the memory is
   // reused from the previous factorisations and just initialised.
