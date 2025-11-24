@@ -33,11 +33,13 @@ double* CliqueStack::setup(Int64 clique_size, bool& reallocation) {
       stack_.resize(top_ + clique_size, 0.0);
     }
 
-    workspace_ = &stack_[top_];
-    worksize_ = clique_size;
+    if (clique_size > 0) {
+      workspace_ = &stack_[top_];
+      worksize_ = clique_size;
 
-    // initialize workspace to zero
-    std::memset(workspace_, 0, worksize_ * sizeof(double));
+      // initialize workspace to zero
+      std::memset(workspace_, 0, worksize_ * sizeof(double));
+    }
   }
 
   printf("finish setup\n");
