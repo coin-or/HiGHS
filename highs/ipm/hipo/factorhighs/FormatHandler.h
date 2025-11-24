@@ -89,8 +89,6 @@ class FormatHandler {
   virtual void extremeEntries() {}
 };
 
-const Int64 extra_space = 10;
-
 }  // namespace hipo
 
 #endif
