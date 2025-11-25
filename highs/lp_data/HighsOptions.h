@@ -641,7 +641,9 @@ struct HighsOptionsStruct {
         mip_improving_solution_file(""),
         mip_root_presolve_only(false),
         mip_lifting_for_probing(-1),
-        mip_allow_cut_separation_at_nodes(true){};
+        // clang-format off
+        mip_allow_cut_separation_at_nodes(true) {};
+  // clang-format on
 };
 
 // For now, but later change so HiGHS properties are string based so that new
