@@ -648,9 +648,11 @@ restart:
       analysis_.mipTimerStop(kMipClockNodePrunedLoop);
 
       // the node is still not fathomed, so perform separation
-      analysis_.mipTimerStart(kMipClockNodeSearchSeparation);
-      sepa.separate(search.getLocalDomain());
-      analysis_.mipTimerStop(kMipClockNodeSearchSeparation);
+      if (options_mip_->mip_allow_cut_separation_at_nodes) {
+        analysis_.mipTimerStart(kMipClockNodeSearchSeparation);
+        sepa.separate(search.getLocalDomain());
+        analysis_.mipTimerStop(kMipClockNodeSearchSeparation);
+      }
 
       if (mipdata_->domain.infeasible()) {
         search.cutoffNode();
