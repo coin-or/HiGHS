@@ -228,6 +228,8 @@ class PDLPSolver {
   double* d_aty_current_ = nullptr; // Replaces host-side ATy_cache_
   double* d_ax_next_ = nullptr;
   double* d_aty_next_ = nullptr;
+  double* d_ax_avg_ = nullptr;
+  double* d_aty_avg_ = nullptr;
   double* d_x_sum_ = nullptr;
   double* d_y_sum_ = nullptr;
 
@@ -238,6 +240,8 @@ class PDLPSolver {
   double* d_dSlackNeg_ = nullptr;
   double* d_dSlackPosAvg_ = nullptr;
   double* d_dSlackNegAvg_ = nullptr;
+  double* d_col_scale_ = nullptr;
+  double* d_row_scale_ = nullptr;
   bool checkConvergenceGpu(const int iter, 
       const double* d_x, const double* d_y,
       const double* d_ax, const double* d_aty,
