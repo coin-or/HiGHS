@@ -70,6 +70,21 @@ Int FactorHiGHSSolver::setup() {
   setParallel();
 
   S_.print(log_, log_.debug(1));
+
+  // Warn about large fill-in
+  if (S_.fillin() > kLargeFillin && !options_.metis_no2hop) {
+    log_.printw(
+        "Large fill-in in factorisation. Consider setting the "
+        "hipo_metis_no2hop option to true\n");
+  }
+
+  // Warn about large memory consumption
+  if (S_.storage() > kLargeStorageGB * 1024 * 1024 * 1024) {
+    log_.printw("Large amount of memory required\n");
+  }
+
+  log_.print("\n");
+
   return kStatusOk;
 }
 
@@ -496,7 +511,7 @@ Int FactorHiGHSSolver::chooseNla() {
       status = kStatusErrorAnalyse;
 
     log_.printe("Both NE and AS failed analyse phase\n");
-    if ((symb_AS.fillin() > 50 || symb_NE.fillin() > 50) &&
+    if ((symb_AS.fillin() > kLargeFillin || symb_NE.fillin() > kLargeFillin) &&
         !options_.metis_no2hop)
       log_.print(
           "Large fill-in in factorisation. Consider setting the "
@@ -628,6 +643,13 @@ void FactorHiGHSSolver::setParallel() {
         parallel_tree = true;
       }
 #endif
+
+      // If serial memory is too large, switch off tree parallelism to avoid
+      // running out of memory
+      double num_GB = S_.storage() / 1024 / 1024 / 1024;
+      if (num_GB > kLargeStorageGB) {
+        parallel_tree = false;
+      }
 
       if (parallel_tree && parallel_node) {
         options_.parallel = kOptionParallelOn;

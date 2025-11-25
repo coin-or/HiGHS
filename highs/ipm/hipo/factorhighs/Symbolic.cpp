@@ -45,6 +45,7 @@ Int64 Symbolic::maxStackSize() const { return max_stack_size_; }
 bool Symbolic::parTree() const { return parallel_tree_; }
 bool Symbolic::parNode() const { return parallel_node_; }
 bool Symbolic::metisNo2hop() const { return metis_no2hop_; }
+double Symbolic::storage() const { return serial_storage_; }
 
 const std::vector<Int64>& Symbolic::ptr() const { return ptr_; }
 const std::vector<Int>& Symbolic::iperm() const { return iperm_; }
@@ -98,15 +99,6 @@ void Symbolic::print(const Log& log, bool verbose) const {
                << '\n';
   }
   log.print(log_stream);
-
-  // Warn about large fill-in
-  if (fillin_ > 50 && !metis_no2hop_) {
-    log.printw(
-        "Large fill-in in factorisation. Consider setting the "
-        "hipo_metis_no2hop option to true\n");
-  }
-
-  log.print("\n");
 }
 
 }  // namespace hipo

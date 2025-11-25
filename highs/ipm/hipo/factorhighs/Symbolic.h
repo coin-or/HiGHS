@@ -129,6 +129,7 @@ class Symbolic {
   bool parTree() const;
   bool parNode() const;
   bool metisNo2hop() const;
+  double storage() const;
   const std::vector<Int64>& ptr() const;
   const std::vector<Int>& iperm() const;
   const std::vector<Int>& snParent() const;
