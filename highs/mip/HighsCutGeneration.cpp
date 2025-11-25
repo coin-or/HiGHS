@@ -523,7 +523,7 @@ bool HighsCutGeneration::cmirCutGenerationHeuristic(double minEfficacy,
   integerinds.clear();
   integerinds.reserve(rowlen);
 
-  bool strongcg = true;
+  bool strongcg = !onlyInitialCMIRScale;
   double maxabsdelta = 0.0;
   constexpr double maxCMirScale = 1e6;
   constexpr double f0min = 0.005;
@@ -721,7 +721,7 @@ bool HighsCutGeneration::cmirCutGenerationHeuristic(double minEfficacy,
           double aj = downaj;
           updateViolationAndNorm(j, aj, viol, sqrnorm);
         } else {
-          double pj = fast_ceil(k * (fj - f0) * oneoveroneminusf0 - feastol);
+          double pj = fast_ceil(k * (fj - f0) * oneoveroneminusf0 - 1e-4);
           double aj = downaj + (pj / (k + 1));
           updateViolationAndNorm(j, aj, viol, sqrnorm);
         }
@@ -769,7 +769,7 @@ bool HighsCutGeneration::cmirCutGenerationHeuristic(double minEfficacy,
       if (fj > f0) {
         if (strongcg) {
           if (fj - f0 > epsilon) {
-            HighsCDouble pj = ceil(k * (fj - f0) * oneoveroneminusf0 - epsilon);
+            HighsCDouble pj = ceil(k * (fj - f0) * oneoveroneminusf0 - feastol);
             aj += pj / (k + 1);
           }
         } else {
