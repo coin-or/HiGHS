@@ -1524,29 +1524,117 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
     return Result::kPrimalInfeasible;
   }
 
-  // store binary variables in vector with their number of implications on
-  // other binaries
-  std::vector<std::tuple<int64_t, HighsInt, HighsInt, HighsInt>> binaries;
+  // store binary variables in vector with their scores
+  std::vector<std::pair<double, HighsInt>> binaries;
+  binaries.reserve(model->num_col_);
 
   if (!mipsolver->mipdata_->cliquetable.isFull()) {
-    binaries.reserve(model->num_col_);
+    double max_basic_score = kHighsInf;
+    std::vector<std::tuple<int64_t, HighsInt, HighsInt, HighsInt>> basic_scores;
+    basic_scores.reserve(model->num_col_);
     HighsRandom random(options->random_seed);
     for (HighsInt i = 0; i != model->num_col_; ++i) {
       if (domain.isBinary(i)) {
-        HighsInt implicsUp = cliquetable.getNumImplications(i, 1);
-        HighsInt implicsDown = cliquetable.getNumImplications(i, 0);
-        binaries.emplace_back(
+        HighsInt implicsUp = cliquetable.getNumImplications(i, true);
+        HighsInt implicsDown = cliquetable.getNumImplications(i, false);
+        int64_t score =
             -std::min(int64_t{5000}, int64_t(implicsUp) * implicsDown) /
-                (int64_t{1} + static_cast<int64_t>(numProbes[i])),
-            -std::min(HighsInt{100}, implicsUp + implicsDown), random.integer(),
-            i);
+            (int64_t{1} + static_cast<int64_t>(numProbes[i]));
+        basic_scores.emplace_back(
+            score, -std::min(HighsInt{100}, implicsUp + implicsDown),
+            random.integer(), i);
+        if (static_cast<double>(score) < max_basic_score)
+          max_basic_score = static_cast<double>(score);
+      }
+    }
+    HighsInt num_binaries = static_cast<HighsInt>(basic_scores.size());
+    if (num_binaries < 80) {
+      pdqsort(basic_scores.begin(), basic_scores.end());
+      // Use the basic scores (number of implications from the clique table)
+      for (std::tuple<int64_t, HighsInt, HighsInt, HighsInt> basic_score :
+           basic_scores) {
+        binaries.emplace_back(static_cast<double>(std::get<0>(basic_score)),
+                              std::get<3>(basic_score));
+      }
+    } else {
+      // Use the advanced scores
+      // Each column x_j has a - / + score (for 0 / 1 probes).
+      // The score simulates how many other columns get fixed after fixing x_j,
+      // assuming the closed range of the row is optimally distributed
+      // (Some sqrt / squares are then added to walk back the dist. assumption)
+      // Example: Given a row \sum_{i \in k} a_i x_i <= b, and col x_j, a_j > 0
+      // Change score of x_j^+ by sqrt(k - 1) * (a_j / |rhs - minactivity|) ** 2
+      std::vector<std::pair<double, double>> scores(model->num_col_);
+      for (HighsInt i = 0; i != model->num_row_; ++i) {
+        HighsInt start = mipsolver->mipdata_->ARstart_[i];
+        HighsInt end = mipsolver->mipdata_->ARstart_[i + 1];
+        HighsInt kminusone = end - start - 1;
+        if (kminusone == 0) continue;
+        const double rhs = mipsolver->rowUpper(i);
+        const double lhs = mipsolver->rowLower(i);
+        const double minactivity = domain.getMinActivity(i);
+        const double maxactivity = domain.getMaxActivity(i);
+        if (!((minactivity != -kHighsInf && rhs != kHighsInf) ||
+              (maxactivity != kHighsInf && lhs != -kHighsInf)))
+          continue;
+        for (HighsInt j = start; j != end; ++j) {
+          const HighsInt col = mipsolver->mipdata_->ARindex_[j];
+          if (domain.isBinary(col)) {
+            double val = mipsolver->mipdata_->ARvalue_[j];
+            if (val == 0) continue;
+            if (minactivity != -kHighsInf && rhs != kHighsInf) {
+              double row_range = rhs - minactivity;
+              if (row_range <= primal_feastol) continue;
+              double rel_range_closed = std::abs(val) / row_range;
+              assert(rel_range_closed >= 0 && rel_range_closed <= 1);
+              if (val > 0)
+                scores[col].second +=
+                    std::sqrt(kminusone) * rel_range_closed * rel_range_closed;
+              else
+                scores[col].first +=
+                    std::sqrt(kminusone) * rel_range_closed * rel_range_closed;
+            }
+            if (maxactivity != kHighsInf && lhs != -kHighsInf) {
+              double row_range = maxactivity - lhs;
+              if (row_range <= primal_feastol) continue;
+              double rel_range_closed = std::abs(val) / row_range;
+              assert(rel_range_closed >= 0 && rel_range_closed <= 1);
+              if (val > 0)
+                scores[col].first +=
+                    std::sqrt(kminusone) * rel_range_closed * rel_range_closed;
+              else
+                scores[col].second +=
+                    std::sqrt(kminusone) * rel_range_closed * rel_range_closed;
+            }
+          }
+        }
+      }
+      std::vector<std::tuple<double, HighsInt, HighsInt>> advanced_scores(
+          num_binaries);
+      for (HighsInt i = 0; i != num_binaries; ++i) {
+        HighsInt col = std::get<3>(basic_scores[i]);
+        double basic_score =
+            std::get<0>(basic_scores[i]) == 0
+                ? 1
+                : static_cast<double>(std::get<0>(basic_scores[i])) /
+                      max_basic_score;
+        double advanced_score =
+            -(scores[col].first * scores[col].second +
+              std::max(scores[col].first, scores[col].second)) /
+            (1 + numProbes[col]);
+        advanced_scores.emplace_back(advanced_score * basic_score,
+                                     std::get<2>(basic_scores[i]), col);
+      }
+      pdqsort(advanced_scores.begin(), advanced_scores.end());
+      for (std::tuple<double, HighsInt, HighsInt> advanced_score :
+           advanced_scores) {
+        binaries.emplace_back(std::get<0>(advanced_score),
+                              std::get<2>(advanced_score));
       }
     }
   }
-  if (!binaries.empty()) {
-    // sort variables with many implications on other binaries first
-    pdqsort(binaries.begin(), binaries.end());
 
+  if (!binaries.empty()) {
     size_t numChangedCols = 0;
     while (domain.getChangedCols().size() != numChangedCols) {
       if (domain.isFixed(domain.getChangedCols()[numChangedCols++]))
@@ -1606,7 +1694,7 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
     }
 
     for (const auto& binvar : binaries) {
-      HighsInt i = std::get<3>(binvar);
+      HighsInt i = binvar.second;
 
       if (cliquetable.getSubstitution(i) != nullptr || !domain.isBinary(i))
         continue;
