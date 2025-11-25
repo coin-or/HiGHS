@@ -1,5 +1,6 @@
 #include "HybridHybridFormatHandler.h"
 
+#include <cassert>
 #include <cstring>
 
 #include "CallAndTimeBlas.h"
@@ -38,7 +39,11 @@ void HybridHybridFormatHandler::initFrontal() {
 
 void HybridHybridFormatHandler::initClique() {
   clique_.resize(S_->cliqueSize(sn_));
-  clique_ptr_ = clique_.data();
+
+  // If the clique size is zero, do not access the underlying pointer. This
+  // causes strange issues on windows. It's not a problem if clique_ptr_ remains
+  // null, because it will never be used in that case.
+  if (!clique_.empty()) clique_ptr_ = clique_.data();
 }
 
 void HybridHybridFormatHandler::assembleFrontal(Int i, Int j, double val) {
@@ -71,6 +76,9 @@ void HybridHybridFormatHandler::assembleFrontalMultiple(Int num,
 
 Int HybridHybridFormatHandler::denseFactorise(double reg_thresh) {
   Int status;
+
+  // either clique is valid, or clique is not needed
+  assert(clique_ptr_ || ldf_ == sn_size_);
 
   status = denseFactFP2FH(frontal_.data(), ldf_, sn_size_, nb_, data_);
   if (status) return status;
