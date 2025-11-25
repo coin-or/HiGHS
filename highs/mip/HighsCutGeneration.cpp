@@ -1440,12 +1440,8 @@ bool HighsCutGeneration::generateCut(HighsTransformedLp& transLp,
           continue;
         sqrnorm += vals_[i] * vals_[i];
       }
-      if (sqrnorm == 0) {
-        efficacy = 0;
-      } else {
-        efficacy = viol / sqrt(sqrnorm);
-      }
-      if (flowCoverEfficacy > 1.2 * efficacy) {
+      if (sqrnorm > 0) efficacy = viol / sqrt(sqrnorm);
+      if (flowCoverEfficacy > efficacy + feastol) {
         rhs_ = flowCoverRhs;
         std::swap(vals_, flowCoverVals);
         std::swap(inds_, flowCoverInds);
