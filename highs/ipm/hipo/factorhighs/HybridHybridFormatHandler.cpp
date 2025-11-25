@@ -26,7 +26,6 @@ void HybridHybridFormatHandler::initFrontal() {
   const Int n_blocks = (sn_size_ - 1) / nb_ + 1;
   diag_start_.resize(n_blocks);
   Int64 frontal_size = getDiagStart(ldf_, sn_size_, nb_, n_blocks, diag_start_);
-  frontal_size += extra_space_frontal;
   frontal_.resize(frontal_size);
   std::memset(frontal_.data(), 0, frontal_size * sizeof(double));
 

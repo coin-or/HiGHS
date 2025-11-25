@@ -80,25 +80,26 @@ void HybridSolveHandler::forwardSolve(std::vector<double>& x) const {
       // temporary space for gemv
       const Int gemv_space = ldSn - nb * j - jb;
       std::vector<double> y(gemv_space);
-
-      callAndTime_dgemv('T', jb, gemv_space, 1.0, &sn_columns_[sn][SnCol_ind],
-                        jb, &x[x_start], 1, 0.0, y.data(), 1, data_);
-      SnCol_ind += jb * gemv_space;
+      if (gemv_space > 0) {
+        callAndTime_dgemv('T', jb, gemv_space, 1.0, &sn_columns_[sn][SnCol_ind],
+                          jb, &x[x_start], 1, 0.0, y.data(), 1, data_);
+        SnCol_ind += jb * gemv_space;
 #if HIPO_TIMING_LEVEL >= 2
-      if (data_) data_->sumTime(kTimeSolveSolve_dense, clock.stop());
+        if (data_) data_->sumTime(kTimeSolveSolve_dense, clock.stop());
 #endif
 
 #if HIPO_TIMING_LEVEL >= 2
-      clock.start();
+        clock.start();
 #endif
-      // scatter solution of gemv
-      for (Int i = 0; i < gemv_space; ++i) {
-        const Int row = S_.rows(start_row + nb * j + jb + i);
-        x[row] -= y[i];
+        // scatter solution of gemv
+        for (Int i = 0; i < gemv_space; ++i) {
+          const Int row = S_.rows(start_row + nb * j + jb + i);
+          x[row] -= y[i];
+        }
+#if HIPO_TIMING_LEVEL >= 2
+        if (data_) data_->sumTime(kTimeSolveSolve_sparse, clock.stop());
+#endif
       }
-#if HIPO_TIMING_LEVEL >= 2
-      if (data_) data_->sumTime(kTimeSolveSolve_sparse, clock.stop());
-#endif
 
 #ifdef HIPO_PIVOTING
 #if HIPO_TIMING_LEVEL >= 2
@@ -145,7 +146,7 @@ void HybridSolveHandler::backwardSolve(std::vector<double>& x) const {
 
     // index to access snColumns[sn]
     // initialised with the total number of entries of snColumns[sn]
-    Int64 SnCol_ind = sn_columns_[sn].size() - extra_space_frontal;
+    Int64 SnCol_ind = sn_columns_[sn].size();
 
     // go through blocks of columns for this supernode in reverse order
     for (Int j = n_blocks - 1; j >= 0; --j) {
@@ -173,26 +174,34 @@ void HybridSolveHandler::backwardSolve(std::vector<double>& x) const {
       // temporary space for gemv
       const Int gemv_space = ldSn - nb * j - jb;
       std::vector<double> y(gemv_space);
+      if (gemv_space > 0) {
+#if HIPO_TIMING_LEVEL >= 2
+        clock.start();
+#endif
+        // scatter entries into y
+        for (Int i = 0; i < gemv_space; ++i) {
+          const Int row = S_.rows(start_row + nb * j + jb + i);
+          y[i] = x[row];
+        }
+#if HIPO_TIMING_LEVEL >= 2
+        if (data_) data_->sumTime(kTimeSolveSolve_sparse, clock.stop());
+#endif
 
 #if HIPO_TIMING_LEVEL >= 2
-      clock.start();
+        clock.start();
 #endif
-      // scatter entries into y
-      for (Int i = 0; i < gemv_space; ++i) {
-        const Int row = S_.rows(start_row + nb * j + jb + i);
-        y[i] = x[row];
+        SnCol_ind -= jb * gemv_space;
+        callAndTime_dgemv('N', jb, gemv_space, -1.0,
+                          &sn_columns_[sn][SnCol_ind], jb, y.data(), 1, 1.0,
+                          &x[x_start], 1, data_);
+#if HIPO_TIMING_LEVEL >= 2
+        if (data_) data_->sumTime(kTimeSolveSolve_dense, clock.stop());
+#endif
       }
-#if HIPO_TIMING_LEVEL >= 2
-      if (data_) data_->sumTime(kTimeSolveSolve_sparse, clock.stop());
-#endif
 
 #if HIPO_TIMING_LEVEL >= 2
       clock.start();
 #endif
-      SnCol_ind -= jb * gemv_space;
-      callAndTime_dgemv('N', jb, gemv_space, -1.0, &sn_columns_[sn][SnCol_ind],
-                        jb, y.data(), 1, 1.0, &x[x_start], 1, data_);
-
       SnCol_ind -= diag_entries;
       callAndTime_dtrsv('U', 'N', 'U', jb, &sn_columns_[sn][SnCol_ind], jb,
                         &x[x_start], 1, data_);
