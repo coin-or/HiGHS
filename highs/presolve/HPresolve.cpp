@@ -1616,7 +1616,7 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
         double basic_score =
             std::get<0>(basic_scores[i]) == 0
                 ? 1
-                : 1 + 2 * -static_cast<double>(std::get<0>(basic_scores[i])) /
+                : 1 + 2 * static_cast<double>(std::get<0>(basic_scores[i])) /
                           max_basic_score;
         double advanced_score =
             -(scores[col].first * scores[col].second +
