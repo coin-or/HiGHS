@@ -224,6 +224,10 @@ class PDLPSolver {
   double* d_y_avg_ = nullptr;
   double* d_x_next_ = nullptr;
   double* d_y_next_ = nullptr;
+  double* d_x_at_last_restart_ = nullptr;
+  double* d_y_at_last_restart_ = nullptr;
+  double* d_x_temp_diff_norm_result_ = nullptr;
+  double* d_y_temp_diff_norm_result_ = nullptr; // Temporary buffer for reduction result
   double* d_ax_current_ = nullptr;  // Replaces host-side Ax_cache_
   double* d_aty_current_ = nullptr; // Replaces host-side ATy_cache_
   double* d_ax_next_ = nullptr;
@@ -242,6 +246,7 @@ class PDLPSolver {
   double* d_dSlackNegAvg_ = nullptr;
   double* d_col_scale_ = nullptr;
   double* d_row_scale_ = nullptr;
+  double* d_reduction_result_ = nullptr; //size 1
   bool checkConvergenceGpu(const int iter, 
       const double* d_x, const double* d_y,
       const double* d_ax, const double* d_aty,
@@ -257,6 +262,9 @@ class PDLPSolver {
   void launchKernelUpdateY(double dual_step);
   void launchKernelUpdateAverages(double weight);
   void launchKernelScaleVector(double* d_out, const double* d_in, double scale, int n);
+  void computeStepSizeRatioGpu(PrimalDualParams& working_params);
+  void updateAverageIteratesGpu(int inner_iter);
+  void computeAverageIterateGpu();
 };
 
 #endif

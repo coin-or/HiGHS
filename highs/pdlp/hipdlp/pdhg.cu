@@ -182,6 +182,19 @@ __global__ void kernelCheckDual(
   atomicAdd(&d_results[IDX_DUAL_OBJ], local_dual_obj_part);
 }
 
+__global__ void kernelDiffTwoNormSquared(
+  const double* a, const double* b,
+  double* result, int n){
+  double local_diff_sq = 0.0;
+  CUDA_GRID_STRIDE_LOOP(i, n){
+    double diff = a[i] - b[i];
+    local_diff_sq += diff * diff;
+  }
+
+  atomicAdd(result, local_diff_sq);
+}
+
+
 // Add C++ wrapper functions to launch the kernels
 extern "C" {
 void launchKernelUpdateX_wrapper(
@@ -275,6 +288,18 @@ void launchCheckConvergenceKernels_wrapper(
         d_col_cost, d_col_lower, d_col_upper, d_col_scale, n_cols
     );
 
+    cudaGetLastError();
+}
+
+void launchKernelDiffTwoNormSquared_wrapper(
+    const double* d_a, const double* d_b, double* d_result, int n) {
+    
+    // Reset result on device first
+    cudaMemset(d_result, 0, sizeof(double));
+    
+    const int block_size = 256;
+    dim3 config = GetLaunchConfig(n, block_size);
+    kernelDiffTwoNormSquared<<<config.x, block_size>>>(d_a, d_b, d_result, n);
     cudaGetLastError();
 }
 } // extern "C"

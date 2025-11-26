@@ -34,6 +34,9 @@ void launchCheckConvergenceKernels_wrapper(
     const bool* d_is_equality,
     const double* d_col_scale, const double* d_row_scale,
     int n_cols, int n_rows);
+
+void launchKernelDiffTwoNormSquared_wrapper(
+    const double* d_a, const double* d_b, double* d_result, int n);
 #ifdef __cplusplus
 }
 #endif

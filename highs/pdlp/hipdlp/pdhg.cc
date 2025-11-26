@@ -691,6 +691,13 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
 
           Ax_cache_ = Ax_avg;
           ATy_cache_ = ATy_avg;
+
+#ifdef CUPDLP_GPU
+          CUDA_CHECK(cudaMemcpy(d_x_current_, d_x_avg_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
+          CUDA_CHECK(cudaMemcpy(d_y_current_, d_y_avg_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToDevice));
+          linalgGpuAx(d_x_current_, d_ax_current_);
+          linalgGpuATy(d_y_current_, d_aty_current_);
+#endif
         } else {
           restart_scheme_.primal_feas_last_restart_ =
               current_results.primal_feasibility;
@@ -701,6 +708,9 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         }
 
         // Perform the primal weight update using z^{n,0} and z^{n-1,0}
+#ifdef CUPDLP_GPU
+        computeStepSizeRatioGpu(working_params);
+#endif
         computeStepSizeRatio(working_params);
         current_eta_ = working_params.eta;
         restart_scheme_.passParams(&working_params);
@@ -711,6 +721,14 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         std::fill(x_sum_.begin(), x_sum_.end(), 0.0);
         std::fill(y_sum_.begin(), y_sum_.end(), 0.0);
         sum_weights_ = 0.0;
+
+#ifdef CUPDLP_GPU
+        CUDA_CHECK(cudaMemcpy(d_x_at_last_restart_, d_x_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
+        CUDA_CHECK(cudaMemcpy(d_y_at_last_restart_, d_y_current_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToDevice));
+        CUDA_CHECK(cudaMemset(d_x_sum_, 0, a_num_cols_ * sizeof(double)));
+        CUDA_CHECK(cudaMemset(d_y_sum_, 0, a_num_rows_ * sizeof(double)));
+        sum_weights_gpu_ = 0.0;
+#endif
 
         restart_scheme_.last_restart_iter_ = iter;
         // Recompute Ax and ATy for the restarted iterates
@@ -1851,6 +1869,10 @@ void PDLPSolver::setupGpu(){
   CUDA_CHECK(cudaMalloc(&d_y_avg_, a_num_rows_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_x_next_, a_num_cols_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_y_next_, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_x_at_last_restart_, a_num_cols_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_y_at_last_restart_, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_x_temp_diff_norm_result_, a_num_cols_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_y_temp_diff_norm_result_, a_num_rows_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_ax_current_, a_num_rows_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_aty_current_, a_num_cols_ * sizeof(double)));  
   CUDA_CHECK(cudaMalloc(&d_ax_next_, a_num_rows_ * sizeof(double)));
@@ -1951,6 +1973,10 @@ void PDLPSolver::cleanupGpu(){
   CUDA_CHECK(cudaFree(d_col_upper_));
   CUDA_CHECK(cudaFree(d_row_lower_));
   CUDA_CHECK(cudaFree(d_is_equality_row_));
+  CUDA_CHECK(cudaFree(d_x_at_last_restart_));
+  CUDA_CHECK(cudaFree(d_y_at_last_restart_));
+  CUDA_CHECK(cudaFree(d_x_temp_diff_norm_result_));
+  CUDA_CHECK(cudaFree(d_y_temp_diff_norm_result_));
   CUDA_CHECK(cudaFree(d_x_current_));
   CUDA_CHECK(cudaFree(d_y_current_));
   CUDA_CHECK(cudaFree(d_x_next_));
@@ -2096,4 +2122,38 @@ bool PDLPSolver::checkConvergenceGpu(
 
   return primal_feasible && dual_feasible && gap_small;
 
+}
+void PDLPSolver::computeStepSizeRatioGpu(PrimalDualParams& working_params) {
+  // 1. Compute ||x_last - x_current||^2 on GPU
+  launchKernelDiffTwoNormSquared_wrapper(d_x_at_last_restart_, d_x_current_, d_x_temp_diff_norm_result_, a_num_cols_);
+
+  double primal_diff_sq;
+  CUDA_CHECK(cudaMemcpy(&primal_diff_sq, d_x_temp_diff_norm_result_, sizeof(double), cudaMemcpyDeviceToHost));
+  double primal_diff_norm = std::sqrt(primal_diff_sq);
+
+  // 2. Compute ||y_last - y_current||^2 on GPU
+  launchKernelDiffTwoNormSquared_wrapper(d_y_at_last_restart_, d_y_current_, d_y_temp_diff_norm_result_, a_num_rows_);
+
+  double dual_diff_sq;
+  CUDA_CHECK(cudaMemcpy(&dual_diff_sq, d_y_temp_diff_norm_result_, sizeof(double), cudaMemcpyDeviceToHost));
+  double dual_diff_norm = std::sqrt(dual_diff_sq);
+
+  double dMeanStepSize = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
+
+  // 3. Compute new beta
+  if (std::min(primal_diff_norm, dual_diff_norm) > 1e-10) {
+    double beta_update_ratio = dual_diff_norm / primal_diff_norm;
+    double old_beta = stepsize_.beta;
+
+    double dLogBetaUpdate =
+        0.5 * std::log(beta_update_ratio) + 0.5 * std::log(std::sqrt(old_beta));
+    stepsize_.beta = std::exp(2.0 * dLogBetaUpdate);
+  }
+
+  // Update steps
+  stepsize_.primal_step = dMeanStepSize / std::sqrt(stepsize_.beta);
+  stepsize_.dual_step = stepsize_.primal_step * stepsize_.beta;
+  working_params.eta = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
+  working_params.omega = std::sqrt(stepsize_.beta);
+  restart_scheme_.UpdateBeta(stepsize_.beta);
 }
