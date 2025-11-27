@@ -3,11 +3,14 @@
 #include <cstdio>
 #include <cstdlib>
 
+// offset from C to Fortran numbering
+const HighsInt offset = 1;
+
 //****************************************************************************80
 
-void degree(HighsInt root, HighsInt adj_num, HighsInt adj_row[], HighsInt adj[],
-            HighsInt mask[], HighsInt deg[], HighsInt* iccsze, HighsInt ls[],
-            HighsInt node_num)
+void degree(HighsInt root, HighsInt adj_num, const HighsInt adj_row[],
+            const HighsInt adj[], HighsInt mask[], HighsInt deg[],
+            HighsInt* iccsze, HighsInt ls[], HighsInt node_num)
 
 //****************************************************************************80
 //
@@ -80,9 +83,12 @@ void degree(HighsInt root, HighsInt adj_num, HighsInt adj_row[], HighsInt adj[],
   HighsInt node;
   //
   //  The sign of ADJ_ROW(I) is used to indicate if node I has been considered.
-  //
+  //  Use a separate array instead, to keep adj_row const.
+  HighsInt* mark = new HighsInt[node_num];
+  for (HighsInt i = 0; i < node_num; ++i) mark[i] = 1;
+
   ls[0] = root;
-  adj_row[root - 1] = -adj_row[root - 1];
+  mark[root - 1] = -1;
   lvlend = 0;
   *iccsze = 1;
   //
@@ -98,18 +104,18 @@ void degree(HighsInt root, HighsInt adj_num, HighsInt adj_row[], HighsInt adj[],
     //
     for (i = lbegin; i <= lvlend; i++) {
       node = ls[i - 1];
-      jstrt = -adj_row[node - 1];
-      jstop = abs(adj_row[node]) - 1;
+      jstrt = adj_row[node - 1] + offset;
+      jstop = adj_row[node] - 1 + offset;
       ideg = 0;
 
       for (j = jstrt; j <= jstop; j++) {
-        nbr = adj[j - 1];
+        nbr = adj[j - 1] + offset;
 
         if (mask[nbr - 1] != 0) {
           ideg = ideg + 1;
 
-          if (0 <= adj_row[nbr - 1]) {
-            adj_row[nbr - 1] = -adj_row[nbr - 1];
+          if (0 <= mark[nbr - 1]) {
+            mark[nbr - 1] = -1;
             *iccsze = *iccsze + 1;
             ls[*iccsze - 1] = nbr;
           }
@@ -133,8 +139,9 @@ void degree(HighsInt root, HighsInt adj_num, HighsInt adj_row[], HighsInt adj[],
   //
   for (i = 0; i < *iccsze; i++) {
     node = ls[i] - 1;
-    adj_row[node] = -adj_row[node];
   }
+
+  delete[] mark;
 
   return;
 }
@@ -195,8 +202,8 @@ void i4vec_reverse(HighsInt n, HighsInt a[])
 }
 //****************************************************************************80
 
-void level_set(HighsInt root, HighsInt adj_num, HighsInt adj_row[],
-               HighsInt adj[], HighsInt mask[], HighsInt* level_num,
+void level_set(HighsInt root, HighsInt adj_num, const HighsInt adj_row[],
+               const HighsInt adj[], HighsInt mask[], HighsInt* level_num,
                HighsInt level_row[], HighsInt level[], HighsInt node_num)
 
 //****************************************************************************80
@@ -296,11 +303,11 @@ void level_set(HighsInt root, HighsInt adj_num, HighsInt adj_row[],
     //
     for (i = lbegin; i <= lvlend; i++) {
       node = level[i - 1];
-      jstrt = adj_row[node - 1];
-      jstop = adj_row[node] - 1;
+      jstrt = adj_row[node - 1] + offset;
+      jstop = adj_row[node] - 1 + offset;
 
       for (j = jstrt; j <= jstop; j++) {
-        nbr = adj[j - 1];
+        nbr = adj[j - 1] + offset;
 
         if (mask[nbr - 1] != 0) {
           iccsze = iccsze + 1;
@@ -332,9 +339,9 @@ void level_set(HighsInt root, HighsInt adj_num, HighsInt adj_row[],
 }
 //****************************************************************************80
 
-HighsInt rcm(HighsInt root, HighsInt adj_num, HighsInt adj_row[],
-             HighsInt adj[], HighsInt mask[], HighsInt perm[], HighsInt* iccsze,
-             HighsInt node_num)
+HighsInt rcm(HighsInt root, HighsInt adj_num, const HighsInt adj_row[],
+             const HighsInt adj[], HighsInt mask[], HighsInt perm[],
+             HighsInt* iccsze, HighsInt node_num)
 
 //****************************************************************************80
 //
@@ -488,8 +495,8 @@ HighsInt rcm(HighsInt root, HighsInt adj_num, HighsInt adj_row[],
       //  For each node in the current level...
       //
       node = perm[i - 1];
-      jstrt = adj_row[node - 1];
-      jstop = adj_row[node] - 1;
+      jstrt = adj_row[node - 1] + offset;
+      jstop = adj_row[node] - 1 + offset;
       //
       //  Find the unnumbered neighbors of NODE.
       //
@@ -499,7 +506,7 @@ HighsInt rcm(HighsInt root, HighsInt adj_num, HighsInt adj_row[],
       fnbr = lnbr + 1;
 
       for (j = jstrt; j <= jstop; j++) {
-        nbr = adj[j - 1];
+        nbr = adj[j - 1] + offset;
 
         if (mask[nbr - 1] != 0) {
           lnbr = lnbr + 1;
@@ -552,8 +559,8 @@ HighsInt rcm(HighsInt root, HighsInt adj_num, HighsInt adj_row[],
 }
 //****************************************************************************80
 
-void root_find(HighsInt* root, HighsInt adj_num, HighsInt adj_row[],
-               HighsInt adj[], HighsInt mask[], HighsInt* level_num,
+void root_find(HighsInt* root, HighsInt adj_num, const HighsInt adj_row[],
+               const HighsInt adj[], HighsInt mask[], HighsInt* level_num,
                HighsInt level_row[], HighsInt level[], HighsInt node_num)
 
 //****************************************************************************80
@@ -697,11 +704,11 @@ void root_find(HighsInt* root, HighsInt adj_num, HighsInt adj_row[],
       for (j = jstrt; j <= iccsze; j++) {
         node = level[j - 1];
         ndeg = 0;
-        kstrt = adj_row[node - 1];
-        kstop = adj_row[node] - 1;
+        kstrt = adj_row[node - 1] + offset;
+        kstop = adj_row[node] - 1 + offset;
 
         for (k = kstrt; k <= kstop; k++) {
-          nabor = adj[k - 1];
+          nabor = adj[k - 1] + offset;
           if (0 < mask[nabor - 1]) {
             ndeg = ndeg + 1;
           }
@@ -739,8 +746,8 @@ void root_find(HighsInt* root, HighsInt adj_num, HighsInt adj_row[],
 }
 //****************************************************************************80
 
-HighsInt genrcm(HighsInt node_num, HighsInt adj_num, HighsInt adj_row[],
-                HighsInt adj[], HighsInt perm[])
+HighsInt genrcm(HighsInt node_num, HighsInt adj_num, const HighsInt adj_row[],
+                const HighsInt adj[], HighsInt perm[])
 
 //****************************************************************************80
 //
@@ -784,9 +791,13 @@ HighsInt genrcm(HighsInt node_num, HighsInt adj_num, HighsInt adj_row[],
 //    int  ADJ[ADJ_NUM], the adjacency structure.
 //    For each row, it contains the column indices of the nonzero entries.
 //
+//    NB: adj_row and adj should be provided using zero-based numbering.
+//
 //  Output:
 //
 //    int  PERM[NODE_NUM], the RCM ordering.
+//
+//    NB: perm is returned using zero-based numbering.
 //
 //  Local:
 //
@@ -841,11 +852,14 @@ HighsInt genrcm(HighsInt node_num, HighsInt adj_num, HighsInt adj_row[],
       //  We can stop once every node is in one of the connected components.
       //
       if (node_num < num) {
-        delete[] level_row;
-        delete[] mask;
-        return 0;
+        break;
       }
     }
+  }
+
+  // convert to zero-based numbering
+  for (HighsInt i = 0; i < node_num; ++i) {
+    perm[i] -= offset;
   }
 
   delete[] level_row;
