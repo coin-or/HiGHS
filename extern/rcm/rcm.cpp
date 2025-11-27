@@ -1,11 +1,7 @@
 #include "rcm.h"
 
-#include <cmath>
+#include <cstdio>
 #include <cstdlib>
-#include <cstring>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
 
 //****************************************************************************80
 
@@ -336,8 +332,9 @@ void level_set(HighsInt root, HighsInt adj_num, HighsInt adj_row[],
 }
 //****************************************************************************80
 
-void rcm(HighsInt root, HighsInt adj_num, HighsInt adj_row[], HighsInt adj[],
-         HighsInt mask[], HighsInt perm[], HighsInt* iccsze, HighsInt node_num)
+HighsInt rcm(HighsInt root, HighsInt adj_num, HighsInt adj_row[],
+             HighsInt adj[], HighsInt mask[], HighsInt perm[], HighsInt* iccsze,
+             HighsInt node_num)
 
 //****************************************************************************80
 //
@@ -433,22 +430,17 @@ void rcm(HighsInt root, HighsInt adj_num, HighsInt adj_row[], HighsInt adj[],
   //  If node_num out of bounds, something is wrong.
   //
   if (node_num < 1) {
-    std::cerr << "\n";
-    std::cerr << "RCM(): Fatal error!\n";
-    std::cerr << "  Unacceptable input value of NODE_NUM = " << node_num
-              << "\n";
-    exit(1);
+    printf("RCM(): Fatal error!\n");
+    printf("  Unacceptable input value of NODE_NUM\n");
+    return 1;
   }
   //
   //  If the root is out of bounds, something is wrong.
   //
   if (root < 1 || node_num < root) {
-    std::cerr << "\n";
-    std::cerr << "RCM(): Fatal error!\n";
-    std::cerr << "  Unacceptable input value of ROOT = " << root << "\n";
-    std::cerr << "  Acceptable values are between 1 and " << node_num
-              << ", inclusive.\n";
-    exit(1);
+    printf("RCM(): Fatal error!\n");
+    printf("  Unacceptable input value of ROOT\n");
+    return 1;
   }
   //
   //  Allocate memory for the degree array.
@@ -462,11 +454,10 @@ void rcm(HighsInt root, HighsInt adj_num, HighsInt adj_row[], HighsInt adj[],
   //  If the connected component size is less than 1, something is wrong.
   //
   if (*iccsze < 1) {
-    std::cerr << "\n";
-    std::cerr << "RCM(): Fatal error!\n";
-    std::cerr << "  Connected component size ICCSZE returned from DEGREE as "
-              << *iccsze << "\n";
-    exit(1);
+    printf("RCM(): Fatal error!\n");
+    printf("  Connected component size ICCSZE returned from DEGREE as %d\n",
+           *iccsze);
+    return 1;
   }
   //
   //  Set the mask value for the root.
@@ -477,7 +468,7 @@ void rcm(HighsInt root, HighsInt adj_num, HighsInt adj_row[], HighsInt adj[],
   //
   if (*iccsze == 1) {
     delete[] deg;
-    return;
+    return 0;
   }
   //
   //  Carry out the reordering.
@@ -557,7 +548,7 @@ void rcm(HighsInt root, HighsInt adj_num, HighsInt adj_row[], HighsInt adj[],
   //
   delete[] deg;
 
-  return;
+  return 0;
 }
 //****************************************************************************80
 
@@ -748,8 +739,8 @@ void root_find(HighsInt* root, HighsInt adj_num, HighsInt adj_row[],
 }
 //****************************************************************************80
 
-void genrcm(HighsInt node_num, HighsInt adj_num, HighsInt adj_row[],
-            HighsInt adj[], HighsInt perm[])
+HighsInt genrcm(HighsInt node_num, HighsInt adj_num, HighsInt adj_row[],
+                HighsInt adj[], HighsInt perm[])
 
 //****************************************************************************80
 //
@@ -838,7 +829,12 @@ void genrcm(HighsInt node_num, HighsInt adj_num, HighsInt adj_row[],
       //
       //  RCM orders the component using ROOT as the starting node.
       //
-      rcm(root, adj_num, adj_row, adj, mask, perm + num - 1, &iccsze, node_num);
+      if (rcm(root, adj_num, adj_row, adj, mask, perm + num - 1, &iccsze,
+              node_num)) {
+        delete[] level_row;
+        delete[] mask;
+        return 1;
+      }
 
       num = num + iccsze;
       //
@@ -847,7 +843,7 @@ void genrcm(HighsInt node_num, HighsInt adj_num, HighsInt adj_row[],
       if (node_num < num) {
         delete[] level_row;
         delete[] mask;
-        return;
+        return 0;
       }
     }
   }
@@ -855,6 +851,6 @@ void genrcm(HighsInt node_num, HighsInt adj_num, HighsInt adj_row[],
   delete[] level_row;
   delete[] mask;
 
-  return;
+  return 0;
 }
 //****************************************************************************80

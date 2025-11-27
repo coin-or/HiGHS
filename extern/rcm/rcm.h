@@ -8,10 +8,10 @@
 // https://people.sc.fsu.edu/~jburkardt/f77_src/sparsepak/sparsepak.html
 // available under MIT license.
 // Changes:
-// - type int substituted with HighsInt
-//
+// - Type int substituted with HighsInt
+// - Added return codes for errors.
 
-void genrcm(HighsInt node_num, HighsInt adj_num, HighsInt adj_row[],
-            HighsInt adj[], HighsInt perm[]);
+HighsInt genrcm(HighsInt node_num, HighsInt adj_num, HighsInt adj_row[],
+                HighsInt adj[], HighsInt perm[]);
 
 #endif
