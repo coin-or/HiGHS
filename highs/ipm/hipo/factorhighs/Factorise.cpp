@@ -187,6 +187,7 @@ void Factorise::processSupernode(Int sn) {
   // store the result.
 
   TaskGroupSpecial tg;
+  HIPO_CLOCK_CREATE(2);
 
   const bool parallel = S_.parTree();
   const bool serial = !parallel;
@@ -206,12 +207,10 @@ void Factorise::processSupernode(Int sn) {
     if (first_child_[sn] != -1) tg.sync();
   }
 
-#if HIPO_TIMING_LEVEL >= 2
-  Clock clock;
-#endif
   // ===================================================
   // Supernode information
   // ===================================================
+  HIPO_CLOCK_START(2);
   // first and last+1 column of the supernodes
   const Int sn_begin = S_.snStart(sn);
   const Int sn_end = S_.snStart(sn + 1);
@@ -232,16 +231,12 @@ void Factorise::processSupernode(Int sn) {
   std::unique_ptr<FormatHandler> FH(new HybridHybridFormatHandler(
       S_, sn, regul_, data_, sn_columns_[sn], clique_ptr));
 
-#if HIPO_TIMING_LEVEL >= 2
-  data_.sumTime(kTimeFactorisePrepare, clock.stop());
-#endif
+  HIPO_CLOCK_STOP(2, data_, kTimeFactorisePrepare);
 
-#if HIPO_TIMING_LEVEL >= 2
-  clock.start();
-#endif
   // ===================================================
   // Assemble original matrix A into frontal
   // ===================================================
+  HIPO_CLOCK_START(2);
   // j is relative column index in the frontal matrix
   for (Int j = 0; j < sn_size; ++j) {
     // column index in the original matrix
@@ -255,9 +250,7 @@ void Factorise::processSupernode(Int sn) {
       FH->assembleFrontal(i, j, valA_[el]);
     }
   }
-#if HIPO_TIMING_LEVEL >= 2
-  data_.sumTime(kTimeFactoriseAssembleOriginal, clock.stop());
-#endif
+  HIPO_CLOCK_STOP(2, data_, kTimeFactoriseAssembleOriginal);
 
   // ===================================================
   // Assemble frontal matrices of children
@@ -300,10 +293,8 @@ void Factorise::processSupernode(Int sn) {
     // size of clique of child sn
     const Int nc = S_.ptr(child_sn + 1) - S_.ptr(child_sn) - child_size;
 
-// ASSEMBLE INTO FRONTAL
-#if HIPO_TIMING_LEVEL >= 2
-    clock.start();
-#endif
+    // ASSEMBLE INTO FRONTAL
+    HIPO_CLOCK_START(2);
     // go through the columns of the contribution of the child
     for (Int col = 0; col < nc; ++col) {
       // relative index of column in the frontal matrix
@@ -328,18 +319,12 @@ void Factorise::processSupernode(Int sn) {
         }
       }
     }
-#if HIPO_TIMING_LEVEL >= 2
-    data_.sumTime(kTimeFactoriseAssembleChildrenFrontal, clock.stop());
-#endif
+    HIPO_CLOCK_STOP(2, data_, kTimeFactoriseAssembleChildrenFrontal);
 
-// ASSEMBLE INTO CLIQUE
-#if HIPO_TIMING_LEVEL >= 2
-    clock.start();
-#endif
+    // ASSEMBLE INTO CLIQUE
+    HIPO_CLOCK_START(2);
     FH->assembleClique(child_clique, nc, child_sn);
-#if HIPO_TIMING_LEVEL >= 2
-    data_.sumTime(kTimeFactoriseAssembleChildrenClique, clock.stop());
-#endif
+    HIPO_CLOCK_STOP(2, data_, kTimeFactoriseAssembleChildrenClique);
 
     // Schur contribution of the child is no longer needed
     if (parallel) {
@@ -355,12 +340,10 @@ void Factorise::processSupernode(Int sn) {
 
   if (flag_stop_) return;
 
-    // ===================================================
-    // Partial factorisation
-    // ===================================================
-#if HIPO_TIMING_LEVEL >= 2
-  clock.start();
-#endif
+  // ===================================================
+  // Partial factorisation
+  // ===================================================
+  HIPO_CLOCK_START(2);
   // threshold for regularisation
   // const double reg_thresh = max_diag_ * kDynamicDiagCoeff;
   const double reg_thresh = A_norm1_ * kDynamicDiagCoeff;
@@ -375,13 +358,9 @@ void Factorise::processSupernode(Int sn) {
 
     return;
   }
-#if HIPO_TIMING_LEVEL >= 2
-  data_.sumTime(kTimeFactoriseDenseFact, clock.stop());
-#endif
+  HIPO_CLOCK_STOP(2, data_, kTimeFactoriseDenseFact);
 
-#if HIPO_TIMING_LEVEL >= 2
-  clock.start();
-#endif
+  HIPO_CLOCK_START(2);
   // compute largest elements in factorisation
   FH->extremeEntries();
 
@@ -391,15 +370,11 @@ void Factorise::processSupernode(Int sn) {
 
   if (serial) stack_->pushWork(sn);
 
-#if HIPO_TIMING_LEVEL >= 2
-  data_.sumTime(kTimeFactoriseTerminate, clock.stop());
-#endif
+  HIPO_CLOCK_STOP(2, data_, kTimeFactoriseTerminate);
 }
 
 bool Factorise::run(Numeric& num) {
-#if HIPO_TIMING_LEVEL >= 1
-  Clock clock;
-#endif
+  HIPO_CLOCK_CREATE(1);
 
   TaskGroupSpecial tg;
 
@@ -447,9 +422,7 @@ bool Factorise::run(Numeric& num) {
   num.pivot_2x2_ = std::move(pivot_2x2_);
   num.data_ = &data_;
 
-#if HIPO_TIMING_LEVEL >= 1
-  data_.sumTime(kTimeFactorise, clock.stop());
-#endif
+  HIPO_CLOCK_STOP(1, data_, kTimeFactorise);
 
   return false;
 }
