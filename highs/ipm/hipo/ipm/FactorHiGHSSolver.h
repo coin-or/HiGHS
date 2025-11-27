@@ -28,8 +28,8 @@ class FactorHiGHSSolver : public LinearSolver {
 
   const Regularisation& regul_;
 
-  Info* info_ = nullptr;
-  IpmData* data_ = nullptr;
+  Info& info_;
+  IpmData& data_;
   const LogHighs& log_;
 
   const Model& model_;
@@ -51,7 +51,7 @@ class FactorHiGHSSolver : public LinearSolver {
 
  public:
   FactorHiGHSSolver(Options& options, const Model& model,
-                    const Regularisation& regul, Info* info, IpmData* record,
+                    const Regularisation& regul, Info& info, IpmData& record,
                     const LogHighs& log);
 
   // Override functions
