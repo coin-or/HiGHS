@@ -9,8 +9,8 @@
 namespace hipo {
 
 FactorHiGHSSolver::FactorHiGHSSolver(Options& options, const Model& model,
-                                     const Regularisation& regul, Info* info,
-                                     IpmData* record, const LogHighs& log)
+                                     const Regularisation& regul, Info& info,
+                                     IpmData& record, const LogHighs& log)
     : FH_(&log, options.block_size),
       S_{},
       regul_{regul},
@@ -271,7 +271,7 @@ Int FactorHiGHSSolver::factorAS(const HighsSparseMatrix& A,
     valLower[next++] = 0.0;
     ptrLower[nA + i + 1] = ptrLower[nA + i] + 1;
   }
-  if (info_) info_->matrix_time += clock.stop();
+  info_.matrix_time += clock.stop();
 
   // set static regularisation, since it may have changed
   FH_.setRegularisation(regul_.primal, regul_.dual);
@@ -280,10 +280,8 @@ Int FactorHiGHSSolver::factorAS(const HighsSparseMatrix& A,
   clock.start();
   if (FH_.factorise(S_, rowsLower, ptrLower, valLower))
     return kStatusErrorFactorise;
-  if (info_) {
-    info_->factor_time += clock.stop();
-    info_->factor_number++;
-  }
+  info_.factor_time += clock.stop();
+  info_.factor_number++;
 
   this->valid_ = true;
   return kStatusOk;
@@ -298,7 +296,7 @@ Int FactorHiGHSSolver::factorNE(const HighsSparseMatrix& A,
 
   // build matrix
   Int status = buildNEvalues(A, scaling);
-  if (info_) info_->matrix_time += clock.stop();
+  info_.matrix_time += clock.stop();
 
   // set static regularisation, since it may have changed
   FH_.setRegularisation(regul_.primal, regul_.dual);
@@ -310,10 +308,9 @@ Int FactorHiGHSSolver::factorNE(const HighsSparseMatrix& A,
   std::vector<Int> ptrNE(ptrNE_);
   std::vector<Int> rowsNE(rowsNE_);
   if (FH_.factorise(S_, rowsNE, ptrNE, valNE_)) return kStatusErrorFactorise;
-  if (info_) {
-    info_->factor_time += clock.stop();
-    info_->factor_number++;
-  }
+
+  info_.factor_time += clock.stop();
+  info_.factor_number++;
 
   this->valid_ = true;
   return kStatusOk;
@@ -329,13 +326,11 @@ Int FactorHiGHSSolver::solveNE(const std::vector<double>& rhs,
 
   Clock clock;
   if (FH_.solve(lhs)) return kStatusErrorSolve;
-  if (info_) {
-    info_->solve_time += clock.stop();
-    info_->solve_number++;
-  }
-  if (data_) {
-    data_->back().num_solves++;
-  }
+
+  info_.solve_time += clock.stop();
+  info_.solve_number++;
+
+  data_.back().num_solves++;
 
   return kStatusOk;
 }
@@ -356,13 +351,11 @@ Int FactorHiGHSSolver::solveAS(const std::vector<double>& rhs_x,
 
   Clock clock;
   if (FH_.solve(rhs)) return kStatusErrorSolve;
-  if (info_) {
-    info_->solve_time += clock.stop();
-    info_->solve_number++;
-  }
-  if (data_) {
-    data_->back().num_solves++;
-  }
+
+  info_.solve_time += clock.stop();
+  info_.solve_number++;
+
+  data_.back().num_solves++;
 
   // split lhs
   lhs_x = std::vector<double>(rhs.begin(), rhs.begin() + n);
@@ -389,7 +382,7 @@ Int FactorHiGHSSolver::analyseAS(Symbolic& S) {
   std::vector<Int> rowsLower;
   if (Int status = getASstructure(model_.A(), ptrLower, rowsLower))
     return status;
-  if (info_) info_->matrix_structure_time = clock.stop();
+  info_.matrix_structure_time = clock.stop();
 
   // create vector of signs of pivots
   std::vector<Int> pivot_signs(model_.A().num_col_ + model_.A().num_row_, -1);
@@ -400,7 +393,7 @@ Int FactorHiGHSSolver::analyseAS(Symbolic& S) {
 
   clock.start();
   Int status = FH_.analyse(S, rowsLower, ptrLower, pivot_signs);
-  if (info_) info_->analyse_AS_time = clock.stop();
+  info_.analyse_AS_time = clock.stop();
 
   if (status && log_.debug(2)) {
     log_.print("Failed augmented system:");
@@ -430,7 +423,7 @@ Int FactorHiGHSSolver::analyseNE(Symbolic& S, Int64 nz_limit) {
 
   Clock clock;
   if (Int status = buildNEstructure(model_.A(), nz_limit)) return status;
-  if (info_) info_->matrix_structure_time = clock.stop();
+  info_.matrix_structure_time = clock.stop();
 
   // create vector of signs of pivots
   std::vector<Int> pivot_signs(model_.A().num_row_, 1);
@@ -439,7 +432,7 @@ Int FactorHiGHSSolver::analyseNE(Symbolic& S, Int64 nz_limit) {
 
   clock.start();
   Int status = FH_.analyse(S, rowsNE_, ptrNE_, pivot_signs);
-  if (info_) info_->analyse_NE_time = clock.stop();
+  info_.analyse_NE_time = clock.stop();
 
   if (status && log_.debug(2)) {
     log_.print("Failed normal equations:");
