@@ -1,6 +1,8 @@
 #ifndef FACTORHIGHS_TIMING_H
 #define FACTORHIGHS_TIMING_H
 
+#include "FactorHiGHSSettings.h"
+
 namespace hipo {
 
 enum TimeItems {
@@ -46,6 +48,65 @@ enum TimeItems {
   kTimeSize                               //
 };
 
-}
+// Macros for timing.
+// - Use HIPO_CLOCK_CREATE(id) to create a Clock clock_id.
+// - Use HIPO_CLOCK_START(id) to start the corresponding clock.
+// - Use HIPO_CLOCK_STOP(id, data, item) to read the corresponding clock and
+//   save the time in the corresponding time item of the data collector.
+// If HIPO_TIMING_LEVEL is not >= id (at compile time), then nothing happens.
+//
+#define HIPO_CLOCK_CREATE(id) HIPO_CLOCK_CREATE_##id
+#define HIPO_CLOCK_START(id) HIPO_CLOCK_START_##id
+#define HIPO_CLOCK_STOP(id, data, item) HIPO_CLOCK_STOP_##id(data, item)
+
+#if HIPO_TIMING_LEVEL >= 1
+#define HIPO_CLOCK_CREATE_1 Clock clock_1
+#else
+#define HIPO_CLOCK_CREATE_1
+#endif
+#if HIPO_TIMING_LEVEL >= 2
+#define HIPO_CLOCK_CREATE_2 Clock clock_2
+#else
+#define HIPO_CLOCK_CREATE_2
+#endif
+#if HIPO_TIMING_LEVEL >= 3
+#define HIPO_CLOCK_CREATE_3 Clock clock_3
+#else
+#define HIPO_CLOCK_CREATE_3
+#endif
+
+#if HIPO_TIMING_LEVEL >= 1
+#define HIPO_CLOCK_START_1 clock_1.start()
+#else
+#define HIPO_CLOCK_START_1
+#endif
+#if HIPO_TIMING_LEVEL >= 2
+#define HIPO_CLOCK_START_2 clock_2.start()
+#else
+#define HIPO_CLOCK_START_2
+#endif
+#if HIPO_TIMING_LEVEL >= 3
+#define HIPO_CLOCK_START_3 clock_3.start()
+#else
+#define HIPO_CLOCK_START_3
+#endif
+
+#if HIPO_TIMING_LEVEL >= 1
+#define HIPO_CLOCK_STOP_1(data, item) (data).sumTime(item, clock_1.stop())
+#else
+#define HIPO_CLOCK_STOP_1(data, item) (void)data  // suppress warning
+#endif
+#if HIPO_TIMING_LEVEL >= 2
+#define HIPO_CLOCK_STOP_2(data, item) (data).sumTime(item, clock_2.stop())
+#else
+#define HIPO_CLOCK_STOP_2(data, item)
+#endif
+#if HIPO_TIMING_LEVEL >= 3
+#define HIPO_CLOCK_STOP_3(data, item) (data).sumTime(item, clock_3.stop())
+#else
+#define HIPO_CLOCK_STOP_3(data, item)
+#endif
+
+}  // namespace hipo
 
 #endif
