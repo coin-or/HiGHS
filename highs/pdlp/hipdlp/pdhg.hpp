@@ -246,7 +246,6 @@ class PDLPSolver {
   double* d_dSlackNegAvg_ = nullptr;
   double* d_col_scale_ = nullptr;
   double* d_row_scale_ = nullptr;
-  double* d_reduction_result_ = nullptr; //size 1
   bool checkConvergenceGpu(const int iter, 
       const double* d_x, const double* d_y,
       const double* d_ax, const double* d_aty,

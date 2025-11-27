@@ -342,7 +342,7 @@ TEST_CASE("pdlp-restart-add-row", "[pdlp]") {
 
 TEST_CASE("hi-pdlp", "[pdlp]") {
   std::string model =
-      "3times2";  //"adlittle";//"afiro";// shell// stair //25fv47 //fit2p
+      "shell";  //"adlittle";//"afiro";// shell// stair //25fv47 //fit2p
   std::string model_file =
       std::string(HIGHS_DIR) + "/check/instances/" + model + ".mps";
   Highs h;
@@ -408,7 +408,7 @@ TEST_CASE("hi-pdlp", "[pdlp]") {
     std::cout << "Objective: " << h.getInfo().objective_function_value
               << std::endl;
   }
-  //assert(hipdlp_iteration_count == h.getInfo().pdlp_iteration_count);
+  assert(hipdlp_iteration_count == h.getInfo().pdlp_iteration_count);
   h.resetGlobalScheduler(true);
 }
 

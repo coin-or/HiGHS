@@ -571,6 +571,7 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
       CUDA_CHECK(cudaMemcpy(Ax_cache_.data(), d_ax_current_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
       CUDA_CHECK(cudaMemcpy(ATy_cache_.data(), d_aty_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
 */
+/*
       CUDA_CHECK(cudaMemcpy(x_sum_.data(), d_x_sum_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
       CUDA_CHECK(cudaMemcpy(y_sum_.data(), d_y_sum_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
       CUDA_CHECK(cudaMemcpy(x_avg_.data(), d_x_avg_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
@@ -582,6 +583,8 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
 
       linalgGpuAx(d_x_avg_, d_ax_avg_);
       linalgGpuATy(d_y_avg_, d_aty_avg_);
+*/
+      computeAverageIterateGpu();
 #endif
       hipdlpTimerStart(kHipdlpClockAverageIterate);
       computeAverageIterate(Ax_avg, ATy_avg);
@@ -820,9 +823,7 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
 
 #ifdef CUPDLP_GPU
     // Update average iterates on GPU
-    double dMeanStepSize = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
-    launchKernelUpdateAverages(dMeanStepSize);
-    sum_weights_gpu_ += dMeanStepSize;
+    updateAverageIteratesGpu(inner_iter);
 #endif  
 
     // --- 7. Prepare for next iteration ---
@@ -2156,4 +2157,26 @@ void PDLPSolver::computeStepSizeRatioGpu(PrimalDualParams& working_params) {
   working_params.eta = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
   working_params.omega = std::sqrt(stepsize_.beta);
   restart_scheme_.UpdateBeta(stepsize_.beta);
+}
+
+void PDLPSolver::updateAverageIteratesGpu(int inner_iter) {
+  double dMeanStepSize = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
+  
+  launchKernelUpdateAverages(dMeanStepSize);
+
+  sum_weights_gpu_ += dMeanStepSize;
+}
+
+void PDLPSolver::computeAverageIterateGpu() {
+  double dScale = sum_weights_gpu_ > 1e-10 ? 1.0 / sum_weights_gpu_ : 1.0;
+
+  // x_avg = x_sum * scale
+  launchKernelScaleVector(d_x_avg_, d_x_sum_, dScale, a_num_cols_);
+  
+  // y_avg = y_sum * scale
+  launchKernelScaleVector(d_y_avg_, d_y_sum_, dScale, a_num_rows_);
+
+  // Recompute Ax_avg and ATy_avg on GPU
+  linalgGpuAx(d_x_avg_, d_ax_avg_);
+  linalgGpuATy(d_y_avg_, d_aty_avg_);
 }
