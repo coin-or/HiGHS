@@ -263,6 +263,7 @@ set_source_files_properties (../extern/filereaderlp/reader.cpp PROPERTIES SKIP_U
 
 set(highs_sources
     ../extern/filereaderlp/reader.cpp
+    ../extern/rcm/rcm.cpp
     interfaces/highs_c_api.cpp
     io/Filereader.cpp
     io/FilereaderEms.cpp
@@ -379,6 +380,7 @@ set(highs_headers
     ../extern/filereaderlp/model.hpp
     ../extern/filereaderlp/reader.hpp
     ../extern/pdqsort/pdqsort.h
+    ../extern/rcm/rcm.h
     ../extern/zstr/strict_fstream.hpp
     ../extern/zstr/zstr.hpp
     interfaces/highs_c_api.h

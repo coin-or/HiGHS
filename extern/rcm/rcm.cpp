@@ -9,8 +9,9 @@
 
 //****************************************************************************80
 
-void degree(int root, int adj_num, int adj_row[], int adj[], int mask[],
-            int deg[], int* iccsze, int ls[], int node_num)
+void degree(HighsInt root, HighsInt adj_num, HighsInt adj_row[], HighsInt adj[],
+            HighsInt mask[], HighsInt deg[], HighsInt* iccsze, HighsInt ls[],
+            HighsInt node_num)
 
 //****************************************************************************80
 //
@@ -71,16 +72,16 @@ void degree(int root, int adj_num, int adj_row[], int adj[], int mask[],
 //    int NODE_NUM, the number of nodes.
 //
 {
-  int i;
-  int ideg;
-  int j;
-  int jstop;
-  int jstrt;
-  int lbegin;
-  int lvlend;
-  int lvsize;
-  int nbr;
-  int node;
+  HighsInt i;
+  HighsInt ideg;
+  HighsInt j;
+  HighsInt jstop;
+  HighsInt jstrt;
+  HighsInt lbegin;
+  HighsInt lvlend;
+  HighsInt lvsize;
+  HighsInt nbr;
+  HighsInt node;
   //
   //  The sign of ADJ_ROW(I) is used to indicate if node I has been considered.
   //
@@ -143,7 +144,7 @@ void degree(int root, int adj_num, int adj_row[], int adj[], int mask[],
 }
 //****************************************************************************80
 
-void i4vec_reverse(int n, int a[])
+void i4vec_reverse(HighsInt n, HighsInt a[])
 
 //****************************************************************************80
 //
@@ -185,8 +186,8 @@ void i4vec_reverse(int n, int a[])
 //    int A[N]: the reversed array.
 //
 {
-  int i;
-  int j;
+  HighsInt i;
+  HighsInt j;
 
   for (i = 0; i < n / 2; i++) {
     j = a[i];
@@ -198,8 +199,9 @@ void i4vec_reverse(int n, int a[])
 }
 //****************************************************************************80
 
-void level_set(int root, int adj_num, int adj_row[], int adj[], int mask[],
-               int* level_num, int level_row[], int level[], int node_num)
+void level_set(HighsInt root, HighsInt adj_num, HighsInt adj_row[],
+               HighsInt adj[], HighsInt mask[], HighsInt* level_num,
+               HighsInt level_row[], HighsInt level[], HighsInt node_num)
 
 //****************************************************************************80
 //
@@ -267,16 +269,16 @@ void level_set(int root, int adj_num, int adj_row[], int adj[], int mask[],
 //    level structure.
 //
 {
-  int i;
-  int iccsze;
-  int j;
-  int jstop;
-  int jstrt;
-  int lbegin;
-  int lvlend;
-  int lvsize;
-  int nbr;
-  int node;
+  HighsInt i;
+  HighsInt iccsze;
+  HighsInt j;
+  HighsInt jstop;
+  HighsInt jstrt;
+  HighsInt lbegin;
+  HighsInt lvlend;
+  HighsInt lvsize;
+  HighsInt nbr;
+  HighsInt node;
 
   mask[root - 1] = 0;
   level[0] = root;
@@ -334,8 +336,8 @@ void level_set(int root, int adj_num, int adj_row[], int adj[], int mask[],
 }
 //****************************************************************************80
 
-void rcm(int root, int adj_num, int adj_row[], int adj[], int mask[],
-         int perm[], int* iccsze, int node_num)
+void rcm(HighsInt root, HighsInt adj_num, HighsInt adj_row[], HighsInt adj[],
+         HighsInt mask[], HighsInt perm[], HighsInt* iccsze, HighsInt node_num)
 
 //****************************************************************************80
 //
@@ -413,20 +415,20 @@ void rcm(int root, int adj_num, int adj_row[], int adj[], int mask[],
 //    the degree of the nodes in the section graph specified by mask and root.
 //
 {
-  int* deg;
-  int fnbr;
-  int i;
-  int j;
-  int jstop;
-  int jstrt;
-  int k;
-  int l;
-  int lbegin;
-  int lnbr;
-  int lperm;
-  int lvlend;
-  int nbr;
-  int node;
+  HighsInt* deg;
+  HighsInt fnbr;
+  HighsInt i;
+  HighsInt j;
+  HighsInt jstop;
+  HighsInt jstrt;
+  HighsInt k;
+  HighsInt l;
+  HighsInt lbegin;
+  HighsInt lnbr;
+  HighsInt lperm;
+  HighsInt lvlend;
+  HighsInt nbr;
+  HighsInt node;
   //
   //  If node_num out of bounds, something is wrong.
   //
@@ -451,7 +453,7 @@ void rcm(int root, int adj_num, int adj_row[], int adj[], int mask[],
   //
   //  Allocate memory for the degree array.
   //
-  deg = new int[node_num];
+  deg = new HighsInt[node_num];
   //
   //  Find the degrees of the nodes in the component specified by MASK and ROOT.
   //
@@ -559,8 +561,9 @@ void rcm(int root, int adj_num, int adj_row[], int adj[], int mask[],
 }
 //****************************************************************************80
 
-void root_find(int* root, int adj_num, int adj_row[], int adj[], int mask[],
-               int* level_num, int level_row[], int level[], int node_num)
+void root_find(HighsInt* root, HighsInt adj_num, HighsInt adj_row[],
+               HighsInt adj[], HighsInt mask[], HighsInt* level_num,
+               HighsInt level_row[], HighsInt level[], HighsInt node_num)
 
 //****************************************************************************80
 //
@@ -653,17 +656,17 @@ void root_find(int* root, int adj_num, int adj_row[], int adj[], int mask[],
 //    level structure array pair containing the level structure found.
 //
 {
-  int iccsze;
-  int j;
-  int jstrt;
-  int k;
-  int kstop;
-  int kstrt;
-  int level_num2;
-  int mindeg;
-  int nabor;
-  int ndeg;
-  int node;
+  HighsInt iccsze;
+  HighsInt j;
+  HighsInt jstrt;
+  HighsInt k;
+  HighsInt kstop;
+  HighsInt kstrt;
+  HighsInt level_num2;
+  HighsInt mindeg;
+  HighsInt nabor;
+  HighsInt ndeg;
+  HighsInt node;
   //
   //  Determine the level structure rooted at ROOT.
   //
@@ -745,7 +748,8 @@ void root_find(int* root, int adj_num, int adj_row[], int adj[], int mask[],
 }
 //****************************************************************************80
 
-void genrcm(int node_num, int adj_num, int adj_row[], int adj[], int perm[])
+void genrcm(HighsInt node_num, HighsInt adj_num, HighsInt adj_row[],
+            HighsInt adj[], HighsInt perm[])
 
 //****************************************************************************80
 //
@@ -802,16 +806,16 @@ void genrcm(int node_num, int adj_num, int adj_row[], int adj[], int perm[])
 //    int MASK[NODE_NUM], marks variables that have been numbered.
 //
 {
-  int i;
-  int iccsze;
-  int level_num;
-  int* level_row;
-  int* mask;
-  int num;
-  int root;
+  HighsInt i;
+  HighsInt iccsze;
+  HighsInt level_num;
+  HighsInt* level_row;
+  HighsInt* mask;
+  HighsInt num;
+  HighsInt root;
 
-  level_row = new int[node_num + 1];
-  mask = new int[node_num];
+  level_row = new HighsInt[node_num + 1];
+  mask = new HighsInt[node_num];
 
   for (i = 0; i < node_num; i++) {
     mask[i] = 1;
