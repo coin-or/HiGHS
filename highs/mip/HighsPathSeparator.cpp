@@ -121,9 +121,12 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
       rowscore[row].second += std::abs(val);
     }
   }
+  HighsRandom random(mip.options_mip_->random_seed);
   for (HighsInt row = 0; row != lp.num_row_; ++row) {
     if (rowscore[row].second > mip.mipdata_->feastol) {
       rowscore[row].first /= rowscore[row].second;
+      // Want a fair bit of randomness
+      rowscore[row].first *= random.fraction();
     } else {
       rowscore[row].first = 0.0;
     }
