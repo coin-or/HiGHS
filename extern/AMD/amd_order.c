@@ -18,22 +18,22 @@
 /* === AMD_order =========================================================== */
 /* ========================================================================= */
 
-int AMD_order
+int amd_order
 (
-    Int n,
-    const Int Ap [ ],
-    const Int Ai [ ],
-    Int P [ ],
+    amd_int n,
+    const amd_int Ap [ ],
+    const amd_int Ai [ ],
+    amd_int P [ ],
     double Control [ ],
     double Info [ ]
 )
 {
-    Int *Len, *S, nz, i, *Pinv, info, status, *Rp, *Ri, *Cp, *Ci, ok ;
+    amd_int *Len, *S, nz, i, *Pinv, info, status, *Rp, *Ri, *Cp, *Ci, ok ;
     size_t nzaat, slen ;
     double mem = 0 ;
 
 #ifndef NDEBUG
-    AMD_debug_init ("amd") ;
+    amd_debug_init ("amd") ;
 #endif
 
     /* clear the Info array, if it exists */
@@ -49,7 +49,7 @@ int AMD_order
     }
 
     /* make sure inputs exist and n is >= 0 */
-    if (Ai == (Int *) NULL || Ap == (Int *) NULL || P == (Int *) NULL || n < 0)
+    if (Ai == (amd_int *) NULL || Ap == (amd_int *) NULL || P == (amd_int *) NULL || n < 0)
     {
 	if (info) Info [AMD_STATUS] = AMD_INVALID ;
 	return (AMD_INVALID) ;	    /* arguments are invalid */
@@ -72,15 +72,15 @@ int AMD_order
     }
 
     /* check if n or nz will cause integer overflow */
-    if (((size_t) n) >= Int_MAX / sizeof (Int)
-     || ((size_t) nz) >= Int_MAX / sizeof (Int))
+    if (((size_t) n) >= amd_int_max / sizeof (amd_int)
+     || ((size_t) nz) >= amd_int_max / sizeof (amd_int))
     {
 	if (info) Info [AMD_STATUS] = AMD_OUT_OF_MEMORY ;
 	return (AMD_OUT_OF_MEMORY) ;	    /* problem too large */
     }
 
     /* check the input matrix:	AMD_OK, AMD_INVALID, or AMD_OK_BUT_JUMBLED */
-    status = AMD_valid (n, n, Ap, Ai) ;
+    status = amd_valid (n, n, Ap, Ai) ;
 
     if (status == AMD_INVALID)
     {
@@ -90,8 +90,8 @@ int AMD_order
 
     /* allocate two size-n integer workspaces */
     size_t nn = (size_t) n ;
-    Len  = SuiteSparse_malloc (nn, sizeof (Int)) ;
-    Pinv = SuiteSparse_malloc (nn, sizeof (Int)) ;
+    Len  = SuiteSparse_malloc (nn, sizeof (amd_int)) ;
+    Pinv = SuiteSparse_malloc (nn, sizeof (amd_int)) ;
     mem += n ;
     mem += n ;
     if (!Len || !Pinv)
@@ -107,8 +107,8 @@ int AMD_order
     {
 	/* sort the input matrix and remove duplicate entries */
 	AMD_DEBUG1 (("Matrix is jumbled\n")) ;
-	Rp = SuiteSparse_malloc (nn+1, sizeof (Int)) ;
-	Ri = SuiteSparse_malloc (nz,  sizeof (Int)) ;
+	Rp = SuiteSparse_malloc (nn+1, sizeof (amd_int)) ;
+	Ri = SuiteSparse_malloc (nz,  sizeof (amd_int)) ;
 	mem += (n+1) ;
 	mem += MAX (nz,1) ;
 	if (!Rp || !Ri)
@@ -122,7 +122,7 @@ int AMD_order
 	    return (AMD_OUT_OF_MEMORY) ;
 	}
 	/* use Len and Pinv as workspace to create R = A' */
-	AMD_preprocess (n, Ap, Ai, Rp, Ri, Len, Pinv) ;
+	amd_preprocess (n, Ap, Ai, Rp, Ri, Len, Pinv) ;
 	Cp = Rp ;
 	Ci = Ri ;
     }
@@ -131,15 +131,15 @@ int AMD_order
 	/* order the input matrix as-is.  No need to compute R = A' first */
 	Rp = NULL ;
 	Ri = NULL ;
-	Cp = (Int *) Ap ;
-	Ci = (Int *) Ai ;
+	Cp = (amd_int *) Ap ;
+	Ci = (amd_int *) Ai ;
     }
 
     /* --------------------------------------------------------------------- */
     /* determine the symmetry and count off-diagonal nonzeros in A+A' */
     /* --------------------------------------------------------------------- */
 
-    nzaat = AMD_aat (n, Cp, Ci, Len, P, Info) ;
+    nzaat = amd_aat (n, Cp, Ci, Len, P, Info) ;
     AMD_DEBUG1 (("nzaat: %g\n", (double) nzaat)) ;
     ASSERT ((MAX (nz-n, 0) <= nzaat) && (nzaat <= 2 * (size_t) nz)) ;
 
@@ -157,10 +157,10 @@ int AMD_order
 	slen += nn ;			/* size-n elbow room, 6 size-n work */
     }
     mem += slen ;
-    ok = ok && (slen < SIZE_T_MAX / sizeof (Int)) ; /* check for overflow */
+    ok = ok && (slen < SIZE_T_MAX / sizeof (amd_int)) ; /* check for overflow */
     if (ok)
     {
-	S = SuiteSparse_malloc (slen, sizeof (Int)) ;
+	S = SuiteSparse_malloc (slen, sizeof (amd_int)) ;
     }
     AMD_DEBUG1 (("slen %g\n", (double) slen)) ;
     if (!S)
@@ -176,14 +176,14 @@ int AMD_order
     if (info)
     {
 	/* memory usage, in bytes. */
-	Info [AMD_MEMORY] = mem * sizeof (Int) ;
+	Info [AMD_MEMORY] = mem * sizeof (amd_int) ;
     }
 
     /* --------------------------------------------------------------------- */
     /* order the matrix */
     /* --------------------------------------------------------------------- */
 
-    AMD_1 (n, Cp, Ci, P, Pinv, Len, slen, S, Control, Info) ;
+    amd_1 (n, Cp, Ci, P, Pinv, Len, slen, S, Control, Info) ;
 
     /* --------------------------------------------------------------------- */
     /* free the workspace */

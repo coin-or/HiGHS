@@ -18,7 +18,7 @@
 #ifndef NDEBUG
 
 /* This global variable is present only when debugging */
-Int AMD_debug = -999 ;		/* default is no debug printing */
+amd_int amd_debug = -999 ;		/* default is no debug printing */
 
 /* ========================================================================= */
 /* === AMD_debug_init ====================================================== */
@@ -26,22 +26,22 @@ Int AMD_debug = -999 ;		/* default is no debug printing */
 
 /* Sets the debug print level, by reading the file debug.amd (if it exists) */
 
-void AMD_debug_init ( char *s )
+void amd_debug_init ( char *s )
 {
     FILE *f ;
     f = fopen ("debug.amd", "r") ;
     if (f == (FILE *) NULL)
     {
-	AMD_debug = -999 ;
+	amd_debug = -999 ;
     }
     else
     {
-	fscanf (f, ID, &AMD_debug) ;
+	fscanf (f, amd_id, &amd_debug) ;
 	fclose (f) ;
     }
-    if (AMD_debug >= 0)
+    if (amd_debug >= 0)
     {
-	printf ("%s: AMD_debug_init, D= "ID"\n", s, AMD_debug) ;
+	printf ("%s: amd_debug_init, D= "amd_id"\n", s, amd_debug) ;
     }
 }
 
@@ -53,29 +53,29 @@ void AMD_debug_init ( char *s )
  * cannot be called when the hash buckets are non-empty.
  */
 
-void AMD_dump (
-    Int n,	    /* A is n-by-n */
-    Int Pe [ ],	    /* pe [0..n-1]: index in iw of start of row i */
-    Int Iw [ ],	    /* workspace of size iwlen, iwlen [0..pfree-1]
+void amd_dump (
+    amd_int n,	    /* A is n-by-n */
+    amd_int Pe [ ],	    /* pe [0..n-1]: index in iw of start of row i */
+    amd_int Iw [ ],	    /* workspace of size iwlen, iwlen [0..pfree-1]
 		     * holds the matrix on input */
-    Int Len [ ],    /* len [0..n-1]: length for row i */
-    Int iwlen,	    /* length of iw */
-    Int pfree,	    /* iw [pfree ... iwlen-1] is empty on input */
-    Int Nv [ ],	    /* nv [0..n-1] */
-    Int Next [ ],   /* next [0..n-1] */
-    Int Last [ ],   /* last [0..n-1] */
-    Int Head [ ],   /* head [0..n-1] */
-    Int Elen [ ],   /* size n */
-    Int Degree [ ], /* size n */
-    Int W [ ],	    /* size n */
-    Int nel
+    amd_int Len [ ],    /* len [0..n-1]: length for row i */
+    amd_int iwlen,	    /* length of iw */
+    amd_int pfree,	    /* iw [pfree ... iwlen-1] is empty on input */
+    amd_int Nv [ ],	    /* nv [0..n-1] */
+    amd_int Next [ ],   /* next [0..n-1] */
+    amd_int Last [ ],   /* last [0..n-1] */
+    amd_int Head [ ],   /* head [0..n-1] */
+    amd_int Elen [ ],   /* size n */
+    amd_int Degree [ ], /* size n */
+    amd_int W [ ],	    /* size n */
+    amd_int nel
 )
 {
-    Int i, pe, elen, nv, len, e, p, k, j, deg, w, cnt, ilast ;
+    amd_int i, pe, elen, nv, len, e, p, k, j, deg, w, cnt, ilast ;
 
-    if (AMD_debug < 0) return ;
+    if (amd_debug < 0) return ;
     ASSERT (pfree <= iwlen) ;
-    AMD_DEBUG3 (("\nAMD dump, pfree: "ID"\n", pfree)) ;
+    AMD_DEBUG3 (("\nAMD dump, pfree: "amd_id"\n", pfree)) ;
     for (i = 0 ; i < n ; i++)
     {
 	pe = Pe [i] ;
@@ -88,7 +88,7 @@ void AMD_dump (
 	{
 	    if (nv == 0)
 	    {
-		AMD_DEBUG3 (("\nI "ID": nonprincipal:    ", i)) ;
+		AMD_DEBUG3 (("\nI "amd_id": nonprincipal:    ", i)) ;
 		ASSERT (elen == EMPTY) ;
 		if (pe == EMPTY)
 		{
@@ -98,13 +98,13 @@ void AMD_dump (
 		else
 		{
 		    ASSERT (pe < EMPTY) ;
-		    AMD_DEBUG3 ((" i "ID" -> parent "ID"\n", i, FLIP (Pe[i])));
+		    AMD_DEBUG3 ((" i "amd_id" -> parent "amd_id"\n", i, FLIP (Pe[i])));
 		}
 	    }
 	    else
 	    {
-		AMD_DEBUG3 (("\nI "ID": active principal supervariable:\n",i));
-		AMD_DEBUG3 (("   nv(i): "ID"  Flag: %d\n", nv, (nv < 0))) ;
+		AMD_DEBUG3 (("\nI "amd_id": active principal supervariable:\n",i));
+		AMD_DEBUG3 (("   nv(i): "amd_id"  Flag: %d\n", nv, (nv < 0))) ;
 		ASSERT (elen >= 0) ;
 		ASSERT (nv > 0 && pe >= 0) ;
 		p = pe ;
@@ -114,7 +114,7 @@ void AMD_dump (
 		for (k = 0 ; k < len ; k++)
 		{
 		    j = Iw [p] ;
-		    AMD_DEBUG3 (("  "ID"", j)) ;
+		    AMD_DEBUG3 (("  "amd_id"", j)) ;
 		    ASSERT (j >= 0 && j < n) ;
 		    if (k == elen-1) AMD_DEBUG3 ((" : ")) ;
 		    p++ ;
@@ -127,13 +127,13 @@ void AMD_dump (
 	    e = i ;
 	    if (w == 0)
 	    {
-		AMD_DEBUG3 (("\nE "ID": absorbed element: w "ID"\n", e, w)) ;
+		AMD_DEBUG3 (("\nE "amd_id": absorbed element: w "amd_id"\n", e, w)) ;
 		ASSERT (nv > 0 && pe < 0) ;
-		AMD_DEBUG3 ((" e "ID" -> parent "ID"\n", e, FLIP (Pe [e]))) ;
+		AMD_DEBUG3 ((" e "amd_id" -> parent "amd_id"\n", e, FLIP (Pe [e]))) ;
 	    }
 	    else
 	    {
-		AMD_DEBUG3 (("\nE "ID": unabsorbed element: w "ID"\n", e, w)) ;
+		AMD_DEBUG3 (("\nE "amd_id": unabsorbed element: w "amd_id"\n", e, w)) ;
 		ASSERT (nv > 0 && pe >= 0) ;
 		p = pe ;
 		AMD_DEBUG3 ((" : ")) ;
@@ -141,7 +141,7 @@ void AMD_dump (
 		for (k = 0 ; k < len ; k++)
 		{
 		    j = Iw [p] ;
-		    AMD_DEBUG3 (("  "ID"", j)) ;
+		    AMD_DEBUG3 (("  "amd_id"", j)) ;
 		    ASSERT (j >= 0 && j < n) ;
 		    p++ ;
 		}
@@ -159,10 +159,10 @@ void AMD_dump (
 	{
 	    if (Head [deg] == EMPTY) continue ;
 	    ilast = EMPTY ;
-	    AMD_DEBUG3 ((ID": \n", deg)) ;
+	    AMD_DEBUG3 ((amd_id": \n", deg)) ;
 	    for (i = Head [deg] ; i != EMPTY ; i = Next [i])
 	    {
-		AMD_DEBUG3 (("   "ID" : next "ID" last "ID" deg "ID"\n",
+		AMD_DEBUG3 (("   "amd_id" : next "amd_id" last "amd_id" deg "amd_id"\n",
 		    i, Next [i], Last [i], Degree [i])) ;
 		ASSERT (i >= 0 && i < n && ilast == Last [i] &&
 		    deg == Degree [i]) ;

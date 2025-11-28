@@ -106,49 +106,17 @@
 /* integer type for AMD: int32_t or int64_t */
 /* ------------------------------------------------------------------------- */
 
-#if defined (DLONG) || defined (ZLONG)
+#if defined (HIGHS_AMD_INT_64)
 
-#define Int int64_t
-#define UInt uint64_t
-#define ID  "%" PRId64
-#define Int_MAX INT64_MAX
-
-#define AMD_order amd_l_order
-#define AMD_defaults amd_l_defaults
-#define AMD_control amd_l_control
-#define AMD_info amd_l_info
-#define AMD_1 amd_l1
-#define AMD_2 amd_l2
-#define AMD_valid amd_l_valid
-#define AMD_aat amd_l_aat
-#define AMD_postorder amd_l_postorder
-#define AMD_post_tree amd_l_post_tree
-#define AMD_dump amd_l_dump
-#define AMD_debug amd_l_debug
-#define AMD_debug_init amd_l_debug_init
-#define AMD_preprocess amd_l_preprocess
+#define amd_uint uint64_t
+#define amd_id  "%" PRId64
+#define amd_int_max INT64_MAX
 
 #else
 
-#define Int int32_t
-#define UInt uint32_t
-#define ID "%d"
-#define Int_MAX INT32_MAX
-
-#define AMD_order amd_order
-#define AMD_defaults amd_defaults
-#define AMD_control amd_control
-#define AMD_info amd_info
-#define AMD_1 amd_1
-#define AMD_2 amd_2
-#define AMD_valid amd_valid
-#define AMD_aat amd_aat
-#define AMD_postorder amd_postorder
-#define AMD_post_tree amd_post_tree
-#define AMD_dump amd_dump
-#define AMD_debug amd_debug
-#define AMD_debug_init amd_debug_init
-#define AMD_preprocess amd_preprocess
+#define amd_uint uint32_t
+#define amd_id "%d"
+#define amd_int_max INT32_MAX
 
 #endif
 
@@ -156,115 +124,69 @@
 /* AMD routine definitions (not user-callable) */
 /* ------------------------------------------------------------------------- */
 
-size_t AMD_aat
+size_t amd_aat
 (
-    Int n,
-    const Int Ap [ ],
-    const Int Ai [ ],
-    Int Len [ ],
-    Int Tp [ ],
+    amd_int n,
+    const amd_int Ap [ ],
+    const amd_int Ai [ ],
+    amd_int Len [ ],
+    amd_int Tp [ ],
     double Info [ ]
 ) ;
 
-void AMD_1
+void amd_1
 (
-    Int n,
-    const Int Ap [ ],
-    const Int Ai [ ],
-    Int P [ ],
-    Int Pinv [ ],
-    Int Len [ ],
-    Int slen,
-    Int S [ ],
+    amd_int n,
+    const amd_int Ap [ ],
+    const amd_int Ai [ ],
+    amd_int P [ ],
+    amd_int Pinv [ ],
+    amd_int Len [ ],
+    amd_int slen,
+    amd_int S [ ],
     double Control [ ],
     double Info [ ]
 ) ;
 
-void AMD_postorder
+void amd_postorder
 (
-    Int nn,
-    Int Parent [ ],
-    Int Npiv [ ],
-    Int Fsize [ ],
-    Int Order [ ],
-    Int Child [ ],
-    Int Sibling [ ],
-    Int Stack [ ]
+    amd_int nn,
+    amd_int Parent [ ],
+    amd_int Npiv [ ],
+    amd_int Fsize [ ],
+    amd_int Order [ ],
+    amd_int Child [ ],
+    amd_int Sibling [ ],
+    amd_int Stack [ ]
 ) ;
 
-Int AMD_post_tree
+amd_int amd_post_tree
 (
-    Int root,
-    Int k,
-    Int Child [ ],
-    const Int Sibling [ ],
-    Int Order [ ],
-    Int Stack [ ]
+    amd_int root,
+    amd_int k,
+    amd_int Child [ ],
+    const amd_int Sibling [ ],
+    amd_int Order [ ],
+    amd_int Stack [ ]
 #ifndef NDEBUG
-    , Int nn
+    , amd_int nn
 #endif
 ) ;
 
-void AMD_preprocess
+void amd_preprocess
 (
-    Int n,
-    const Int Ap [ ],
-    const Int Ai [ ],
-    Int Rp [ ],
-    Int Ri [ ],
-    Int W [ ],
-    Int Flag [ ]
+    amd_int n,
+    const amd_int Ap [ ],
+    const amd_int Ai [ ],
+    amd_int Rp [ ],
+    amd_int Ri [ ],
+    amd_int W [ ],
+    amd_int Flag [ ]
 ) ;
 
 /* ------------------------------------------------------------------------- */
 /* debugging definitions */
 /* ------------------------------------------------------------------------- */
-
-#ifndef NDEBUG
-
-/* from assert.h:  assert macro */
-#include <assert.h>
-
-extern Int AMD_debug ;
-
-void AMD_debug_init ( char *s ) ;
-
-void AMD_dump
-(
-    Int n,
-    Int Pe [ ],
-    Int Iw [ ],
-    Int Len [ ],
-    Int iwlen,
-    Int pfree,
-    Int Nv [ ],
-    Int Next [ ],
-    Int Last [ ],
-    Int Head [ ],
-    Int Elen [ ],
-    Int Degree [ ],
-    Int W [ ],
-    Int nel
-) ;
-
-#ifdef ASSERT
-#undef ASSERT
-#endif
-
-/* Use mxAssert if AMD is compiled into a mexFunction */
-#ifdef MATLAB_MEX_FILE
-#define ASSERT(expression) (mxAssert ((expression), ""))
-#else
-#define ASSERT(expression) (assert (expression))
-#endif
-
-#define AMD_DEBUG0(params) { SUITESPARSE_PRINTF (params) ; }
-#define AMD_DEBUG1(params) { if (AMD_debug >= 1) SUITESPARSE_PRINTF (params) ; }
-#define AMD_DEBUG2(params) { if (AMD_debug >= 2) SUITESPARSE_PRINTF (params) ; }
-#define AMD_DEBUG3(params) { if (AMD_debug >= 3) SUITESPARSE_PRINTF (params) ; }
-#define AMD_DEBUG4(params) { if (AMD_debug >= 4) SUITESPARSE_PRINTF (params) ; }
-
-#else
 
 /* no debugging */
 #define ASSERT(expression)
@@ -273,5 +195,3 @@ void AMD_dump
 #define AMD_DEBUG2(params)
 #define AMD_DEBUG3(params)
 #define AMD_DEBUG4(params)
-
-#endif

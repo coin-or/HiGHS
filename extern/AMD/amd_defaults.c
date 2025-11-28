@@ -18,12 +18,12 @@
 /* === AMD defaults ======================================================== */
 /* ========================================================================= */
 
-void AMD_defaults
+void amd_defaults
 (
     double Control [ ]
 )
 {
-    Int i ;
+    amd_int i ;
 
     if (Control != (double *) NULL)
     {

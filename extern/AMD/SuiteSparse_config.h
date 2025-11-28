@@ -51,44 +51,14 @@ void *SuiteSparse_free      // always returns NULL
 #define SUITESPARSE_PRINTF(params)                          \
 {                                                           \
                                                             \
-        (void) printf params ;                              \
+         printf params ;                                    \
                                                             \
 }
-
-//==============================================================================
-// SuiteSparse version
-//==============================================================================
-
-// SuiteSparse is not a package itself, but a collection of packages, some of
-// which must be used together (UMFPACK requires AMD, CHOLMOD requires AMD,
-// COLAMD, CAMD, and CCOLAMD, etc).  A version number is provided here for the
-// collection itself, which is also the version number of SuiteSparse_config.
-
-int SuiteSparse_version     // returns SUITESPARSE_VERSION
-(
-    // output, not defined on input.  Not used if NULL.  Returns
-    // the three version codes in version [0..2]:
-    // version [0] is SUITESPARSE_MAIN_VERSION
-    // version [1] is SUITESPARSE_SUB_VERSION
-    // version [2] is SUITESPARSE_SUBSUB_VERSION
-    int version [3]
-) ;
-
-#define SUITESPARSE_HAS_VERSION_FUNCTION
 
 #define SUITESPARSE_DATE "Nov 4, 2025"
 #define SUITESPARSE_MAIN_VERSION    7
 #define SUITESPARSE_SUB_VERSION     12
 #define SUITESPARSE_SUBSUB_VERSION  1
-
-// version format x.y
-#define SUITESPARSE_VER_CODE(main,sub) ((main) * 1000 + (sub))
-#define SUITESPARSE_VERSION SUITESPARSE_VER_CODE(7, 12)
-
-// version format x.y.z
-#define SUITESPARSE__VERCODE(main,sub,patch) \
-    (((main)*1000ULL + (sub))*1000ULL + (patch))
-#define SUITESPARSE__VERSION SUITESPARSE__VERCODE(7,12,1)
 
 #endif
 

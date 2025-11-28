@@ -17,24 +17,24 @@
 
 #include "amd_internal.h"
 
-size_t AMD_aat	/* returns nz in A+A' */
+size_t amd_aat	/* returns nz in A+A' */
 (
-    Int n,
-    const Int Ap [ ],
-    const Int Ai [ ],
-    Int Len [ ],	/* Len [j]: length of column j of A+A', excl diagonal*/
-    Int Tp [ ],		/* workspace of size n */
+    amd_int n,
+    const amd_int Ap [ ],
+    const amd_int Ai [ ],
+    amd_int Len [ ],	/* Len [j]: length of column j of A+A', excl diagonal*/
+    amd_int Tp [ ],		/* workspace of size n */
     double Info [ ]
 )
 {
-    Int p1, p2, p, i, j, pj, pj2, k, nzdiag, nzboth, nz ;
+    amd_int p1, p2, p, i, j, pj, pj2, k, nzdiag, nzboth, nz ;
     double sym ;
     size_t nzaat ;
 
 #ifndef NDEBUG
-    AMD_debug_init ("AMD AAT") ;
+    amd_debug_init ("AMD AAT") ;
     for (k = 0 ; k < n ; k++) Tp [k] = EMPTY ;
-    ASSERT (AMD_valid (n, n, Ap, Ai) == AMD_OK) ;
+    ASSERT (amd_valid (n, n, Ap, Ai) == AMD_OK) ;
 #endif
 
     if (Info != (double *) NULL)
@@ -60,7 +60,7 @@ size_t AMD_aat	/* returns nz in A+A' */
     {
 	p1 = Ap [k] ;
 	p2 = Ap [k+1] ;
-	AMD_DEBUG2 (("\nAAT Column: "ID" p1: "ID" p2: "ID"\n", k, p1, p2)) ;
+	AMD_DEBUG2 (("\nAAT Column: "amd_id" p1: "amd_id" p2: "amd_id"\n", k, p1, p2)) ;
 
 	/* construct A+A' */
 	for (p = p1 ; p < p2 ; )
@@ -73,7 +73,7 @@ size_t AMD_aat	/* returns nz in A+A' */
 		 * add both A (j,k) and A (k,j) to the matrix A+A' */
 		Len [j]++ ;
 		Len [k]++ ;
-		AMD_DEBUG3 (("    upper ("ID","ID") ("ID","ID")\n", j,k, k,j));
+		AMD_DEBUG3 (("    upper ("amd_id","amd_id") ("amd_id","amd_id")\n", j,k, k,j));
 		p++ ;
 	    }
 	    else if (j == k)
@@ -102,7 +102,7 @@ size_t AMD_aat	/* returns nz in A+A' */
 		     * add both A (i,j) and A (j,i) to the matrix A+A' */
 		    Len [i]++ ;
 		    Len [j]++ ;
-		    AMD_DEBUG3 (("    lower ("ID","ID") ("ID","ID")\n",
+		    AMD_DEBUG3 (("    lower ("amd_id","amd_id") ("amd_id","amd_id")\n",
 			i,j, j,i)) ;
 		    pj++ ;
 		}
@@ -135,7 +135,7 @@ size_t AMD_aat	/* returns nz in A+A' */
 	     * add both A (i,j) and A (j,i) to the matrix A+A' */
 	    Len [i]++ ;
 	    Len [j]++ ;
-	    AMD_DEBUG3 (("    lower cleanup ("ID","ID") ("ID","ID")\n",
+	    AMD_DEBUG3 (("    lower cleanup ("amd_id","amd_id") ("amd_id","amd_id")\n",
 		i,j, j,i)) ;
 	}
     }
@@ -167,7 +167,7 @@ size_t AMD_aat	/* returns nz in A+A' */
 
     AMD_DEBUG1 (("AMD nz in A+A', excluding diagonal (nzaat) = %g\n",
 	(double) nzaat)) ;
-    AMD_DEBUG1 (("   nzboth: "ID" nz: "ID" nzdiag: "ID" symmetry: %g\n",
+    AMD_DEBUG1 (("   nzboth: "amd_id" nz: "amd_id" nzdiag: "amd_id" symmetry: %g\n",
 		nzboth, nz, nzdiag, sym)) ;
 
     if (Info != (double *) NULL)

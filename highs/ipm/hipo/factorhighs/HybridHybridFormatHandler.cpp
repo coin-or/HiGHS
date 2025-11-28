@@ -136,7 +136,7 @@ void HybridHybridFormatHandler::assembleClique(const double* child, Int nc,
 
         // sun consecutive entries in a row.
         // consecutive need to be reduced, to account for edge of the block
-        const Int zeros_stored_row = std::max(0, jb_c - (row - row_start) - 1);
+        const Int zeros_stored_row = std::max((Int)0, jb_c - (row - row_start) - 1);
         Int consecutive = S_->consecutiveSums(child_sn, col);
         const Int left_in_child = col_end - col - zeros_stored_row;
         consecutive = std::min(consecutive, left_in_child);

@@ -12,29 +12,29 @@
 
 #include "amd_internal.h"
 
-Int AMD_post_tree
+amd_int amd_post_tree
 (
-    Int root,			/* root of the tree */
-    Int k,			/* start numbering at k */
-    Int Child [ ],		/* input argument of size nn, undefined on
+    amd_int root,			/* root of the tree */
+    amd_int k,			/* start numbering at k */
+    amd_int Child [ ],		/* input argument of size nn, undefined on
 				 * output.  Child [i] is the head of a link
 				 * list of all nodes that are children of node
 				 * i in the tree. */
-    const Int Sibling [ ],	/* input argument of size nn, not modified.
+    const amd_int Sibling [ ],	/* input argument of size nn, not modified.
 				 * If f is a node in the link list of the
 				 * children of node i, then Sibling [f] is the
 				 * next child of node i.
 				 */
-    Int Order [ ],		/* output order, of size nn.  Order [i] = k
+    amd_int Order [ ],		/* output order, of size nn.  Order [i] = k
 				 * if node i is the kth node of the reordered
 				 * tree. */
-    Int Stack [ ]		/* workspace of size nn */
+    amd_int Stack [ ]		/* workspace of size nn */
 #ifndef NDEBUG
     , Int nn			/* nodes are in the range 0..nn-1. */
 #endif
 )
 {
-    Int f, head, h, i ;
+    amd_int f, head, h, i ;
 
 #if 0
     /* --------------------------------------------------------------------- */
@@ -45,7 +45,7 @@ Int AMD_post_tree
     i = root ;
     for (f = Child [i] ; f != EMPTY ; f = Sibling [f])
     {
-	k = AMD_post_tree (f, k, Child, Sibling, Order, Stack, nn) ;
+	k = amd_post_tree (f, k, Child, Sibling, Order, Stack, nn) ;
     }
     Order [i] = k++ ;
     return (k) ;
@@ -64,7 +64,7 @@ Int AMD_post_tree
 	/* get head of stack */
 	ASSERT (head < nn) ;
 	i = Stack [head] ;
-	AMD_DEBUG1 (("head of stack "ID" \n", i)) ;
+	AMD_DEBUG1 (("head of stack "amd_id" \n", i)) ;
 	ASSERT (i >= 0 && i < nn) ;
 
 	if (Child [i] != EMPTY)
@@ -85,7 +85,7 @@ Int AMD_post_tree
 	    {
 		ASSERT (h > 0) ;
 		Stack [h--] = f ;
-		AMD_DEBUG1 (("push "ID" on stack\n", f)) ;
+		AMD_DEBUG1 (("push "amd_id" on stack\n", f)) ;
 		ASSERT (f >= 0 && f < nn) ;
 	    }
 	    ASSERT (Stack [h] == i) ;
@@ -98,7 +98,7 @@ Int AMD_post_tree
 	    /* the children of i (if there were any) are already ordered */
 	    /* remove i from the stack and order it.  Front i is kth front */
 	    head-- ;
-	    AMD_DEBUG1 (("pop "ID" order "ID"\n", i, k)) ;
+	    AMD_DEBUG1 (("pop "amd_id" order "amd_id"\n", i, k)) ;
 	    Order [i] = k++ ;
 	    ASSERT (k <= nn) ;
 	}
@@ -108,7 +108,7 @@ Int AMD_post_tree
 	for (h = head ; h >= 0 ; h--)
 	{
 	    Int j = Stack [h] ;
-	    AMD_DEBUG1 ((" "ID, j)) ;
+	    AMD_DEBUG1 ((" "amd_id, j)) ;
 	    ASSERT (j >= 0 && j < nn) ;
 	}
 	AMD_DEBUG1 (("\n\n")) ;

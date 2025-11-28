@@ -22,18 +22,18 @@
  * On input, the condition (AMD_valid (n,n,Ap,Ai) != AMD_INVALID) must hold.
  */
 
-void AMD_preprocess
+void amd_preprocess
 (
-    Int n,		/* input matrix: A is n-by-n */
-    const Int Ap [ ],	/* size n+1 */
-    const Int Ai [ ],	/* size nz = Ap [n] */
+    amd_int n,		/* input matrix: A is n-by-n */
+    const amd_int Ap [ ],	/* size n+1 */
+    const amd_int Ai [ ],	/* size nz = Ap [n] */
 
     /* output matrix R: */
-    Int Rp [ ],		/* size n+1 */
-    Int Ri [ ],		/* size nz (or less, if duplicates present) */
+    amd_int Rp [ ],		/* size n+1 */
+    amd_int Ri [ ],		/* size nz (or less, if duplicates present) */
 
-    Int W [ ],		/* workspace of size n */
-    Int Flag [ ]	/* workspace of size n */
+    amd_int W [ ],		/* workspace of size n */
+    amd_int Flag [ ]	/* workspace of size n */
 )
 {
 
@@ -41,9 +41,9 @@ void AMD_preprocess
     /* local variables */
     /* --------------------------------------------------------------------- */
 
-    Int i, j, p, p2 ;
+    amd_int i, j, p, p2 ;
 
-    ASSERT (AMD_valid (n, n, Ap, Ai) != AMD_INVALID) ;
+    ASSERT (amd_valid (n, n, Ap, Ai) != AMD_INVALID) ;
 
     /* --------------------------------------------------------------------- */
     /* count the entries in each row of A (excluding duplicates) */
@@ -105,7 +105,7 @@ void AMD_preprocess
     }
 
 #ifndef NDEBUG
-    ASSERT (AMD_valid (n, n, Rp, Ri) == AMD_OK) ;
+    ASSERT (amd_valid (n, n, Rp, Ri) == AMD_OK) ;
     for (j = 0 ; j < n ; j++)
     {
 	ASSERT (W [j] == Rp [j+1]) ;

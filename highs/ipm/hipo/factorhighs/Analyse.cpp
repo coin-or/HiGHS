@@ -6,19 +6,20 @@
 #include <random>
 #include <stack>
 
-#include "../extern/AMD/amd.h"
 #include "DataCollector.h"
 #include "FactorHiGHSSettings.h"
 #include "ReturnValues.h"
 #include "ipm/hipo/auxiliary/Auxiliary.h"
 #include "ipm/hipo/auxiliary/Log.h"
 
-// define correct int type for Metis before header is included
+// define correct int type for Metis and AMD before header is included
 #ifdef HIGHSINT64
 #define IDXTYPEWIDTH 64
+#define HIGHS_AMD_INT_64
 #else
 #define IDXTYPEWIDTH 32
 #endif
+#include "../extern/AMD/amd.h"
 #include "metis.h"
 
 namespace hipo {
@@ -147,21 +148,21 @@ Int Analyse::getPermutation(bool metis_no2hop) {
   }
 
   /*
-double control[AMD_CONTROL];
-amd_defaults(control);
+  double control[AMD_CONTROL];
+  amd_defaults(control);
 
-double info[AMD_INFO];
+  double info[AMD_INFO];
 
-Int status = amd_order(n_, temp_ptr.data(), temp_rows.data(), perm_.data(),
-                     control, info);
+  Int status = amd_order(n_, temp_ptr.data(), temp_rows.data(), perm_.data(),
+                       control, info);
 
-if (status != AMD_OK) {
-if (log_) log_->printDevInfo("Error with AMD\n");
-return kRetMetisError;
-}
+  if (status != AMD_OK) {
+  if (log_) log_->printDevInfo("Error with AMD\n");
+  return kRetMetisError;
+  }
 
-inversePerm(perm_, iperm_);
-*/
+  inversePerm(perm_, iperm_);
+  */
 
   return kRetOk;
 }

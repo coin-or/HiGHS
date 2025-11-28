@@ -32,8 +32,8 @@
  * described in the above paper.
  */
 
-#ifndef AMD_H
-#define AMD_H
+#ifndef HIGHS_AMD_ORDERING_H
+#define HIGHS_AMD_ORDERING_H
 
 #include "SuiteSparse_config.h"
 
@@ -42,13 +42,19 @@
 extern "C" {
 #endif
 
+#ifdef HIGHS_AMD_INT_64
+#define amd_int int64_t
+#else
+#define amd_int int32_t
+#endif
+
 int amd_order  /* returns AMD_OK, AMD_OK_BUT_JUMBLED,
                                     * AMD_INVALID, or AMD_OUT_OF_MEMORY */
 (
-    int32_t n,                     /* A is n-by-n.  n must be >= 0. */
-    const int32_t Ap [ ],          /* column pointers for A, of size n+1 */
-    const int32_t Ai [ ],          /* row indices of A, of size nz = Ap [n] */
-    int32_t P [ ],                 /* output permutation, of size n */
+    amd_int n,                         /* A is n-by-n.  n must be >= 0. */
+    const amd_int Ap [ ],              /* column pointers for A, of size n+1 */
+    const amd_int Ai [ ],              /* row indices of A, of size nz = Ap [n] */
+    amd_int P [ ],                     /* output permutation, of size n */
     double Control [ ],     /* input Control settings, of size AMD_CONTROL */
     double Info [ ]         /* output Info statistics, of size AMD_INFO */
 ) ;
@@ -223,19 +229,19 @@ int amd_order  /* returns AMD_OK, AMD_OK_BUT_JUMBLED,
 
 void amd_2
 (
-    int32_t n,
-    int32_t Pe [ ],
-    int32_t Iw [ ],
-    int32_t Len [ ],
-    int32_t iwlen,
-    int32_t pfree,
-    int32_t Nv [ ],
-    int32_t Next [ ], 
-    int32_t Last [ ],
-    int32_t Head [ ],
-    int32_t Elen [ ],
-    int32_t Degree [ ],
-    int32_t W [ ],
+    amd_int n,
+    amd_int Pe [ ],
+    amd_int Iw [ ],
+    amd_int Len [ ],
+    amd_int iwlen,
+    amd_int pfree,
+    amd_int Nv [ ],
+    amd_int Next [ ], 
+    amd_int Last [ ],
+    amd_int Head [ ],
+    amd_int Elen [ ],
+    amd_int Degree [ ],
+    amd_int W [ ],
     double Control [ ],
     double Info [ ]
 ) ;
@@ -254,10 +260,10 @@ void amd_2
 
 int amd_valid
 (
-    int32_t n_row,                 /* # of rows */
-    int32_t n_col,                 /* # of columns */
-    const int32_t Ap [ ],          /* column pointers, of size n_col+1 */
-    const int32_t Ai [ ]           /* row indices, of size Ap [n_col] */
+    amd_int n_row,                 /* # of rows */
+    amd_int n_col,                 /* # of columns */
+    const amd_int Ap [ ],          /* column pointers, of size n_col+1 */
+    const amd_int Ai [ ]           /* row indices, of size Ap [n_col] */
 ) ;
 
 /* ------------------------------------------------------------------------- */
@@ -272,10 +278,6 @@ void amd_control    (double Control [ ]) ;
 
 /* amd_info: prints the statistics */
 void amd_info       (double Info [ ]) ;
-
-// amd_version: return AMD version.  The version array is returned with
-// version [0..2] = {AMD_MAIN_VERSION, AMD_SUB_VERSION, AMD_SUBSUB_VERSION}
-void amd_version (int version [3]) ;
 
 #ifdef __cplusplus
 }
@@ -346,14 +348,5 @@ void amd_version (int version [3]) ;
 #define AMD_MAIN_VERSION   3
 #define AMD_SUB_VERSION    3
 #define AMD_SUBSUB_VERSION 4
-
-#define AMD_VERSION_CODE(main,sub) SUITESPARSE_VER_CODE(main,sub)
-#define AMD_VERSION AMD_VERSION_CODE(3,3)
-
-#define AMD__VERSION SUITESPARSE__VERCODE(3,3,4)
-#if !defined (SUITESPARSE__VERSION) || \
-    (SUITESPARSE__VERSION < SUITESPARSE__VERCODE(7,11,0))
-#error "AMD 3.3.4 requires SuiteSparse_config 7.11.0 or later"
-#endif
 
 #endif

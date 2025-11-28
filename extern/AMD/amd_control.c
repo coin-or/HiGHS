@@ -15,13 +15,13 @@
 
 #include "amd_internal.h"
 
-void AMD_control
+void amd_control
 (
     double Control [ ]
 )
 {
     double alpha ;
-    Int aggressive ;
+    amd_int aggressive ;
 
     if (Control != (double *) NULL)
     {
@@ -60,5 +60,5 @@ void AMD_control
 	SUITESPARSE_PRINTF (("    aggressive absorption:  no\n")) ;
     }
 
-    SUITESPARSE_PRINTF (("    size of AMD integer: %lu\n\n", sizeof (Int))) ;
+    SUITESPARSE_PRINTF (("    size of AMD integer: %lu\n\n", sizeof (amd_int))) ;
 }

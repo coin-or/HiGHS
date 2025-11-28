@@ -12,25 +12,25 @@
 
 #include "amd_internal.h"
 
-void AMD_postorder
+void amd_postorder
 (
     /* inputs, not modified on output: */
-    Int nn,		/* nodes are in the range 0..nn-1 */
-    Int Parent [ ],	/* Parent [j] is the parent of j, or EMPTY if root */
-    Int Nv [ ],		/* Nv [j] > 0 number of pivots represented by node j,
+    amd_int nn,		/* nodes are in the range 0..nn-1 */
+    amd_int Parent [ ],	/* Parent [j] is the parent of j, or EMPTY if root */
+    amd_int Nv [ ],		/* Nv [j] > 0 number of pivots represented by node j,
 			 * or zero if j is not a node. */
-    Int Fsize [ ],	/* Fsize [j]: size of node j */
+    amd_int Fsize [ ],	/* Fsize [j]: size of node j */
 
     /* output, not defined on input: */
-    Int Order [ ],	/* output post-order */
+    amd_int Order [ ],	/* output post-order */
 
     /* workspaces of size nn: */
-    Int Child [ ],
-    Int Sibling [ ],
-    Int Stack [ ]
+    amd_int Child [ ],
+    amd_int Sibling [ ],
+    amd_int Stack [ ]
 )
 {
-    Int i, j, k, parent, frsize, f, fprev, maxfrsize, bigfprev, bigf, fnext ;
+    amd_int i, j, k, parent, frsize, f, fprev, maxfrsize, bigfprev, bigf, fnext ;
 
     for (j = 0 ; j < nn ; j++)
     {
@@ -67,8 +67,8 @@ void AMD_postorder
 	{
 	    if (Nv [j] > 0)
 	    {
-		AMD_DEBUG1 (( ""ID" :  nels "ID" npiv "ID" size "ID
-		    " parent "ID" maxfr "ID"\n", j, nels,
+		AMD_DEBUG1 (( ""amd_id" :  nels "amd_id" npiv "amd_id" size "amd_id
+		    " parent "amd_id" maxfr "amd_id"\n", j, nels,
 		    Nv [j], Fsize [j], Parent [j], Fsize [j])) ;
 		/* this is an element */
 		/* dump the link list of children */
@@ -76,7 +76,7 @@ void AMD_postorder
 		AMD_DEBUG1 (("    Children: ")) ;
 		for (ff = Child [j] ; ff != EMPTY ; ff = Sibling [ff])
 		{
-		    AMD_DEBUG1 ((ID" ", ff)) ;
+		    AMD_DEBUG1 ((amd_id" ", ff)) ;
 		    ASSERT (Parent [ff] == j) ;
 		    nchild++ ;
 		    ASSERT (nchild < nn) ;
@@ -106,12 +106,12 @@ void AMD_postorder
 
 #ifndef NDEBUG
 	    Int nchild ;
-	    AMD_DEBUG1 (("Before partial sort, element "ID"\n", i)) ;
+	    AMD_DEBUG1 (("Before partial sort, element "amd_id"\n", i)) ;
 	    nchild = 0 ;
 	    for (f = Child [i] ; f != EMPTY ; f = Sibling [f])
 	    {
 		ASSERT (f >= 0 && f < nn) ;
-		AMD_DEBUG1 (("      f: "ID"  size: "ID"\n", f, Fsize [f])) ;
+		AMD_DEBUG1 (("      f: "amd_id"  size: "amd_id"\n", f, Fsize [f])) ;
 		nchild++ ;
 		ASSERT (nchild <= nn) ;
 	    }
@@ -139,8 +139,8 @@ void AMD_postorder
 
 	    fnext = Sibling [bigf] ;
 
-	    AMD_DEBUG1 (("bigf "ID" maxfrsize "ID" bigfprev "ID" fnext "ID
-		" fprev " ID"\n", bigf, maxfrsize, bigfprev, fnext, fprev)) ;
+	    AMD_DEBUG1 (("bigf "amd_id" maxfrsize "amd_id" bigfprev "amd_id" fnext "amd_id
+		" fprev " amd_id"\n", bigf, maxfrsize, bigfprev, fnext, fprev)) ;
 
 	    if (fnext != EMPTY)
 	    {
@@ -166,11 +166,11 @@ void AMD_postorder
 	    }
 
 #ifndef NDEBUG
-	    AMD_DEBUG1 (("After partial sort, element "ID"\n", i)) ;
+	    AMD_DEBUG1 (("After partial sort, element "amd_id"\n", i)) ;
 	    for (f = Child [i] ; f != EMPTY ; f = Sibling [f])
 	    {
 		ASSERT (f >= 0 && f < nn) ;
-		AMD_DEBUG1 (("        "ID"  "ID"\n", f, Fsize [f])) ;
+		AMD_DEBUG1 (("        "amd_id"  "amd_id"\n", f, Fsize [f])) ;
 		ASSERT (Nv [f] > 0) ;
 		nchild-- ;
 	    }
@@ -195,8 +195,8 @@ void AMD_postorder
     {
 	if (Parent [i] == EMPTY && Nv [i] > 0)
 	{
-	    AMD_DEBUG1 (("Root of assembly tree "ID"\n", i)) ;
-	    k = AMD_post_tree (i, k, Child, Sibling, Order, Stack
+	    AMD_DEBUG1 (("Root of assembly tree "amd_id"\n", i)) ;
+	    k = amd_post_tree (i, k, Child, Sibling, Order, Stack
 #ifndef NDEBUG
 		, nn
 #endif

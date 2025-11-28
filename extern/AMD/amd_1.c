@@ -26,22 +26,22 @@
 
 #include "amd_internal.h"
 
-void AMD_1
+void amd_1
 (
-    Int n,		/* n > 0 */
-    const Int Ap [ ],	/* input of size n+1, not modified */
-    const Int Ai [ ],	/* input of size nz = Ap [n], not modified */
-    Int P [ ],		/* size n output permutation */
-    Int Pinv [ ],	/* size n output inverse permutation */
-    Int Len [ ],	/* size n input, undefined on output */
-    Int slen,		/* slen >= sum (Len [0..n-1]) + 7n,
+    amd_int n,		/* n > 0 */
+    const amd_int Ap [ ],	/* input of size n+1, not modified */
+    const amd_int Ai [ ],	/* input of size nz = Ap [n], not modified */
+    amd_int P [ ],		/* size n output permutation */
+    amd_int Pinv [ ],	/* size n output inverse permutation */
+    amd_int Len [ ],	/* size n input, undefined on output */
+    amd_int slen,		/* slen >= sum (Len [0..n-1]) + 7n,
 			 * ideally slen = 1.2 * sum (Len) + 8n */
-    Int S [ ],		/* size slen workspace */
+    amd_int S [ ],		/* size slen workspace */
     double Control [ ],	/* input array of size AMD_CONTROL */
     double Info [ ]	/* output array of size AMD_INFO */
 )
 {
-    Int i, j, k, p, pfree, iwlen, pj, p1, p2, pj2, *Iw, *Pe, *Nv, *Head,
+    amd_int i, j, k, p, pfree, iwlen, pj, p1, p2, pj2, *Iw, *Pe, *Nv, *Head,
 	*Elen, *Degree, *s, *W, *Sp, *Tp ;
 
     /* --------------------------------------------------------------------- */
@@ -60,7 +60,7 @@ void AMD_1
     W = s ;	    s += n ;
     Iw = s ;	    s += iwlen ;
 
-    ASSERT (AMD_valid (n, n, Ap, Ai) == AMD_OK) ;
+    ASSERT (amd_valid (n, n, Ap, Ai) == AMD_OK) ;
 
     /* construct the pointers for A+A' */
     Sp = Nv ;			/* use Nv and W as workspace for Sp and Tp [ */
@@ -85,7 +85,7 @@ void AMD_1
 
     for (k = 0 ; k < n ; k++)
     {
-	AMD_DEBUG1 (("Construct row/column k= "ID" of A+A'\n", k))  ;
+	AMD_DEBUG1 (("Construct row/column k= "amd_id" of A+A'\n", k))  ;
 	p1 = Ap [k] ;
 	p2 = Ap [k+1] ;
 
@@ -175,6 +175,6 @@ void AMD_1
     /* order the matrix */
     /* --------------------------------------------------------------------- */
 
-    AMD_2 (n, Pe, Iw, Len, iwlen, pfree,
+    amd_2 (n, Pe, Iw, Len, iwlen, pfree,
 	Nv, Pinv, P, Head, Elen, Degree, W, Control, Info) ;
 }
