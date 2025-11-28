@@ -58,43 +58,6 @@ void amd_postorder
 	}
     }
 
-#ifndef NDEBUG
-    {
-	Int nels, ff, nchild ;
-	AMD_DEBUG1 (("\n\n================================ AMD_postorder:\n"));
-	nels = 0 ;
-	for (j = 0 ; j < nn ; j++)
-	{
-	    if (Nv [j] > 0)
-	    {
-		AMD_DEBUG1 (( ""amd_id" :  nels "amd_id" npiv "amd_id" size "amd_id
-		    " parent "amd_id" maxfr "amd_id"\n", j, nels,
-		    Nv [j], Fsize [j], Parent [j], Fsize [j])) ;
-		/* this is an element */
-		/* dump the link list of children */
-		nchild = 0 ;
-		AMD_DEBUG1 (("    Children: ")) ;
-		for (ff = Child [j] ; ff != EMPTY ; ff = Sibling [ff])
-		{
-		    AMD_DEBUG1 ((amd_id" ", ff)) ;
-		    ASSERT (Parent [ff] == j) ;
-		    nchild++ ;
-		    ASSERT (nchild < nn) ;
-		}
-		AMD_DEBUG1 (("\n")) ;
-		parent = Parent [j] ;
-		if (parent != EMPTY)
-		{
-		    ASSERT (Nv [parent] > 0) ;
-		}
-		nels++ ;
-	    }
-	}
-    }
-    AMD_DEBUG1 (("\n\nGo through the children of each node, and put\n"
-		 "the biggest child last in each list:\n")) ;
-#endif
-
     /* --------------------------------------------------------------------- */
     /* place the largest child last in the list of children for each node */
     /* --------------------------------------------------------------------- */
@@ -104,19 +67,6 @@ void amd_postorder
 	if (Nv [i] > 0 && Child [i] != EMPTY)
 	{
 
-#ifndef NDEBUG
-	    Int nchild ;
-	    AMD_DEBUG1 (("Before partial sort, element "amd_id"\n", i)) ;
-	    nchild = 0 ;
-	    for (f = Child [i] ; f != EMPTY ; f = Sibling [f])
-	    {
-		ASSERT (f >= 0 && f < nn) ;
-		AMD_DEBUG1 (("      f: "amd_id"  size: "amd_id"\n", f, Fsize [f])) ;
-		nchild++ ;
-		ASSERT (nchild <= nn) ;
-	    }
-#endif
-
 	    /* find the biggest element in the child list */
 	    fprev = EMPTY ;
 	    maxfrsize = EMPTY ;
@@ -124,7 +74,7 @@ void amd_postorder
 	    bigf = EMPTY ;
 	    for (f = Child [i] ; f != EMPTY ; f = Sibling [f])
 	    {
-		ASSERT (f >= 0 && f < nn) ;
+		
 		frsize = Fsize [f] ;
 		if (frsize >= maxfrsize)
 		{
@@ -135,12 +85,12 @@ void amd_postorder
 		}
 		fprev = f ;
 	    }
-	    ASSERT (bigf != EMPTY) ;
+	    
 
 	    fnext = Sibling [bigf] ;
 
-	    AMD_DEBUG1 (("bigf "amd_id" maxfrsize "amd_id" bigfprev "amd_id" fnext "amd_id
-		" fprev " amd_id"\n", bigf, maxfrsize, bigfprev, fnext, fprev)) ;
+	    
+
 
 	    if (fnext != EMPTY)
 	    {
@@ -159,23 +109,11 @@ void amd_postorder
 
 		/* put bigf at the end of the list */
 		Sibling [bigf] = EMPTY ;
-		ASSERT (Child [i] != EMPTY) ;
-		ASSERT (fprev != bigf) ;
-		ASSERT (fprev != EMPTY) ;
+		
+		
+		
 		Sibling [fprev] = bigf ;
 	    }
-
-#ifndef NDEBUG
-	    AMD_DEBUG1 (("After partial sort, element "amd_id"\n", i)) ;
-	    for (f = Child [i] ; f != EMPTY ; f = Sibling [f])
-	    {
-		ASSERT (f >= 0 && f < nn) ;
-		AMD_DEBUG1 (("        "amd_id"  "amd_id"\n", f, Fsize [f])) ;
-		ASSERT (Nv [f] > 0) ;
-		nchild-- ;
-	    }
-	    ASSERT (nchild == 0) ;
-#endif
 
 	}
     }
@@ -195,12 +133,8 @@ void amd_postorder
     {
 	if (Parent [i] == EMPTY && Nv [i] > 0)
 	{
-	    AMD_DEBUG1 (("Root of assembly tree "amd_id"\n", i)) ;
-	    k = amd_post_tree (i, k, Child, Sibling, Order, Stack
-#ifndef NDEBUG
-		, nn
-#endif
-		) ;
+	    
+	    k = amd_post_tree (i, k, Child, Sibling, Order, Stack) ;
 	}
     }
 }

@@ -43,7 +43,7 @@ void amd_preprocess
 
     amd_int i, j, p, p2 ;
 
-    ASSERT (amd_valid (n, n, Ap, Ai) != AMD_INVALID) ;
+    
 
     /* --------------------------------------------------------------------- */
     /* count the entries in each row of A (excluding duplicates) */
@@ -104,11 +104,4 @@ void amd_preprocess
 	}
     }
 
-#ifndef NDEBUG
-    ASSERT (amd_valid (n, n, Rp, Ri) == AMD_OK) ;
-    for (j = 0 ; j < n ; j++)
-    {
-	ASSERT (W [j] == Rp [j+1]) ;
-    }
-#endif
 }

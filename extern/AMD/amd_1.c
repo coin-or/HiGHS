@@ -48,7 +48,7 @@ void amd_1
     /* construct the matrix for AMD_2 */
     /* --------------------------------------------------------------------- */
 
-    ASSERT (n > 0) ;
+    
 
     iwlen = slen - 6*n ;
     s = S ;
@@ -60,7 +60,7 @@ void amd_1
     W = s ;	    s += n ;
     Iw = s ;	    s += iwlen ;
 
-    ASSERT (amd_valid (n, n, Ap, Ai) == AMD_OK) ;
+    
 
     /* construct the pointers for A+A' */
     Sp = Nv ;			/* use Nv and W as workspace for Sp and Tp [ */
@@ -77,15 +77,11 @@ void amd_1
      * what is strictly required in AMD_2.  AMD_2 can operate with no elbow
      * room at all, but it will be very slow.  For better performance, at
      * least size-n elbow room is enforced. */
-    ASSERT (iwlen >= pfree + n) ;
-
-#ifndef NDEBUG
-    for (p = 0 ; p < iwlen ; p++) Iw [p] = EMPTY ;
-#endif
+    
 
     for (k = 0 ; k < n ; k++)
     {
-	AMD_DEBUG1 (("Construct row/column k= "amd_id" of A+A'\n", k))  ;
+	
 	p1 = Ap [k] ;
 	p2 = Ap [k+1] ;
 
@@ -94,12 +90,12 @@ void amd_1
 	{
 	    /* scan the upper triangular part of A */
 	    j = Ai [p] ;
-	    ASSERT (j >= 0 && j < n) ;
+	    
 	    if (j < k)
 	    {
 		/* entry A (j,k) in the strictly upper triangular part */
-		ASSERT (Sp [j] < (j == n-1 ? pfree : Pe [j+1])) ;
-		ASSERT (Sp [k] < (k == n-1 ? pfree : Pe [k+1])) ;
+		
+		
 		Iw [Sp [j]++] = k ;
 		Iw [Sp [k]++] = j ;
 		p++ ;
@@ -117,17 +113,17 @@ void amd_1
 	    }
 	    /* scan lower triangular part of A, in column j until reaching
 	     * row k.  Start where last scan left off. */
-	    ASSERT (Ap [j] <= Tp [j] && Tp [j] <= Ap [j+1]) ;
+	    
 	    pj2 = Ap [j+1] ;
 	    for (pj = Tp [j] ; pj < pj2 ; )
 	    {
 		i = Ai [pj] ;
-		ASSERT (i >= 0 && i < n) ;
+		
 		if (i < k)
 		{
 		    /* A (i,j) is only in the lower part, not in upper */
-		    ASSERT (Sp [i] < (i == n-1 ? pfree : Pe [i+1])) ;
-		    ASSERT (Sp [j] < (j == n-1 ? pfree : Pe [j+1])) ;
+		    
+		    
 		    Iw [Sp [i]++] = j ;
 		    Iw [Sp [j]++] = i ;
 		    pj++ ;
@@ -155,19 +151,15 @@ void amd_1
 	for (pj = Tp [j] ; pj < Ap [j+1] ; pj++)
 	{
 	    i = Ai [pj] ;
-	    ASSERT (i >= 0 && i < n) ;
+	    
 	    /* A (i,j) is only in the lower part, not in upper */
-	    ASSERT (Sp [i] < (i == n-1 ? pfree : Pe [i+1])) ;
-	    ASSERT (Sp [j] < (j == n-1 ? pfree : Pe [j+1])) ;
+	    
+	    
 	    Iw [Sp [i]++] = j ;
 	    Iw [Sp [j]++] = i ;
 	}
     }
 
-#ifndef NDEBUG
-    for (j = 0 ; j < n-1 ; j++) ASSERT (Sp [j] == Pe [j+1]) ;
-    ASSERT (Sp [n-1] == pfree) ;
-#endif
 
     /* Tp and Sp no longer needed ] */
 

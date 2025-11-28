@@ -565,8 +565,8 @@ void amd_2
      * what is actually required in AMD_2.  AMD_2 can operate with no elbow
      * room at all, but it will be slow.  For better performance, at least
      * size-n elbow room is enforced. */
-    ASSERT (iwlen >= pfree + n) ;
-    ASSERT (n > 0) ;
+    
+    
 
     /* initialize output statistics */
     lnz = 0 ;
@@ -604,8 +604,8 @@ void amd_2
     }
     dense = MAX (16, dense) ;
     dense = MIN (n,  dense) ;
-    AMD_DEBUG1 (("\n\nAMD (debug), alpha %g, aggr. "amd_id"\n",
-	alpha, aggressive)) ;
+    
+
 
     for (i = 0 ; i < n ; i++)
     {
@@ -621,11 +621,6 @@ void amd_2
 	Degree [i] = Len [i] ;
     }
 
-#ifndef NDEBUG
-    AMD_DEBUG1 (("\n======Nel "amd_id" initial\n", nel)) ;
-    amd_dump (n, Pe, Iw, Len, iwlen, pfree, Nv, Next, Last,
-		Head, Elen, Degree, W, -1) ;
-#endif
 
     /* initialize wflg */
     wbig = amd_int_max - n ;
@@ -640,7 +635,7 @@ void amd_2
     for (i = 0 ; i < n ; i++)
     {
 	deg = Degree [i] ;
-	ASSERT (deg >= 0 && deg < n) ;
+	
 	if (deg == 0)
 	{
 
@@ -667,7 +662,7 @@ void amd_2
 	     * version does not have this option.
 	     * ------------------------------------------------------------- */
 
-	    AMD_DEBUG1 (("Dense node "amd_id" degree "amd_id"\n", i, deg)) ;
+	    
 	    ndense++ ;
 	    Nv [i] = 0 ;		/* do not postorder this node */
 	    Elen [i] = EMPTY ;
@@ -683,7 +678,7 @@ void amd_2
 	     * ------------------------------------------------------------- */
 
 	    inext = Head [deg] ;
-	    ASSERT (inext >= EMPTY && inext < n) ;
+	    
 	    if (inext != EMPTY) Last [inext] = i ;
 	    Next [i] = inext ;
 	    Head [deg] = i ;
@@ -698,14 +693,6 @@ void amd_2
     while (nel < n)
     {
 
-#ifndef NDEBUG
-	AMD_DEBUG1 (("\n======Nel "amd_id"\n", nel)) ;
-	if (amd_debug >= 2)
-	{
-	    amd_dump (n, Pe, Iw, Len, iwlen, pfree, Nv, Next,
-		    Last, Head, Elen, Degree, W, nel) ;
-	}
-#endif
 
 /* ========================================================================= */
 /* GET PIVOT OF MINIMUM DEGREE */
@@ -715,22 +702,22 @@ void amd_2
 	/* find next supervariable for elimination */
 	/* ----------------------------------------------------------------- */
 
-	ASSERT (mindeg >= 0 && mindeg < n) ;
+	
 	for (deg = mindeg ; deg < n ; deg++)
 	{
 	    me = Head [deg] ;
 	    if (me != EMPTY) break ;
 	}
 	mindeg = deg ;
-	ASSERT (me >= 0 && me < n) ;
-	AMD_DEBUG1 (("=================me: "amd_id"\n", me)) ;
+	
+	
 
 	/* ----------------------------------------------------------------- */
 	/* remove chosen variable from link list */
 	/* ----------------------------------------------------------------- */
 
 	inext = Next [me] ;
-	ASSERT (inext >= EMPTY && inext < n) ;
+	
 	if (inext != EMPTY) Last [inext] = EMPTY ;
 	Head [deg] = inext ;
 
@@ -741,7 +728,7 @@ void amd_2
 
 	elenme = Elen [me] ;
 	nvpiv = Nv [me] ;
-	ASSERT (nvpiv > 0) ;
+	
 	nel += nvpiv ;
 
 /* ========================================================================= */
@@ -759,7 +746,7 @@ void amd_2
 	/* flag the variable "me" as being in Lme by negating Nv [me] */
 	Nv [me] = -nvpiv ;
 	degme = 0 ;
-	ASSERT (Pe [me] >= 0 && Pe [me] < iwlen) ;
+	
 
 	if (elenme == 0)
 	{
@@ -774,7 +761,7 @@ void amd_2
 	    for (p = pme1 ; p <= pme1 + Len [me] - 1 ; p++)
 	    {
 		i = Iw [p] ;
-		ASSERT (i >= 0 && i < n && Nv [i] >= 0) ;
+		
 		nvi = Nv [i] ;
 		if (nvi > 0)
 		{
@@ -795,8 +782,8 @@ void amd_2
 
 		    ilast = Last [i] ;
 		    inext = Next [i] ;
-		    ASSERT (ilast >= EMPTY && ilast < n) ;
-		    ASSERT (inext >= EMPTY && inext < n) ;
+		    
+		    
 		    if (inext != EMPTY) Last [inext] = ilast ;
 		    if (ilast != EMPTY)
 		    {
@@ -805,7 +792,7 @@ void amd_2
 		    else
 		    {
 			/* i is at the head of the degree list */
-			ASSERT (Degree [i] >= 0 && Degree [i] < n) ;
+			
 			Head [Degree [i]] = inext ;
 		    }
 		}
@@ -831,19 +818,19 @@ void amd_2
 		    e = me ;
 		    pj = p ;
 		    ln = slenme ;
-		    AMD_DEBUG2 (("Search sv: "amd_id" "amd_id" "amd_id"\n", me,pj,ln)) ;
+		    
 		}
 		else
 		{
 		    /* search the elements in me. */
 		    e = Iw [p++] ;
-		    ASSERT (e >= 0 && e < n) ;
+		    
 		    pj = Pe [e] ;
 		    ln = Len [e] ;
-		    AMD_DEBUG2 (("Search element e "amd_id" in me "amd_id"\n", e,me)) ;
-		    ASSERT (Elen [e] < EMPTY && W [e] > 0 && pj >= 0) ;
+		    
+		    
 		}
-		ASSERT (ln >= 0 && (ln == 0 || (pj >= 0 && pj < iwlen))) ;
+		
 
 		/* ---------------------------------------------------------
 		 * search for different supervariables and add them to the
@@ -855,10 +842,10 @@ void amd_2
 		for (knt2 = 1 ; knt2 <= ln ; knt2++)
 		{
 		    i = Iw [pj++] ;
-		    ASSERT (i >= 0 && i < n && (i == me || Elen [i] >= EMPTY));
+
 		    nvi = Nv [i] ;
-		    AMD_DEBUG2 ((": "amd_id" "amd_id" "amd_id" "amd_id"\n",
-				i, Elen [i], Nv [i], wflg)) ;
+		    
+
 
 		    if (nvi > 0)
 		    {
@@ -870,7 +857,7 @@ void amd_2
 			if (pfree >= iwlen)
 			{
 
-			    AMD_DEBUG1 (("GARBAGE COLLECTION\n")) ;
+			    
 
 			    /* prepare for compressing Iw by adjusting pointers
 			     * and lengths so that the lists being searched in
@@ -895,7 +882,7 @@ void amd_2
 				pn = Pe [j] ;
 				if (pn >= 0)
 				{
-				    ASSERT (pn >= 0 && pn < iwlen) ;
+				    
 				    Pe [j] = Iw [pn] ;
 				    Iw [pn] = FLIP (j) ;
 				}
@@ -912,7 +899,7 @@ void amd_2
 				j = FLIP (Iw [psrc++]) ;
 				if (j >= 0)
 				{
-				    AMD_DEBUG2 (("Got object j: "amd_id"\n", j)) ;
+				    
 				    Iw [pdst] = Pe [j] ;
 				    Pe [j] = pdst++ ;
 				    lenj = Len [j] ;
@@ -946,7 +933,7 @@ void amd_2
 			degme += nvi ;
 			Nv [i] = -nvi ;
 			Iw [pfree++] = i ;
-			AMD_DEBUG2 (("     s: "amd_id"     nv "amd_id"\n", i, Nv [i]));
+			
 
 			/* ------------------------------------------------- */
 			/* remove variable i from degree link list */
@@ -954,8 +941,8 @@ void amd_2
 
 			ilast = Last [i] ;
 			inext = Next [i] ;
-			ASSERT (ilast >= EMPTY && ilast < n) ;
-			ASSERT (inext >= EMPTY && inext < n) ;
+			
+			
 			if (inext != EMPTY) Last [inext] = ilast ;
 			if (ilast != EMPTY)
 			{
@@ -964,7 +951,7 @@ void amd_2
 			else
 			{
 			    /* i is at the head of the degree list */
-			    ASSERT (Degree [i] >= 0 && Degree [i] < n) ;
+			    
 			    Head [Degree [i]] = inext ;
 			}
 		    }
@@ -974,7 +961,7 @@ void amd_2
 		{
 		    /* set tree pointer and flag to indicate element e is
 		     * absorbed into new element me (the parent of e is me) */
-		    AMD_DEBUG1 ((" Element "amd_id" => "amd_id"\n", e, me)) ;
+		    
 		    Pe [e] = FLIP (me) ;
 		    W [e] = 0 ;
 		}
@@ -991,17 +978,12 @@ void amd_2
 	Degree [me] = degme ;
 	Pe [me] = pme1 ;
 	Len [me] = pme2 - pme1 + 1 ;
-	ASSERT (Pe [me] >= 0 && Pe [me] < iwlen) ;
+	
 
 	Elen [me] = FLIP (nvpiv + degme) ;
 	/* FLIP (Elen (me)) is now the degree of pivot (including
 	 * diagonal part). */
 
-#ifndef NDEBUG
-	AMD_DEBUG2 (("New element structure: length= "amd_id"\n", pme2-pme1+1)) ;
-	for (pme = pme1 ; pme <= pme2 ; pme++) AMD_DEBUG3 ((" "amd_id"", Iw[pme]));
-	AMD_DEBUG3 (("\n")) ;
-#endif
 
 	/* ----------------------------------------------------------------- */
 	/* make sure that wflg is not too large. */
@@ -1030,44 +1012,44 @@ void amd_2
 	 * in Scan 2.
 	 * ----------------------------------------------------------------- */
 
-	AMD_DEBUG2 (("me: ")) ;
+	
 	for (pme = pme1 ; pme <= pme2 ; pme++)
 	{
 	    i = Iw [pme] ;
-	    ASSERT (i >= 0 && i < n) ;
+	    
 	    eln = Elen [i] ;
-	    AMD_DEBUG3 ((""amd_id" Elen "amd_id": \n", i, eln)) ;
+	    
 	    if (eln > 0)
 	    {
 		/* note that Nv [i] has been negated to denote i in Lme: */
 		nvi = -Nv [i] ;
-		ASSERT (nvi > 0 && Pe [i] >= 0 && Pe [i] < iwlen) ;
+		
 		wnvi = wflg - nvi ;
 		for (p = Pe [i] ; p <= Pe [i] + eln - 1 ; p++)
 		{
 		    e = Iw [p] ;
-		    ASSERT (e >= 0 && e < n) ;
+		    
 		    we = W [e] ;
-		    AMD_DEBUG4 (("    e "amd_id" we "amd_id" ", e, we)) ;
+		    
 		    if (we >= wflg)
 		    {
 			/* unabsorbed element e has been seen in this loop */
-			AMD_DEBUG4 (("    unabsorbed, first time seen")) ;
+			
 			we -= nvi ;
 		    }
 		    else if (we != 0)
 		    {
 			/* e is an unabsorbed element */
 			/* this is the first we have seen e in all of Scan 1 */
-			AMD_DEBUG4 (("    unabsorbed")) ;
+			
 			we = Degree [e] + wnvi ;
 		    }
-		    AMD_DEBUG4 (("\n")) ;
+		    
 		    W [e] = we ;
 		}
 	    }
 	}
-	AMD_DEBUG2 (("\n")) ;
+	
 
 /* ========================================================================= */
 /* DEGREE UPDATE AND ELEMENT ABSORPTION */
@@ -1083,14 +1065,14 @@ void amd_2
 	for (pme = pme1 ; pme <= pme2 ; pme++)
 	{
 	    i = Iw [pme] ;
-	    ASSERT (i >= 0 && i < n && Nv [i] < 0 && Elen [i] >= 0) ;
-	    AMD_DEBUG2 (("Updating: i "amd_id" "amd_id" "amd_id"\n", i, Elen[i], Len [i]));
+	    
+	    
 	    p1 = Pe [i] ;
 	    p2 = p1 + Elen [i] - 1 ;
 	    pn = p1 ;
 	    hash = 0 ;
 	    deg = 0 ;
-	    ASSERT (p1 >= 0 && p1 < iwlen && p2 >= -1 && p2 < iwlen) ;
+	    
 
 	    /* ------------------------------------------------------------- */
 	    /* scan the element list associated with supervariable i */
@@ -1102,7 +1084,7 @@ void amd_2
 		for (p = p1 ; p <= p2 ; p++)
 		{
 		    e = Iw [p] ;
-		    ASSERT (e >= 0 && e < n) ;
+		    
 		    we = W [e] ;
 		    if (we != 0)
 		    {
@@ -1114,14 +1096,14 @@ void amd_2
 			    deg += dext ;
 			    Iw [pn++] = e ;
 			    hash += e ;
-			    AMD_DEBUG4 ((" e: "amd_id" hash = "amd_id"\n",e,hash)) ;
+			    
 			}
 			else
 			{
 			    /* external degree of e is zero, absorb e into me*/
-			    AMD_DEBUG1 ((" Element "amd_id" =>"amd_id" (aggressive)\n",
-				e, me)) ;
-			    ASSERT (dext == 0) ;
+			    
+
+			    
 			    Pe [e] = FLIP (me) ;
 			    W [e] = 0 ;
 			}
@@ -1133,17 +1115,17 @@ void amd_2
 		for (p = p1 ; p <= p2 ; p++)
 		{
 		    e = Iw [p] ;
-		    ASSERT (e >= 0 && e < n) ;
+		    
 		    we = W [e] ;
 		    if (we != 0)
 		    {
 			/* e is an unabsorbed element */
 			dext = we - wflg ;
-			ASSERT (dext >= 0) ;
+			
 			deg += dext ;
 			Iw [pn++] = e ;
 			hash += e ;
-			AMD_DEBUG4 (("	e: "amd_id" hash = "amd_id"\n",e,hash)) ;
+			
 		    }
 		}
 	    }
@@ -1163,7 +1145,7 @@ void amd_2
 	    for (p = p2 + 1 ; p < p4 ; p++)
 	    {
 		j = Iw [p] ;
-		ASSERT (j >= 0 && j < n) ;
+		
 		nvj = Nv [j] ;
 		if (nvj > 0)
 		{
@@ -1172,8 +1154,8 @@ void amd_2
 		    deg += nvj ;
 		    Iw [pn++] = j ;
 		    hash += j ;
-		    AMD_DEBUG4 (("  s: "amd_id" hash "amd_id" Nv[j]= "amd_id"\n",
-				j, hash, nvj)) ;
+		    
+
 		}
 	    }
 
@@ -1183,7 +1165,7 @@ void amd_2
 
 	    /* with aggressive absorption, deg==0 is identical to the
 	     * Elen [i] == 1 && p3 == pn test, below. */
-	    ASSERT (IMPLIES (aggressive, (deg==0) == (Elen[i]==1 && p3==pn))) ;
+	    
 
 	    if (Elen [i] == 1 && p3 == pn)
 	    {
@@ -1212,7 +1194,7 @@ void amd_2
 		 * flop count analysis.  It also means that the post-ordering
 		 * is not an exact elimination tree post-ordering. */
 
-		AMD_DEBUG1 (("  MASS i "amd_id" => parent e "amd_id"\n", i, me)) ;
+		
 		Pe [i] = FLIP (me) ;
 		nvi = -Nv [i] ;
 		degme -= nvi ;
@@ -1256,7 +1238,7 @@ void amd_2
 		 * That's why hash is defined as an unsigned Int, to avoid this
 		 * problem. */
 		hash = hash % n ;
-		ASSERT (((amd_int) hash) >= 0 && ((amd_int) hash) < n) ;
+		
 
 		/* if the Hhead array is not used: */
 		j = Head [hash] ;
@@ -1299,12 +1281,12 @@ void amd_2
 /* SUPERVARIABLE DETECTION */
 /* ========================================================================= */
 
-	AMD_DEBUG1 (("Detecting supervariables:\n")) ;
+	
 	for (pme = pme1 ; pme <= pme2 ; pme++)
 	{
 	    i = Iw [pme] ;
-	    ASSERT (i >= 0 && i < n) ;
-	    AMD_DEBUG2 (("Consider i "amd_id" nv "amd_id"\n", i, Nv [i])) ;
+	    
+	    
 	    if (Nv [i] < 0)
 	    {
 		/* i is a principal variable in Lme */
@@ -1316,7 +1298,7 @@ void amd_2
 		 * --------------------------------------------------------- */
 
 		/* let i = head of hash bucket, and empty the hash bucket */
-		ASSERT (Last [i] >= 0 && Last [i] < n) ;
+		
 		hash = Last [i] ;
 
 		/* if Hhead array is not used: */
@@ -1344,8 +1326,8 @@ void amd_2
 		Hhead [hash] = EMPTY ;
 		*/
 
-		ASSERT (i >= EMPTY && i < n) ;
-		AMD_DEBUG2 (("----i "amd_id" hash "amd_id"\n", i, hash)) ;
+		
+		
 
 		while (i != EMPTY && Next [i] != EMPTY)
 		{
@@ -1358,12 +1340,12 @@ void amd_2
 
 		    ln = Len [i] ;
 		    eln = Elen [i] ;
-		    ASSERT (ln >= 0 && eln >= 0) ;
-		    ASSERT (Pe [i] >= 0 && Pe [i] < iwlen) ;
+		    
+		    
 		    /* do not flag the first element in the list (me) */
 		    for (p = Pe [i] + 1 ; p <= Pe [i] + ln - 1 ; p++)
 		    {
-			ASSERT (Iw [p] >= 0 && Iw [p] < n) ;
+			
 			W [Iw [p]] = wflg ;
 		    }
 
@@ -1373,7 +1355,7 @@ void amd_2
 
 		    jlast = i ;
 		    j = Next [i] ;
-		    ASSERT (j >= EMPTY && j < n) ;
+		    
 
 		    while (j != EMPTY)
 		    {
@@ -1381,16 +1363,16 @@ void amd_2
 			/* check if j and i have identical nonzero pattern */
 			/* ------------------------------------------------- */
 
-			AMD_DEBUG3 (("compare i "amd_id" and j "amd_id"\n", i,j)) ;
+			
 
 			/* check if i and j have the same Len and Elen */
-			ASSERT (Len [j] >= 0 && Elen [j] >= 0) ;
-			ASSERT (Pe [j] >= 0 && Pe [j] < iwlen) ;
+			
+			
 			ok = (Len [j] == ln) && (Elen [j] == eln) ;
 			/* skip the first element in the list (me) */
 			for (p = Pe [j] + 1 ; ok && p <= Pe [j] + ln - 1 ; p++)
 			{
-			    ASSERT (Iw [p] >= 0 && Iw [p] < n) ;
+			    
 			    if (W [Iw [p]] != wflg) ok = 0 ;
 			}
 			if (ok)
@@ -1399,7 +1381,7 @@ void amd_2
 			    /* found it!  j can be absorbed into i */
 			    /* --------------------------------------------- */
 
-			    AMD_DEBUG1 (("found it! j "amd_id" => i "amd_id"\n", j,i));
+			    
 			    Pe [j] = FLIP (i) ;
 			    /* both Nv [i] and Nv [j] are negated since they */
 			    /* are in Lme, and the absolute values of each */
@@ -1408,7 +1390,7 @@ void amd_2
 			    Nv [j] = 0 ;
 			    Elen [j] = EMPTY ;
 			    /* delete j from hash bucket */
-			    ASSERT (j != Next [j]) ;
+			    
 			    j = Next [j] ;
 			    Next [jlast] = j ;
 
@@ -1417,10 +1399,10 @@ void amd_2
 			{
 			    /* j cannot be absorbed into i */
 			    jlast = j ;
-			    ASSERT (j != Next [j]) ;
+			    
 			    j = Next [j] ;
 			}
-			ASSERT (j >= EMPTY && j < n) ;
+			
 		    }
 
 		    /* -----------------------------------------------------
@@ -1430,12 +1412,12 @@ void amd_2
 
 		    wflg++ ;
 		    i = Next [i] ;
-		    ASSERT (i >= EMPTY && i < n) ;
+		    
 
 		}
 	    }
 	}
-	AMD_DEBUG2 (("detect done\n")) ;
+	
 
 /* ========================================================================= */
 /* RESTORE DEGREE LISTS AND REMOVE NONPRINCIPAL SUPERVARIABLES FROM ELEMENT */
@@ -1446,9 +1428,9 @@ void amd_2
 	for (pme = pme1 ; pme <= pme2 ; pme++)
 	{
 	    i = Iw [pme] ;
-	    ASSERT (i >= 0 && i < n) ;
+	    
 	    nvi = -Nv [i] ;
-	    AMD_DEBUG3 (("Restore i "amd_id" "amd_id"\n", i, nvi)) ;
+	    
 	    if (nvi > 0)
 	    {
 		/* i is a principal variable in Lme */
@@ -1461,14 +1443,14 @@ void amd_2
 
 		deg = Degree [i] + degme - nvi ;
 		deg = MIN (deg, nleft - nvi) ;
-		ASSERT (IMPLIES (aggressive, deg > 0) && deg >= 0 && deg < n) ;
+		
 
 		/* --------------------------------------------------------- */
 		/* place the supervariable at the head of the degree list */
 		/* --------------------------------------------------------- */
 
 		inext = Head [deg] ;
-		ASSERT (inext >= EMPTY && inext < n) ;
+		
 		if (inext != EMPTY) Last [inext] = i ;
 		Next [i] = inext ;
 		Last [i] = EMPTY ;
@@ -1489,13 +1471,13 @@ void amd_2
 
 	    }
 	}
-	AMD_DEBUG2 (("restore done\n")) ;
+	
 
 /* ========================================================================= */
 /* FINALIZE THE NEW ELEMENT */
 /* ========================================================================= */
 
-	AMD_DEBUG2 (("ME = "amd_id" DONE\n", me)) ;
+	
 	Nv [me] = nvpiv ;
 	/* save the length of the list for the new element me */
 	Len [me] = p - pme1 ;
@@ -1541,14 +1523,6 @@ void amd_2
 	    nms_ldl += (s + lnzme)/2 ;
 	}
 
-#ifndef NDEBUG
-	AMD_DEBUG2 (("finalize done nel "amd_id" n "amd_id"\n   ::::\n", nel, n)) ;
-	for (pme = Pe [me] ; pme <= Pe [me] + Len [me] - 1 ; pme++)
-	{
-	      AMD_DEBUG3 ((" "amd_id"", Iw [pme])) ;
-	}
-	AMD_DEBUG3 (("\n")) ;
-#endif
 
     }
 
@@ -1645,61 +1619,6 @@ void amd_2
 /* Now the parent of j is Pe [j], or EMPTY if j is a root.  Elen [e] > 0
  * is the size of element e.  Elen [i] is EMPTY for unordered variable i. */
 
-#ifndef NDEBUG
-    AMD_DEBUG2 (("\nTree:\n")) ;
-    for (i = 0 ; i < n ; i++)
-    {
-	AMD_DEBUG2 ((" "amd_id" parent: "amd_id"   ", i, Pe [i])) ;
-	ASSERT (Pe [i] >= EMPTY && Pe [i] < n) ;
-	if (Nv [i] > 0)
-	{
-	    /* this is an element */
-	    e = i ;
-	    AMD_DEBUG2 ((" element, size is "amd_id"\n", Elen [i])) ;
-	    ASSERT (Elen [e] > 0) ;
-	}
-	AMD_DEBUG2 (("\n")) ;
-    }
-    AMD_DEBUG2 (("\nelements:\n")) ;
-    for (e = 0 ; e < n ; e++)
-    {
-	if (Nv [e] > 0)
-	{
-	    AMD_DEBUG3 (("Element e= "amd_id" size "amd_id" nv "amd_id" \n", e,
-		Elen [e], Nv [e])) ;
-	}
-    }
-    AMD_DEBUG2 (("\nvariables:\n")) ;
-    for (i = 0 ; i < n ; i++)
-    {
-	amd_int cnt ;
-	if (Nv [i] == 0)
-	{
-	    AMD_DEBUG3 (("i unordered: "amd_id"\n", i)) ;
-	    j = Pe [i] ;
-	    cnt = 0 ;
-	    AMD_DEBUG3 (("  j: "amd_id"\n", j)) ;
-	    if (j == EMPTY)
-	    {
-		AMD_DEBUG3 (("	i is a dense variable\n")) ;
-	    }
-	    else
-	    {
-		ASSERT (j >= 0 && j < n) ;
-		while (Nv [j] == 0)
-		{
-		    AMD_DEBUG3 (("	j : "amd_id"\n", j)) ;
-		    j = Pe [j] ;
-		    AMD_DEBUG3 (("	j:: "amd_id"\n", j)) ;
-		    cnt++ ;
-		    if (cnt > n) break ;
-		}
-		e = j ;
-		AMD_DEBUG3 (("	got to e: "amd_id"\n", e)) ;
-	    }
-	}
-    }
-#endif
 
 /* ========================================================================= */
 /* compress the paths of the variables */
@@ -1717,28 +1636,28 @@ void amd_2
 	     * was selected as pivot.
 	     * ------------------------------------------------------------- */
 
-	    AMD_DEBUG1 (("Path compression, i unordered: "amd_id"\n", i)) ;
+	    
 	    j = Pe [i] ;
-	    ASSERT (j >= EMPTY && j < n) ;
-	    AMD_DEBUG3 (("	j: "amd_id"\n", j)) ;
+	    
+	    
 	    if (j == EMPTY)
 	    {
 		/* Skip a dense variable.  It has no parent. */
-		AMD_DEBUG3 (("      i is a dense variable\n")) ;
+		
 		continue ;
 	    }
 
 	    /* while (j is a variable) */
 	    while (Nv [j] == 0)
 	    {
-		AMD_DEBUG3 (("		j : "amd_id"\n", j)) ;
+		
 		j = Pe [j] ;
-		AMD_DEBUG3 (("		j:: "amd_id"\n", j)) ;
-		ASSERT (j >= 0 && j < n) ;
+		
+		
 	    }
 	    /* got to an element e */
 	    e = j ;
-	    AMD_DEBUG3 (("got to e: "amd_id"\n", e)) ;
+	    
 
 	    /* -------------------------------------------------------------
 	     * traverse the path again from i to e, and compress the path
@@ -1751,10 +1670,10 @@ void amd_2
 	    while (Nv [j] == 0)
 	    {
 		jnext = Pe [j] ;
-		AMD_DEBUG3 (("j "amd_id" jnext "amd_id"\n", j, jnext)) ;
+		
 		Pe [j] = e ;
 		j = jnext ;
-		ASSERT (j >= 0 && j < n) ;
+		
 	    }
 	}
     }
@@ -1783,10 +1702,10 @@ void amd_2
     for (e = 0 ; e < n ; e++)
     {
 	k = W [e] ;
-	ASSERT ((k == EMPTY) == (Nv [e] == 0)) ;
+	
 	if (k != EMPTY)
 	{
-	    ASSERT (k >= 0 && k < n) ;
+	    
 	    Head [k] = e ;
 	}
     }
@@ -1798,11 +1717,11 @@ void amd_2
     {
 	e = Head [k] ;
 	if (e == EMPTY) break ;
-	ASSERT (e >= 0 && e < n && Nv [e] > 0) ;
+	
 	Next [e] = nel ;
 	nel += Nv [e] ;
     }
-    ASSERT (nel == n - ndense) ;
+    
 
     /* order non-principal variables (dense, & those merged into supervar's) */
     for (i = 0 ; i < n ; i++)
@@ -1810,14 +1729,14 @@ void amd_2
 	if (Nv [i] == 0)
 	{
 	    e = Pe [i] ;
-	    ASSERT (e >= EMPTY && e < n) ;
+	    
 	    if (e != EMPTY)
 	    {
 		/* This is an unordered variable that was merged
 		 * into element e via supernode detection or mass
 		 * elimination of i when e became the pivot element.
 		 * Place i in order just before e. */
-		ASSERT (Next [i] == EMPTY && Nv [e] > 0) ;
+		
 		Next [i] = Next [e] ;
 		Next [e]++ ;
 	    }
@@ -1829,14 +1748,14 @@ void amd_2
 	    }
 	}
     }
-    ASSERT (nel == n) ;
+    
 
-    AMD_DEBUG2 (("\n\nPerm:\n")) ;
+    
     for (i = 0 ; i < n ; i++)
     {
 	k = Next [i] ;
-	ASSERT (k >= 0 && k < n) ;
+	
 	Last [k] = i ;
-	AMD_DEBUG2 (("   perm ["amd_id"] = "amd_id"\n", k, i)) ;
+	
     }
 }

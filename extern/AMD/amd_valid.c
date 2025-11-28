@@ -55,35 +55,35 @@ int amd_valid
     if (Ap [0] != 0 || nz < 0)
     {
 	/* column pointers must start at Ap [0] = 0, and Ap [n] must be >= 0 */
-	AMD_DEBUG0 (("column 0 pointer bad or nz < 0\n")) ;
+	
 	return (AMD_INVALID) ;
     }
     for (j = 0 ; j < n_col ; j++)
     {
 	p1 = Ap [j] ;
 	p2 = Ap [j+1] ;
-	AMD_DEBUG2 (("\nColumn: "amd_id" p1: "amd_id" p2: "amd_id"\n", j, p1, p2)) ;
+	
 	if (p1 > p2)
 	{
 	    /* column pointers must be ascending */
-	    AMD_DEBUG0 (("column "amd_id" pointer bad\n", j)) ;
+	    
 	    return (AMD_INVALID) ;
 	}
 	ilast = EMPTY ;
 	for (p = p1 ; p < p2 ; p++)
 	{
 	    i = Ai [p] ;
-	    AMD_DEBUG3 (("row: "amd_id"\n", i)) ;
+	    
 	    if (i < 0 || i >= n_row)
 	    {
 		/* row index out of range */
-		AMD_DEBUG0 (("index out of range, col "amd_id" row "amd_id"\n", j, i));
+		
 		return (AMD_INVALID) ;
 	    }
 	    if (i <= ilast)
 	    {
 		/* row index unsorted, or duplicate entry present */
-		AMD_DEBUG1 (("index unsorted/dupl col "amd_id" row "amd_id"\n", j, i));
+		
 		result = AMD_OK_BUT_JUMBLED ;
 	    }
 	    ilast = i ;

@@ -31,11 +31,6 @@ size_t amd_aat	/* returns nz in A+A' */
     double sym ;
     size_t nzaat ;
 
-#ifndef NDEBUG
-    amd_debug_init ("AMD AAT") ;
-    for (k = 0 ; k < n ; k++) Tp [k] = EMPTY ;
-    ASSERT (amd_valid (n, n, Ap, Ai) == AMD_OK) ;
-#endif
 
     if (Info != (double *) NULL)
     {
@@ -60,7 +55,7 @@ size_t amd_aat	/* returns nz in A+A' */
     {
 	p1 = Ap [k] ;
 	p2 = Ap [k+1] ;
-	AMD_DEBUG2 (("\nAAT Column: "amd_id" p1: "amd_id" p2: "amd_id"\n", k, p1, p2)) ;
+	
 
 	/* construct A+A' */
 	for (p = p1 ; p < p2 ; )
@@ -73,7 +68,7 @@ size_t amd_aat	/* returns nz in A+A' */
 		 * add both A (j,k) and A (k,j) to the matrix A+A' */
 		Len [j]++ ;
 		Len [k]++ ;
-		AMD_DEBUG3 (("    upper ("amd_id","amd_id") ("amd_id","amd_id")\n", j,k, k,j));
+		
 		p++ ;
 	    }
 	    else if (j == k)
@@ -90,8 +85,8 @@ size_t amd_aat	/* returns nz in A+A' */
 	    }
 	    /* scan lower triangular part of A, in column j until reaching
 	     * row k.  Start where last scan left off. */
-	    ASSERT (Tp [j] != EMPTY) ;
-	    ASSERT (Ap [j] <= Tp [j] && Tp [j] <= Ap [j+1]) ;
+	    
+	    
 	    pj2 = Ap [j+1] ;
 	    for (pj = Tp [j] ; pj < pj2 ; )
 	    {
@@ -102,8 +97,8 @@ size_t amd_aat	/* returns nz in A+A' */
 		     * add both A (i,j) and A (j,i) to the matrix A+A' */
 		    Len [i]++ ;
 		    Len [j]++ ;
-		    AMD_DEBUG3 (("    lower ("amd_id","amd_id") ("amd_id","amd_id")\n",
-			i,j, j,i)) ;
+		    
+
 		    pj++ ;
 		}
 		else if (i == k)
@@ -135,8 +130,8 @@ size_t amd_aat	/* returns nz in A+A' */
 	     * add both A (i,j) and A (j,i) to the matrix A+A' */
 	    Len [i]++ ;
 	    Len [j]++ ;
-	    AMD_DEBUG3 (("    lower cleanup ("amd_id","amd_id") ("amd_id","amd_id")\n",
-		i,j, j,i)) ;
+	    
+
 	}
     }
 
@@ -165,10 +160,10 @@ size_t amd_aat	/* returns nz in A+A' */
 	nzaat += Len [k] ;
     }
 
-    AMD_DEBUG1 (("AMD nz in A+A', excluding diagonal (nzaat) = %g\n",
-	(double) nzaat)) ;
-    AMD_DEBUG1 (("   nzboth: "amd_id" nz: "amd_id" nzdiag: "amd_id" symmetry: %g\n",
-		nzboth, nz, nzdiag, sym)) ;
+    
+
+    
+
 
     if (Info != (double *) NULL)
     {

@@ -267,7 +267,6 @@ set(highs_sources
     ../extern/AMD/amd_aat.c
     ../extern/AMD/amd_control.c
     ../extern/AMD/amd_defaults.c
-    ../extern/AMD/amd_dump.c
     ../extern/AMD/amd_info.c
     ../extern/AMD/amd_order.c
     ../extern/AMD/amd_post_tree.c

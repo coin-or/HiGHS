@@ -13,33 +13,6 @@
  * should use amd.h instead.
  */
 
-/* ========================================================================= */
-/* === NDEBUG ============================================================== */
-/* ========================================================================= */
-
-/*
- * Turning on debugging takes some work (see below).   If you do not edit this
- * file, then debugging is always turned off, regardless of whether or not
- * -DNDEBUG is specified in your compiler options.
- *
- * If AMD is being compiled as a mexFunction, then MATLAB_MEX_FILE is defined,
- * and mxAssert is used instead of assert.  If debugging is not enabled, no
- * MATLAB include files or functions are used.  Thus, the AMD library libamd.a
- * can be safely used in either a stand-alone C program or in another
- * mexFunction, without any change.
- */
-
-/*
-    AMD will be exceedingly slow when running in debug mode.  The next three
-    lines ensure that debugging is turned off.
-*/
-#ifndef NDEBUG
-#define NDEBUG
-#endif
-
-// To enable debugging, uncomment the following line:
-// #undef NDEBUG
-
 #include "amd.h"
 
 /* ------------------------------------------------------------------------- */
@@ -168,9 +141,6 @@ amd_int amd_post_tree
     const amd_int Sibling [ ],
     amd_int Order [ ],
     amd_int Stack [ ]
-#ifndef NDEBUG
-    , amd_int nn
-#endif
 ) ;
 
 void amd_preprocess
@@ -183,15 +153,3 @@ void amd_preprocess
     amd_int W [ ],
     amd_int Flag [ ]
 ) ;
-
-/* ------------------------------------------------------------------------- */
-/* debugging definitions */
-/* ------------------------------------------------------------------------- */
-
-/* no debugging */
-#define ASSERT(expression)
-#define AMD_DEBUG0(params)
-#define AMD_DEBUG1(params)
-#define AMD_DEBUG2(params)
-#define AMD_DEBUG3(params)
-#define AMD_DEBUG4(params)
