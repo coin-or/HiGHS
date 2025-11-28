@@ -6,6 +6,7 @@
 #include <random>
 #include <stack>
 
+#include "../extern/AMD/amd.h"
 #include "DataCollector.h"
 #include "FactorHiGHSSettings.h"
 #include "ReturnValues.h"
@@ -144,6 +145,23 @@ Int Analyse::getPermutation(bool metis_no2hop) {
     if (log_) log_->printDevInfo("Error with Metis\n");
     return kRetMetisError;
   }
+
+  /*
+double control[AMD_CONTROL];
+amd_defaults(control);
+
+double info[AMD_INFO];
+
+Int status = amd_order(n_, temp_ptr.data(), temp_rows.data(), perm_.data(),
+                     control, info);
+
+if (status != AMD_OK) {
+if (log_) log_->printDevInfo("Error with AMD\n");
+return kRetMetisError;
+}
+
+inversePerm(perm_, iperm_);
+*/
 
   return kRetOk;
 }

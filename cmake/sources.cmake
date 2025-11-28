@@ -262,6 +262,19 @@ set(hipo_util_headers
 set_source_files_properties (../extern/filereaderlp/reader.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
 
 set(highs_sources
+    ../extern/AMD/amd_1.c
+    ../extern/AMD/amd_2.c
+    ../extern/AMD/amd_aat.c
+    ../extern/AMD/amd_control.c
+    ../extern/AMD/amd_defaults.c
+    ../extern/AMD/amd_dump.c
+    ../extern/AMD/amd_info.c
+    ../extern/AMD/amd_order.c
+    ../extern/AMD/amd_post_tree.c
+    ../extern/AMD/amd_postorder.c
+    ../extern/AMD/amd_preprocess.c
+    ../extern/AMD/amd_valid.c
+    ../extern/AMD/SuiteSparse_config.c
     ../extern/filereaderlp/reader.cpp
     ../extern/rcm/rcm.cpp
     interfaces/highs_c_api.cpp
@@ -375,6 +388,9 @@ set(highs_sources
 
 # add catch header?
 set(highs_headers
+    ../extern/AMD/amd_internal.h
+    ../extern/AMD/amd.h
+    ../extern/AMD/SuiteSparse_config.h
     ../extern/filereaderlp/builder.hpp
     ../extern/filereaderlp/def.hpp
     ../extern/filereaderlp/model.hpp
