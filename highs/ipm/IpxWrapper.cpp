@@ -552,6 +552,18 @@ HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
     return HighsStatus::kError;
   }
 
+  // Reordering heuristic
+  if (options.hipo_ordering != kHipoMetisString &&
+      options.hipo_ordering != kHipoAmdString &&
+      options.hipo_ordering != kHipoRcmString &&
+      options.hipo_ordering != kHighsChooseString) {
+    highsLogUser(options.log_options, HighsLogType::kError,
+                 "Unknown value of option %s\n", kHipoOrderingString.c_str());
+    model_status = HighsModelStatus::kSolveError;
+    return HighsStatus::kError;
+  }
+  hipo_options.ordering = options.hipo_ordering;
+
   // block size option
   hipo_options.block_size = options.hipo_block_size;
 

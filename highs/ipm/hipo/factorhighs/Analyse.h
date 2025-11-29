@@ -85,6 +85,8 @@ class Analyse {
   const Log* log_;
   DataCollector& data_;
 
+  const std::string& ordering_;
+
   // Functions to perform analyse phase
   Int getPermutation(bool metis_no2hop);
   void permute(const std::vector<Int>& iperm);
@@ -110,7 +112,7 @@ class Analyse {
   // Constructor: matrix must be in lower triangular format
   Analyse(const std::vector<Int>& rows, const std::vector<Int>& ptr,
           const std::vector<Int>& signs, Int nb, const Log* log,
-          DataCollector& data);
+          DataCollector& data, const std::string& ordering);
 
   // Run analyse phase and save the result in Symbolic object S
   Int run(Symbolic& S);

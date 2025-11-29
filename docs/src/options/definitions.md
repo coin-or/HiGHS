@@ -434,6 +434,11 @@
 - Type: string
 - Default: "both"
 
+## hipo\_ordering
+- HiPO matrix reordering: "metis", "amd", "rcm" or "choose"
+- Type: string
+- Default: "choose"
+
 ## hipo\_block\_size
 - Block size for dense linear algebra within HiPO
 - Type: integer

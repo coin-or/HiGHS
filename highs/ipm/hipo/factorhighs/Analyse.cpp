@@ -13,6 +13,7 @@
 #include "ReturnValues.h"
 #include "ipm/hipo/auxiliary/Auxiliary.h"
 #include "ipm/hipo/auxiliary/Log.h"
+#include "rcm/rcm.h"
 
 namespace hipo {
 
@@ -21,8 +22,8 @@ const Int64 int64_limit = std::numeric_limits<int64_t>::max();
 
 Analyse::Analyse(const std::vector<Int>& rows, const std::vector<Int>& ptr,
                  const std::vector<Int>& signs, Int nb, const Log* log,
-                 DataCollector& data)
-    : log_{log}, data_{data} {
+                 DataCollector& data, const std::string& ordering)
+    : log_{log}, data_{data}, ordering_{ordering} {
   // Input the symmetric matrix to be analysed in CSC format.
   // rows contains the row indices.
   // ptr contains the starting points of each column.
@@ -116,45 +117,73 @@ Int Analyse::getPermutation(bool metis_no2hop) {
     }
   }
 
-  idx_t options[METIS_NOPTIONS];
-  METIS_SetDefaultOptions(options);
-  options[METIS_OPTION_SEED] = kMetisSeed;
+  if (ordering_ == "metis") {
+    // ----------------------------
+    // ----- METIS ----------------
+    // ----------------------------
+    idx_t options[METIS_NOPTIONS];
+    METIS_SetDefaultOptions(options);
+    options[METIS_OPTION_SEED] = kMetisSeed;
 
-  // set logging of Metis depending on debug level
-  options[METIS_OPTION_DBGLVL] = 0;
-  if (log_->debug(2))
-    options[METIS_OPTION_DBGLVL] = METIS_DBG_INFO | METIS_DBG_COARSEN;
+    // set logging of Metis depending on debug level
+    options[METIS_OPTION_DBGLVL] = 0;
+    if (log_->debug(2))
+      options[METIS_OPTION_DBGLVL] = METIS_DBG_INFO | METIS_DBG_COARSEN;
 
-  // set no2hop=1 if the user requested it
-  if (metis_no2hop) options[METIS_OPTION_NO2HOP] = 1;
+    // set no2hop=1 if the user requested it
+    if (metis_no2hop) options[METIS_OPTION_NO2HOP] = 1;
 
-  if (log_) log_->printDevInfo("Running Metis\n");
+    if (log_) log_->printDevInfo("Running Metis\n");
 
-  Int status = METIS_NodeND(&n_, temp_ptr.data(), temp_rows.data(), NULL,
-                            options, perm_.data(), iperm_.data());
+    Int status = METIS_NodeND(&n_, temp_ptr.data(), temp_rows.data(), NULL,
+                              options, perm_.data(), iperm_.data());
 
-  if (log_) log_->printDevInfo("Metis done\n");
-  if (status != METIS_OK) {
-    if (log_) log_->printDevInfo("Error with Metis\n");
+    if (log_) log_->printDevInfo("Metis done\n");
+    if (status != METIS_OK) {
+      if (log_) log_->printDevInfo("Error with Metis\n");
+      return kRetMetisError;
+    }
+
+  } else if (ordering_ == "amd") {
+    // ----------------------------
+    // ------ AMD -----------------
+    // ----------------------------
+    double control[AMD_CONTROL];
+    amd_defaults(control);
+    double info[AMD_INFO];
+
+    if (log_) log_->printDevInfo("Running AMD\n");
+    Int status = amd_order(n_, temp_ptr.data(), temp_rows.data(), perm_.data(),
+                           control, info);
+    if (log_) log_->printDevInfo("AMD done\n");
+
+    if (status != AMD_OK) {
+      if (log_) log_->printDevInfo("Error with AMD\n");
+      return kRetMetisError;
+    }
+    inversePerm(perm_, iperm_);
+  }
+
+  else if (ordering_ == "rcm") {
+    // ----------------------------
+    // ------ RCM -----------------
+    // ----------------------------
+
+    if (log_) log_->printDevInfo("Running RCM\n");
+    Int status = genrcm(n_, temp_ptr.back(), temp_ptr.data(), temp_rows.data(),
+                        perm_.data());
+    if (log_) log_->printDevInfo("RCM done\n");
+
+    if (status != 0) {
+      if (log_) log_->printDevInfo("Error with RCM\n");
+      return kRetMetisError;
+    }
+    inversePerm(perm_, iperm_);
+
+  } else {
+    if (log_) log_->printe("Invalid reordering option\n");
     return kRetMetisError;
   }
-
-  /*
-  double control[AMD_CONTROL];
-  amd_defaults(control);
-
-  double info[AMD_INFO];
-
-  Int status = amd_order(n_, temp_ptr.data(), temp_rows.data(), perm_.data(),
-                       control, info);
-
-  if (status != AMD_OK) {
-  if (log_) log_->printDevInfo("Error with AMD\n");
-  return kRetMetisError;
-  }
-
-  inversePerm(perm_, iperm_);
-  */
 
   return kRetOk;
 }

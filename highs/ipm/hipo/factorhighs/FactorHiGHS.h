@@ -83,7 +83,8 @@ class FHsolver {
   // ptr, and store symbolic factorisation in object S.
   // See ReturnValues.h for errors.
   Int analyse(Symbolic& S, const std::vector<Int>& rows,
-              const std::vector<Int>& ptr, const std::vector<Int>& signs);
+              const std::vector<Int>& ptr, const std::vector<Int>& signs,
+              const std::string& ordering = "metis");
 
   // Perform factorise phase of matrix given by rows, ptr, vals, and store
   // numerical factorisation in object N. Matrix is moved into the object, so

@@ -40,6 +40,7 @@ struct Options {
   OptionNla nla = kOptionNlaDefault;
   OptionCrossover crossover = kOptionCrossoverDefault;
   OptionParallel parallel = kOptionParallelDefault;
+  std::string ordering = kHighsChooseString;
 
   // Metis options
   bool metis_no2hop = false;

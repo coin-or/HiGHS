@@ -398,8 +398,11 @@ Int FactorHiGHSSolver::analyseAS(Symbolic& S) {
 
   log_.printDevInfo("Performing AS analyse phase\n");
 
+  std::string ordering = options_.ordering;
+  if (ordering == kHighsChooseString) ordering = kHipoMetisString;
+
   clock.start();
-  Int status = FH_.analyse(S, rowsLower, ptrLower, pivot_signs);
+  Int status = FH_.analyse(S, rowsLower, ptrLower, pivot_signs, ordering);
   if (info_) info_->analyse_AS_time = clock.stop();
 
   if (status && log_.debug(2)) {
@@ -437,8 +440,11 @@ Int FactorHiGHSSolver::analyseNE(Symbolic& S, Int64 nz_limit) {
 
   log_.printDevInfo("Performing NE analyse phase\n");
 
+  std::string ordering = options_.ordering;
+  if (ordering == kHighsChooseString) ordering = kHipoMetisString;
+
   clock.start();
-  Int status = FH_.analyse(S, rowsNE_, ptrNE_, pivot_signs);
+  Int status = FH_.analyse(S, rowsNE_, ptrNE_, pivot_signs, ordering);
   if (info_) info_->analyse_NE_time = clock.stop();
 
   if (status && log_.debug(2)) {
