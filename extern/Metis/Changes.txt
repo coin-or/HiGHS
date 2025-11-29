@@ -27,3 +27,5 @@ Changes:
 - Any function not needed to call METIS_NodeND has been removed.
 
 - The input matrix (xadj and adjncy) is const.
+
+- The Metis integer type is defined based on HIGHSINT64.

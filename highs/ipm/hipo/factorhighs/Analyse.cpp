@@ -9,17 +9,10 @@
 #include "AMD/amd.h"
 #include "DataCollector.h"
 #include "FactorHiGHSSettings.h"
+#include "Metis/metis.h"
 #include "ReturnValues.h"
 #include "ipm/hipo/auxiliary/Auxiliary.h"
 #include "ipm/hipo/auxiliary/Log.h"
-
-// define correct int type for Metis and AMD before header is included
-#ifdef HIGHSINT64
-#define IDXTYPEWIDTH 64
-#else
-#define IDXTYPEWIDTH 32
-#endif
-#include "Metis/metis.h"
 
 namespace hipo {
 

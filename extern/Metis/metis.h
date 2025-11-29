@@ -7,8 +7,8 @@
 \version\verbatim $Id$\endverbatim
 */
 
-#ifndef _METIS_H_
-#define _METIS_H_ 
+#ifndef HIGHS_METIS_ORDERING_H
+#define HIGHS_METIS_ORDERING_H 
 
 /****************************************************************************
 * A set of defines that can be modified by the user
@@ -30,7 +30,11 @@
  GCC does provides these definitions in stdint.h, but it may require some
  modifications on other architectures.
 --------------------------------------------------------------------------*/
-#ifndef IDXTYPEWIDTH
+#include "HConfig.h"
+
+#ifdef HIGHSINT64
+  #define IDXTYPEWIDTH 64
+#else
   #define IDXTYPEWIDTH 32
 #endif
 
@@ -41,9 +45,7 @@
    32 : single precision floating point (float)
    64 : double precision floating point (double)
 --------------------------------------------------------------------------*/
-#ifndef REALTYPEWIDTH
-  #define REALTYPEWIDTH 32
-#endif
+#define REALTYPEWIDTH 32
 
 /****************************************************************************
 * In principle, nothing needs to be changed beyond this point, unless the
