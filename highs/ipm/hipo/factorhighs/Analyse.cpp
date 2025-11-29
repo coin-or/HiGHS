@@ -6,7 +6,7 @@
 #include <random>
 #include <stack>
 
-#include "../extern/AMD/amd.h"
+#include "AMD/amd.h"
 #include "DataCollector.h"
 #include "FactorHiGHSSettings.h"
 #include "ReturnValues.h"
@@ -19,7 +19,7 @@
 #else
 #define IDXTYPEWIDTH 32
 #endif
-#include "metis.h"
+#include "Metis/metis.h"
 
 namespace hipo {
 

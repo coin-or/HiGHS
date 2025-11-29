@@ -234,22 +234,7 @@ else()
           endif()
       endif()
     endif()
-
-    if(metis_FOUND)
-      target_link_libraries(highs PRIVATE metis)
-    else()
-      target_include_directories(highs PRIVATE "${METIS_PATH}")
-      target_link_libraries(highs PRIVATE "${METIS_LIB}")
-    endif()
-
-    if (NOT (GKLIB_ROOT STREQUAL ""))
-      if(GKlib_FOUND)
-        target_link_libraries(highs PRIVATE GKlib::GKlib)
-      else()
-        target_include_directories(highs PRIVATE "${GKLIB_PATH}")
-        target_link_libraries(highs PRIVATE "${GKLIB_LIB}")
-      endif()
-    endif()
+    
   endif()
 
   if(MSVC)

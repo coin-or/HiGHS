@@ -271,12 +271,59 @@ set(hipo_orderings_sources
     ../extern/AMD/amd_preprocess.c
     ../extern/AMD/amd_valid.c
     ../extern/AMD/SuiteSparse_config.c
+    ../extern/Metis/GKlib/error.c
+    ../extern/Metis/GKlib/mcore.c
+    ../extern/Metis/GKlib/memory.c
+    ../extern/Metis/GKlib/random.c
+    ../extern/Metis/libmetis/auxapi.c
+    ../extern/Metis/libmetis/balance.c
+    ../extern/Metis/libmetis/bucketsort.c
+    ../extern/Metis/libmetis/coarsen.c
+    ../extern/Metis/libmetis/compress.c
+    ../extern/Metis/libmetis/contig.c
+    ../extern/Metis/libmetis/fm.c
+    ../extern/Metis/libmetis/gklib.c
+    ../extern/Metis/libmetis/graph.c
+    ../extern/Metis/libmetis/initpart.c
+    ../extern/Metis/libmetis/mcutil.c
+    ../extern/Metis/libmetis/mmd.c
+    ../extern/Metis/libmetis/ometis.c
+    ../extern/Metis/libmetis/options.c
+    ../extern/Metis/libmetis/refine.c
+    ../extern/Metis/libmetis/separator.c
+    ../extern/Metis/libmetis/sfm.c
+    ../extern/Metis/libmetis/srefine.c
+    ../extern/Metis/libmetis/util.c
+    ../extern/Metis/libmetis/wspace.c
     ../extern/rcm/rcm.cpp)
 
 set(hipo_orderings_headers
     ../extern/AMD/amd_internal.h
     ../extern/AMD/amd.h
     ../extern/AMD/SuiteSparse_config.h
+    ../extern/Metis/GKlib/gk_arch.h
+    ../extern/Metis/GKlib/gk_defs.h
+    ../extern/Metis/GKlib/gk_macros.h
+    ../extern/Metis/GKlib/gk_mkblas.h
+    ../extern/Metis/GKlib/gk_mkmemory.h
+    ../extern/Metis/GKlib/gk_mkpqueue.h
+    ../extern/Metis/GKlib/gk_mkrandom.h
+    ../extern/Metis/GKlib/gk_mksort.h
+    ../extern/Metis/GKlib/gk_ms_inttypes.h
+    ../extern/Metis/GKlib/gk_ms_stat.h
+    ../extern/Metis/GKlib/gk_ms_stdint.h
+    ../extern/Metis/GKlib/gk_proto.h
+    ../extern/Metis/GKlib/gk_struct.h
+    ../extern/Metis/GKlib/gk_types.h
+    ../extern/Metis/GKlib/GKlib.h
+    ../extern/Metis/libmetis/defs.h
+    ../extern/Metis/libmetis/gklib_defs.h
+    ../extern/Metis/libmetis/macros.h
+    ../extern/Metis/libmetis/metislib.h
+    ../extern/Metis/libmetis/proto.h
+    ../extern/Metis/libmetis/stdheaders.h
+    ../extern/Metis/libmetis/struct.h
+    ../extern/Metis/metis.h
     ../extern/rcm/rcm.h)
 
 # redefinition of 'kHighsInf'
