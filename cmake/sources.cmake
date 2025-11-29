@@ -258,10 +258,7 @@ set(hipo_util_headers
     ipm/hipo/auxiliary/mycblas.h
     ipm/hipo/auxiliary/VectorOperations.h)
 
-# redefinition of 'kHighsInf'
-set_source_files_properties (../extern/filereaderlp/reader.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
-
-set(highs_sources
+set(hipo_orderings_sources
     ../extern/AMD/amd_1.c
     ../extern/AMD/amd_2.c
     ../extern/AMD/amd_aat.c
@@ -274,8 +271,19 @@ set(highs_sources
     ../extern/AMD/amd_preprocess.c
     ../extern/AMD/amd_valid.c
     ../extern/AMD/SuiteSparse_config.c
+    ../extern/rcm/rcm.cpp)
+
+set(hipo_orderings_headers
+    ../extern/AMD/amd_internal.h
+    ../extern/AMD/amd.h
+    ../extern/AMD/SuiteSparse_config.h
+    ../extern/rcm/rcm.h)
+
+# redefinition of 'kHighsInf'
+set_source_files_properties (../extern/filereaderlp/reader.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+
+set(highs_sources
     ../extern/filereaderlp/reader.cpp
-    ../extern/rcm/rcm.cpp
     interfaces/highs_c_api.cpp
     io/Filereader.cpp
     io/FilereaderEms.cpp
@@ -387,15 +395,11 @@ set(highs_sources
 
 # add catch header?
 set(highs_headers
-    ../extern/AMD/amd_internal.h
-    ../extern/AMD/amd.h
-    ../extern/AMD/SuiteSparse_config.h
     ../extern/filereaderlp/builder.hpp
     ../extern/filereaderlp/def.hpp
     ../extern/filereaderlp/model.hpp
     ../extern/filereaderlp/reader.hpp
     ../extern/pdqsort/pdqsort.h
-    ../extern/rcm/rcm.h
     ../extern/zstr/strict_fstream.hpp
     ../extern/zstr/zstr.hpp
     interfaces/highs_c_api.h

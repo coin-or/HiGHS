@@ -6,6 +6,7 @@
 #include <random>
 #include <stack>
 
+#include "../extern/AMD/amd.h"
 #include "DataCollector.h"
 #include "FactorHiGHSSettings.h"
 #include "ReturnValues.h"
@@ -15,11 +16,9 @@
 // define correct int type for Metis and AMD before header is included
 #ifdef HIGHSINT64
 #define IDXTYPEWIDTH 64
-#define HIGHS_AMD_INT_64
 #else
 #define IDXTYPEWIDTH 32
 #endif
-#include "../extern/AMD/amd.h"
 #include "metis.h"
 
 namespace hipo {

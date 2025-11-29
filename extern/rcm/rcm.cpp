@@ -462,8 +462,7 @@ HighsInt rcm(HighsInt root, HighsInt adj_num, const HighsInt adj_row[],
   //
   if (*iccsze < 1) {
     printf("RCM(): Fatal error!\n");
-    printf("  Connected component size ICCSZE returned from DEGREE as %d\n",
-           *iccsze);
+    printf("  Unacceptable connected component size returned from DEGREE\n");
     return 1;
   }
   //

@@ -36,16 +36,21 @@
 #define HIGHS_AMD_ORDERING_H
 
 #include "SuiteSparse_config.h"
+#include "HConfig.h"
+
+#ifdef HIGHSINT64
+typedef int64_t amd_int;
+typedef uint64_t amd_uint;
+#define amd_int_max INT64_MAX
+#else
+typedef int amd_int;
+typedef unsigned int amd_uint;
+#define amd_int_max INT_MAX
+#endif
 
 /* make it easy for C++ programs to include AMD */
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-#ifdef HIGHS_AMD_INT_64
-#define amd_int int64_t
-#else
-#define amd_int int32_t
 #endif
 
 int amd_order  /* returns AMD_OK, AMD_OK_BUT_JUMBLED,

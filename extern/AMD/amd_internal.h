@@ -76,24 +76,6 @@
 #endif
 
 /* ------------------------------------------------------------------------- */
-/* integer type for AMD: int32_t or int64_t */
-/* ------------------------------------------------------------------------- */
-
-#if defined (HIGHS_AMD_INT_64)
-
-#define amd_uint uint64_t
-#define amd_id  "%" PRId64
-#define amd_int_max INT64_MAX
-
-#else
-
-#define amd_uint uint32_t
-#define amd_id "%d"
-#define amd_int_max INT32_MAX
-
-#endif
-
-/* ------------------------------------------------------------------------- */
 /* AMD routine definitions (not user-callable) */
 /* ------------------------------------------------------------------------- */
 
