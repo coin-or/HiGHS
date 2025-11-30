@@ -492,7 +492,9 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
   }
 
   // --- 0. Using PowerMethod to estimate the largest eigenvalue ---
+#ifdef CUPDLP_GPU
   setupGpu();
+#endif
   initializeStepSizes();
   PrimalDualParams working_params = params_;
   working_params.omega = std::sqrt(stepsize_.dual_step / stepsize_.primal_step);
@@ -521,7 +523,7 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
   CUDA_CHECK(cudaMemcpy(d_x_avg_, d_x_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
   linalgGpuAx(d_x_current_, d_ax_current_);
 #endif
-
+  linalg::project_bounds(lp_, x_current_);
   linalg::project_bounds(lp_, x_sum_);
   linalg::project_bounds(lp_, x_avg_);
   linalg::Ax(lp, x_current_, Ax_cache_);
@@ -597,7 +599,7 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
       SolverResults current_results;
       SolverResults average_results;
 
-
+#ifdef CUPDLP_GPU
       //=== GPU Convergence Check ===//
       bool current_converged_gpu = checkConvergenceGpu(
         iter, d_x_current_, d_y_current_,
@@ -634,7 +636,7 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         results_ = average_results;
         return solveReturn(TerminationStatus::OPTIMAL);
       }
-
+#endif
       // === CPU Convergence Check ===//
       hipdlpTimerStart(kHipdlpClockConvergenceCheck);
       // Compute residuals for current iterate
@@ -849,7 +851,9 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
 }
 
 void PDLPSolver::solveReturn(const TerminationStatus term_code) {
+#ifdef CUPDLP_GPU
   cleanupGpu();
+#endif
   results_.term_code = term_code;
   hipdlpTimerStop(kHipdlpClockSolve);
 }
@@ -1810,7 +1814,7 @@ void PDLPSolver::closeDebugLog() {
 // =============================================================================
 //  SECTION 5: GPU Part
 // =============================================================================
-
+#ifdef CUPDLP_GPU
 void PDLPSolver::setupGpu(){
   //1. Initialize cuSPARSE
   CUSPARSE_CHECK(cusparseCreate(&cusparse_handle_));
@@ -2180,3 +2184,4 @@ void PDLPSolver::computeAverageIterateGpu() {
   linalgGpuAx(d_x_avg_, d_ax_avg_);
   linalgGpuATy(d_y_avg_, d_aty_avg_);
 }
+#endif

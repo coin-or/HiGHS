@@ -169,6 +169,7 @@ class PDLPSolver {
   std::vector<double> Ax_next_, ATy_next_;
   std::vector<double> K_times_x_diff_;
 
+#ifdef CUPDLP_GPU
   // --- GPU methods ---
   void setupGpu();
   void cleanupGpu();
@@ -264,6 +265,7 @@ class PDLPSolver {
   void computeStepSizeRatioGpu(PrimalDualParams& working_params);
   void updateAverageIteratesGpu(int inner_iter);
   void computeAverageIterateGpu();
+#endif
 };
 
 #endif
