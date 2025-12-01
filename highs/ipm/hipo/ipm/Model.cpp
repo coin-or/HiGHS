@@ -458,6 +458,10 @@ void Model::CRscaling() {
 }
 
 void Model::applyScaling() {
+  // make sure that scaling is a power of 2
+  for (Int i = 0; i < n_; ++i) colscale_[i] = roundToPowerOf2(colscale_[i]);
+  for (Int i = 0; i < m_; ++i) rowscale_[i] = roundToPowerOf2(rowscale_[i]);
+
   // Column has been scaled up by colscale_[col], so cost is scaled up and
   // bounds are scaled down
   for (Int col = 0; col < n_; ++col) {
@@ -497,8 +501,7 @@ void Model::onePassNormScaling() {
   }
 
   // apply row scaling
-  for (Int i = 0; i < m_; ++i)
-    rowscale_[i] *= roundToPowerOf2(1.0 / std::sqrt(norm_rows[i]));
+  for (Int i = 0; i < m_; ++i) rowscale_[i] *= 1.0 / std::sqrt(norm_rows[i]);
 
   // infinity norm of columns
   std::vector<double> norm_cols(n_);
@@ -513,8 +516,7 @@ void Model::onePassNormScaling() {
   }
 
   // apply col scaling
-  for (Int i = 0; i < n_; ++i)
-    colscale_[i] *= roundToPowerOf2(1.0 / std::sqrt(norm_cols[i]));
+  for (Int i = 0; i < n_; ++i) colscale_[i] *= 1.0 / std::sqrt(norm_cols[i]);
 }
 
 void Model::boundScaling() {
@@ -528,9 +530,9 @@ void Model::boundScaling() {
       const double diff = std::abs(u - l);
 
       if (diff < kSmallBoundDiff)
-        colscale_[i] *= roundToPowerOf2(diff / kSmallBoundDiff);
+        colscale_[i] *= diff / kSmallBoundDiff;
       else if (diff > kLargeBoundDiff) {
-        colscale_[i] *= roundToPowerOf2(diff / kLargeBoundDiff);
+        colscale_[i] *= diff / kLargeBoundDiff;
       }
     }
   }
