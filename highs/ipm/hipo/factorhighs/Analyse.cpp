@@ -1378,6 +1378,7 @@ Int Analyse::run(Symbolic& S) {
   S.flops_ = dense_ops_;
   S.block_size_ = nb_;
   S.max_stack_size_ = max_stack_size_;
+  S.ordering = ordering_;
 
   // compute largest supernode
   std::vector<Int> sn_size(sn_start_.begin() + 1, sn_start_.end());

@@ -100,6 +100,8 @@ class Symbolic {
 
   Int64 max_stack_size_{};
 
+  std::string ordering;
+
   friend class Analyse;
 
  public:
