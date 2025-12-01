@@ -398,7 +398,14 @@ void Model::print(const LogHighs& log) const {
 
 static double roundToPowerOf2(double d) {
   int exp;  // int, not Int
-  std::frexp(d, &exp);
+
+  // d = x * 2^exp, d\in[0.5,1)
+  auto x = std::frexp(d, &exp);
+
+  // d is already exact power of 2
+  if (x == 0.5) return d;
+
+  // return 1*2^exp
   return std::ldexp(1.0, exp);
 }
 
