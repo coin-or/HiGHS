@@ -6,10 +6,10 @@
 #include <random>
 #include <stack>
 
-#include "AMD/amd.h"
+#include "amd/amd.h"
 #include "DataCollector.h"
 #include "FactorHiGHSSettings.h"
-#include "Metis/metis.h"
+#include "metis/metis.h"
 #include "ReturnValues.h"
 #include "ipm/hipo/auxiliary/Auxiliary.h"
 #include "ipm/hipo/auxiliary/Log.h"
