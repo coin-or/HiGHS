@@ -72,7 +72,8 @@ Int FactorHiGHSSolver::setup() {
   S_.print(log_, log_.debug(1));
 
   // Warn about large fill-in
-  if (S_.fillin() > kLargeFillin && !options_.metis_no2hop) {
+  if (S_.fillin() > kLargeFillin && options_.ordering == "metis" &&
+      !options_.metis_no2hop) {
     log_.printw(
         "Large fill-in in factorisation. Consider setting the "
         "hipo_metis_no2hop option to true\n");
@@ -518,7 +519,7 @@ Int FactorHiGHSSolver::chooseNla() {
 
     log_.printe("Both NE and AS failed analyse phase\n");
     if ((symb_AS.fillin() > kLargeFillin || symb_NE.fillin() > kLargeFillin) &&
-        !options_.metis_no2hop)
+        options_.ordering == "metis" && !options_.metis_no2hop)
       log_.print(
           "Large fill-in in factorisation. Consider setting the "
           "hipo_metis_no2hop option to true\n");

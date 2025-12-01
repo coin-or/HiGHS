@@ -1304,7 +1304,7 @@ Int Analyse::run(Symbolic& S) {
 #endif
   if (getPermutation(S.metisNo2hop())) return kRetOrderingError;
 #if HIPO_TIMING_LEVEL >= 2
-  data_.sumTime(kTimeAnalyseMetis, clock_items.stop());
+  data_.sumTime(kTimeAnalyseOrdering, clock_items.stop());
 #endif
 
 #if HIPO_TIMING_LEVEL >= 2

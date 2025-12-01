@@ -10,7 +10,7 @@
 /*
 
 Direct solver for IPM matrices.
-It requires Metis and BLAS.
+It requires Metis, AMD, rcm and BLAS.
 
 Consider a sparse symmetric matrix M in CSC format.
 Only its lower triangular part is used; entries in the upper triangle are

@@ -32,7 +32,7 @@ class Analyse {
   double critical_ops_{};
   std::vector<Int> signs_{};
 
-  // Permutation and inverse permutation from Metis
+  // Permutation and inverse permutation
   std::vector<Int> perm_{};
   std::vector<Int> iperm_{};
 
