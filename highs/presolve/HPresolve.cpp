@@ -4226,6 +4226,9 @@ HPresolve::Result HPresolve::rowPresolve(HighsPostsolveStack& postsolve_stack,
     if (rowDeleted[row]) return Result::kOk;
   }
 
+  // enumerate solutions
+  HPRESOLVE_CHECKED_CALL(enumerateSolutions(postsolve_stack, row));
+
   // update implied bounds of all columns in given row
   updateColImpliedBounds(row);
 
@@ -4826,6 +4829,96 @@ HPresolve::Result HPresolve::singletonColStuffing(
     highsLogDev(options->log_options, HighsLogType::kInfo,
                 "Singleton column stuffing fixed %d columns",
                 static_cast<int>(numFixedCols));
+
+  return Result::kOk;
+}
+
+HPresolve::Result HPresolve::enumerateSolutions(
+    HighsPostsolveStack& postsolve_stack, HighsInt row) {
+  const HighsInt maxRowSize = 12;
+
+  if (rowDeleted[row] || isRedundant(row) || rowsize[row] <= 1 ||
+      rowsize[row] > maxRowSize)
+    return;
+
+  bool allColsBounded = true;
+  for (const auto& nz : getRowVector(row)) {
+    allColsBounded = allColsBounded &&
+                     model->col_lower_[nz.index()] != -kHighsInf &&
+                     model->col_upper_[nz.index()] != kHighsInf;
+    if (!allColsBounded) break;
+  }
+  if (!allColsBounded) return;
+
+  auto doBranch = [&](HighsInt& cntr, std::vector<HighsInt>& status,
+                      HighsCDouble& rowLower, HighsCDouble& rowUpper) {
+    HighsInt col = Acol[rowpositions[cntr + 1]];
+    double val = Avalue[rowpositions[cntr + 1]];
+    HighsCDouble delta =
+        val * (static_cast<HighsCDouble>(model->col_upper_[col]) -
+               static_cast<HighsCDouble>(model->col_lower_[col]));
+    status[++cntr]++;
+    if (val > 0)
+      rowUpper -= delta;
+    else
+      rowLower -= delta;
+  };
+
+  auto doBacktrack = [&](HighsInt& cntr, std::vector<HighsInt>& status,
+                         HighsCDouble& rowLower, HighsCDouble& rowUpper) {
+    while (cntr >= 0) {
+      HighsInt col = Acol[rowpositions[cntr]];
+      double val = Avalue[rowpositions[cntr]];
+      HighsCDouble delta =
+          val * (static_cast<HighsCDouble>(model->col_upper_[col]) -
+                 static_cast<HighsCDouble>(model->col_lower_[col]));
+      if (status[cntr] == 1) {
+        status[cntr]++;
+        rowLower += delta;
+        rowUpper += delta;
+        break;
+      } else {
+        status[cntr] = 0;
+        if (val > 0)
+          rowLower -= delta;
+        else
+          rowUpper -= delta;
+        cntr--;
+      }
+    }
+    return (cntr >= 0);
+  };
+
+  auto isFeasible = [&](HighsInt row, HighsCDouble& rowLower,
+                        HighsCDouble& rowUpper) {
+    return (rowLower <= model->row_upper_[row] + primal_feastol &&
+            rowUpper >= model->row_lower_[row] - primal_feastol);
+  };
+
+  storeRow(row);
+  HighsCDouble rowLower = impliedRowBounds.getSumLowerOrig(row);
+  HighsCDouble rowUpper = impliedRowBounds.getSumUpperOrig(row);
+  HighsInt cntr = -1;
+  std::vector<HighsInt> status;
+  status.resize(rowsize[row]);
+  HighsInt numSols = 0;
+
+  while (true) {
+    bool backtrack = false;
+    if (isFeasible(row, rowLower, rowUpper)) {
+      if (cntr + 1 >= rowsize[row]) {
+        // solution found
+        backtrack = true;
+        numSols++;
+      }
+    } else
+      backtrack = true;
+
+    if (!backtrack)
+      doBranch(cntr, status, rowLower, rowUpper);
+    else if (!doBacktrack(cntr, status, rowLower, rowUpper))
+      break;
+  }
 
   return Result::kOk;
 }

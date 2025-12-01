@@ -397,6 +397,8 @@ class HPresolve {
   Result singletonColStuffing(HighsPostsolveStack& postsolve_stack,
                               HighsInt col);
 
+  Result enumerateSolutions(HighsPostsolveStack& postsolve_stack, HighsInt row);
+
   double computeImpliedLowerBound(HighsInt col, HighsInt boundCol = -1,
                                   double boundColValue = kHighsInf,
                                   HighsInt boundColCoeffPattern = 0);
