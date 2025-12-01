@@ -10,12 +10,12 @@
 
 #include "mip/HighsPathSeparator.h"
 
+#include "../extern/pdqsort/pdqsort.h"
 #include "mip/HighsCutGeneration.h"
 #include "mip/HighsLpAggregator.h"
 #include "mip/HighsLpRelaxation.h"
 #include "mip/HighsMipSolverData.h"
 #include "mip/HighsTransformedLp.h"
-#include "pdqsort.h"
 
 enum class RowType : int8_t {
   kUnusuable = -2,
