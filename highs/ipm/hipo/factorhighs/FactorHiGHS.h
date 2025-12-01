@@ -37,6 +37,10 @@ Then, the factorization is performed as follows.
     FH.factorise(S, rows, ptr, val);
     FH.solve(x);
 
+The argument "ordering" passed to Analyse constructor can be used to select the
+fill-reducing ordering to use. Valid values are "metis", "amd", "rcm". By
+default, metis is used.
+
 Printing to screen is achieved using the interface in auxiliary/Log.h. Pass an
 object of type Log for normal printing:
     ...

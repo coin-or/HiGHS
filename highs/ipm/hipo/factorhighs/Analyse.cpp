@@ -62,13 +62,13 @@ Analyse::Analyse(const std::vector<Int>& rows, const std::vector<Int>& ptr,
 }
 
 Int Analyse::getPermutation(bool metis_no2hop) {
-  // Use Metis to compute a nested dissection permutation of the original matrix
+  // Compute fill-reducing reodering using metis, amd or rcm.
 
   perm_.resize(n_);
   iperm_.resize(n_);
 
-  // Build temporary full copy of the matrix, to be used for Metis.
-  // NB: Metis adjacency list should not contain the vertex itself, so diagonal
+  // Build temporary full copy of the matrix, to be used for reordering.
+  // NB: adjacency list should not contain the vertex itself, so diagonal
   // element is skipped.
 
   std::vector<Int> work(n_, 0);
@@ -93,7 +93,7 @@ Int Analyse::getPermutation(bool metis_no2hop) {
   }
 
   if (total_nz > kHighsIInf) {
-    if (log_) log_->printe("Integer overflow while preparing Metis\n");
+    if (log_) log_->printe("Integer overflow while computing ordering.\n");
     return kRetIntOverflow;
   }
 
@@ -141,7 +141,7 @@ Int Analyse::getPermutation(bool metis_no2hop) {
     if (log_) log_->printDevInfo("Metis done\n");
     if (status != METIS_OK) {
       if (log_) log_->printDevInfo("Error with Metis\n");
-      return kRetMetisError;
+      return kRetOrderingError;
     }
 
   } else if (ordering_ == "amd") {
@@ -159,7 +159,7 @@ Int Analyse::getPermutation(bool metis_no2hop) {
 
     if (status != AMD_OK) {
       if (log_) log_->printDevInfo("Error with AMD\n");
-      return kRetMetisError;
+      return kRetOrderingError;
     }
     inversePerm(perm_, iperm_);
   }
@@ -176,13 +176,13 @@ Int Analyse::getPermutation(bool metis_no2hop) {
 
     if (status != 0) {
       if (log_) log_->printDevInfo("Error with RCM\n");
-      return kRetMetisError;
+      return kRetOrderingError;
     }
     inversePerm(perm_, iperm_);
 
   } else {
-    if (log_) log_->printe("Invalid reordering option\n");
-    return kRetMetisError;
+    if (log_) log_->printe("Invalid ordering option passed to Analyse\n");
+    return kRetOrderingError;
   }
 
   return kRetOk;
@@ -1302,7 +1302,7 @@ Int Analyse::run(Symbolic& S) {
 #if HIPO_TIMING_LEVEL >= 2
   Clock clock_items;
 #endif
-  if (getPermutation(S.metisNo2hop())) return kRetMetisError;
+  if (getPermutation(S.metisNo2hop())) return kRetOrderingError;
 #if HIPO_TIMING_LEVEL >= 2
   data_.sumTime(kTimeAnalyseMetis, clock_items.stop());
 #endif
