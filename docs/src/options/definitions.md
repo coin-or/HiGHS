@@ -434,7 +434,7 @@
 - Type: string
 - Default: "both"
 
-## hipo\_ordering
+## [hipo\_ordering](@id option-hipo-ordering)
 - HiPO matrix reordering: "metis", "amd", "rcm" or "choose"
 - Type: string
 - Default: "choose"
