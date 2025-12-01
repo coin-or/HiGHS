@@ -30,7 +30,6 @@
   #include "gk_ms_stdint.h"
   #include "gk_ms_inttypes.h"
   #include "gk_ms_stat.h"
-  #include "win32/adapt.h"
 #else
 #ifndef SUNOS
   #include <stdint.h>
