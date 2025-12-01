@@ -148,7 +148,7 @@ double HighsCutPool::getParallelism(HighsInt row1, HighsInt row2,
 }
 
 void HighsCutPool::lpCutRemoved(HighsInt cut, bool thread_safe) {
-  HighsInt numLps = numLps_[cut].fetch_add(-1, std::memory_order_relaxed);
+  numLps_[cut].fetch_add(-1, std::memory_order_relaxed);
   if (thread_safe) return;
   if (matrix_.columnsLinked(cut)) {
     propRows.erase(std::make_pair(ages_[cut], cut));
@@ -157,9 +157,6 @@ void HighsCutPool::lpCutRemoved(HighsInt cut, bool thread_safe) {
   ages_[cut] = 1;
   --numLpCuts;
   ++ageDistribution[1];
-  if (numLps == 1) {
-    numLps_[cut].fetch_add(-1, std::memory_order_relaxed);
-  }
 }
 
 void HighsCutPool::performAging() {
@@ -173,7 +170,11 @@ void HighsCutPool::performAging() {
   }
 
   for (HighsInt i = 0; i != cutIndexEnd; ++i) {
+    // Catch buffered changes (should only occur in parallel case)
+    // TODO: This misses the case where a cut is added then deleted before aging
+    // TODO: has been called once. We'd miss resetting the age in this case.
     if (numLps_[i] > 0 && ages_[i] >= 0) {
+      // Cut has been added to the LP, but age changes haven't been made
       --ageDistribution[ages_[i]];
       if (matrix_.columnsLinked(i)) {
         propRows.erase(std::make_pair(ages_[i], i));
@@ -181,13 +182,19 @@ void HighsCutPool::performAging() {
       }
       ages_[i] = -1;
       ++numLpCuts;
+    } else if (numLps_[i] == 0 && ages_[i] == -1 && rhs_[i] != kHighsInf) {
+      // Cut was removed from the LP, but age changes haven't been made
+      if (matrix_.columnsLinked(i)) {
+        propRows.erase(std::make_pair(ages_[i], i));
+        propRows.emplace(1, i);
+      }
+      ages_[i] = 1;
+      --numLpCuts;
+      ++ageDistribution[1];
+    } else if (usedInRound_[i]) {
+      resetAge(i);
     }
-    if (numLps_[i] == 0) {
-      // TODO MT: This doesn't work.... What happens if a cut was generated, and
-      // then used in propagation, but never added. It has age 0 but never is in
-      // an LP.....
-      lpCutRemoved(i);
-    }
+    usedInRound_[i] = false;
     if (ages_[i] < 0) continue;
 
     bool isPropagated = matrix_.columnsLinked(i);
@@ -208,6 +215,7 @@ void HighsCutPool::performAging() {
       matrix_.removeRow(i);
       ages_[i] = -1;
       rhs_[i] = kHighsInf;
+      hasSynced_[i] = false;
     } else {
       if (isPropagated) propRows.emplace(ages_[i], i);
       ageDistribution[ages_[i]] += 1;
@@ -227,7 +235,7 @@ void HighsCutPool::separate(const std::vector<double>& sol, HighsDomain& domain,
 
   std::vector<std::pair<double, HighsInt>> efficacious_cuts;
 
-  HighsInt agelim = thread_safe ? -1 : agelim_;
+  HighsInt agelim = agelim_;
 
   HighsInt numCuts = getNumCuts() - numLpCuts;
   while (agelim > 1 && numCuts > softlimit_) {
@@ -238,7 +246,7 @@ void HighsCutPool::separate(const std::vector<double>& sol, HighsDomain& domain,
   for (HighsInt i = 0; i < nrows; ++i) {
     // cuts with an age of -1 are already in the LP and are therefore skipped
     // TODO: Parallel case here loops over cuts potentially added in current LP
-    if (ages_[i] < 0 && (!thread_safe || numLps_[i] < 0)) continue;
+    if (ages_[i] < 0) continue;
 
     HighsInt start = matrix_.getRowStart(i);
     HighsInt end = matrix_.getRowEnd(i);
@@ -280,6 +288,8 @@ void HighsCutPool::separate(const std::vector<double>& sol, HighsDomain& domain,
         matrix_.removeRow(i);
         ages_[i] = -1;
         rhs_[i] = 0;
+        usedInRound_[i] = false;
+        hasSynced_[i] = false;
         auto range = hashToCutMap.equal_range(h);
 
         for (auto it = range.first; it != range.second; ++it) {
@@ -403,11 +413,7 @@ void HighsCutPool::separate(const std::vector<double>& sol, HighsDomain& domain,
 
     if (discard) continue;
 
-    int16_t numLp = numLps_[p.second].fetch_add(1, std::memory_order_relaxed);
-    if (numLp == -1) {
-      numLps_[p.second].fetch_add(1, std::memory_order_relaxed);
-      if (thread_safe) ++numLpCuts;
-    }
+    numLps_[p.second].fetch_add(1, std::memory_order_relaxed);
     if (!thread_safe) {
       --ageDistribution[ages_[p.second]];
       ++numLpCuts;
@@ -587,6 +593,8 @@ HighsInt HighsCutPool::addCut(const HighsMipSolver& mipsolver, HighsInt* Rindex,
     rhs_.resize(rowindex + 1);
     ages_.resize(rowindex + 1);
     numLps_.resize(rowindex + 1);
+    usedInRound_.resize(rowindex + 1);
+    hasSynced_.resize(rowindex + 1);
     rownormalization_.resize(rowindex + 1);
     maxabscoef_.resize(rowindex + 1);
     rowintegral.resize(rowindex + 1);
@@ -597,7 +605,9 @@ HighsInt HighsCutPool::addCut(const HighsMipSolver& mipsolver, HighsInt* Rindex,
   ages_[rowindex] = std::max(HighsInt{0}, agelim_ - 5);
   ++ageDistribution[ages_[rowindex]];
   rowintegral[rowindex] = integral;
-  numLps_[rowindex] = -1;
+  numLps_[rowindex] = 0;
+  usedInRound_[rowindex] = false;
+  hasSynced_[rowindex] = false;
   if (propagate) propRows.emplace(ages_[rowindex], rowindex);
   assert((HighsInt)propRows.size() == numPropRows);
 
@@ -623,34 +633,19 @@ void HighsCutPool::syncCutPool(const HighsMipSolver& mipsolver,
   HighsInt cutIndexEnd = matrix_.getNumRows();
 
   for (HighsInt i = 0; i != cutIndexEnd; ++i) {
-    // cut is then in the LP or already deleted
-    if (ages_[i] < 0) continue;
-
-    HighsInt Rlen;
-    const HighsInt* Rindex;
-    const double* Rvalue;
-    getCut(i, Rlen, Rindex, Rvalue);
-    // copy cut into something mutable (addCut reorders so can't take const)
-    std::vector<HighsInt> idxs(Rindex, Rindex + Rlen);
-    std::vector<double> vals(Rvalue, Rvalue + Rlen);
-    syncpool.addCut(mipsolver, idxs.data(), vals.data(), Rlen, rhs_[i],
-                    rowintegral[i]);
-
-    bool isPropagated = matrix_.columnsLinked(i);
-    if (isPropagated) propRows.erase(std::make_pair(ages_[i], i));
-    ageDistribution[ages_[i]] -= 1;
-    for (HighsDomain::CutpoolPropagation* propagationdomain :
-         propagationDomains)
-      propagationdomain->cutDeleted(i);
-
-    if (isPropagated) {
-      --numPropRows;
-      numPropNzs -= getRowLength(i);
+    // Only sync cuts in the LP that are not already synced
+    if (numLps_[i] > 0 && !hasSynced_[i]) {
+      HighsInt Rlen;
+      const HighsInt* Rindex;
+      const double* Rvalue;
+      getCut(i, Rlen, Rindex, Rvalue);
+      // copy cut into something mutable (addCut reorders so can't take const)
+      std::vector<HighsInt> idxs(Rindex, Rindex + Rlen);
+      std::vector<double> vals(Rvalue, Rvalue + Rlen);
+      syncpool.addCut(mipsolver, idxs.data(), vals.data(), Rlen, rhs_[i],
+                      rowintegral[i]);
+      hasSynced_[i] = true;
     }
-
-    matrix_.removeRow(i);
-    ages_[i] = -1;
-    rhs_[i] = kHighsInf;
   }
 
   assert((HighsInt)propRows.size() == numPropRows);

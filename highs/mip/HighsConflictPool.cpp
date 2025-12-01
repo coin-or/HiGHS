@@ -270,8 +270,6 @@ void HighsConflictPool::syncConflictPool(HighsConflictPool& syncpool) {
     HighsInt end = conflictRanges_[i].second;
     assert(start >= 0 && end >= 0);
     syncpool.addConflictFromOtherPool(&conflictEntries_[start], end - start);
-    ageDistribution_[ages_[i]] -= 1;
-    ages_[i] = -1;
     removeConflict(i);
   }
   deletedConflicts_.clear();

@@ -56,9 +56,9 @@ class HighsCutPool {
   HighsDynamicRowMatrix matrix_;
   std::vector<double> rhs_;
   std::vector<int16_t> ages_;
-  std::deque<std::atomic<int16_t>>
-      numLps_;  // -1 : never used, 0 : used but no longer in LP, 1+ : currently
-                // in an LP
+  std::deque<std::atomic<int16_t>> numLps_;
+  std::vector<bool> usedInRound_;  // Was the cut propagated?
+  std::vector<bool> hasSynced_;    // Has the cut been globally synced?
   std::vector<double> rownormalization_;
   std::vector<double> maxabscoef_;
   std::vector<uint8_t> rowintegral;
@@ -105,8 +105,7 @@ class HighsCutPool {
   void resetAge(HighsInt cut, bool thread_safe = false) {
     if (ages_[cut] > 0) {
       if (thread_safe) {
-        int16_t numLp = numLps_[cut].fetch_add(1, std::memory_order_relaxed);
-        if (numLp >= 0) numLps_[cut].fetch_add(-1, std::memory_order_relaxed);
+        usedInRound_[cut] = true;
         return;
       }
       if (matrix_.columnsLinked(cut)) {
