@@ -194,6 +194,20 @@ __global__ void kernelDiffTwoNormSquared(
   atomicAdd(result, local_diff_sq);
 }
 
+// Computes sum( (a_new[i] - a_old[i]) * (b_new[i] - b_old[i]) )
+__global__ void kernelDiffDotDiff(
+    const double* a_new, const double* a_old,
+    const double* b_new, const double* b_old,
+    double* result, int n) 
+{
+  double local_sum = 0.0;
+  CUDA_GRID_STRIDE_LOOP(i, n) {
+    double diff_a = a_new[i] - a_old[i];
+    double diff_b = b_new[i] - b_old[i];
+    local_sum += diff_a * diff_b;
+  }
+  atomicAdd(result, local_sum);
+}
 
 // Add C++ wrapper functions to launch the kernels
 extern "C" {
@@ -300,6 +314,20 @@ void launchKernelDiffTwoNormSquared_wrapper(
     const int block_size = 256;
     dim3 config = GetLaunchConfig(n, block_size);
     kernelDiffTwoNormSquared<<<config.x, block_size>>>(d_a, d_b, d_result, n);
+    cudaGetLastError();
+}
+
+void launchKernelDiffDotDiff_wrapper(
+    const double* d_a_new, const double* d_a_old,
+    const double* d_b_new, const double* d_b_old,
+    double* d_result, int n) 
+{
+    cudaMemset(d_result, 0, sizeof(double));
+    const int block_size = 256;
+    dim3 config = GetLaunchConfig(n, block_size);
+    
+    kernelDiffDotDiff<<<config.x, block_size>>>(
+        d_a_new, d_a_old, d_b_new, d_b_old, d_result, n);
     cudaGetLastError();
 }
 } // extern "C"

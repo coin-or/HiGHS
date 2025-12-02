@@ -37,6 +37,11 @@ void launchCheckConvergenceKernels_wrapper(
 
 void launchKernelDiffTwoNormSquared_wrapper(
     const double* d_a, const double* d_b, double* d_result, int n);
+
+void launchKernelDiffDotDiff_wrapper(
+    const double* d_a_new, const double* d_a_old,
+    const double* d_b_new, const double* d_b_old,
+    double* d_result, int n);
 #ifdef __cplusplus
 }
 #endif

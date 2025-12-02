@@ -265,6 +265,11 @@ class PDLPSolver {
   void computeStepSizeRatioGpu(PrimalDualParams& working_params);
   void updateAverageIteratesGpu(int inner_iter);
   void computeAverageIterateGpu();
+  double computeMovementGpu(const double* d_x_new, const double* d_x_old,
+                            const double* d_y_new, const double* d_y_old);
+                            
+  double computeNonlinearityGpu(const double* d_x_new, const double* d_x_old,
+                                const double* d_aty_new, const double* d_aty_old);
 #endif
 };
 

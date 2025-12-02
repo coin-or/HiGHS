@@ -715,8 +715,14 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         // Perform the primal weight update using z^{n,0} and z^{n-1,0}
 #ifdef CUPDLP_GPU
         computeStepSizeRatioGpu(working_params);
-#endif
+        double cpu_beta = stepsize_.beta;
+        double cpu_primal_step = stepsize_.primal_step;
+        double cpu_dual_step = stepsize_.dual_step;
+        double cpu_eta = working_params.eta;
+        double cpu_omega = working_params.omega;
+#else
         computeStepSizeRatio(working_params);
+#endif
         current_eta_ = working_params.eta;
         restart_scheme_.passParams(&working_params);
 
@@ -1641,6 +1647,25 @@ void PDLPSolver::updateIteratesAdaptive() {
     double primal_step_update = dStepSizeUpdate / std::sqrt(stepsize_.beta);
     double dual_step_update = dStepSizeUpdate * std::sqrt(stepsize_.beta);
 
+#ifdef CUPDLP_GPU
+    launchKernelUpdateX_wrapper(
+        d_x_next_,          // Output (Trial)
+        d_x_current_,       // Input (Base)
+        d_aty_current_,     // Input (Base ATy)
+        d_col_cost_, d_col_lower_, d_col_upper_,
+        primal_step_update, a_num_cols_);
+    linalgGpuAx(d_x_next_, d_ax_next_);
+    launchKernelUpdateY_wrapper(
+        d_y_next_,          // Output (Trial)
+        d_y_current_,       // Input (Base)
+        d_ax_current_,      // Input (Base Ax)
+        d_ax_next_,         // Input (Trial Ax)
+        d_row_lower_, d_is_equality_row_,
+        dual_step_update, a_num_rows_);
+    linalgGpuATy(d_y_next_, d_aty_next_);   
+    double movement = computeMovementGpu(d_x_next_, d_x_current_, d_y_next_, d_y_current_);
+    double nonlinearity = computeNonlinearityGpu(d_x_next_, d_x_current_, d_aty_next_, d_aty_current_);
+#else
     // Primal update
     hipdlpTimerStart(kHipdlpClockProjectX);
     xupdate = updateX(x_candidate, aty_candidate, primal_step_update);
@@ -1686,6 +1711,7 @@ void PDLPSolver::updateIteratesAdaptive() {
     // Compute movement and nonlinearity
     double movement = computeMovement(delta_x, delta_y);
     double nonlinearity = computeNonlinearity(delta_x, delta_aty);
+#endif
     // Compute step size limit
     double step_size_limit = (nonlinearity != 0.0)
                                  ? (movement / std::fabs(nonlinearity))
@@ -2183,5 +2209,35 @@ void PDLPSolver::computeAverageIterateGpu() {
   // Recompute Ax_avg and ATy_avg on GPU
   linalgGpuAx(d_x_avg_, d_ax_avg_);
   linalgGpuATy(d_y_avg_, d_aty_avg_);
+}
+
+double PDLPSolver::computeMovementGpu(const double* d_x_new, const double* d_x_old,
+                                      const double* d_y_new, const double* d_y_old) {
+  // 1. Compute ||x_new - x_old||^2
+  launchKernelDiffTwoNormSquared_wrapper(d_x_new, d_x_old, d_x_temp_diff_norm_result_, a_num_cols_);
+  double primal_diff_sq;
+  CUDA_CHECK(cudaMemcpy(&primal_diff_sq, d_x_temp_diff_norm_result_, sizeof(double), cudaMemcpyDeviceToHost));
+
+  // 2. Compute ||y_new - y_old||^2
+  launchKernelDiffTwoNormSquared_wrapper(d_y_new, d_y_old, d_x_temp_diff_norm_result_, a_num_rows_);
+  double dual_diff_sq;
+  CUDA_CHECK(cudaMemcpy(&dual_diff_sq, d_x_temp_diff_norm_result_, sizeof(double), cudaMemcpyDeviceToHost));
+
+  // 3. Combine scalar results on CPU
+  double primal_weight = std::sqrt(stepsize_.beta);
+  return (0.5 * primal_weight * primal_diff_sq) +
+         (0.5 / primal_weight) * dual_diff_sq;
+}
+
+double PDLPSolver::computeNonlinearityGpu(const double* d_x_new, const double* d_x_old,
+                                          const double* d_aty_new, const double* d_aty_old) {
+  // Compute dot( (x_new - x_old), (aty_new - aty_old) )
+  launchKernelDiffDotDiff_wrapper(d_x_new, d_x_old, d_aty_new, d_aty_old, 
+                                  d_x_temp_diff_norm_result_, a_num_cols_);
+  
+  double interaction;
+  CUDA_CHECK(cudaMemcpy(&interaction, d_x_temp_diff_norm_result_, sizeof(double), cudaMemcpyDeviceToHost));
+  
+  return interaction; // cupdlp does not take absolute value here, it handles fabs in the check
 }
 #endif
