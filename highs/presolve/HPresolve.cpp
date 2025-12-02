@@ -4929,7 +4929,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
         // solution found
         numSols++;
         backtrack = true;
-        // check solution
+        // store solution
         for (HighsInt i = 0; i < rowsize[row]; i++) {
           HighsInt solVal = status[i] == 1 ? HighsInt{0} : HighsInt{1};
           solutions[i].push_back(solVal);
@@ -4958,7 +4958,10 @@ HPresolve::Result HPresolve::enumerateSolutions(
       for (HighsInt ii = i + 1; ii < rowsize[row]; ii++) {
         // get column index
         HighsInt col2 = Acol[rowpositions[ii]];
+        // skip column if it was already deleted
         if (colDeleted[col2]) continue;
+        // check if two binary variables take complementary values in all
+        // feasible solutions
         bool complementary = true;
         for (HighsInt sol = 0; sol < numSols; sol++) {
           complementary = complementary &&
@@ -4966,6 +4969,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
           if (!complementary) break;
         }
         if (complementary) {
+          // found two complementary binary variables; perform substitution!
           postsolve_stack.doubletonEquation(
               -1, col2, col, 1.0, -1.0, 1.0, model->col_lower_[col2],
               model->col_upper_[col2], 0.0, false, false,
