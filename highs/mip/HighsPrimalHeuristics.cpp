@@ -349,6 +349,7 @@ void HighsPrimalHeuristics::RENS(HighsMipWorker& worker,
 
   HighsLpRelaxation heurlp(*worker.lprelaxation_);
   // only use the global upper limit as LP limit so that dual proofs are valid
+  // TODO MT: Should this be the upper limit from the worker?
   heurlp.setObjectiveLimit(mipsolver.mipdata_->upper_limit);
   heurlp.setAdjustSymmetricBranchingCol(false);
   heur.setLpRelaxation(&heurlp);
@@ -611,6 +612,7 @@ void HighsPrimalHeuristics::RINS(HighsMipWorker& worker,
 
   HighsLpRelaxation heurlp(*worker.lprelaxation_);
   // only use the global upper limit as LP limit so that dual proofs are valid
+  // TODO MT: Should this be the upper limit from the worker?
   heurlp.setObjectiveLimit(mipsolver.mipdata_->upper_limit);
   heurlp.setAdjustSymmetricBranchingCol(false);
   heur.setLpRelaxation(&heurlp);

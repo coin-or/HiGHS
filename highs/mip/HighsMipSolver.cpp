@@ -245,7 +245,7 @@ restart:
   printf(
       "master_worker lprelaxation_ member  with address %p, %d "
       "columns, and %d rows\n",
-      (void*)&master_worker.lprelaxation_,
+      master_worker.lprelaxation_,
       int(master_worker.lprelaxation_->getLpSolver().getNumCol()),
       int(mipdata_->lps.at(0).getLpSolver().getNumRow()));
 
@@ -317,8 +317,9 @@ restart:
     worker.globaldom_->addCutpool(*worker.cutpool_);
     assert(worker.globaldom_->getDomainChangeStack().empty());
     worker.globaldom_->addConflictPool(*worker.conflictpool_);
-    worker.resetSearch();
     worker.lprelaxation_->setMipWorker(worker);
+    worker.resetSearch();
+    worker.resetSepa();
   };
 
   auto createNewWorker = [&](HighsInt i) {
@@ -350,14 +351,18 @@ restart:
         mipdata_->implications.cleanupVarbounds(col);
 
       mipdata_->domain.setDomainChangeStack(std::vector<HighsDomainChange>());
+      if (!mipdata_->hasMultipleWorkers())
+        master_worker.search_ptr_->resetLocalDomain();
       mipdata_->domain.clearChangedCols();
       mipdata_->removeFixedIndices();
       analysis_.mipTimerStop(kMipClockUpdateLocalDomain);
     }
     for (HighsMipWorker& worker : mipdata_->workers) {
       for (HighsInt i = 0; i < numCol(); ++i) {
-        assert(mipdata_->domain.col_lower_[i] == worker.globaldom_->col_lower_[i]);
-        assert(mipdata_->domain.col_upper_[i] == worker.globaldom_->col_upper_[i]);
+        assert(mipdata_->domain.col_lower_[i] ==
+               worker.globaldom_->col_lower_[i]);
+        assert(mipdata_->domain.col_upper_[i] ==
+               worker.globaldom_->col_upper_[i]);
       }
     }
   };
@@ -375,10 +380,8 @@ restart:
     createNewWorker(i);
   }
 
-  master_worker.resetSepa();
   HighsSearch& search = *master_worker.search_ptr_;
   mipdata_->debugSolution.registerDomain(search.getLocalDomain());
-  HighsSeparation& sepa = *master_worker.sepa_ptr_;
 
   analysis_.mipTimerStart(kMipClockSearch);
   search.installNode(mipdata_->nodequeue.popBestBoundNode());
@@ -476,14 +479,16 @@ restart:
              mipdata_->domain.getDomainChangeStack()) {
           worker.getGlobalDomain().changeBound(
               domchg, HighsDomain::Reason::unspecified());
-             }
+        }
         worker.getGlobalDomain().setDomainChangeStack(
             std::vector<HighsDomainChange>());
-        worker.getGlobalDomain().clearChangedCols();
         worker.search_ptr_->resetLocalDomain();
+        worker.getGlobalDomain().clearChangedCols();
         for (HighsInt i = 0; i < numCol(); ++i) {
-          assert(mipdata_->domain.col_lower_[i] == worker.globaldom_->col_lower_[i]);
-          assert(mipdata_->domain.col_upper_[i] == worker.globaldom_->col_upper_[i]);
+          assert(mipdata_->domain.col_lower_[i] ==
+                 worker.globaldom_->col_lower_[i]);
+          assert(mipdata_->domain.col_upper_[i] ==
+                 worker.globaldom_->col_upper_[i]);
         }
       }
     }
@@ -881,8 +886,8 @@ restart:
     std::vector<HighsSearch::NodeResult> dive_results(
         mipdata_->workers.size(), HighsSearch::NodeResult::kBranched);
     setParallelLock(true);
-    if (mipdata_->workers.size() > 1) {
-      for (int i = 0; i < mipdata_->workers.size(); i++) {
+    for (HighsInt i = 0; i != mipdata_->workers.size(); ++i) {
+      if (mipdata_->hasMultipleWorkers()) {
         tg.spawn([&, i]() {
           if (!mipdata_->workers[i].search_ptr_->hasNode() ||
               mipdata_->workers[i].search_ptr_->currentNodePruned()) {
@@ -892,14 +897,17 @@ restart:
             dive_times[i] += analysis_.mipTimerRead(kMipClockNodeSearch);
           }
         });
-      }
-      tg.taskWait();
-    } else {
-      if (!search.currentNodePruned()) {
-        dive_results[0] = search.dive();
-        dive_times[0] += analysis_.mipTimerRead(kMipClockNodeSearch);
+      } else {
+        if (!mipdata_->workers[i].search_ptr_->hasNode() ||
+            mipdata_->workers[i].search_ptr_->currentNodePruned()) {
+          dive_times[i] = -1;
+        } else {
+          dive_results[i] = mipdata_->workers[i].search_ptr_->dive();
+          dive_times[i] += analysis_.mipTimerRead(kMipClockNodeSearch);
+        }
       }
     }
+    if (mipdata_->hasMultipleWorkers()) tg.taskWait();
     analysis_.mipTimerStop(kMipClockTheDive);
     setParallelLock(false);
     bool suboptimal = false;
@@ -1065,9 +1073,6 @@ restart:
       break;
     }
 
-    // set local global domains of all workers to copy changes of global
-    if (mipdata_->hasMultipleWorkers()) resetWorkerDomains();
-
     double prev_lower_bound = mipdata_->lower_bound;
 
     mipdata_->lower_bound = std::min(mipdata_->upper_bound,
@@ -1080,8 +1085,11 @@ restart:
     mipdata_->printDisplayLine();
     if (mipdata_->nodequeue.empty()) break;
 
+    // set local global domains of all workers to copy changes of global
+    if (mipdata_->hasMultipleWorkers()) resetWorkerDomains();
     // flush all changes made to the global domain
     resetGlobalDomain();
+    if (!mipdata_->hasMultipleWorkers()) search.resetLocalDomain();
 
     if (!submip && mipdata_->num_nodes >= nextCheck) {
       auto nTreeRestarts = mipdata_->numRestarts - mipdata_->numRestartsRoot;
@@ -1203,6 +1211,7 @@ restart:
       break;
     }
   }  // while(search.hasNode())
+  syncSolutions();
   analysis_.mipTimerStop(kMipClockSearch);
 
   cleanupSolve();
