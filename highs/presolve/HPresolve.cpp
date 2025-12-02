@@ -4926,7 +4926,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
     bool backtrack = false;
     if (isFeasible(row, rowLower, rowUpper)) {
       if (cntr + 1 >= rowsize[row]) {
-        // solution found
+        // feasible solution found
         numSols++;
         backtrack = true;
         // store solution
