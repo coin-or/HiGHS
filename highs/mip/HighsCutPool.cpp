@@ -148,8 +148,8 @@ double HighsCutPool::getParallelism(HighsInt row1, HighsInt row2,
 }
 
 void HighsCutPool::lpCutRemoved(HighsInt cut, bool thread_safe) {
-  numLps_[cut].fetch_add(-1, std::memory_order_relaxed);
-  if (thread_safe) return;
+  const HighsInt n = numLps_[cut].fetch_add(-1, std::memory_order_relaxed);
+  if (thread_safe || n > 1) return;
   if (matrix_.columnsLinked(cut)) {
     propRows.erase(std::make_pair(ages_[cut], cut));
     propRows.emplace(1, cut);
@@ -287,7 +287,7 @@ void HighsCutPool::separate(const std::vector<double>& sol, HighsDomain& domain,
 
         matrix_.removeRow(i);
         ages_[i] = -1;
-        rhs_[i] = 0;
+        rhs_[i] = kHighsInf;
         usedInRound_[i] = false;
         hasSynced_[i] = false;
         auto range = hashToCutMap.equal_range(h);
