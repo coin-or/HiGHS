@@ -4907,10 +4907,6 @@ HPresolve::Result HPresolve::enumerateSolutions(
             rowUpper >= model->row_lower_[row] - primal_feastol);
   };
 
-  // get bounds on row activity
-  HighsCDouble rowLower = impliedRowBounds.getSumLowerOrig(row);
-  HighsCDouble rowUpper = impliedRowBounds.getSumUpperOrig(row);
-
   // vectors for storing variable status and solutions
   std::vector<HighsInt> status;
   std::vector<HighsInt> sum;
@@ -4918,6 +4914,10 @@ HPresolve::Result HPresolve::enumerateSolutions(
   status.resize(rowsize[row]);
   sum.resize(rowsize[row]);
   solutions.resize(rowsize[row]);
+
+  // get bounds on row activity
+  HighsCDouble rowLower = impliedRowBounds.getSumLowerOrig(row);
+  HighsCDouble rowUpper = impliedRowBounds.getSumUpperOrig(row);
 
   // main loop
   HighsInt cntr = -1;
