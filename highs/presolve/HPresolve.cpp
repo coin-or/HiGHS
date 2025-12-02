@@ -4835,81 +4835,106 @@ HPresolve::Result HPresolve::singletonColStuffing(
 
 HPresolve::Result HPresolve::enumerateSolutions(
     HighsPostsolveStack& postsolve_stack, HighsInt row) {
+  // upper bound on length of row
   const HighsInt maxRowSize = 12;
 
+  // skip deleted and redundant rows and those with too few or too many
+  // non-zeros
   if (rowDeleted[row] || isRedundant(row) || rowsize[row] <= 1 ||
       rowsize[row] > maxRowSize)
-    return;
+    return Result::kOk;
 
-  bool allColsBounded = true;
-  for (const auto& nz : getRowVector(row)) {
-    allColsBounded = allColsBounded &&
-                     model->col_lower_[nz.index()] != -kHighsInf &&
-                     model->col_upper_[nz.index()] != kHighsInf;
-    if (!allColsBounded) break;
+  // store row
+  storeRow(row);
+
+  // make sure that all columns are binary
+  bool allColsBinary = true;
+  for (const auto& nz : getStoredRow()) {
+    allColsBinary =
+        allColsBinary &&
+        (model->integrality_[nz.index()] != HighsVarType::kContinuous &&
+         model->col_lower_[nz.index()] + 1.0 == model->col_upper_[nz.index()]);
+    if (!allColsBinary) break;
   }
-  if (!allColsBounded) return;
+  if (!allColsBinary) return Result::kOk;
 
+  // lambda for branching (just performs initial lower branch)
   auto doBranch = [&](HighsInt& cntr, std::vector<HighsInt>& status,
                       HighsCDouble& rowLower, HighsCDouble& rowUpper) {
+    // get column index and coefficient
     HighsInt col = Acol[rowpositions[cntr + 1]];
-    double val = Avalue[rowpositions[cntr + 1]];
-    HighsCDouble delta =
-        val * (static_cast<HighsCDouble>(model->col_upper_[col]) -
-               static_cast<HighsCDouble>(model->col_lower_[col]));
+    HighsCDouble val =
+        static_cast<HighsCDouble>(Avalue[rowpositions[cntr + 1]]);
+    // lower branch
     status[++cntr]++;
     if (val > 0)
-      rowUpper -= delta;
+      rowUpper -= val;
     else
-      rowLower -= delta;
+      rowLower -= val;
   };
 
+  // lambda for backtracking
   auto doBacktrack = [&](HighsInt& cntr, std::vector<HighsInt>& status,
                          HighsCDouble& rowLower, HighsCDouble& rowUpper) {
     while (cntr >= 0) {
+      // get column index and coefficient
       HighsInt col = Acol[rowpositions[cntr]];
-      double val = Avalue[rowpositions[cntr]];
-      HighsCDouble delta =
-          val * (static_cast<HighsCDouble>(model->col_upper_[col]) -
-                 static_cast<HighsCDouble>(model->col_lower_[col]));
+      HighsCDouble val = static_cast<HighsCDouble>(Avalue[rowpositions[cntr]]);
       if (status[cntr] == 1) {
+        // try upper branch
         status[cntr]++;
-        rowLower += delta;
-        rowUpper += delta;
+        rowLower += val;
+        rowUpper += val;
         break;
       } else {
+        // backtrack
         status[cntr] = 0;
         if (val > 0)
-          rowLower -= delta;
+          rowLower -= val;
         else
-          rowUpper -= delta;
+          rowUpper -= val;
         cntr--;
       }
     }
+    // check if enumeration is complete
     return (cntr >= 0);
   };
 
+  // lambda for checking whether solution is feasible
   auto isFeasible = [&](HighsInt row, HighsCDouble& rowLower,
                         HighsCDouble& rowUpper) {
     return (rowLower <= model->row_upper_[row] + primal_feastol &&
             rowUpper >= model->row_lower_[row] - primal_feastol);
   };
 
-  storeRow(row);
+  // get bounds on row activity
   HighsCDouble rowLower = impliedRowBounds.getSumLowerOrig(row);
   HighsCDouble rowUpper = impliedRowBounds.getSumUpperOrig(row);
-  HighsInt cntr = -1;
-  std::vector<HighsInt> status;
-  status.resize(rowsize[row]);
-  HighsInt numSols = 0;
 
+  // vectors for storing variable status and solutions
+  std::vector<HighsInt> status;
+  std::vector<HighsInt> sum;
+  std::vector<std::vector<HighsInt>> solutions;
+  status.resize(rowsize[row]);
+  sum.resize(rowsize[row]);
+  solutions.resize(rowsize[row]);
+
+  // main loop
+  HighsInt cntr = -1;
+  HighsInt numSols = 0;
   while (true) {
     bool backtrack = false;
     if (isFeasible(row, rowLower, rowUpper)) {
       if (cntr + 1 >= rowsize[row]) {
         // solution found
-        backtrack = true;
         numSols++;
+        backtrack = true;
+        // check solution
+        for (HighsInt i = 0; i < rowsize[row]; i++) {
+          HighsInt solVal = status[i] == 1 ? HighsInt{0} : HighsInt{1};
+          solutions[i].push_back(solVal);
+          sum[i] += solVal;
+        }
       }
     } else
       backtrack = true;
@@ -4920,6 +4945,38 @@ HPresolve::Result HPresolve::enumerateSolutions(
       break;
   }
 
+  for (HighsInt i = 0; i < rowsize[row]; i++) {
+    // get column index
+    HighsInt col = Acol[rowpositions[i]];
+    if (sum[i] == 0) {
+      // fix variable to its lower bound
+      HPRESOLVE_CHECKED_CALL(fixColToLower(postsolve_stack, col));
+    } else if (sum[i] == numSols) {
+      // fix variable to its upper bound
+      HPRESOLVE_CHECKED_CALL(fixColToUpper(postsolve_stack, col));
+    } else {
+      for (HighsInt ii = i + 1; ii < rowsize[row]; ii++) {
+        // get column index
+        HighsInt col2 = Acol[rowpositions[ii]];
+        if (colDeleted[col2]) continue;
+        bool complementary = true;
+        for (HighsInt sol = 0; sol < numSols; sol++) {
+          complementary = complementary &&
+                          solutions[i][sol] == HighsInt{1} - solutions[ii][sol];
+          if (!complementary) break;
+        }
+        if (complementary) {
+          postsolve_stack.doubletonEquation(
+              -1, col2, col, 1.0, -1.0, 1.0, model->col_lower_[col2],
+              model->col_upper_[col2], 0.0, false, false,
+              HighsPostsolveStack::RowType::kEq, HighsEmptySlice());
+          markColDeleted(col2);
+          substitute(col2, col, 1.0, 1.0);
+          HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
+        }
+      }
+    }
+  }
   return Result::kOk;
 }
 
