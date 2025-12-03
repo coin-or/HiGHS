@@ -4216,10 +4216,6 @@ HPresolve::Result HPresolve::rowPresolve(HighsPostsolveStack& postsolve_stack,
     if (rowDeleted[row]) return Result::kOk;
   }
 
-  // enumerate solutions
-  if (mipsolver != nullptr)
-    HPRESOLVE_CHECKED_CALL(enumerateSolutions(postsolve_stack, row));
-
   // update implied bounds of all columns in given row
   updateColImpliedBounds(row);
 
@@ -4825,177 +4821,190 @@ HPresolve::Result HPresolve::singletonColStuffing(
 }
 
 HPresolve::Result HPresolve::enumerateSolutions(
-    HighsPostsolveStack& postsolve_stack, HighsInt row) {
+    HighsPostsolveStack& postsolve_stack) {
   // upper bound on length of row
   const HighsInt maxRowSize = 12;
 
-  // skip deleted and redundant rows and those with too few or too many
-  // non-zeros
-  if (rowDeleted[row] || isRedundant(row) || rowsize[row] <= 1 ||
-      rowsize[row] > maxRowSize)
-    return Result::kOk;
+  if (numDeletedCols + numDeletedRows != 0) shrinkProblem(postsolve_stack);
+
+  toCSC(model->a_matrix_.value_, model->a_matrix_.index_,
+        model->a_matrix_.start_);
+  okFromCSC(model->a_matrix_.value_, model->a_matrix_.index_,
+            model->a_matrix_.start_);
 
   mipsolver->mipdata_->setupDomainPropagation();
   HighsDomain& domain = mipsolver->mipdata_->domain;
 
-  // make sure that all columns are binary
-  bool allColsBinary = true;
-  for (const auto& nz : getRowVector(row)) {
-    allColsBinary =
-        allColsBinary &&
-        (model->integrality_[nz.index()] != HighsVarType::kContinuous &&
-         model->col_lower_[nz.index()] + 1.0 == model->col_upper_[nz.index()]);
-    if (!allColsBinary) break;
-  }
-  if (!allColsBinary) return Result::kOk;
+  for (HighsInt row = 0; row < model->num_row_; row++) {
+    // skip deleted and redundant rows and those with too few or too many
+    // non-zeros
+    if (rowDeleted[row] || isRedundant(row) || rowsize[row] <= 1 ||
+        rowsize[row] > maxRowSize)
+      continue;
 
-  // lambda for branching (just performs initial lower branch)
-  auto doBranch = [&](HighsInt& cntr, std::vector<HighsInt>& status,
-                      HighsCDouble& rowLower, HighsCDouble& rowUpper) {
-    // get column index and coefficient
-    HighsInt col = Acol[rowpositions[cntr + 1]];
-    HighsCDouble val =
-        static_cast<HighsCDouble>(Avalue[rowpositions[cntr + 1]]);
-    // lower branch
-    status[++cntr]++;
-    if (val > 0)
-      rowUpper -= val;
-    else
-      rowLower -= val;
-  };
+    // store row
+    storeRow(row);
 
-  // lambda for backtracking
-  auto doBacktrack = [&](HighsInt& cntr, std::vector<HighsInt>& status,
-                         HighsCDouble& rowLower, HighsCDouble& rowUpper) {
-    while (cntr >= 0) {
+    // make sure that all columns are binary
+    bool allColsBinary = true;
+    for (const auto& nz : getStoredRow()) {
+      allColsBinary = allColsBinary && (model->integrality_[nz.index()] !=
+                                            HighsVarType::kContinuous &&
+                                        model->col_lower_[nz.index()] + 1.0 ==
+                                            model->col_upper_[nz.index()]);
+      if (!allColsBinary) break;
+    }
+    if (!allColsBinary) continue;
+
+    // lambda for branching (just performs initial lower branch)
+    auto doBranch = [&](HighsInt& cntr, std::vector<HighsInt>& status,
+                        HighsCDouble& rowLower, HighsCDouble& rowUpper) {
       // get column index and coefficient
-      HighsInt col = Acol[rowpositions[cntr]];
-      HighsCDouble val = static_cast<HighsCDouble>(Avalue[rowpositions[cntr]]);
-      if (status[cntr] == 1) {
-        // try upper branch
-        status[cntr]++;
-        rowLower += val;
-        rowUpper += val;
-        break;
-      } else {
-        // backtrack
-        status[cntr] = 0;
-        if (val > 0)
-          rowLower -= val;
-        else
-          rowUpper -= val;
-        cntr--;
-      }
-    }
-    // check if enumeration is complete
-    return (cntr >= 0);
-  };
-
-  // lambda for checking whether solution is feasible
-  auto isRowFeasible = [&](HighsInt row, HighsCDouble& rowLower,
-                           HighsCDouble& rowUpper) {
-    return (rowLower <= model->row_upper_[row] + primal_feastol &&
-            rowUpper >= model->row_lower_[row] - primal_feastol);
-  };
-
-  // lambda checking if solution is feasible for all constraints
-  auto isModelFeasible = [&](HighsDomain& domain,
-                             const std::vector<HighsInt>& status) {
-    // check if solution is feasible for the model
-    const size_t changedend = domain.getChangedCols().size();
-    bool feasible = true;
-    for (HighsInt i = 0; i < rowsize[row]; i++) {
-      HighsInt col = Acol[rowpositions[i]];
-      if (status[i] == 2)
-        domain.changeBound(HighsBoundType::kLower, col, 1);
+      HighsInt col = Acol[rowpositions[cntr + 1]];
+      HighsCDouble val =
+          static_cast<HighsCDouble>(Avalue[rowpositions[cntr + 1]]);
+      // lower branch
+      status[++cntr]++;
+      if (val > 0)
+        rowUpper -= val;
       else
-        domain.changeBound(HighsBoundType::kUpper, col, 0);
-      // propagate
-      domain.propagate();
-      feasible = !domain.infeasible();
-      if (!feasible) break;
-    }
-    // undo bound changes
-    domain.backtrackToGlobal();
-    domain.clearChangedCols(static_cast<HighsInt>(changedend));
-    return feasible;
-  };
+        rowLower -= val;
+    };
 
-  // vectors for storing variable status and solutions
-  std::vector<HighsInt> status;
-  std::vector<HighsInt> sum;
-  std::vector<std::vector<HighsInt>> solutions;
-  status.resize(rowsize[row]);
-  sum.resize(rowsize[row]);
-  solutions.resize(rowsize[row]);
+    // lambda for backtracking
+    auto doBacktrack = [&](HighsInt& cntr, std::vector<HighsInt>& status,
+                           HighsCDouble& rowLower, HighsCDouble& rowUpper) {
+      while (cntr >= 0) {
+        // get column index and coefficient
+        HighsInt col = Acol[rowpositions[cntr]];
+        HighsCDouble val =
+            static_cast<HighsCDouble>(Avalue[rowpositions[cntr]]);
+        if (status[cntr] == 1) {
+          // try upper branch
+          status[cntr]++;
+          rowLower += val;
+          rowUpper += val;
+          break;
+        } else {
+          // backtrack
+          status[cntr] = 0;
+          if (val > 0)
+            rowLower -= val;
+          else
+            rowUpper -= val;
+          cntr--;
+        }
+      }
+      // check if enumeration is complete
+      return (cntr >= 0);
+    };
 
-  // store row
-  storeRow(row);
+    // lambda for checking whether solution is feasible
+    auto isRowFeasible = [&](HighsInt row, HighsCDouble& rowLower,
+                             HighsCDouble& rowUpper) {
+      return (rowLower <= model->row_upper_[row] + primal_feastol &&
+              rowUpper >= model->row_lower_[row] - primal_feastol);
+    };
 
-  // get bounds on row activity
-  HighsCDouble rowLower = impliedRowBounds.getSumLowerOrig(row);
-  HighsCDouble rowUpper = impliedRowBounds.getSumUpperOrig(row);
+    // lambda checking if solution is feasible for all constraints
+    auto isModelFeasible = [&](HighsDomain& domain,
+                               const std::vector<HighsInt>& status) {
+      // check if solution is feasible for the model
+      const size_t changedend = domain.getChangedCols().size();
+      bool feasible = true;
+      for (HighsInt i = 0; i < rowsize[row]; i++) {
+        HighsInt col = Acol[rowpositions[i]];
+        if (status[i] == 2)
+          domain.changeBound(HighsBoundType::kLower, col, 1);
+        else
+          domain.changeBound(HighsBoundType::kUpper, col, 0);
+        // propagate
+        domain.propagate();
+        feasible = !domain.infeasible();
+        if (!feasible) break;
+      }
+      // undo bound changes
+      domain.backtrackToGlobal();
+      domain.clearChangedCols(static_cast<HighsInt>(changedend));
+      return feasible;
+    };
 
-  // main loop
-  HighsInt cntr = -1;
-  HighsInt numSols = 0;
-  while (true) {
-    bool backtrack = false;
-    if (isRowFeasible(row, rowLower, rowUpper)) {
-      if (cntr + 1 >= rowsize[row]) {
-        // feasible solution for row found
-        backtrack = true;
-        if (isModelFeasible(domain, status)) {
-          // store solution
-          numSols++;
-          for (HighsInt i = 0; i < rowsize[row]; i++) {
-            HighsInt solVal = status[i] == 1 ? HighsInt{0} : HighsInt{1};
-            solutions[i].push_back(solVal);
-            sum[i] += solVal;
+    // vectors for storing variable status and solutions
+    std::vector<HighsInt> status;
+    std::vector<HighsInt> sum;
+    std::vector<std::vector<HighsInt>> solutions;
+    status.resize(rowsize[row]);
+    sum.resize(rowsize[row]);
+    solutions.resize(rowsize[row]);
+
+    // get bounds on row activity
+    HighsCDouble rowLower = impliedRowBounds.getSumLowerOrig(row);
+    HighsCDouble rowUpper = impliedRowBounds.getSumUpperOrig(row);
+
+    // main loop
+    HighsInt cntr = -1;
+    HighsInt numSols = 0;
+    while (true) {
+      bool backtrack = false;
+      if (isRowFeasible(row, rowLower, rowUpper)) {
+        if (cntr + 1 >= rowsize[row]) {
+          // feasible solution for row found
+          backtrack = true;
+          if (isModelFeasible(domain, status)) {
+            // store solution
+            numSols++;
+            for (HighsInt i = 0; i < rowsize[row]; i++) {
+              HighsInt solVal = status[i] == 1 ? HighsInt{0} : HighsInt{1};
+              solutions[i].push_back(solVal);
+              sum[i] += solVal;
+            }
           }
         }
-      }
-    } else
-      backtrack = true;
+      } else
+        backtrack = true;
 
-    if (!backtrack)
-      doBranch(cntr, status, rowLower, rowUpper);
-    else if (!doBacktrack(cntr, status, rowLower, rowUpper))
-      break;
-  }
+      if (!backtrack)
+        doBranch(cntr, status, rowLower, rowUpper);
+      else if (!doBacktrack(cntr, status, rowLower, rowUpper))
+        break;
+    }
 
-  for (HighsInt i = 0; i < rowsize[row]; i++) {
-    // get column index
-    HighsInt col = Acol[rowpositions[i]];
-    if (sum[i] == 0) {
-      // fix variable to its lower bound
-      HPRESOLVE_CHECKED_CALL(fixColToLower(postsolve_stack, col));
-    } else if (sum[i] == numSols) {
-      // fix variable to its upper bound
-      HPRESOLVE_CHECKED_CALL(fixColToUpper(postsolve_stack, col));
-    } else {
-      for (HighsInt ii = i + 1; ii < rowsize[row]; ii++) {
-        // get column index
-        HighsInt col2 = Acol[rowpositions[ii]];
-        // skip column if it was already deleted
-        if (colDeleted[col2]) continue;
-        // check if two binary variables take complementary values in all
-        // feasible solutions
-        bool complementary = true;
-        for (HighsInt sol = 0; sol < numSols; sol++) {
-          complementary = complementary &&
-                          solutions[i][sol] == HighsInt{1} - solutions[ii][sol];
-          if (!complementary) break;
-        }
-        if (complementary) {
-          // found two complementary binary variables; perform substitution!
-          postsolve_stack.doubletonEquation(
-              -1, col2, col, 1.0, -1.0, 1.0, model->col_lower_[col2],
-              model->col_upper_[col2], 0.0, false, false,
-              HighsPostsolveStack::RowType::kEq, HighsEmptySlice());
-          markColDeleted(col2);
-          substitute(col2, col, 1.0, 1.0);
-          HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
+    for (HighsInt i = 0; i < rowsize[row]; i++) {
+      // get column index
+      HighsInt col = Acol[rowpositions[i]];
+      // skip column if it was already deleted
+      if (colDeleted[col]) continue;
+      if (sum[i] == 0) {
+        // fix variable to its lower bound
+        HPRESOLVE_CHECKED_CALL(fixColToLower(postsolve_stack, col));
+      } else if (sum[i] == numSols) {
+        // fix variable to its upper bound
+        HPRESOLVE_CHECKED_CALL(fixColToUpper(postsolve_stack, col));
+      } else {
+        for (HighsInt ii = i + 1; ii < rowsize[row]; ii++) {
+          // get column index
+          HighsInt col2 = Acol[rowpositions[ii]];
+          // skip column if it was already deleted
+          if (colDeleted[col2]) continue;
+          // check if two binary variables take complementary values in all
+          // feasible solutions
+          bool complementary = true;
+          for (HighsInt sol = 0; sol < numSols; sol++) {
+            complementary =
+                complementary &&
+                solutions[i][sol] == HighsInt{1} - solutions[ii][sol];
+            if (!complementary) break;
+          }
+          if (complementary) {
+            // found two complementary binary variables; perform substitution!
+            postsolve_stack.doubletonEquation(
+                -1, col2, col, 1.0, -1.0, 1.0, model->col_lower_[col2],
+                model->col_upper_[col2], 0.0, false, false,
+                HighsPostsolveStack::RowType::kEq, HighsEmptySlice());
+            markColDeleted(col2);
+            substitute(col2, col, 1.0, 1.0);
+            HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
+          }
         }
       }
     }
@@ -5315,6 +5324,10 @@ HPresolve::Result HPresolve::presolve(HighsPostsolveStack& postsolve_stack) {
           HPRESOLVE_CHECKED_CALL(fastPresolveLoop(postsolve_stack));
         if (problemSizeReduction() > 0.05) continue;
       }
+
+      // enumerate solutions
+      if (mipsolver != nullptr)
+        HPRESOLVE_CHECKED_CALL(enumerateSolutions(postsolve_stack));
 
       break;
     }
