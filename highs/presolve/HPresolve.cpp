@@ -4863,6 +4863,10 @@ HPresolve::Result HPresolve::enumerateSolutions(
     }
     if (!allColsBinary) continue;
 
+    // store size of row
+    HighsInt rowSize = static_cast<HighsInt>(my_rowpositions.size());
+    if (rowSize <= 0) continue;
+
     // lambda for branching (just performs initial lower branch)
     auto doBranch = [&](HighsInt& cntr, std::vector<HighsInt>& status) {
       // get column index and coefficient
@@ -4894,6 +4898,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
     auto isFeasible = [&](HighsInt cntr, HighsDomain& domain,
                           const std::vector<HighsInt>& status) {
       // check if solution is feasible for the model
+      if (cntr < 0) return true;
       const size_t changedend = domain.getChangedCols().size();
       bool feasible = true;
       for (HighsInt i = 0; i <= cntr; i++) {
@@ -4915,9 +4920,6 @@ HPresolve::Result HPresolve::enumerateSolutions(
       domain.clearChangedCols(static_cast<HighsInt>(changedend));
       return feasible;
     };
-
-    // store size of row
-    HighsInt rowSize = static_cast<HighsInt>(my_rowpositions.size());
 
     // vectors for storing variable status and solutions
     status.clear();
@@ -4989,6 +4991,20 @@ HPresolve::Result HPresolve::enumerateSolutions(
       }
     }
   }
+  // now remove fixed columns and tighten domains
+  /*for (HighsInt i = 0; i != model->num_col_; ++i) {
+    if (colDeleted[i]) continue;
+    if (model->col_lower_[i] < domain.col_lower_[i])
+      changeColLower(i, domain.col_lower_[i]);
+    if (model->col_upper_[i] > domain.col_upper_[i])
+      changeColUpper(i, domain.col_upper_[i]);
+    if (domain.isFixed(i)) {
+      postsolve_stack.removedFixedCol(i, model->col_lower_[i], 0.0,
+                                      HighsEmptySlice());
+      removeFixedCol(i);
+    }
+    HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
+  }*/
   return Result::kOk;
 }
 
