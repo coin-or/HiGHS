@@ -4217,7 +4217,8 @@ HPresolve::Result HPresolve::rowPresolve(HighsPostsolveStack& postsolve_stack,
   }
 
   // enumerate solutions
-  HPRESOLVE_CHECKED_CALL(enumerateSolutions(postsolve_stack, row));
+  if (mipsolver != nullptr)
+    HPRESOLVE_CHECKED_CALL(enumerateSolutions(postsolve_stack, row));
 
   // update implied bounds of all columns in given row
   updateColImpliedBounds(row);
