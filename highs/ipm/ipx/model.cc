@@ -27,6 +27,7 @@ Int Model::Load(const Control& control, Int num_constr, Int num_var,
       << Textline("Number of matrix entries:") << num_entries_ << '\n';
     control.hLog(h_logging_stream);
     PrintCoefficientRange(control);
+
     ScaleModel(control);
 
     // Make an automatic decision for dualization if not specified by user.
@@ -35,7 +36,13 @@ Int Model::Load(const Control& control, Int num_constr, Int num_var,
     // dualize = -1 => Possibly dualize - Lukas style
     // dualize = 0 => No dualization
     // dualize = 1 => Perform dualization
-    assert(dualize == -1);
+    //
+    // Was just assert(dualize == -1) since the default value of
+    // HighsOptions::ipx_dualize_strategy is kIpxDualizeStrategyLukas
+    // = -1, but when refining with IPX in HiPO, dualization must be
+    // prevented, so ipx_param.dualize is set to 0 in
+    // Solver::prepareIpx()
+    assert(dualize == 0 || dualize == -1);
     const bool dualize_lukas = num_constr > 2*num_var;
     const bool dualize_filippo = filippoDualizationTest();
     if (dualize == -1) {
@@ -60,6 +67,7 @@ Int Model::Load(const Control& control, Int num_constr, Int num_var,
     for (double x : ub_)
         if (std::isfinite(x))
             norm_bounds_ = std::max(norm_bounds_, std::abs(x));
+
     PrintPreprocessingLog(control);
     return 0;
 }
@@ -964,6 +972,11 @@ void Model::PrintPreprocessingLog(const Control& control) const {
 	<< Scientific(maxscale, 8, 2) << "]\n";
       control.hLog(h_logging_stream);
     }
+    h_logging_stream
+      << Textline("Scaled cost norm:   ") << norm_c_ << '\n'
+      << Textline("Scaled bounds norm: ") << norm_bounds_ << '\n';
+    control.hLog(h_logging_stream);
+
 }
 
 void Model::ScalePoint(Vector& x, Vector& slack, Vector& y, Vector& z) const {

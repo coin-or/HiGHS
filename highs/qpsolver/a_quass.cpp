@@ -1,3 +1,10 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/*                                                                       */
+/*    This file is part of the HiGHS linear optimization suite           */
+/*                                                                       */
+/*    Available as open-source under the MIT License                     */
+/*                                                                       */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 #include "qpsolver/a_quass.hpp"
 
 #include "qpsolver/a_asm.hpp"
@@ -139,7 +146,7 @@ QpAsmStatus solveqp(Instance& instance, Settings& settings, Statistics& stats,
     for (HighsInt index = instance.Q.mat.start[i];
          index < instance.Q.mat.start[i + 1]; index++) {
       if (instance.Q.mat.index[index] == i) {
-        instance.Q.mat.value[index] += settings.hessianregularizationfactor;
+        instance.Q.mat.value[index] += settings.hessian_regularization_value;
       }
     }
   }

@@ -22,6 +22,7 @@ extern "C" {
  *
  */
 typedef struct {
+  void* cbdata;  // cast of HighsCallbackOutput
   int log_type;  // cast of HighsLogType
   double running_time;
   HighsInt simplex_iteration_count;
@@ -34,6 +35,7 @@ typedef struct {
   double mip_dual_bound;
   double mip_gap;
   double* mip_solution;
+  HighsInt mip_solution_size;
   HighsInt cutpool_num_col;
   HighsInt cutpool_num_cut;
   HighsInt cutpool_num_nz;
@@ -42,12 +44,18 @@ typedef struct {
   double* cutpool_value;
   double* cutpool_lower;
   double* cutpool_upper;
-  HighsInt user_solution_callback_origin;
+  HighsInt external_solution_query_origin;
 } HighsCallbackDataOut;
 
+// Some external packages (e.g., jump) currently assume that the first 2 fields
+// of this struct are interrupt and solution. Rearranging the struct may be a
+// breaking change.
 typedef struct {
   int user_interrupt;
   double* user_solution;
+  void* cbdata;  // cast of HighsCallbackInput (for internal use)
+  int user_has_solution;
+  HighsInt user_solution_size;
 } HighsCallbackDataIn;
 
 // Additional callback handling

@@ -50,7 +50,7 @@ jobs:
           python3 -m pytest $GITHUB_WORKSPACE
 
   build_sdist_win:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
 
@@ -133,9 +133,8 @@ jobs:
           python3 -m pip install pytest
           python3 -m pytest $GITHUB_WORKSPACE
 
-  # macos 13 is Intel
-  build_wheel_macos_13:
-    runs-on: macos-13
+  build_wheel_macos_intel:
+    runs-on: macos-15-intel
     strategy:
       matrix:
         python: [3.11]    
@@ -164,9 +163,8 @@ jobs:
           python3 -m pip install pytest
           python3 -m pytest $GITHUB_WORKSPACE
             
-  # macos 14 is M1
-  build_wheel_macos_14:
-    runs-on: macos-14 
+  build_wheel_macos_arm:
+    runs-on: macos-14  # macos-14 is arm64
     strategy:
       matrix:
         python: [3.11]    
@@ -196,7 +194,7 @@ jobs:
           python3 -m pytest $GITHUB_WORKSPACE
 
   build_wheel_windows:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
 
@@ -223,7 +221,7 @@ jobs:
           python -m pytest 
           
   build_wheel_windows_313:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
 

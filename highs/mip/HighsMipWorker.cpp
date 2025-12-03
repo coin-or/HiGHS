@@ -16,8 +16,8 @@ HighsMipWorker::HighsMipWorker(const HighsMipSolver& mipsolver__,
                                HighsConflictPool* conflictpool)
     : mipsolver_(mipsolver__),
       mipdata_(*mipsolver_.mipdata_.get()),
-      lprelaxation_(lprelax_),
       pseudocost_(mipsolver__),
+      lprelaxation_(lprelax_),
       globaldom_(domain),
       cutpool_(cutpool),
       conflictpool_(conflictpool) {

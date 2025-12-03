@@ -86,6 +86,7 @@ class HighsLpRelaxation {
   HighsInt maxNumFractional;
   Status status;
   bool adjustSymBranchingCol;
+  bool solved_first_lp;
   HighsMipWorker* worker_;
 
   void storeDualInfProof();
@@ -343,7 +344,7 @@ class HighsLpRelaxation {
 
   bool computeDualInfProof(const HighsDomain& globaldomain,
                            std::vector<HighsInt>& inds,
-                           std::vector<double>& vals, double& rhs);
+                           std::vector<double>& vals, double& rhs) const;
 
   Status resolveLp(HighsDomain* domain = nullptr);
 
@@ -365,6 +366,9 @@ class HighsLpRelaxation {
 
   void setIterationLimit(HighsInt limit = kHighsIInf) {
     lpsolver.setOptionValue("simplex_iteration_limit", limit);
+  }
+  void setSolvedFirstLp(const bool solved_first_lp_) {
+    this->solved_first_lp = solved_first_lp_;
   }
 };
 

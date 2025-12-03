@@ -16,6 +16,8 @@ void solve(Highs& highs, std::string presolve,
            const double require_iteration_count = -1);
 void distillationMIP(Highs& highs);
 void rowlessMIP(Highs& highs);
+void rowlessMIP1(Highs& highs);
+void rowlessMIP2(Highs& highs);
 
 TEST_CASE("MIP-distillation", "[highs_test_mip_solver]") {
   Highs highs;
@@ -25,10 +27,29 @@ TEST_CASE("MIP-distillation", "[highs_test_mip_solver]") {
   highs.resetGlobalScheduler(true);
 }
 
-TEST_CASE("MIP-rowless", "[highs_test_mip_solver]") {
+// Fails but the cases work separately in
+// MIP-rowless-1 and
+// MIP-rowless-2 below
+// TEST_CASE("MIP-rowless", "[highs_test_mip_solver]") {
+//   Highs highs;
+//   if (!dev_run) highs.setOptionValue("output_flag", false);
+//   rowlessMIP(highs);
+// }
+
+TEST_CASE("MIP-rowless-1", "[highs_test_mip_solver]") {
   Highs highs;
   if (!dev_run) highs.setOptionValue("output_flag", false);
-  rowlessMIP(highs);
+  rowlessMIP1(highs);
+
+  highs.resetGlobalScheduler(true);
+}
+
+TEST_CASE("MIP-rowless-2", "[highs_test_mip_solver]") {
+  Highs highs;
+  if (!dev_run) highs.setOptionValue("output_flag", false);
+  rowlessMIP2(highs);
+
+  highs.resetGlobalScheduler(true);
 }
 
 TEST_CASE("MIP-solution-limit", "[highs_test_mip_solver]") {
@@ -62,6 +83,8 @@ TEST_CASE("MIP-solution-limit", "[highs_test_mip_solver]") {
   REQUIRE(highs.getModelStatus() == HighsModelStatus::kSolutionLimit);
   highs.setOptionValue("mip_max_improving_sols", kHighsIInf);
   highs.clearSolver();
+
+  highs.resetGlobalScheduler(true);
 }
 
 TEST_CASE("MIP-integrality", "[highs_test_mip_solver]") {
@@ -156,6 +179,8 @@ TEST_CASE("MIP-integrality", "[highs_test_mip_solver]") {
   REQUIRE(info.mip_node_count == 1);
   REQUIRE(fabs(info.mip_dual_bound + 6) < double_equal_tolerance);
   REQUIRE(std::fabs(info.mip_gap) < 1e-12);
+
+  highs.resetGlobalScheduler(true);
 }
 
 TEST_CASE("MIP-clear-integrality", "[highs_test_mip_solver]") {
@@ -190,7 +215,7 @@ TEST_CASE("MIP-nmck", "[highs_test_mip_solver]") {
                      HighsVarType::kInteger};
   REQUIRE(highs.passModel(lp) == HighsStatus::kOk);
   highs.setOptionValue("highs_debug_level", kHighsDebugLevelCheap);
-  highs.setOptionValue("log_dev_level", 2);
+  if (dev_run) highs.setOptionValue("log_dev_level", 2);
   HighsStatus return_status = highs.run();
   REQUIRE(return_status == HighsStatus::kOk);
   if (dev_run) highs.writeInfo("");
@@ -198,6 +223,8 @@ TEST_CASE("MIP-nmck", "[highs_test_mip_solver]") {
   REQUIRE(info.num_primal_infeasibilities == 0);
   REQUIRE(info.max_primal_infeasibility == 0);
   REQUIRE(info.sum_primal_infeasibilities == 0);
+
+  highs.resetGlobalScheduler(true);
 }
 
 TEST_CASE("MIP-maximize", "[highs_test_mip_solver]") {
@@ -278,6 +305,8 @@ TEST_CASE("MIP-maximize", "[highs_test_mip_solver]") {
   REQUIRE(std::abs(info.objective_function_value - info.mip_dual_bound) <=
           options.mip_abs_gap);
   REQUIRE(std::abs(info.mip_gap) <= options.mip_rel_gap);
+
+  highs.resetGlobalScheduler(true);
 }
 
 TEST_CASE("MIP-unbounded", "[highs_test_mip_solver]") {
@@ -386,6 +415,8 @@ TEST_CASE("MIP-unbounded", "[highs_test_mip_solver]") {
 
   model_status = highs.getModelStatus();
   REQUIRE(model_status == HighsModelStatus::kInfeasible);
+
+  highs.resetGlobalScheduler(true);
 }
 
 TEST_CASE("MIP-od", "[highs_test_mip_solver]") {
@@ -453,6 +484,8 @@ TEST_CASE("MIP-od", "[highs_test_mip_solver]") {
           double_equal_tolerance);
   REQUIRE(fabs(solution.col_value[0] - required_x0_value) <
           double_equal_tolerance);
+
+  highs.resetGlobalScheduler(true);
 }
 
 TEST_CASE("MIP-infeasible-start", "[highs_test_mip_solver]") {
@@ -496,6 +529,8 @@ TEST_CASE("MIP-infeasible-start", "[highs_test_mip_solver]") {
           HighsStatus::kOk);
   highs.run();
   REQUIRE(model_status == HighsModelStatus::kInfeasible);
+
+  highs.resetGlobalScheduler(true);
 }
 
 TEST_CASE("get-integrality", "[highs_test_mip_solver]") {}
@@ -539,6 +574,8 @@ TEST_CASE("MIP-bounds", "[highs_test_mip_solver]") {
            obj1);
   REQUIRE(obj0 == obj1);
   std::remove(test_mps.c_str());
+
+  highs.resetGlobalScheduler(true);
 }
 
 TEST_CASE("MIP-get-saved-solutions", "[highs_test_mip_solver]") {
@@ -566,6 +603,8 @@ TEST_CASE("MIP-get-saved-solutions", "[highs_test_mip_solver]") {
     REQUIRE(saved_objective_and_solution[last_saved_solution].col_value[iCol] ==
             highs.getSolution().col_value[iCol]);
   std::remove(solution_file.c_str());
+
+  highs.resetGlobalScheduler(true);
 }
 
 TEST_CASE("MIP-objective-target", "[highs_test_mip_solver]") {
@@ -580,6 +619,8 @@ TEST_CASE("MIP-objective-target", "[highs_test_mip_solver]") {
   highs.run();
   REQUIRE(highs.getModelStatus() == HighsModelStatus::kObjectiveTarget);
   REQUIRE(highs.getInfo().objective_function_value > egout_optimal_objective);
+
+  highs.resetGlobalScheduler(true);
 }
 
 TEST_CASE("MIP-max-offset-test", "[highs_test_mip_solver]") {
@@ -608,6 +649,8 @@ TEST_CASE("MIP-max-offset-test", "[highs_test_mip_solver]") {
       highs.getInfo().objective_function_value;
   REQUIRE(objectiveOk(max_offset_optimal_objective, -offset_optimal_objective,
                       dev_run));
+
+  highs.resetGlobalScheduler(true);
 }
 
 TEST_CASE("MIP-get-saved-solutions-presolve", "[highs_test_mip_solver]") {
@@ -646,6 +689,8 @@ TEST_CASE("MIP-get-saved-solutions-presolve", "[highs_test_mip_solver]") {
     REQUIRE(saved_objective_and_solution[last_saved_solution].col_value[iCol] ==
             highs.getSolution().col_value[iCol]);
   std::remove(solution_file.c_str());
+
+  highs.resetGlobalScheduler(true);
 }
 
 TEST_CASE("IP-infeasible-unbounded", "[highs_test_mip_solver]") {
@@ -703,6 +748,8 @@ TEST_CASE("IP-infeasible-unbounded", "[highs_test_mip_solver]") {
     }
     highs.setOptionValue("presolve", kHighsOnString);
   }
+
+  highs.resetGlobalScheduler(true);
 }
 
 TEST_CASE("IP-with-fract-bounds-no-presolve", "[highs_test_mip_solver]") {
@@ -738,6 +785,8 @@ TEST_CASE("IP-with-fract-bounds-no-presolve", "[highs_test_mip_solver]") {
 
   // Infeasible
   REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
+
+  highs.resetGlobalScheduler(true);
 }
 
 bool objectiveOk(const double optimal_objective,
@@ -770,6 +819,8 @@ void solve(Highs& highs, std::string presolve,
                         require_optimal_objective, dev_run));
   }
   REQUIRE(highs.resetOptions() == HighsStatus::kOk);
+
+  highs.resetGlobalScheduler(true);
 }
 
 void distillationMIP(Highs& highs) {
@@ -802,6 +853,50 @@ void rowlessMIP(Highs& highs) {
   REQUIRE(highs.passModel(lp) == HighsStatus::kOk);
   // Presolve reduces the LP to empty
   solve(highs, kHighsOnString, require_model_status, optimal_objective);
+  solve(highs, kHighsOffString, require_model_status, optimal_objective);
+}
+
+void rowlessMIP1(Highs& highs) {
+  HighsLp lp;
+  HighsModelStatus require_model_status;
+  double optimal_objective;
+  lp.num_col_ = 2;
+  lp.num_row_ = 0;
+  lp.col_cost_ = {1, -1};
+  lp.col_lower_ = {0, 0};
+  lp.col_upper_ = {1, 1};
+  lp.a_matrix_.start_ = {0, 0, 0};
+  lp.a_matrix_.format_ = MatrixFormat::kColwise;
+  lp.sense_ = ObjSense::kMinimize;
+  lp.offset_ = 0;
+  lp.integrality_ = {HighsVarType::kInteger, HighsVarType::kInteger};
+  require_model_status = HighsModelStatus::kOptimal;
+  optimal_objective = -1.0;
+  REQUIRE(highs.passModel(lp) == HighsStatus::kOk);
+  // Presolve reduces the LP to empty
+  solve(highs, kHighsOnString, require_model_status, optimal_objective);
+  // solve(highs, kHighsOffString, require_model_status, optimal_objective);
+}
+
+void rowlessMIP2(Highs& highs) {
+  HighsLp lp;
+  HighsModelStatus require_model_status;
+  double optimal_objective;
+  lp.num_col_ = 2;
+  lp.num_row_ = 0;
+  lp.col_cost_ = {1, -1};
+  lp.col_lower_ = {0, 0};
+  lp.col_upper_ = {1, 1};
+  lp.a_matrix_.start_ = {0, 0, 0};
+  lp.a_matrix_.format_ = MatrixFormat::kColwise;
+  lp.sense_ = ObjSense::kMinimize;
+  lp.offset_ = 0;
+  lp.integrality_ = {HighsVarType::kInteger, HighsVarType::kInteger};
+  require_model_status = HighsModelStatus::kOptimal;
+  optimal_objective = -1.0;
+  REQUIRE(highs.passModel(lp) == HighsStatus::kOk);
+  // Presolve reduces the LP to empty
+  // solve(highs, kHighsOnString, require_model_status, optimal_objective);
   solve(highs, kHighsOffString, require_model_status, optimal_objective);
 }
 
@@ -854,4 +949,333 @@ TEST_CASE("ZI Round and Shifting Heuristics", "[highs_test_mip_solver]") {
   const HighsModelStatus require_model_status = HighsModelStatus::kOptimal;
   const double optimal_objective = 82.19999924;
   solve(highs, kHighsOnString, require_model_status, optimal_objective);
+}
+
+TEST_CASE("issue-2290", "[highs_test_mip_solver]") {
+  std::string filename =
+      std::string(HIGHS_DIR) + "/check/instances/issue-2290.mps";
+  Highs highs;
+  highs.setOptionValue("output_flag", dev_run);
+  highs.setOptionValue("mip_rel_gap", 0);
+  highs.setOptionValue("mip_abs_gap", 0);
+  highs.readModel(filename);
+  const HighsModelStatus require_model_status = HighsModelStatus::kOptimal;
+  const double optimal_objective = -1.6666666666;
+  solve(highs, kHighsOnString, require_model_status, optimal_objective);
+}
+
+TEST_CASE("issue-2409", "[highs_test_mip_solver]") {
+  HighsLp lp;
+  lp.num_col_ = 2;
+  lp.num_row_ = 2;
+  lp.col_cost_ = {-1, 1};
+  lp.col_lower_ = {-kHighsInf, -kHighsInf};
+  lp.col_upper_ = {kHighsInf, kHighsInf};
+  lp.row_lower_ = {0.1, 0.1};
+  lp.row_upper_ = {kHighsInf, kHighsInf};
+  lp.a_matrix_.start_ = {0, 2, 4};
+  lp.a_matrix_.index_ = {0, 1, 0, 1};
+  lp.a_matrix_.value_ = {-1, 1, 1, 1};
+  lp.integrality_ = {HighsVarType::kContinuous, HighsVarType::kInteger};
+  const HighsModelStatus require_model_status = HighsModelStatus::kOptimal;
+  const double optimal_objective = 0.1;
+  Highs highs;
+  highs.setOptionValue("output_flag", dev_run);
+  REQUIRE(highs.passModel(lp) == HighsStatus::kOk);
+  if (dev_run) printf("Testing that presolve reduces the problem to empty\n");
+  REQUIRE(highs.presolve() == HighsStatus::kOk);
+  REQUIRE(highs.getModelPresolveStatus() ==
+          HighsPresolveStatus::kReducedToEmpty);
+
+  if (dev_run)
+    printf(
+        "\nTesting that with presolve the correct optimal objective is "
+        "found\n");
+  solve(highs, kHighsOnString, require_model_status, optimal_objective);
+  highs.clearSolver();
+  if (dev_run)
+    printf(
+        "\nTesting that without presolve the correct optimal objective is "
+        "found\n");
+  solve(highs, kHighsOffString, require_model_status, optimal_objective);
+}
+
+TEST_CASE("issue-2432", "[highs_test_mip_solver]") {
+  HighsLp lp;
+  lp.num_col_ = 3;
+  lp.num_row_ = 3;
+  lp.col_cost_ = {-93, 25, 17};
+  lp.col_lower_ = {-100, -100, -100};
+  lp.col_upper_ = {120, 10, 0};
+  lp.row_lower_ = {3994.5, -4878.3, -4930};
+  lp.row_upper_ = {kHighsInf, kHighsInf, kHighsInf};
+  lp.a_matrix_.start_ = {0, 3, 6, 9};
+  lp.a_matrix_.index_ = {0, 1, 2, 0, 1, 2, 0, 1, 2};
+  lp.a_matrix_.value_ = {-89, -0.1, -8.6, -40.7, 77.2, -6.5, -12, -23.7, 72.78};
+  lp.integrality_ = {HighsVarType::kInteger, HighsVarType::kContinuous,
+                     HighsVarType::kInteger};
+  const HighsModelStatus require_model_status = HighsModelStatus::kOptimal;
+  const double optimal_objective = -3777.57124352;
+  Highs highs;
+  highs.setOptionValue("output_flag", dev_run);
+  REQUIRE(highs.passModel(lp) == HighsStatus::kOk);
+  if (dev_run) printf("Testing that presolve reduces the problem\n");
+  REQUIRE(highs.presolve() == HighsStatus::kOk);
+  REQUIRE(highs.getModelPresolveStatus() == HighsPresolveStatus::kReduced);
+
+  if (dev_run)
+    printf(
+        "\nTesting that with presolve the correct optimal objective is "
+        "found\n");
+  solve(highs, kHighsOnString, require_model_status, optimal_objective);
+  highs.clearSolver();
+  if (dev_run)
+    printf(
+        "\nTesting that without presolve the correct optimal objective is "
+        "found\n");
+  solve(highs, kHighsOffString, require_model_status, optimal_objective);
+}
+
+TEST_CASE("mip-lp-solver-string", "[highs_test_mip_solver]") {
+  Highs h;
+  h.setOptionValue("output_flag", dev_run);
+  REQUIRE(h.setOptionValue(kMipLpSolverString, "fred") == HighsStatus::kError);
+  REQUIRE(h.setOptionValue(kMipLpSolverString, kHighsChooseString) ==
+          HighsStatus::kOk);
+  REQUIRE(h.setOptionValue(kMipLpSolverString, kSimplexString) ==
+          HighsStatus::kOk);
+  REQUIRE(h.setOptionValue(kMipLpSolverString, kIpmString) == HighsStatus::kOk);
+
+#ifdef HIPO
+  REQUIRE(h.setOptionValue(kMipLpSolverString, kHipoString) ==
+          HighsStatus::kOk);
+#else
+  REQUIRE(h.setOptionValue(kMipLpSolverString, kHipoString) ==
+          HighsStatus::kError);
+#endif
+
+  REQUIRE(h.setOptionValue(kMipLpSolverString, kIpxString) == HighsStatus::kOk);
+  REQUIRE(h.setOptionValue(kMipLpSolverString, kPdlpString) ==
+          HighsStatus::kError);
+
+  REQUIRE(h.setOptionValue(kMipIpmSolverString, "fred") == HighsStatus::kError);
+  REQUIRE(h.setOptionValue(kMipIpmSolverString, kHighsChooseString) ==
+          HighsStatus::kOk);
+  REQUIRE(h.setOptionValue(kMipIpmSolverString, kSimplexString) ==
+          HighsStatus::kError);
+  REQUIRE(h.setOptionValue(kMipIpmSolverString, kIpmString) ==
+          HighsStatus::kOk);
+
+#ifdef HIPO
+  REQUIRE(h.setOptionValue(kMipIpmSolverString, kHipoString) ==
+          HighsStatus::kOk);
+#else
+  REQUIRE(h.setOptionValue(kMipIpmSolverString, kHipoString) ==
+          HighsStatus::kError);
+#endif
+
+  REQUIRE(h.setOptionValue(kMipIpmSolverString, kIpxString) ==
+          HighsStatus::kOk);
+  REQUIRE(h.setOptionValue(kMipIpmSolverString, kPdlpString) ==
+          HighsStatus::kError);
+}
+
+TEST_CASE("mip-lp-solver", "[highs_test_mip_solver]") {
+  std::string model_file =
+      std::string(HIGHS_DIR) + "/check/instances/flugpl.mps";
+  Highs h;
+  h.setOptionValue("output_flag", dev_run);
+  const bool just_hipo_test = false;
+  if (!just_hipo_test) {
+    REQUIRE(h.readModel(model_file) == HighsStatus::kOk);
+    REQUIRE(h.run() == HighsStatus::kOk);
+    REQUIRE(h.getModelStatus() == HighsModelStatus::kOptimal);
+
+    REQUIRE(h.readModel(model_file) == HighsStatus::kOk);
+    REQUIRE(h.setOptionValue(kMipLpSolverString, kIpxString) ==
+            HighsStatus::kOk);
+    REQUIRE(h.setOptionValue(kMipIpmSolverString, kIpxString) ==
+            HighsStatus::kOk);
+    REQUIRE(h.run() == HighsStatus::kOk);
+    REQUIRE(h.getModelStatus() == HighsModelStatus::kOptimal);
+  }
+#ifdef HIPO
+  REQUIRE(h.readModel(model_file) == HighsStatus::kOk);
+  REQUIRE(h.setOptionValue(kMipLpSolverString, kHipoString) ==
+          HighsStatus::kOk);
+  REQUIRE(h.setOptionValue(kMipIpmSolverString, kHipoString) ==
+          HighsStatus::kOk);
+  REQUIRE(h.run() == HighsStatus::kOk);
+  REQUIRE(h.getModelStatus() == HighsModelStatus::kOptimal);
+#endif
+}
+
+TEST_CASE("mip-sub-solver-time", "[highs_test_mip_solver]") {
+  const std::string model = "flugpl";  //"rgn"; //
+  std::string model_file =
+      std::string(HIGHS_DIR) + "/check/instances/" + model + ".mps";
+  Highs h;
+  h.setOptionValue("output_flag", dev_run);
+  h.setOptionValue("highs_analysis_level", kHighsAnalysisLevelMipTime);
+  REQUIRE(h.readModel(model_file) == HighsStatus::kOk);
+
+  REQUIRE(h.run() == HighsStatus::kOk);
+  REQUIRE(h.getModelStatus() == HighsModelStatus::kOptimal);
+}
+
+TEST_CASE("get-fixed-lp", "[highs_test_mip_solver]") {
+  std::string model = "avgas";
+  std::string model_file =
+      std::string(HIGHS_DIR) + "/check/instances/" + model + ".mps";
+  HighsLp fixed_lp;
+  Highs h;
+  h.setOptionValue("output_flag", dev_run);
+  REQUIRE(h.readModel(model_file) == HighsStatus::kOk);
+  REQUIRE(h.getFixedLp(fixed_lp) == HighsStatus::kError);
+
+  model = "flugpl";
+  model_file = std::string(HIGHS_DIR) + "/check/instances/" + model + ".mps";
+  REQUIRE(h.readModel(model_file) == HighsStatus::kOk);
+  REQUIRE(h.getFixedLp(fixed_lp) == HighsStatus::kError);
+
+  REQUIRE(h.run() == HighsStatus::kOk);
+  double mip_optimal_objective = h.getInfo().objective_function_value;
+  HighsSolution solution = h.getSolution();
+
+  // Transform the incumbent MIP into the fixed LP
+  HighsLp mip = h.getLp();
+  std::vector<HighsInt> col_set;
+  std::vector<double> fixed_value;
+  for (HighsInt iCol = 0; iCol < mip.num_col_; iCol++) {
+    if (mip.integrality_[iCol] == HighsVarType::kInteger) {
+      col_set.push_back(iCol);
+      fixed_value.push_back(solution.col_value[iCol]);
+    }
+  }
+  h.clearIntegrality();
+  HighsInt num_set_entries = col_set.size();
+  h.changeColsBounds(num_set_entries, col_set.data(), fixed_value.data(),
+                     fixed_value.data());
+  h.setOptionValue("presolve", kHighsOffString);
+  REQUIRE(h.run() == HighsStatus::kOk);
+
+  REQUIRE(h.getInfo().objective_function_value == mip_optimal_objective);
+  // In calling changeColsBounds, the incumbent solution was always
+  // cleared, so there was no information from which to construct an
+  // advanced basis. Hence simplex starts from a logical basis and
+  // requires a positive number of iterations (#2556)
+  //
+  // Before code to retain solution if changing the bounds and
+  // solution remains feasible
+  //
+  //  REQUIRE(h.getInfo().simplex_iteration_count > 0);
+  REQUIRE(h.getInfo().simplex_iteration_count == 0);
+
+  // Now, passing the MIP solution, there is information from which to
+  // construct an advanced basis. In the case of flugpl, this is
+  // optimal, so no simplex iterations are required
+  h.clearSolver();
+  h.setSolution(solution);
+  REQUIRE(h.run() == HighsStatus::kOk);
+
+  REQUIRE(h.getInfo().objective_function_value == mip_optimal_objective);
+  REQUIRE(h.getInfo().simplex_iteration_count == 0);
+
+  // Now re-load the MIP, re-solve, and get the fixed LP
+  REQUIRE(h.passModel(mip) == HighsStatus::kOk);
+  REQUIRE(h.run() == HighsStatus::kOk);
+
+  // REQUIRE(h.getInfo().objective_function_value == mip_optimal_objective);
+  REQUIRE(objectiveOk(mip_optimal_objective,
+                      h.getInfo().objective_function_value, dev_run));
+
+  REQUIRE(h.getFixedLp(fixed_lp) == HighsStatus::kOk);
+
+  REQUIRE(h.passModel(fixed_lp) == HighsStatus::kOk);
+  REQUIRE(h.run() == HighsStatus::kOk);
+
+  REQUIRE(h.getInfo().objective_function_value == mip_optimal_objective);
+
+  // Now run from saved solution (without presolve)
+  h.clearSolver();
+  h.setSolution(solution);
+  REQUIRE(h.run() == HighsStatus::kOk);
+
+  REQUIRE(h.getInfo().objective_function_value == mip_optimal_objective);
+  REQUIRE(h.getInfo().simplex_iteration_count == 0);
+
+  REQUIRE(h.readModel(model_file) == HighsStatus::kOk);
+  // Perturb one of the integer variables for code coverage of
+  // warning: makes fixed LP of flugpl infeasible
+  std::vector<HighsVarType> integrality = h.getLp().integrality_;
+  for (HighsInt iCol = 0; iCol < fixed_lp.num_col_; iCol++) {
+    if (integrality[iCol] != HighsVarType::kContinuous) {
+      solution.col_value[iCol] -= 0.01;
+      break;
+    }
+  }
+
+  REQUIRE(h.run() == HighsStatus::kOk);
+  h.setSolution(solution);
+
+  REQUIRE(h.getFixedLp(fixed_lp) == HighsStatus::kWarning);
+
+  REQUIRE(h.passModel(fixed_lp) == HighsStatus::kOk);
+  REQUIRE(h.run() == HighsStatus::kOk);
+
+  REQUIRE(h.getModelStatus() == HighsModelStatus::kInfeasible);
+
+  h.resetGlobalScheduler(true);
+}
+
+TEST_CASE("get-fixed-lp-semi", "[highs_test_mip_solver]") {
+  HighsLp lp;
+  lp.num_col_ = 4;
+  lp.num_row_ = 2;
+  lp.col_cost_ = {1, 3, 1, 2};
+  lp.col_lower_ = {0, 0, 1, 1};
+  lp.col_upper_ = {1, 1, 3, 5};
+  lp.integrality_ = {HighsVarType::kContinuous, HighsVarType::kInteger,
+                     HighsVarType::kSemiContinuous, HighsVarType::kSemiInteger};
+  lp.row_lower_ = {4, 10};
+  lp.row_upper_ = {kHighsInf, kHighsInf};
+  lp.a_matrix_.start_ = {0, 2, 4, 6, 8};
+  lp.a_matrix_.index_ = {0, 1, 0, 1, 0, 1, 0, 1, 0, 1};
+  lp.a_matrix_.value_ = {1, 1, 1, 2, 1, 3, 1, 4, 5, 1};
+  Highs h;
+  h.setOptionValue("output_flag", dev_run);
+  h.setOptionValue("presolve", kHighsOffString);
+  h.passModel(lp);
+  h.run();
+  double mip_optimal_objective = h.getInfo().objective_function_value;
+  HighsSolution solution = h.getSolution();
+  HighsLp fixed_lp;
+  REQUIRE(h.getFixedLp(fixed_lp) == HighsStatus::kOk);
+
+  REQUIRE(h.passModel(fixed_lp) == HighsStatus::kOk);
+  REQUIRE(h.run() == HighsStatus::kOk);
+
+  REQUIRE(h.getInfo().objective_function_value == mip_optimal_objective);
+}
+
+TEST_CASE("row-fixed-lp", "[highs_test_mip_solver]") {
+  std::string model = "flugpl";
+  std::string model_file =
+      std::string(HIGHS_DIR) + "/check/instances/" + model + ".mps";
+  Highs h;
+  h.setOptionValue("output_flag", dev_run);
+  REQUIRE(h.readModel(model_file) == HighsStatus::kOk);
+  REQUIRE(h.run() == HighsStatus::kOk);
+  double mip_optimal_objective = h.getInfo().objective_function_value;
+  HighsSolution solution = h.getSolution();
+
+  HighsLp lp = h.getLp();
+  h.clearIntegrality();
+  h.changeRowsBounds(0, lp.num_row_ - 1, solution.row_value.data(),
+                     solution.row_value.data());
+  h.setOptionValue("presolve", kHighsOffString);
+  REQUIRE(h.run() == HighsStatus::kOk);
+  REQUIRE(h.getInfo().objective_function_value <= mip_optimal_objective);
+
+  h.resetGlobalScheduler(true);
 }

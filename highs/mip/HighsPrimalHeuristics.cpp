@@ -131,11 +131,18 @@ bool HighsPrimalHeuristics::solveSubMip(
   HighsSolution solution;
   solution.value_valid = false;
   solution.dual_valid = false;
-  // Create HighsMipSolver instance for sub-MIP
-  if (!mipsolver.submip)
+  if (!mipsolver.submip) {
     mipsolver.analysis_.mipTimerStart(kMipClockSubMipSolve);
+    // Remember to accumulate time for sub-MIP solves!
+    mipsolver.sub_solver_call_time_.run_time[kSubSolverSubMip] -=
+        mipsolver.timer_.read();
+  }
+  // Create HighsMipSolver instance for sub-MIP
   HighsMipSolver submipsolver(*mipsolver.callback_, submipoptions, submip,
                               solution, true, mipsolver.submip_level + 1);
+  // Initialise termination_status_ and propagate any terminator to
+  // the sub-MIP
+  submipsolver.initialiseTerminator(mipsolver);
   submipsolver.rootbasis = &basis;
   HighsPseudocostInitialization pscostinit(mipsolver.mipdata_->pseudocost, 1);
   submipsolver.pscostinit = &pscostinit;
@@ -143,15 +150,39 @@ bool HighsPrimalHeuristics::solveSubMip(
   submipsolver.implicinit = &mipsolver.mipdata_->implications;
   // Solve the sub-MIP
   submipsolver.run();
-  // ig:here
+  // TODO MT: Need to make max_submip_level on the mipworker level
   // mipsolver.max_submip_level =
   //     std::max(submipsolver.max_submip_level + 1,
   //     mipsolver.max_submip_level);
-  if (!mipsolver.submip) mipsolver.analysis_.mipTimerStop(kMipClockSubMipSolve);
+  if (!mipsolver.submip) {
+    mipsolver.analysis_.mipTimerStop(kMipClockSubMipSolve);
+    mipsolver.sub_solver_call_time_.num_call[kSubSolverSubMip]++;
+    mipsolver.sub_solver_call_time_.run_time[kSubSolverSubMip] +=
+        mipsolver.timer_.read();
+  }
+  // 22/07/25: Seems impossible for submipsolver.mipdata_ to be a null
+  // pointer after calling HighsMipSolver::run(), and assert isn't
+  // triggered for anything in ctest, but use direct test of
+  // submipsolver.termination_status_, rather than
+  // submipsolver.mipdata_.terminatorTerminated()
+  if (!submipsolver.mipdata_) {
+    printf(
+        "HighsPrimalHeuristics::solveSubMip: submipsolver.mipdata_ is "
+        "nullptr\n");
+    assert(submipsolver.mipdata_);
+  }
+  if (submipsolver.termination_status_ != HighsModelStatus::kNotset) {
+    // TODO MT: This assingment also needs to go through the mip worker
+    // mipsolver.termination_status_ = submipsolver.termination_status_;
+    return false;
+  }
   if (submipsolver.mipdata_) {
     double numUnfixed = mipsolver.mipdata_->integral_cols.size() +
                         mipsolver.mipdata_->continuous_cols.size();
-    double adjustmentfactor = submipsolver.numCol() / std::max(1.0, numUnfixed);
+    double adjustmentfactor =
+        ((1 - fixingRate) * mipsolver.mipdata_->integral_cols.size() +
+         mipsolver.mipdata_->continuous_cols.size()) /
+        std::max(1.0, numUnfixed);
     // (double)mipsolver.orig_model_->a_matrix_.value_.size();
     int64_t adjusted_lp_iterations =
         (size_t)(adjustmentfactor * submipsolver.mipdata_->total_lp_iterations);
@@ -323,7 +354,25 @@ void HighsPrimalHeuristics::rootReducedCost(HighsMipWorker& worker) {
               fixingRate, localdom.col_lower_, localdom.col_upper_,
               500,  // std::max(50, int(0.05 *
                     // (mipsolver.mipdata_->num_leaves))),
-              200 + mipsolver.mipdata_->num_nodes / 20, 12);
+              200 + static_cast<HighsInt>(mipsolver.mipdata_->num_nodes / 20),
+              12);
+}
+
+static double calcFixVal(double rootchange, double fracval, double cost) {
+  // reinforce direction of this solution away from root
+  // solution if the change is at least 0.4
+  // otherwise take the direction where the objective gets worse
+  // if objective is zero round to nearest integer
+  if (rootchange >= 0.4)
+    return std::ceil(fracval);
+  else if (rootchange <= -0.4)
+    return std::floor(fracval);
+  else if (cost > 0.0)
+    return std::ceil(fracval);
+  else if (cost < 0.0)
+    return std::floor(fracval);
+  else
+    return std::floor(fracval + 0.5);
 }
 
 void HighsPrimalHeuristics::RENS(HighsMipWorker& worker,
@@ -447,25 +496,15 @@ retry:
 
     if (numBranched == 0) {
       auto getFixVal = [&](HighsInt col, double fracval) {
-        double fixval;
-
         // reinforce direction of this solution away from root
         // solution if the change is at least 0.4
         // otherwise take the direction where the objective gets worse
         // if objective is zero round to nearest integer
-        double rootchange = mipsolver.mipdata_->rootlpsol.empty()
-                                ? 0.0
-                                : fracval - mipsolver.mipdata_->rootlpsol[col];
-        if (rootchange >= 0.4)
-          fixval = std::ceil(fracval);
-        else if (rootchange <= -0.4)
-          fixval = std::floor(fracval);
-        if (mipsolver.model_->col_cost_[col] > 0.0)
-          fixval = std::ceil(fracval);
-        else if (mipsolver.model_->col_cost_[col] < 0.0)
-          fixval = std::floor(fracval);
-        else
-          fixval = std::floor(fracval + 0.5);
+        double fixval =
+            calcFixVal(mipsolver.mipdata_->rootlpsol.empty()
+                           ? 0.0
+                           : fracval - mipsolver.mipdata_->rootlpsol[col],
+                       fracval, mipsolver.model_->col_cost_[col]);
         // make sure we do not set an infeasible domain
         fixval = std::min(localdom.col_upper_[col], fixval);
         fixval = std::max(localdom.col_lower_[col], fixval);
@@ -561,6 +600,7 @@ retry:
                   500,  // std::max(50, int(0.05 *
                   // (mipsolver.mipdata_->num_leaves))),
                   200 + mipsolver.mipdata_->num_nodes / 20, 12);
+  if (mipsolver.mipdata_->terminatorTerminated()) return;
   if (!solve_sub_mip_return) {
     int64_t new_lp_iterations =
         worker.heur_stats.lp_iterations + heur.getLocalLpIterations();
@@ -694,17 +734,8 @@ retry:
         // solution if the change is at least 0.4
         // otherwise take the direction where the objective gets worse
         // if objective is zero round to nearest integer
-        double rootchange = fracval - mipsolver.mipdata_->rootlpsol[col];
-        if (rootchange >= 0.4)
-          fixval = std::ceil(fracval);
-        else if (rootchange <= -0.4)
-          fixval = std::floor(fracval);
-        if (mipsolver.model_->col_cost_[col] > 0.0)
-          fixval = std::ceil(fracval);
-        else if (mipsolver.model_->col_cost_[col] < 0.0)
-          fixval = std::floor(fracval);
-        else
-          fixval = std::floor(fracval + 0.5);
+        fixval = calcFixVal(fracval - mipsolver.mipdata_->rootlpsol[col],
+                            fracval, mipsolver.model_->col_cost_[col]);
       }
       // make sure we do not set an infeasible domain
       fixval = std::min(localdom.col_upper_[col], fixval);
@@ -865,6 +896,7 @@ retry:
                   500,  // std::max(50, int(0.05 *
                   // (mipsolver.mipdata_->num_leaves))),
                   200 + mipsolver.mipdata_->num_nodes / 20, 12);
+  if (mipsolver.mipdata_->terminatorTerminated()) return;
   if (!solve_sub_mip_return) {
     int64_t new_lp_iterations =
         worker.heur_stats.lp_iterations + heur.getLocalLpIterations();
@@ -1088,13 +1120,17 @@ void HighsPrimalHeuristics::randomizedRounding(
     // check if only root presolve is allowed
     if (mipsolver.options_mip_->mip_root_presolve_only)
       lprelax.getLpSolver().setOptionValue("presolve", kHighsOffString);
+
     if (!mipsolver.options_mip_->mip_root_presolve_only &&
-        (5 * intcols.size()) / mipsolver.numCol() >= 1)
+        (5 * intcols.size()) / mipsolver.numCol() >= 1) {
+      // LP to solve is very much smaller, so use presolve rather than
+      // the root basis
       lprelax.getLpSolver().setOptionValue("presolve", kHighsOnString);
-    else
+    } else {
       lprelax.getLpSolver().setBasis(
           mipsolver.mipdata_->firstrootbasis,
           "HighsPrimalHeuristics::randomizedRounding");
+    }
 
     HighsLpRelaxation::Status st = lprelax.resolveLp();
 
@@ -1109,7 +1145,7 @@ void HighsPrimalHeuristics::randomizedRounding(
                                 rhs);
       }
 
-    } else if (lprelax.unscaledPrimalFeasible(st))
+    } else if (HighsLpRelaxation::unscaledPrimalFeasible(st)) {
       if (mipsolver.mipdata_->parallelLockActive()) {
         worker.addIncumbent(lprelax.getLpSolver().getSolution().col_value,
                             lprelax.getObjective(),
@@ -1119,6 +1155,7 @@ void HighsPrimalHeuristics::randomizedRounding(
             lprelax.getLpSolver().getSolution().col_value,
             lprelax.getObjective(), kSolutionSourceRandomizedRounding);
       }
+    }
   } else {
     if (mipsolver.mipdata_->parallelLockActive()) {
       worker.trySolution(localdom.col_lower_,
@@ -1168,7 +1205,7 @@ void HighsPrimalHeuristics::shifting(HighsMipWorker& worker,
 
   while ((current_fractional_integers.size() > 0 || hasInfeasibleConstraints) &&
          iterationsWithoutReductions <= maxIterationsWithoutReductions &&
-         t <= mipsolver.mipdata_->integer_cols.size()) {
+         t <= static_cast<HighsInt>(mipsolver.mipdata_->integer_cols.size())) {
     t++;
     bool fractionalIntegersReduced = false;
     iterationsWithoutReductions++;
@@ -1178,7 +1215,7 @@ void HighsPrimalHeuristics::shifting(HighsMipWorker& worker,
       bool fractionalIntegerFound = false;
       HighsInt rIndex = 0;
       while (!fractionalIntegerFound &&
-             rIndex != current_infeasible_rows.size()) {
+             rIndex != static_cast<HighsInt>(current_infeasible_rows.size())) {
         HighsInt r = std::get<0>(current_infeasible_rows[rIndex]);
         HighsInt start = mipsolver.mipdata_->ARstart_[r];
         HighsInt end = mipsolver.mipdata_->ARstart_[r + 1];
@@ -1213,7 +1250,7 @@ void HighsPrimalHeuristics::shifting(HighsMipWorker& worker,
         if (currentLp.col_lower_[j] == currentLp.col_upper_[j]) continue;
 
         // lambda for finding best shift
-        auto repair = [this, &findPairByIndex, &current_fractional_integers,
+        auto repair = [&findPairByIndex, &current_fractional_integers,
                        &findShiftsByIndex, &shift_iterations_set, &t,
                        &score_min, &j_min, &aij_min, &x_j_min,
                        &current_relax_solution, &moveValueUp](
@@ -1242,9 +1279,9 @@ void HighsPrimalHeuristics::shifting(HighsMipWorker& worker,
               score = direction * (isMaximization ? -cost : cost);
             else {
               score = 0.0;
-              for (size_t s = 0; s != shifts.size(); ++s) {
-                if (direction * shifts[s] > 0)
-                  score += pow(1.1, direction * shifts[s] - t);
+              for (double shift : shifts) {
+                if (direction * shift > 0)
+                  score += pow(1.1, direction * shift - t);
               }
             }
             if (isInteger) score += 1;
@@ -1327,14 +1364,16 @@ void HighsPrimalHeuristics::shifting(HighsMipWorker& worker,
       HighsInt j_min = std::numeric_limits<HighsInt>::max();
       double x_j_min = kHighsInf;
       HighsInt sigma = 0;
-      for (HighsInt i = 0; i != current_fractional_integers.size(); ++i) {
+      for (HighsInt i = 0;
+           i != static_cast<HighsInt>(current_fractional_integers.size());
+           ++i) {
         std::pair<HighsInt, double> it = current_fractional_integers[i];
         HighsInt col = it.first;
         assert(col >= 0);
         assert(col < mipsolver.numCol());
 
-        auto isBetter = [this, &currentLp, &it, &xi_max, &delta_c_min,
-                         &pind_j_min, &j_min, &x_j_min, &sigma,
+        auto isBetter = [&currentLp, &it, &xi_max, &delta_c_min, &pind_j_min,
+                         &j_min, &x_j_min, &sigma,
                          &i](double col, double xi, double roundedval,
                              HighsInt direction) {
           double c_min = currentLp.col_cost_[col] * (roundedval - it.second);
@@ -1611,7 +1650,7 @@ void HighsPrimalHeuristics::feasibilityPump(HighsMipWorker& worker) {
   }
 
   if (lprelax.getFractionalIntegers().empty() &&
-      lprelax.unscaledPrimalFeasible(status))
+      HighsLpRelaxation::unscaledPrimalFeasible(status)) {
     if (mipsolver.mipdata_->parallelLockActive()) {
       worker.addIncumbent(lprelax.getLpSolver().getSolution().col_value,
                           lprelax.getObjective(),
@@ -1621,6 +1660,7 @@ void HighsPrimalHeuristics::feasibilityPump(HighsMipWorker& worker) {
           lprelax.getLpSolver().getSolution().col_value, lprelax.getObjective(),
           kSolutionSourceFeasibilityPump);
     }
+  }
 }
 
 void HighsPrimalHeuristics::centralRounding(HighsMipWorker& worker) {

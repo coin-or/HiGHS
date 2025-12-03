@@ -22,11 +22,14 @@
 #include "mip/HighsTableauSeparator.h"
 #include "mip/HighsTransformedLp.h"
 
-// HighsSeparation::HighsSeparation(const HighsMipSolver& mipsolver) {
 HighsSeparation::HighsSeparation(HighsMipWorker& mipworker)
     : mipworker_(mipworker) {
-  implBoundClock = mipworker.mipsolver_.timer_.clock_def("Implbound sepa");
-  cliqueClock = mipworker.mipsolver_.timer_.clock_def("Clique sepa");
+  if (mipworker.mipsolver_.analysis_.analyse_mip_time) {
+    implBoundClock =
+        mipworker.mipsolver_.analysis_.getSepaClockIndex(kImplboundSepaString);
+    cliqueClock =
+        mipworker.mipsolver_.analysis_.getSepaClockIndex(kCliqueSepaString);
+  }
   separators.emplace_back(new HighsTableauSeparator(mipworker.mipsolver_));
   separators.emplace_back(new HighsPathSeparator(mipworker.mipsolver_));
   separators.emplace_back(new HighsModkSeparator(mipworker.mipsolver_));
@@ -84,11 +87,12 @@ HighsInt HighsSeparation::separationRound(HighsDomain& propdomain,
 
   // TODO MT: Look into delta implications (probing for global info locally and
   // buffer it)
-  lp->getMipSolver().timer_.start(implBoundClock);
+  // TODO MT: Disabled timers because they fail for parallel mode
+  // lp->getMipSolver().analysis_.mipTimerStart(implBoundClock);
   mipdata.implications.separateImpliedBounds(
       *lp, lp->getSolution().col_value, *mipworker_.cutpool_, mipdata.feastol,
       mipworker_.getGlobalDomain(), mipdata.parallelLockActive());
-  lp->getMipSolver().timer_.stop(implBoundClock);
+  // lp->getMipSolver().analysis_.mipTimerStop(implBoundClock);
 
   HighsInt ncuts = 0;
   HighsInt numboundchgs = propagateAndResolve();
@@ -100,10 +104,10 @@ HighsInt HighsSeparation::separationRound(HighsDomain& propdomain,
   // TODO: This can be enabled if randgen and cliquesubsumption are disabled for
   // parallel case
   if (&propdomain == &mipdata.domain) {
-    lp->getMipSolver().timer_.start(cliqueClock);
+    lp->getMipSolver().analysis_.mipTimerStart(cliqueClock);
     mipdata.cliquetable.separateCliques(lp->getMipSolver(), sol.col_value,
                                         *mipworker_.cutpool_, mipdata.feastol);
-    lp->getMipSolver().timer_.stop(cliqueClock);
+    lp->getMipSolver().analysis_.mipTimerStop(cliqueClock);
   }
 
   numboundchgs = propagateAndResolve();

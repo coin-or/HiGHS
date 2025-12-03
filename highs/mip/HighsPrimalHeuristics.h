@@ -16,6 +16,7 @@
 
 class HighsMipSolver;
 class HighsMipWorker;
+class HighsLpRelaxation;
 
 class HighsPrimalHeuristics {
  private:

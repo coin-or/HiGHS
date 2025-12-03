@@ -15,7 +15,6 @@
 #include <iostream>
 
 #include "lp_data/HighsCallback.h"
-// #include "util/HighsInt.h"
 
 class HighsOptions;
 
@@ -44,9 +43,7 @@ struct HighsLogOptions {
   HighsInt* log_dev_level;
   void (*user_log_callback)(HighsLogType, const char*, void*);
   void* user_log_callback_data;
-  std::function<void(int, const std::string&, const HighsCallbackDataOut*,
-                     HighsCallbackDataIn*, void*)>
-      user_callback;
+  HighsCallbackFunctionType user_callback;
   void* user_callback_data;
   bool user_callback_active;
   void clear();

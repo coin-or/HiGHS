@@ -45,25 +45,26 @@ struct HighsPrimaDualIntegral {
 enum MipSolutionSource : int {
   kSolutionSourceNone = -1,
   kSolutionSourceMin = kSolutionSourceNone,
-  kSolutionSourceBranching,
-  kSolutionSourceCentralRounding,
-  kSolutionSourceFeasibilityPump,
-  kSolutionSourceFeasibilityJump,
-  kSolutionSourceHeuristic,
-  //  kSolutionSourceInitial,
-  kSolutionSourceSubMip,
-  kSolutionSourceEmptyMip,
-  kSolutionSourceRandomizedRounding,
-  kSolutionSourceZiRound,
-  kSolutionSourceShifting,
-  kSolutionSourceSolveLp,
-  kSolutionSourceEvaluateNode,
-  kSolutionSourceUnbounded,
-  kSolutionSourceTrivialZ,
-  kSolutionSourceTrivialL,
-  kSolutionSourceTrivialU,
-  kSolutionSourceTrivialP,
-  kSolutionSourceUserSolution,
+  //  kSolutionSourceInitial, // 0
+  kSolutionSourceBranching,           // B
+  kSolutionSourceCentralRounding,     // C
+  kSolutionSourceFeasibilityPump,     // F
+  kSolutionSourceHeuristic,           // H
+  kSolutionSourceShifting,            // I
+  kSolutionSourceFeasibilityJump,     // J
+  kSolutionSourceSubMip,              // L
+  kSolutionSourceEmptyMip,            // P
+  kSolutionSourceRandomizedRounding,  // R
+  kSolutionSourceSolveLp,             // S
+  kSolutionSourceEvaluateNode,        // T
+  kSolutionSourceUnbounded,           // U
+  kSolutionSourceUserSolution,        // X
+  kSolutionSourceHighsSolution,       // Y
+  kSolutionSourceZiRound,             // Z
+  kSolutionSourceTrivialL,            // l
+  kSolutionSourceTrivialP,            // p
+  kSolutionSourceTrivialU,            // u
+  kSolutionSourceTrivialZ,            // z
   kSolutionSourceCleanup,
   kSolutionSourceCount
 };
@@ -72,17 +73,16 @@ struct HighsMipSolverData {
   HighsMipSolver& mipsolver;
 
   std::deque<HighsLpRelaxation> lps;
+  HighsLpRelaxation& lp;
   std::deque<HighsMipWorker> workers;
   std::deque<HighsDomain> domains;
+  HighsDomain& domain;
   std::deque<HighsCutPool> cutpools;
+  HighsCutPool& cutpool;
   std::deque<HighsConflictPool> conflictpools;
+  HighsConflictPool& conflictPool;
   bool parallel_lock;
   // std::deque<HighsPrimalHeuristics> heuristics_deque;
-
-  HighsLpRelaxation& lp;
-  HighsDomain& domain;
-  HighsCutPool& cutpool;
-  HighsConflictPool& conflictPool;
 
   // std::unique_ptr<HighsPrimalHeuristics> heuristics_ptr;
   // HighsPrimalHeuristics heuristics;
@@ -207,7 +207,7 @@ struct HighsMipSolverData {
   void init();
   void basisTransfer();
   void checkObjIntegrality();
-  void runPresolve(const HighsInt presolve_reduction_limit);
+  void runMipPresolve(const HighsInt presolve_reduction_limit);
   void setupDomainPropagation();
   void saveReportMipSolution(const double new_upper_limit = -kHighsInf);
   void runSetup();
@@ -235,8 +235,8 @@ struct HighsMipSolverData {
   const std::vector<double>& getSolution() const;
 
   std::string solutionSourceToString(const int solution_source,
-                                     const bool code = true);
-  void printSolutionSourceKey();
+                                     const bool code = true) const;
+  void printSolutionSourceKey() const;
   void printDisplayLine(const int solution_source = kSolutionSourceNone);
 
   void getRow(HighsInt row, HighsInt& rowlen, const HighsInt*& rowinds,
@@ -254,8 +254,16 @@ struct HighsMipSolverData {
   bool interruptFromCallbackWithData(const int callback_type,
                                      const double mipsolver_objective_value,
                                      const std::string message = "") const;
-  void callbackUserSolution(const double mipsolver_objective_value,
-                            const HighsInt user_solution_callback_origin);
+  void queryExternalSolution(
+      const double mipsolver_objective_value,
+      const ExternalMipSolutionQueryOrigin external_solution_query_origin);
+
+  HighsInt terminatorConcurrency() const;
+  bool terminatorActive() const { return terminatorConcurrency() > 0; }
+  HighsInt terminatorMyInstance() const;
+  void terminatorTerminate();
+  bool terminatorTerminated() const;
+  void terminatorReport() const;
 
   bool parallelLockActive() const {
     return (parallel_lock && hasMultipleWorkers());

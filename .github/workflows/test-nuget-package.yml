@@ -8,9 +8,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # macos 13 is Intel
-  build_macos_13:
-    runs-on: macos-13
+  build_macos_intel:
+    runs-on: macos-15-intel
     # strategy:
       # matrix:
       #   python: [3.11]
@@ -36,9 +35,9 @@ jobs:
 
       - name: Dotnet pack
         working-directory: ${{runner.workspace}}/build/dotnet/Highs.Native
-        run: dotnet pack -c Release /p:Version=1.10.0
+        run: dotnet pack -c Release /p:Version=1.12.0
 
-      - name: Add local feed 
+      - name: Add local feed
         run: dotnet nuget add source ${{runner.workspace}}/nugets
 
       - name: Dotnet push to local feed
@@ -50,16 +49,13 @@ jobs:
         working-directory: ${{runner.workspace}}/test_nuget
         run: |
           dotnet new console
-          rm Program.cs 
-          cp $GITHUB_WORKSPACE/examples/call_highs_from_csharp.cs . 
-          dotnet add package Highs.Native -s ${{runner.workspace}}/nugets 
+          rm Program.cs
+          cp $GITHUB_WORKSPACE/examples/call_highs_from_csharp.cs .
+          dotnet add package Highs.Native -s ${{runner.workspace}}/nugets
           dotnet run
 
-
-            
-  # macos 14 is M1
-  build_macos_14:
-    runs-on: macos-14 
+  build_macos_arm:
+    runs-on: macos-14  # macos-14 is arm64
     steps:
       - uses: actions/checkout@v4
       - name: Build HiGHS
@@ -82,9 +78,9 @@ jobs:
 
       - name: Dotnet pack
         working-directory: ${{runner.workspace}}/build/dotnet/Highs.Native
-        run: dotnet pack -c Release /p:Version=1.10.0
+        run: dotnet pack -c Release /p:Version=1.12.0
 
-      - name: Add local feed 
+      - name: Add local feed
         run: dotnet nuget add source ${{runner.workspace}}/nugets
 
       - name: Dotnet push to local feed
@@ -96,9 +92,9 @@ jobs:
         working-directory: ${{runner.workspace}}/test_nuget
         run: |
           dotnet new console
-          rm Program.cs 
-          cp $GITHUB_WORKSPACE/examples/call_highs_from_csharp.cs . 
-          dotnet add package Highs.Native -s ${{runner.workspace}}/nugets 
+          rm Program.cs
+          cp $GITHUB_WORKSPACE/examples/call_highs_from_csharp.cs .
+          dotnet add package Highs.Native -s ${{runner.workspace}}/nugets
           dotnet run
 
   build_linux:
@@ -126,9 +122,9 @@ jobs:
 
       - name: Dotnet pack
         working-directory: /__w/HiGHS/HiGHS/build/dotnet/Highs.Native
-        run: dotnet pack -c Release /p:Version=1.10.0
+        run: dotnet pack -c Release /p:Version=1.12.0
 
-      - name: Add local feed 
+      - name: Add local feed
         run: dotnet nuget add source /__w/HiGHS/HiGHS/nugets
 
       - name: Dotnet push to local feed
@@ -140,9 +136,9 @@ jobs:
         working-directory: /__w/HiGHS/HiGHS/test_nuget
         run: |
           dotnet new console
-          rm Program.cs 
-          cp $GITHUB_WORKSPACE/examples/call_highs_from_csharp.cs . 
-          dotnet add package Highs.Native -s /__w/HiGHS/HiGHS/nugets 
+          rm Program.cs
+          cp $GITHUB_WORKSPACE/examples/call_highs_from_csharp.cs .
+          dotnet add package Highs.Native -s /__w/HiGHS/HiGHS/nugets
           dotnet run
 
   build_linux_8:
@@ -170,9 +166,9 @@ jobs:
 
       - name: Dotnet pack
         working-directory: /__w/HiGHS/HiGHS/build/dotnet/Highs.Native
-        run: dotnet pack -c Release /p:Version=1.10.0
+        run: dotnet pack -c Release /p:Version=1.12.0
 
-      - name: Add local feed 
+      - name: Add local feed
         run: dotnet nuget add source /__w/HiGHS/HiGHS/nugets
 
       - name: Dotnet push to local feed
@@ -184,13 +180,13 @@ jobs:
         working-directory: /__w/HiGHS/HiGHS/test_nuget
         run: |
           dotnet new console
-          rm Program.cs 
-          cp $GITHUB_WORKSPACE/examples/call_highs_from_csharp.cs . 
-          dotnet add package Highs.Native -s /__w/HiGHS/HiGHS/nugets 
+          rm Program.cs
+          cp $GITHUB_WORKSPACE/examples/call_highs_from_csharp.cs .
+          dotnet add package Highs.Native -s /__w/HiGHS/HiGHS/nugets
           dotnet run
 
   build_windows:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
       - name: Build HiGHS Windows native
@@ -208,17 +204,17 @@ jobs:
         shell: bash
         working-directory: ${{runner.workspace}}/build
         run: cmake --build . --config Release --parallel
-      
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '6.0.x'
 
       - name: Dotnet pack
         working-directory: ${{runner.workspace}}/build/dotnet/Highs.Native
-        run: dotnet pack -c Release /p:Version=1.10.0
+        run: dotnet pack -c Release /p:Version=1.12.0
 
-      - name: Add local feed 
-        run: dotnet nuget add source -n name ${{runner.workspace}}\nugets 
+      - name: Add local feed
+        run: dotnet nuget add source -n name ${{runner.workspace}}\nugets
 
       - name: Dotnet push to local feed
         working-directory: ${{runner.workspace}}/build/dotnet/Highs.Native
@@ -229,7 +225,7 @@ jobs:
         working-directory: ${{runner.workspace}}/test_nuget
         run: |
           dotnet new console
-          rm Program.cs 
-          cp ${{runner.workspace}}\HiGHS\examples\call_highs_from_csharp.cs . 
-          dotnet add package Highs.Native -v 1.10.0 -s ${{runner.workspace}}\nugets 
+          rm Program.cs
+          cp ${{runner.workspace}}\HiGHS\examples\call_highs_from_csharp.cs .
+          dotnet add package Highs.Native -v 1.12.0 -s ${{runner.workspace}}\nugets
           dotnet run

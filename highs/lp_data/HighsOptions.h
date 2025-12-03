@@ -128,12 +128,16 @@ void highsOpenLogFile(HighsLogOptions& log_options,
                       std::vector<OptionRecord*>& option_records,
                       const std::string log_file);
 
-bool commandLineOffChooseOnOk(const HighsLogOptions& report_log_options,
-                              const string& name, const string& value);
-bool commandLineOffOnOk(const HighsLogOptions& report_log_options,
-                        const string& name, const string& value);
-bool commandLineSolverOk(const HighsLogOptions& report_log_options,
+bool optionOffChooseOnOk(const HighsLogOptions& report_log_options,
+                         const string& name, const string& value);
+bool optionOffOnOk(const HighsLogOptions& report_log_options,
+                   const string& name, const string& value);
+bool optionSolverOk(const HighsLogOptions& report_log_options,
+                    const string& value);
+bool optionMipLpSolverOk(const HighsLogOptions& report_log_options,
                          const string& value);
+bool optionMipIpmSolverOk(const HighsLogOptions& report_log_options,
+                          const string& value);
 
 bool boolFromString(std::string value, bool& bool_value);
 
@@ -259,6 +263,8 @@ void reportOption(FILE* file, const HighsLogOptions& report_log_options,
 
 const string kSimplexString = "simplex";
 const string kIpmString = "ipm";
+const string kHipoString = "hipo";
+const string kIpxString = "ipx";
 const string kPdlpString = "pdlp";
 
 const HighsInt kKeepNRowsDeleteRows = -1;
@@ -281,10 +287,25 @@ const string kRangingString = "ranging";
 const string kVersionString = "version";
 const string kWriteModelFileString = "write_model_file";
 const string kWritePresolvedModelFileString = "write_presolved_model_file";
+const string kWriteIisModelFileString = "write_iis_model_file";
 const string kReadSolutionFileString = "read_solution_file";
 
 // String for HiGHS log file option
 const string kLogFileString = "log_file";
+
+// Strings for HiPO system option
+const string kHipoSystemString = "hipo_system";
+const string kHipoAugmentedString = "augmented";
+const string kHipoNormalEqString = "normaleq";
+
+// Strings for MIP LP/IPM options
+const string kMipLpSolverString = "mip_lp_solver";
+const string kMipIpmSolverString = "mip_ipm_solver";
+// Strings for HiPO parallel method
+const string kHipoParallelString = "hipo_parallel_type";
+const string kHipoTreeString = "tree";
+const string kHipoNodeString = "node";
+const string kHipoBothString = "both";
 
 struct HighsOptionsStruct {
   // Run-time options read from the command line
@@ -306,16 +327,17 @@ struct HighsOptionsStruct {
   double infinite_bound;
   double small_matrix_value;
   double large_matrix_value;
+  double kkt_tolerance;
   double primal_feasibility_tolerance;
   double dual_feasibility_tolerance;
-  double ipm_optimality_tolerance;
   double primal_residual_tolerance;
   double dual_residual_tolerance;
+  double optimality_tolerance;
   double objective_bound;
   double objective_target;
   HighsInt threads;
+  HighsInt user_objective_scale;
   HighsInt user_bound_scale;
-  HighsInt user_cost_scale;
   HighsInt highs_debug_level;
   HighsInt highs_analysis_level;
   HighsInt simplex_strategy;
@@ -333,9 +355,11 @@ struct HighsOptionsStruct {
   bool write_model_to_file;
   bool write_presolved_model_to_file;
   bool write_solution_to_file;
+
   HighsInt write_solution_style;
   HighsInt glpsol_cost_row_location;
   std::string write_presolved_model_file;
+  std::string write_iis_model_file;
 
   // Control of HiGHS log
   bool output_flag;
@@ -343,18 +367,22 @@ struct HighsOptionsStruct {
   bool timeless_log;
 
   // Options for IPM solver
+  double ipm_optimality_tolerance;
   HighsInt ipm_iteration_limit;
+  std::string hipo_system;
+  std::string hipo_parallel_type;
+  HighsInt hipo_block_size;
 
   // Options for PDLP solver
-  bool pdlp_native_termination;
   bool pdlp_scaling;
   HighsInt pdlp_iteration_limit;
   HighsInt pdlp_e_restart_method;
-  double pdlp_d_gap_tol;
+  double pdlp_optimality_tolerance;
 
   // Options for QP solver
   HighsInt qp_iteration_limit;
   HighsInt qp_nullspace_limit;
+  double qp_regularization_value;
 
   // Options for IIS calculation
   HighsInt iis_strategy;
@@ -404,6 +432,7 @@ struct HighsOptionsStruct {
   bool less_infeasible_DSE_check;
   bool less_infeasible_DSE_choose_row;
   bool use_original_HFactor_logic;
+  //  bool allow_pdlp_cleanup;
   bool run_centring;
   HighsInt max_centring_steps;
   double centring_ratio_tolerance;
@@ -421,7 +450,6 @@ struct HighsOptionsStruct {
   // Options for MIP solver
   bool mip_detect_symmetry;
   bool mip_allow_restart;
-  bool mip_allow_feasibility_jump;
   HighsInt mip_max_nodes;
   HighsInt mip_max_stall_nodes;
   HighsInt mip_max_start_nodes;
@@ -437,12 +465,15 @@ struct HighsOptionsStruct {
   double mip_rel_gap;
   double mip_abs_gap;
   double mip_heuristic_effort;
-  double mip_min_logging_interval;
+  bool mip_heuristic_run_feasibility_jump;
   bool mip_heuristic_run_rins;
   bool mip_heuristic_run_rens;
   bool mip_heuristic_run_root_reduced_cost;
   bool mip_heuristic_run_zi_round;
   bool mip_heuristic_run_shifting;
+  double mip_min_logging_interval;
+  std::string mip_lp_solver;
+  std::string mip_ipm_solver;
 
 #ifdef HIGHS_DEBUGSOL
   std::string mip_debug_solution_file;
@@ -475,16 +506,17 @@ struct HighsOptionsStruct {
         infinite_bound(0.0),
         small_matrix_value(0.0),
         large_matrix_value(0.0),
+        kkt_tolerance(0.0),
         primal_feasibility_tolerance(0.0),
         dual_feasibility_tolerance(0.0),
-        ipm_optimality_tolerance(0.0),
         primal_residual_tolerance(0.0),
         dual_residual_tolerance(0.0),
+        optimality_tolerance(0.0),
         objective_bound(0.0),
         objective_target(0.0),
         threads(0),
+        user_objective_scale(0),
         user_bound_scale(0),
-        user_cost_scale(0),
         highs_debug_level(0),
         highs_analysis_level(0),
         simplex_strategy(0),
@@ -503,17 +535,22 @@ struct HighsOptionsStruct {
         write_solution_style(0),
         glpsol_cost_row_location(0),
         write_presolved_model_file(""),
+        write_iis_model_file(""),
         output_flag(false),
         log_to_console(false),
         timeless_log(false),
+        ipm_optimality_tolerance(0.0),
         ipm_iteration_limit(0),
-        pdlp_native_termination(false),
+        hipo_system(""),
+        hipo_parallel_type(""),
+        hipo_block_size(0),
         pdlp_scaling(false),
         pdlp_iteration_limit(0),
         pdlp_e_restart_method(0),
-        pdlp_d_gap_tol(0.0),
+        pdlp_optimality_tolerance(0.0),
         qp_iteration_limit(0),
         qp_nullspace_limit(0),
+        qp_regularization_value(0),
         iis_strategy(0),
         blend_multi_objectives(false),
         log_dev_level(0),
@@ -557,6 +594,7 @@ struct HighsOptionsStruct {
         less_infeasible_DSE_check(false),
         less_infeasible_DSE_choose_row(false),
         use_original_HFactor_logic(false),
+        //        allow_pdlp_cleanup(false),
         run_centring(false),
         max_centring_steps(0),
         centring_ratio_tolerance(0.0),
@@ -570,7 +608,6 @@ struct HighsOptionsStruct {
         icrash_breakpoints(false),
         mip_detect_symmetry(false),
         mip_allow_restart(false),
-        mip_allow_feasibility_jump(false),
         mip_max_nodes(0),
         mip_max_stall_nodes(0),
         mip_max_start_nodes(0),
@@ -586,6 +623,12 @@ struct HighsOptionsStruct {
         mip_rel_gap(0.0),
         mip_abs_gap(0.0),
         mip_heuristic_effort(0.0),
+        mip_heuristic_run_feasibility_jump(false),
+        mip_heuristic_run_rins(false),
+        mip_heuristic_run_rens(false),
+        mip_heuristic_run_root_reduced_cost(false),
+        mip_heuristic_run_zi_round(false),
+        mip_heuristic_run_shifting(false),
         mip_min_logging_interval(0.0),
 #ifdef HIGHS_DEBUGSOL
         mip_debug_solution_file(""),
@@ -663,13 +706,11 @@ class HighsOptions : public HighsOptionsStruct {
         advanced, &presolve, kHighsChooseString);
     records.push_back(record_string);
 
-    record_string = new OptionRecordString(
-        kSolverString,
-        "Solver option: \"simplex\", \"choose\", \"ipm\" or \"pdlp\". If "
-        "\"simplex\"/\"ipm\"/\"pdlp\" is chosen then, for a MIP (QP) the "
-        "integrality "
-        "constraint (quadratic term) will be ignored",
-        advanced, &solver, kHighsChooseString);
+    record_string =
+        new OptionRecordString(kSolverString,
+                               "LP solver option: \"choose\", \"simplex\", "
+                               "\"ipm\", \"ipx\", \"hipo\" or \"pdlp\"",
+                               advanced, &solver, kHighsChooseString);
     records.push_back(record_string);
 
     record_string = new OptionRecordString(
@@ -725,28 +766,36 @@ class HighsOptions : public HighsOptionsStruct {
     records.push_back(record_double);
 
     record_double = new OptionRecordDouble(
+        "kkt_tolerance",
+        "If changed from its default value, this tolerance is used for all "
+        "feasibility and optimality (KKT) measures",
+        advanced, &kkt_tolerance, 1e-10, kDefaultKktTolerance, kHighsInf);
+    records.push_back(record_double);
+
+    record_double = new OptionRecordDouble(
         "primal_feasibility_tolerance", "Primal feasibility tolerance",
-        advanced, &primal_feasibility_tolerance, 1e-10, 1e-7, kHighsInf);
+        advanced, &primal_feasibility_tolerance, 1e-10, kDefaultKktTolerance,
+        kHighsInf);
     records.push_back(record_double);
 
     record_double = new OptionRecordDouble(
         "dual_feasibility_tolerance", "Dual feasibility tolerance", advanced,
-        &dual_feasibility_tolerance, 1e-10, 1e-7, kHighsInf);
-    records.push_back(record_double);
-
-    record_double = new OptionRecordDouble(
-        "ipm_optimality_tolerance", "IPM optimality tolerance", advanced,
-        &ipm_optimality_tolerance, 1e-12, 1e-8, kHighsInf);
+        &dual_feasibility_tolerance, 1e-10, kDefaultKktTolerance, kHighsInf);
     records.push_back(record_double);
 
     record_double = new OptionRecordDouble(
         "primal_residual_tolerance", "Primal residual tolerance", advanced,
-        &primal_residual_tolerance, 1e-10, 1e-7, kHighsInf);
+        &primal_residual_tolerance, 1e-10, kDefaultKktTolerance, kHighsInf);
     records.push_back(record_double);
 
     record_double = new OptionRecordDouble(
         "dual_residual_tolerance", "Dual residual tolerance", advanced,
-        &dual_residual_tolerance, 1e-10, 1e-7, kHighsInf);
+        &dual_residual_tolerance, 1e-10, kDefaultKktTolerance, kHighsInf);
+    records.push_back(record_double);
+
+    record_double = new OptionRecordDouble(
+        "optimality_tolerance", "Optimality tolerance", advanced,
+        &optimality_tolerance, 1e-10, kDefaultKktTolerance, kHighsInf);
     records.push_back(record_double);
 
     record_double = new OptionRecordDouble(
@@ -773,13 +822,14 @@ class HighsOptions : public HighsOptionsStruct {
     records.push_back(record_int);
 
     record_int = new OptionRecordInt(
-        "user_bound_scale", "Exponent of power-of-two bound scaling for model",
-        advanced, &user_bound_scale, -kHighsIInf, 0, kHighsIInf);
+        "user_objective_scale",
+        "Exponent of power-of-two objective scaling for model", advanced,
+        &user_objective_scale, -kHighsIInf, 0, kHighsIInf);
     records.push_back(record_int);
 
     record_int = new OptionRecordInt(
-        "user_cost_scale", "Exponent of power-of-two cost scaling for model",
-        advanced, &user_cost_scale, -kHighsIInf, 0, kHighsIInf);
+        "user_bound_scale", "Exponent of power-of-two bound scaling for model",
+        advanced, &user_bound_scale, -kHighsIInf, 0, kHighsIInf);
     records.push_back(record_int);
 
     record_int = new OptionRecordInt("highs_debug_level",
@@ -885,6 +935,16 @@ class HighsOptions : public HighsOptionsStruct {
     records.push_back(record_string);
 
     record_bool =
+        new OptionRecordBool("write_model_to_file", "Write the model to a file",
+                             advanced, &write_model_to_file, false);
+    records.push_back(record_bool);
+
+    record_bool = new OptionRecordBool(
+        "write_presolved_model_to_file", "Write the presolved model to a file",
+        advanced, &write_presolved_model_to_file, false);
+    records.push_back(record_bool);
+
+    record_bool =
         new OptionRecordBool("write_solution_to_file",
                              "Write the primal and dual solution to a file",
                              advanced, &write_solution_to_file, false);
@@ -975,20 +1035,15 @@ class HighsOptions : public HighsOptionsStruct {
         kHighsFilenameDefault);
     records.push_back(record_string);
 
-    record_bool =
-        new OptionRecordBool("write_model_to_file", "Write the model to a file",
-                             advanced, &write_model_to_file, false);
-    records.push_back(record_bool);
-
     record_string = new OptionRecordString(
         kWritePresolvedModelFileString, "Write presolved model file", advanced,
         &write_presolved_model_file, kHighsFilenameDefault);
     records.push_back(record_string);
 
-    record_bool = new OptionRecordBool(
-        "write_presolved_model_to_file", "Write the presolved model to a file",
-        advanced, &write_presolved_model_to_file, false);
-    records.push_back(record_bool);
+    record_string = new OptionRecordString(
+        kWriteIisModelFileString, "Write IIS model file", advanced,
+        &write_iis_model_file, kHighsFilenameDefault);
+    records.push_back(record_string);
 
     record_bool = new OptionRecordBool(
         "mip_detect_symmetry", "Whether MIP symmetry should be detected",
@@ -998,12 +1053,6 @@ class HighsOptions : public HighsOptionsStruct {
     record_bool = new OptionRecordBool("mip_allow_restart",
                                        "Whether MIP restart is permitted",
                                        advanced, &mip_allow_restart, true);
-    records.push_back(record_bool);
-
-    record_bool =
-        new OptionRecordBool("mip_allow_feasibility_jump",
-                             "Whether MIP feasibility jump is permitted",
-                             advanced, &mip_allow_feasibility_jump, true);
     records.push_back(record_bool);
 
     record_int = new OptionRecordInt("mip_max_nodes",
@@ -1116,7 +1165,7 @@ class HighsOptions : public HighsOptionsStruct {
     records.push_back(record_int);
 
     record_double = new OptionRecordDouble(
-        "mip_feasibility_tolerance", "MIP feasibility tolerance", advanced,
+        "mip_feasibility_tolerance", "MIP integrality tolerance", advanced,
         &mip_feasibility_tolerance, 1e-10, 1e-6, kHighsInf);
     records.push_back(record_double);
 
@@ -1125,30 +1174,36 @@ class HighsOptions : public HighsOptionsStruct {
         &mip_heuristic_effort, 0.0, 0.05, 1.0);
     records.push_back(record_double);
 
-    record_bool = new OptionRecordBool("mip_heuristic_run_rins",
-                                       "Run RINS heuristic: Default = true",
-                                       advanced, &mip_heuristic_run_rins, true);
+    record_bool =
+        new OptionRecordBool("mip_heuristic_run_feasibility_jump",
+                             "Use the feasibility jump heuristic", advanced,
+                             &mip_heuristic_run_feasibility_jump, true);
     records.push_back(record_bool);
 
-    record_bool = new OptionRecordBool("mip_heuristic_run_rens",
-                                       "Run RENS heuristic: Default = true",
-                                       advanced, &mip_heuristic_run_rens, true);
+    record_bool =
+        new OptionRecordBool("mip_heuristic_run_rins", "Use the RINS heuristic",
+                             advanced, &mip_heuristic_run_rins, true);
     records.push_back(record_bool);
 
-    record_bool = new OptionRecordBool(
-        "mip_heuristic_run_root_reduced_cost",
-        "Run rootReducedCost heuristic: Default = true", advanced,
-        &mip_heuristic_run_root_reduced_cost, true);
+    record_bool =
+        new OptionRecordBool("mip_heuristic_run_rens", "Use the RENS heuristic",
+                             advanced, &mip_heuristic_run_rens, true);
     records.push_back(record_bool);
 
-    record_bool = new OptionRecordBool(
-        "mip_heuristic_run_zi_round", "Run ZI Round heuristic: Default = false",
-        advanced, &mip_heuristic_run_zi_round, false);
+    record_bool =
+        new OptionRecordBool("mip_heuristic_run_root_reduced_cost",
+                             "Use the rootReducedCost heuristic", advanced,
+                             &mip_heuristic_run_root_reduced_cost, true);
     records.push_back(record_bool);
 
-    record_bool = new OptionRecordBool(
-        "mip_heuristic_run_shifting", "Run Shifting heuristic: Default = false",
-        advanced, &mip_heuristic_run_shifting, false);
+    record_bool = new OptionRecordBool("mip_heuristic_run_zi_round",
+                                       "Use the ZI Round heuristic", advanced,
+                                       &mip_heuristic_run_zi_round, false);
+    records.push_back(record_bool);
+
+    record_bool = new OptionRecordBool("mip_heuristic_run_shifting",
+                                       "Use the Shifting heuristic", advanced,
+                                       &mip_heuristic_run_shifting, false);
     records.push_back(record_bool);
 
     record_double = new OptionRecordDouble(
@@ -1170,6 +1225,25 @@ class HighsOptions : public HighsOptionsStruct {
         &mip_min_logging_interval, 0, 5, kHighsInf);
     records.push_back(record_double);
 
+    record_string =
+        new OptionRecordString(kMipLpSolverString,
+                               "MIP LP solver option: \"choose\", \"simplex\", "
+                               "\"ipm\", \"ipx\" or \"hipo\"",
+                               advanced, &mip_lp_solver, kHighsChooseString);
+    records.push_back(record_string);
+
+    record_string = new OptionRecordString(
+        kMipIpmSolverString,
+        "MIP IPM solver option: \"choose\", \"ipx\" or \"hipo\"", advanced,
+        &mip_ipm_solver, kHighsChooseString);
+    records.push_back(record_string);
+
+    record_double = new OptionRecordDouble(
+        "ipm_optimality_tolerance", "IPM optimality tolerance", advanced,
+        &ipm_optimality_tolerance, 1e-12, 1e-1 * kDefaultKktTolerance,
+        kHighsInf);
+    records.push_back(record_double);
+
     record_int = new OptionRecordInt(
         "mip_search_concurrency", "Concurrency to use in MIP search", advanced,
         &mip_search_concurrency, 1, 2, kMipSearchConcurrencyLimit);
@@ -1180,11 +1254,23 @@ class HighsOptions : public HighsOptionsStruct {
         &ipm_iteration_limit, 0, kHighsIInf, kHighsIInf);
     records.push_back(record_int);
 
-    record_bool = new OptionRecordBool(
-        "pdlp_native_termination",
-        "Use native termination for PDLP solver: Default = false", advanced,
-        &pdlp_native_termination, false);
-    records.push_back(record_bool);
+    record_string = new OptionRecordString(
+        kHipoSystemString,
+        "HiPO Newton system option: \"augmented\", \"normaleq\" or \"choose\".",
+        advanced, &hipo_system, kHighsChooseString);
+    records.push_back(record_string);
+
+    record_string =
+        new OptionRecordString(kHipoParallelString,
+                               "HiPO parallel option: \"tree\", "
+                               "\"node\" or \"both\".",
+                               advanced, &hipo_parallel_type, kHipoBothString);
+    records.push_back(record_string);
+
+    record_int = new OptionRecordInt(
+        "hipo_block_size", "Block size for dense linear algebra within HiPO",
+        advanced, &hipo_block_size, 0, 128, kHighsIInf);
+    records.push_back(record_int);
 
     record_bool = new OptionRecordBool(
         "pdlp_scaling", "Scaling option for PDLP solver: Default = true",
@@ -1203,9 +1289,8 @@ class HighsOptions : public HighsOptionsStruct {
     records.push_back(record_int);
 
     record_double = new OptionRecordDouble(
-        "pdlp_d_gap_tol",
-        "Duality gap tolerance for PDLP solver: Default = 1e-4", advanced,
-        &pdlp_d_gap_tol, 1e-12, 1e-4, kHighsInf);
+        "pdlp_optimality_tolerance", "PDLP optimality tolerance", advanced,
+        &pdlp_optimality_tolerance, 1e-12, kDefaultKktTolerance, kHighsInf);
     records.push_back(record_double);
 
     record_int = new OptionRecordInt(
@@ -1218,26 +1303,33 @@ class HighsOptions : public HighsOptionsStruct {
                                      &qp_nullspace_limit, 0, 4000, kHighsIInf);
     records.push_back(record_int);
 
+    record_double = new OptionRecordDouble(
+        "qp_regularization_value", "Regularization value added to the Hessian",
+        advanced, &qp_regularization_value, 0, kHessianRegularizationValue,
+        kHighsInf);
+    records.push_back(record_double);
+
     record_int = new OptionRecordInt(
         "iis_strategy",
         "Strategy for IIS calculation: "
         //        "Use LP and p"
-        "Prioritise rows (default) / "
+        "Light test / "
+        "Full and prioritise rows / "
         //        "Use LP and p"
-        "Prioritise columns"
-        //        "Use unbounded dual ray and prioritise low number of rows
-        //        (default) / " "Use ray and prioritise low numbers of columns "
-        " (0/1"
-        //        "/2/3)",
+        "Full and prioritise columns"
+        //        "Use unbounded dual ray and prioritise low number of rows / "
+        //        "Use ray and prioritise low numbers of columns "
+        " (0/1/2"
+        //        "/3/4)",
         ")",
-        advanced, &iis_strategy, kIisStrategyMin, kIisStrategyFromLpRowPriority,
+        advanced, &iis_strategy, kIisStrategyMin, kIisStrategyLight,
         kIisStrategyMax);
     records.push_back(record_int);
 
     record_bool = new OptionRecordBool(
         "blend_multi_objectives",
-        "Blend multiple objectives or apply lexicographically: Default = true",
-        advanced, &blend_multi_objectives, true);
+        "Blend multiple objectives or apply lexicographically", advanced,
+        &blend_multi_objectives, true);
     records.push_back(record_bool);
 
     // Fix the number of user settable options
@@ -1478,7 +1570,8 @@ class HighsOptions : public HighsOptionsStruct {
     record_double = new OptionRecordDouble(
         "start_crossover_tolerance",
         "Tolerance to be satisfied before IPM crossover will start", advanced,
-        &start_crossover_tolerance, 1e-12, 1e-8, kHighsInf);
+        &start_crossover_tolerance, 1e-12, 1e-1 * kDefaultKktTolerance,
+        kHighsInf);
     records.push_back(record_double);
 
     record_bool = new OptionRecordBool(
@@ -1502,6 +1595,14 @@ class HighsOptions : public HighsOptionsStruct {
         new OptionRecordBool("run_centring", "Perform centring steps or not",
                              advanced, &run_centring, false);
     records.push_back(record_bool);
+
+    /*
+    record_bool = new OptionRecordBool("allow_pdlp_cleanup",
+                                       "Allow PDLP to be used to clean up "
+                                       "model with unknown status and no basis",
+                                       advanced, &allow_pdlp_cleanup, true);
+    records.push_back(record_bool);
+    */
 
     record_int =
         new OptionRecordInt("max_centring_steps",
@@ -1527,7 +1628,7 @@ class HighsOptions : public HighsOptionsStruct {
   }
 
   void deleteRecords() {
-    for (size_t i = 0; i < records.size(); i++) delete records[i];
+    for (auto record : records) delete record;
   }
 
  public:
