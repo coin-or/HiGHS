@@ -1457,6 +1457,14 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
 
   mipsolver->mipdata_->cliquetable.setMaxEntries(numNonzeros());
 
+  auto checkInfeasible = [&](const HighsDomain& domain) {
+    if (domain.infeasible()) {
+      mipsolver->analysis_.mipTimerStop(kMipClockProbingPresolve);
+      return Result::kPrimalInfeasible;
+    }
+    return Result::kOk;
+  };
+
   // first tighten all bounds if they have an implied bound that is tighter
   // than their column bound before probing this is not done for continuous
   // columns since it may allow stronger dual presolve and more aggregations
@@ -1477,10 +1485,8 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
   HighsDomain& domain = mipsolver->mipdata_->domain;
 
   domain.propagate();
-  if (domain.infeasible()) {
-    mipsolver->analysis_.mipTimerStop(kMipClockProbingPresolve);
-    return Result::kPrimalInfeasible;
-  }
+  HPRESOLVE_CHECKED_CALL(checkInfeasible(domain));
+
   HighsCliqueTable& cliquetable = mipsolver->mipdata_->cliquetable;
   HighsImplications& implications = mipsolver->mipdata_->implications;
   bool firstCall = !mipsolver->mipdata_->cliquesExtracted;
@@ -1491,10 +1497,7 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
   // packing constraints so that the clique merging step can extend/delete them
   if (firstCall) {
     cliquetable.extractCliques(*mipsolver);
-    if (domain.infeasible()) {
-      mipsolver->analysis_.mipTimerStop(kMipClockProbingPresolve);
-      return Result::kPrimalInfeasible;
-    }
+    HPRESOLVE_CHECKED_CALL(checkInfeasible(domain));
 
     // during presolve we keep the objective upper bound without the current
     // offset so we need to update it
@@ -1504,25 +1507,15 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
       mipsolver->mipdata_->upper_limit = tmpLimit - model->offset_;
       cliquetable.extractObjCliques(*mipsolver);
       mipsolver->mipdata_->upper_limit = tmpLimit;
-
-      if (domain.infeasible()) {
-        mipsolver->analysis_.mipTimerStop(kMipClockProbingPresolve);
-        return Result::kPrimalInfeasible;
-      }
+      HPRESOLVE_CHECKED_CALL(checkInfeasible(domain));
     }
 
     domain.propagate();
-    if (domain.infeasible()) {
-      mipsolver->analysis_.mipTimerStop(kMipClockProbingPresolve);
-      return Result::kPrimalInfeasible;
-    }
+    HPRESOLVE_CHECKED_CALL(checkInfeasible(domain));
   }
 
   cliquetable.cleanupFixed(domain);
-  if (domain.infeasible()) {
-    mipsolver->analysis_.mipTimerStop(kMipClockProbingPresolve);
-    return Result::kPrimalInfeasible;
-  }
+  HPRESOLVE_CHECKED_CALL(checkInfeasible(domain));
 
   // store binary variables in vector with their number of implications on
   // other binaries
@@ -1686,10 +1679,7 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
       // printf("nprobed: %" HIGHSINT_FORMAT ", numCliques: %" HIGHSINT_FORMAT
       // "\n", nprobed,
       //       cliquetable.numCliques());
-      if (domain.infeasible()) {
-        mipsolver->analysis_.mipTimerStop(kMipClockProbingPresolve);
-        return Result::kPrimalInfeasible;
-      }
+      HPRESOLVE_CHECKED_CALL(checkInfeasible(domain));
     }
 
     cliquetable.cleanupFixed(domain);
@@ -4844,12 +4834,12 @@ HPresolve::Result HPresolve::enumerateSolutions(
       rowsize[row] > maxRowSize)
     return Result::kOk;
 
-  // store row
-  storeRow(row);
+  mipsolver->mipdata_->setupDomainPropagation();
+  HighsDomain& domain = mipsolver->mipdata_->domain;
 
   // make sure that all columns are binary
   bool allColsBinary = true;
-  for (const auto& nz : getStoredRow()) {
+  for (const auto& nz : getRowVector(row)) {
     allColsBinary =
         allColsBinary &&
         (model->integrality_[nz.index()] != HighsVarType::kContinuous &&
@@ -4901,10 +4891,33 @@ HPresolve::Result HPresolve::enumerateSolutions(
   };
 
   // lambda for checking whether solution is feasible
-  auto isFeasible = [&](HighsInt row, HighsCDouble& rowLower,
-                        HighsCDouble& rowUpper) {
+  auto isRowFeasible = [&](HighsInt row, HighsCDouble& rowLower,
+                           HighsCDouble& rowUpper) {
     return (rowLower <= model->row_upper_[row] + primal_feastol &&
             rowUpper >= model->row_lower_[row] - primal_feastol);
+  };
+
+  // lambda checking if solution is feasible for all constraints
+  auto isModelFeasible = [&](HighsDomain& domain,
+                             const std::vector<HighsInt>& status) {
+    // check if solution is feasible for the model
+    const size_t changedend = domain.getChangedCols().size();
+    bool feasible = true;
+    for (HighsInt i = 0; i < rowsize[row]; i++) {
+      HighsInt col = Acol[rowpositions[i]];
+      if (status[i] == 2)
+        domain.changeBound(HighsBoundType::kLower, col, 1);
+      else
+        domain.changeBound(HighsBoundType::kUpper, col, 0);
+      // propagate
+      domain.propagate();
+      feasible = !domain.infeasible();
+      if (!feasible) break;
+    }
+    // undo bound changes
+    domain.backtrackToGlobal();
+    domain.clearChangedCols(static_cast<HighsInt>(changedend));
+    return feasible;
   };
 
   // vectors for storing variable status and solutions
@@ -4915,6 +4928,9 @@ HPresolve::Result HPresolve::enumerateSolutions(
   sum.resize(rowsize[row]);
   solutions.resize(rowsize[row]);
 
+  // store row
+  storeRow(row);
+
   // get bounds on row activity
   HighsCDouble rowLower = impliedRowBounds.getSumLowerOrig(row);
   HighsCDouble rowUpper = impliedRowBounds.getSumUpperOrig(row);
@@ -4924,16 +4940,18 @@ HPresolve::Result HPresolve::enumerateSolutions(
   HighsInt numSols = 0;
   while (true) {
     bool backtrack = false;
-    if (isFeasible(row, rowLower, rowUpper)) {
+    if (isRowFeasible(row, rowLower, rowUpper)) {
       if (cntr + 1 >= rowsize[row]) {
-        // feasible solution found
-        numSols++;
+        // feasible solution for row found
         backtrack = true;
-        // store solution
-        for (HighsInt i = 0; i < rowsize[row]; i++) {
-          HighsInt solVal = status[i] == 1 ? HighsInt{0} : HighsInt{1};
-          solutions[i].push_back(solVal);
-          sum[i] += solVal;
+        if (isModelFeasible(domain, status)) {
+          // store solution
+          numSols++;
+          for (HighsInt i = 0; i < rowsize[row]; i++) {
+            HighsInt solVal = status[i] == 1 ? HighsInt{0} : HighsInt{1};
+            solutions[i].push_back(solVal);
+            sum[i] += solVal;
+          }
         }
       }
     } else

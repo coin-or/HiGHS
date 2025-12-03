@@ -300,9 +300,7 @@ bool HighsImplications::runProbing(HighsInt col, HighsInt& numReductions) {
   if (globaldomain.isBinary(col) && !implicationsCached(col, 1) &&
       !implicationsCached(col, 0) &&
       mipsolver.mipdata_->cliquetable.getSubstitution(col) == nullptr) {
-    bool infeasible;
-
-    infeasible = computeImplications(col, 1);
+    bool infeasible = computeImplications(col, 1);
     if (globaldomain.infeasible()) return true;
     if (infeasible) return true;
     if (mipsolver.mipdata_->cliquetable.getSubstitution(col) != nullptr)
