@@ -584,17 +584,24 @@ restart:
     setParallelLock(true);
     for (HighsInt i = 0; i != static_cast<HighsInt>(search_indices.size());
          i++) {
-      if (mipdata_->parallelLockActive() && search_indices.size() > 1) {
+      if (mipdata_->parallelLockActive() && search_indices.size() > 1 &&
+          !options_mip_->mip_search_simulate_concurrency) {
         tg.spawn([&, i]() {
           search_results[i] =
               mipdata_->workers[search_indices[i]].search_ptr_->evaluateNode();
         });
       } else {
+        mipdata_->debugSolution.resetDomain(
+            mipdata_->workers[search_indices[i]].search_ptr_->getLocalDomain());
+        mipdata_->debugSolution.registerDomain(
+            mipdata_->workers[search_indices[i]].search_ptr_->getLocalDomain());
         search_results[i] =
             mipdata_->workers[search_indices[i]].search_ptr_->evaluateNode();
       }
     }
-    if (mipdata_->parallelLockActive()) tg.taskWait();
+    if (mipdata_->parallelLockActive() && search_indices.size() > 1 &&
+        !options_mip_->mip_search_simulate_concurrency)
+      tg.taskWait();
     setParallelLock(false);
     analysis_.mipTimerStop(kMipClockEvaluateNode1);
     for (HighsInt i = 0; i != static_cast<HighsInt>(search_indices.size());
@@ -687,19 +694,24 @@ restart:
       if (!mipdata_->workers[search_indices[i]]
                .search_ptr_->currentNodePruned())
         continue;
-      if (mipdata_->parallelLockActive() && search_indices.size() > 1) {
+      if (mipdata_->parallelLockActive() && search_indices.size() > 1 &&
+          !options_mip_->mip_search_simulate_concurrency) {
         tg.spawn([&, i]() {
           doHandlePrunedNodes(search_indices[i], mipdata_->parallelLockActive(),
                               flush[i], infeasible[i]);
         });
       } else {
+        mipdata_->debugSolution.resetDomain(
+            mipdata_->workers[search_indices[i]].search_ptr_->getLocalDomain());
+        mipdata_->debugSolution.resetDomain(
+            mipdata_->workers[search_indices[i]].search_ptr_->getLocalDomain());
         doHandlePrunedNodes(search_indices[i], mipdata_->parallelLockActive(),
                             flush[i], infeasible[i]);
       }
       // This search object is "finished" and needs a new node
       prune[i] = true;
     }
-    if (mipdata_->parallelLockActive()) {
+    if (mipdata_->parallelLockActive() && search_indices.size() > 1) {
       tg.taskWait();
       for (HighsInt i = 0; i < static_cast<HighsInt>(search_indices.size()) &&
                            i < static_cast<HighsInt>(flush.size());
@@ -769,18 +781,25 @@ restart:
     analysis_.mipTimerStart(kMipClockNodeSearchSeparation);
     setParallelLock(true);
     for (HighsInt i : search_indices) {
-      if (mipdata_->parallelLockActive()) {
+      if (mipdata_->parallelLockActive() &&
+          !options_mip_->mip_search_simulate_concurrency) {
         tg.spawn([&, i]() {
           mipdata_->workers[i].sepa_ptr_->separate(
               mipdata_->workers[i].search_ptr_->getLocalDomain());
         });
       } else {
+        mipdata_->debugSolution.resetDomain(
+            mipdata_->workers[i].search_ptr_->getLocalDomain());
+        mipdata_->debugSolution.resetDomain(
+            mipdata_->workers[i].search_ptr_->getLocalDomain());
         mipdata_->workers[i].sepa_ptr_->separate(
             mipdata_->workers[i].search_ptr_->getLocalDomain());
       }
     }
     analysis_.mipTimerStop(kMipClockNodeSearchSeparation);
-    if (mipdata_->parallelLockActive()) tg.taskWait();
+    if (mipdata_->parallelLockActive() &&
+        !options_mip_->mip_search_simulate_concurrency)
+      tg.taskWait();
     setParallelLock(false);
 
     for (HighsInt i : search_indices) {
@@ -877,14 +896,19 @@ restart:
     setParallelLock(true);
     std::vector<HighsInt> search_indices = getSearchIndicesWithNodes();
     for (HighsInt i : search_indices) {
-      if (mipdata_->parallelLockActive()) {
+      if (mipdata_->parallelLockActive() &&
+          !options_mip_->mip_search_simulate_concurrency) {
         tg.spawn([&, i]() { doRunHeuristics(mipdata_->workers[i]); });
       } else {
+        mipdata_->debugSolution.resetDomain(
+            mipdata_->workers[i].search_ptr_->getLocalDomain());
+        mipdata_->debugSolution.resetDomain(
+            mipdata_->workers[i].search_ptr_->getLocalDomain());
         doRunHeuristics(mipdata_->workers[i]);
       }
     }
     if (mipdata_->parallelLockActive()) {
-      tg.taskWait();
+      if (!options_mip_->mip_search_simulate_concurrency) tg.taskWait();
       for (const HighsInt i : search_indices) {
         if (mipdata_->workers[i].search_ptr_->currentNodePruned()) {
           ++mipdata_->num_leaves;
@@ -906,7 +930,8 @@ restart:
     setParallelLock(true);
     for (HighsInt i = 0; i != static_cast<HighsInt>(mipdata_->workers.size());
          ++i) {
-      if (mipdata_->hasMultipleWorkers()) {
+      if (mipdata_->hasMultipleWorkers() &&
+          !options_mip_->mip_search_simulate_concurrency) {
         tg.spawn([&, i]() {
           if (!mipdata_->workers[i].search_ptr_->hasNode() ||
               mipdata_->workers[i].search_ptr_->currentNodePruned()) {
@@ -921,12 +946,18 @@ restart:
             mipdata_->workers[i].search_ptr_->currentNodePruned()) {
           dive_times[i] = -1;
         } else {
+          mipdata_->debugSolution.resetDomain(
+                mipdata_->workers[i].search_ptr_->getLocalDomain());
+          mipdata_->debugSolution.resetDomain(
+              mipdata_->workers[i].search_ptr_->getLocalDomain());
           dive_results[i] = mipdata_->workers[i].search_ptr_->dive();
           dive_times[i] += analysis_.mipTimerRead(kMipClockNodeSearch);
         }
       }
     }
-    if (mipdata_->hasMultipleWorkers()) tg.taskWait();
+    if (mipdata_->hasMultipleWorkers() &&
+        !options_mip_->mip_search_simulate_concurrency)
+      tg.taskWait();
     analysis_.mipTimerStop(kMipClockTheDive);
     setParallelLock(false);
     bool suboptimal = false;

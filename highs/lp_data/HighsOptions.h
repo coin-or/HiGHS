@@ -484,6 +484,7 @@ struct HighsOptionsStruct {
   bool mip_root_presolve_only;
   HighsInt mip_lifting_for_probing;
   HighsInt mip_search_concurrency;
+  bool mip_search_simulate_concurrency;
 
   // Logging callback identifiers
   HighsLogOptions log_options;
@@ -639,7 +640,8 @@ struct HighsOptionsStruct {
         mip_root_presolve_only(false),
         mip_lifting_for_probing(-1),
         // clang-format off
-        mip_search_concurrency(0) {};
+        mip_search_concurrency(0),
+        mip_search_simulate_concurrency(false) {};
   // clang-format on
 };
 
@@ -927,7 +929,7 @@ class HighsOptions : public HighsOptionsStruct {
 
     record_bool = new OptionRecordBool(
         "timeless_log", "Suppression of time-based data in logging", true,
-        &timeless_log, true);//false);
+        &timeless_log, true);  // false);
     records.push_back(record_bool);
 
     record_string = new OptionRecordString(kLogFileString, "Log file", advanced,
@@ -1248,6 +1250,11 @@ class HighsOptions : public HighsOptionsStruct {
         "mip_search_concurrency", "Concurrency to use in MIP search", advanced,
         &mip_search_concurrency, 1, 2, kMipSearchConcurrencyLimit);
     records.push_back(record_int);
+
+    record_bool = new OptionRecordBool("mip_search_simulate_concurrency",
+                                       "Simulate concurrency on a single thread", advanced,
+                                       &mip_search_simulate_concurrency, false);
+    records.push_back(record_bool);
 
     record_int = new OptionRecordInt(
         "ipm_iteration_limit", "Iteration limit for IPM solver", advanced,

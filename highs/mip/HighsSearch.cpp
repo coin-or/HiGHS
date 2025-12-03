@@ -195,7 +195,7 @@ void HighsSearch::addBoundExceedingConflict() {
                                 getConflictPool(), mipworker.getGlobalDomain());
 
       HighsCutGeneration cutGen(*lp, getCutPool());
-      getDebugSolution().checkCut(inds.data(), vals.data(), inds.size(), rhs);
+      mipsolver.mipdata_->debugSolution.checkCut(inds.data(), vals.data(), inds.size(), rhs);
       cutGen.generateConflict(localdom, mipworker.getGlobalDomain(), inds, vals,
                               rhs);
     }
@@ -225,7 +225,7 @@ void HighsSearch::addInfeasibleConflict() {
                               getConflictPool(), mipworker.getGlobalDomain());
 
     HighsCutGeneration cutGen(*lp, getCutPool());
-    getDebugSolution().checkCut(inds.data(), vals.data(), inds.size(), rhs);
+    mipsolver.mipdata_->debugSolution.checkCut(inds.data(), vals.data(), inds.size(), rhs);
     cutGen.generateConflict(localdom, mipworker.getGlobalDomain(), inds, vals,
                             rhs);
 
@@ -622,7 +622,7 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
             addBoundExceedingConflict();
 
             bool pruned = solobj > getCutoffBound();
-            if (pruned) getDebugSolution().nodePruned(localdom);
+            if (pruned) mipsolver.mipdata_->debugSolution.nodePruned(localdom);
 
             localdom.backtrack();
             lp->flushDomain(localdom);
@@ -660,7 +660,7 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
           }
         }
       } else if (status == HighsLpRelaxation::Status::kInfeasible) {
-        getDebugSolution().nodePruned(localdom);
+        mipsolver.mipdata_->debugSolution.nodePruned(localdom);
         addInfeasibleConflict();
         pseudocost.addCutoffObservation(col, upbranch);
         localdom.backtrack();
@@ -738,7 +738,7 @@ void HighsSearch::currentNodeToQueue(HighsNodeQueue& nodequeue) {
         nodestack.back().estimate, getCurrentDepth());
     if (countTreeWeight) treeweight += tmpTreeWeight;
   } else {
-    getDebugSolution().nodePruned(localdom);
+    mipsolver.mipdata_->debugSolution.nodePruned(localdom);
     if (countTreeWeight) treeweight += std::ldexp(1.0, 1 - getCurrentDepth());
   }
   nodestack.back().opensubtrees = 0;
@@ -779,7 +779,7 @@ void HighsSearch::openNodesToQueue(HighsNodeQueue& nodequeue) {
           nodestack.back().estimate, getCurrentDepth());
       if (countTreeWeight) treeweight += tmpTreeWeight;
     } else {
-      getDebugSolution().nodePruned(localdom);
+      mipsolver.mipdata_->debugSolution.nodePruned(localdom);
       if (countTreeWeight) treeweight += std::ldexp(1.0, 1 - getCurrentDepth());
     }
     nodestack.back().opensubtrees = 0;
@@ -1076,7 +1076,7 @@ HighsSearch::NodeResult HighsSearch::evaluateNode() {
   }
 
   if (result != NodeResult::kOpen) {
-    getDebugSolution().nodePruned(localdom);
+    mipsolver.mipdata_->debugSolution.nodePruned(localdom);
     treeweight += std::ldexp(1.0, 1 - getCurrentDepth());
     currnode.opensubtrees = 0;
   } else if (!inheuristic) {
@@ -1926,10 +1926,6 @@ HighsConflictPool& HighsSearch::getConflictPool() const {
 }
 
 HighsCutPool& HighsSearch::getCutPool() const { return *mipworker.cutpool_; }
-
-const HighsDebugSol& HighsSearch::getDebugSolution() const {
-  return mipsolver.mipdata_->debugSolution;
-}
 
 const HighsNodeQueue& HighsSearch::getNodeQueue() const {
   return mipsolver.mipdata_->nodequeue;

@@ -59,11 +59,11 @@ bool HighsMipWorker::addIncumbent(const std::vector<double>& sol, double solobj,
         transformNewIntegerFeasibleSolution(sol);
     if (transformed_solobj.first && transformed_solobj.second < upper_bound) {
       upper_bound = transformed_solobj.second;
-      double new_upper_limit = mipdata_.computeNewUpperLimit(solobj, 0.0, 0.0);
+      double new_upper_limit = mipdata_.computeNewUpperLimit(upper_bound, 0.0, 0.0);
       if (new_upper_limit < upper_limit) {
         upper_limit = new_upper_limit;
         optimality_limit = mipdata_.computeNewUpperLimit(
-            solobj, mipsolver_.options_mip_->mip_abs_gap,
+            upper_bound, mipsolver_.options_mip_->mip_abs_gap,
             mipsolver_.options_mip_->mip_rel_gap);
       }
     }

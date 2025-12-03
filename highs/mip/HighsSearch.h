@@ -263,8 +263,6 @@ class HighsSearch {
   HighsConflictPool& getConflictPool() const;
   HighsCutPool& getCutPool() const;
 
-  const HighsDebugSol& getDebugSolution() const;
-
   const HighsNodeQueue& getNodeQueue() const;
 
   const bool checkLimits(int64_t nodeOffset = 0) const;
