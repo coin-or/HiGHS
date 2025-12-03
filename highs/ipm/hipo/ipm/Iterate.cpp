@@ -656,7 +656,7 @@ void Iterate::residuals6x6(const NewtonDir& d) {
   ires.r1 = res.r1;
   model.A().alphaProductPlusY(-1.0, dx, ires.r1);
   for (Int i = 0; i < m; ++i) {
-    ires.r1[i] -= Rd[i] * dy[i];
+    ires.r1[i] -= std::abs(Rd[i]) * dy[i];
   }
 
   // ires2 = res2 - dx + dxl
@@ -682,7 +682,7 @@ void Iterate::residuals6x6(const NewtonDir& d) {
   model.A().alphaProductPlusY(-1.0, dy, ires.r4, true);
   for (Int i = 0; i < n; ++i) {
     double reg_p = Rp ? Rp[i] : regul.primal;
-    ires.r4[i] += reg_p * dx[i];
+    ires.r4[i] += std::abs(reg_p) * dx[i];
   }
 
   // ires5 = res5 - zl * dxl - xl * dzl

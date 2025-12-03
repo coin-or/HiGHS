@@ -202,8 +202,17 @@ class Solver {
   // ===================================================================================
   // Functions for iterative refinement on the large 6x6 system
   // ===================================================================================
+  struct OmegaValues {
+    // store the omega values for the 6 blocks of equations. See "Solving sparse
+    // linear systems with sparse backward error", Arioli, Demmel, Duff, for an
+    // explanation of what omega is.
+    double omega_1[6] = {};
+    double omega_2[6] = {};
+    double compute() const;
+    void extract(double& null, double& image, double& rest) const;
+  };
   void refine(NewtonDir& delta);
-  double computeOmega(const NewtonDir& delta) const;
+  OmegaValues computeOmega(const NewtonDir& delta) const;
 
   // ===================================================================================
   // Steps to boundary are computed so that
