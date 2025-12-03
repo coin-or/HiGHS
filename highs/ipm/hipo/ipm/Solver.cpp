@@ -382,7 +382,7 @@ void Solver::recoverDirection(NewtonDir& delta, const Residuals& rhs) const {
   }
 
   // not sure if this has any effect, but IPX uses it
-  std::vector<double> Atdy(n_);
+  /*std::vector<double> Atdy(n_);
   model_.A().alphaProductPlusY(1.0, delta.y, Atdy, true);
   for (Int i = 0; i < n_; ++i) {
     if (model_.hasLb(i) || model_.hasUb(i)) {
@@ -397,7 +397,7 @@ void Solver::recoverDirection(NewtonDir& delta, const Residuals& rhs) const {
         delta.zu[i] = -res4[i] + delta.zl[i] + Atdy[i];
       }
     }
-  }
+  }*/
 }
 
 double Solver::stepToBoundary(const std::vector<double>& x,
@@ -1092,9 +1092,10 @@ void Solver::printHeader() const {
     if (!options_.timeless_log) log_stream << "    time";
 
     if (logH_.debug(1)) {
-      log_stream << "     alpha p/d   sigma af/co   cor  solv"
-                 << "    static reg p/d     minT     maxT"
-                 << "  (xj * zj / mu)_range_&_num   max_res";
+      log_stream
+          << "     alpha p/d   sigma af/co   cor  solv    static reg p/d     "
+             "minT     maxT  (xj * zj / mu)_range_&_num   max_res     null    "
+             "image";
     }
 
     log_stream << "\n";
@@ -1133,6 +1134,8 @@ void Solver::printOutput() const {
     log_stream << " " << integer(data.num_small_prod, 4);
     log_stream << " " << integer(data.num_large_prod, 4);
     log_stream << " " << sci(data.omega, 9, 1);
+    log_stream << " " << sci(data.omega_null, 8, 1);
+    log_stream << " " << sci(data.omega_image, 8, 1);
   }
 
   log_stream << "\n";
