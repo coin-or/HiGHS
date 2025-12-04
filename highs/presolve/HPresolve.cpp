@@ -5011,11 +5011,11 @@ HPresolve::Result HPresolve::enumerateSolutions(
     if (colDeleted[s.first] || colDeleted[s.second]) continue;
     numVarsSubstituted++;
     postsolve_stack.doubletonEquation(
-        -1, s.first, s.second, 1.0, -1.0, 1.0, model->col_lower_[s.first],
+        -1, s.first, s.second, 1.0, 1.0, 1.0, model->col_lower_[s.first],
         model->col_upper_[s.first], 0.0, false, false,
         HighsPostsolveStack::RowType::kEq, HighsEmptySlice());
     markColDeleted(s.first);
-    substitute(s.first, s.second, 1.0, 1.0);
+    substitute(s.first, s.second, 1.0, -1.0);
     HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
   }
 
