@@ -2460,9 +2460,9 @@ bool HighsDomain::propagate() {
               numproprows, std::make_pair(HighsInt{0}, HighsInt{0}));
 
           auto propagateIndex = [&](HighsInt k) {
-            // first check if cut is marked as deleted
-            if (cutpoolprop.propagatecutflags_[k] & 2) return;
             HighsInt i = propagateinds[k];
+            // first check if cut is marked as deleted
+            if (cutpoolprop.propagatecutflags_[i] & 2) return;
 
             HighsInt Rlen;
             const HighsInt* Rindex;
