@@ -5339,8 +5339,11 @@ HPresolve::Result HPresolve::presolve(HighsPostsolveStack& postsolve_stack) {
       }
 
       // enumerate solutions
-      if (mipsolver != nullptr)
+      if (mipsolver != nullptr) {
+        storeCurrentProblemSize();
         HPRESOLVE_CHECKED_CALL(enumerateSolutions(postsolve_stack));
+        if (problemSizeReduction() > 0.05) continue;
+      }
 
       break;
     }
