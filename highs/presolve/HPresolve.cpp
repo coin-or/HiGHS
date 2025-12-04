@@ -4825,12 +4825,67 @@ HPresolve::Result HPresolve::enumerateSolutions(
   // upper bound on length of row
   const HighsInt maxRowSize = 12;
 
+  // counters for numbers of fixed variables and substitutions
+  HighsInt numVarsFixed = 0;
+  HighsInt numSubstitutions = 0;
+
   // vectors for storing variable status and solutions
-  std::vector<HighsInt> status;
   std::vector<HighsInt> sum;
   std::vector<std::vector<HighsInt>> solutions;
   std::vector<std::pair<HighsInt, HighsInt>> substitutions;
-  std::vector<HighsInt> my_rowpositions;
+  std::vector<HighsInt> vars;
+  std::vector<HighsInt> branches;
+
+  // lambda for branching (just performs initial lower branch)
+  auto doBranch = [&](HighsDomain& domain, const std::vector<HighsInt>& vars,
+                      std::vector<HighsInt>& branches, HighsInt& numBranches) {
+    // find variable for branching
+    HighsInt branchvar = -1;
+    for (HighsInt j : vars) {
+      if (!domain.isFixed(j)) {
+        branchvar = j;
+        break;
+      }
+    }
+    if (branchvar < 0) return;
+
+    // branch downwards
+    branches[++numBranches] =
+        static_cast<HighsInt>(domain.getDomainChangeStack().size());
+    domain.changeBound(HighsBoundType::kUpper, branchvar, 0);
+  };
+
+  // lambda for backtracking
+  auto doBacktrack = [&](HighsDomain& domain, std::vector<HighsInt>& branches,
+                         HighsInt& numBranches) {
+    while (numBranches >= 0) {
+      // get column index
+      const auto& domchg = domain.getDomainChangeStack()[branches[numBranches]];
+      HighsInt col = domchg.column;
+      HighsBoundType bndtype = domchg.boundtype;
+      // backtrack
+      domain.backtrack();
+      if (bndtype == HighsBoundType::kUpper) {
+        // branch upwards
+        domain.changeBound(HighsBoundType::kLower, col, 1);
+        break;
+      } else {
+        // remove branch
+        branches[numBranches] = 0;
+        numBranches--;
+      }
+    }
+    // check if enumeration is complete
+    return (numBranches >= 0);
+  };
+
+  // lambda for checking if a solution was found
+  auto solutionFound = [&](const HighsDomain& domain,
+                           std::vector<HighsInt>& vars) {
+    for (HighsInt j : vars)
+      if (!domain.isFixed(j)) return false;
+    return true;
+  };
 
   if (numDeletedCols + numDeletedRows != 0) shrinkProblem(postsolve_stack);
 
@@ -4843,105 +4898,48 @@ HPresolve::Result HPresolve::enumerateSolutions(
   HighsDomain& domain = mipsolver->mipdata_->domain;
 
   for (HighsInt row = 0; row < model->num_row_; row++) {
-    // skip rows with too few or too many non-zeros
-    if (rowsize[row] <= 1 || rowsize[row] > maxRowSize) continue;
-
-    // extract non-zero positions
-    getRowPositions(row, my_rowpositions);
-
-    // remove fixed variables
-    my_rowpositions.erase(
-        std::remove_if(my_rowpositions.begin(), my_rowpositions.end(),
-                       [&](HighsInt pos) { return domain.isFixed(Acol[pos]); }),
-        my_rowpositions.end());
-
-    // make sure that all columns are binary
+    // check row
+    vars.clear();
     bool allColsBinary = true;
-    for (HighsInt pos : my_rowpositions) {
-      allColsBinary = allColsBinary && domain.isBinary(Acol[pos]);
+    for (const auto& nz : getRowVector(row)) {
+      // skip fixed variables
+      if (domain.isFixed(nz.index())) continue;
+      // make sure that all variables are binary
+      allColsBinary = allColsBinary && domain.isBinary(nz.index());
       if (!allColsBinary) break;
+      // store index of binary variable
+      vars.push_back(nz.index());
     }
     if (!allColsBinary) continue;
 
-    // store size of row
-    HighsInt rowSize = static_cast<HighsInt>(my_rowpositions.size());
-    if (rowSize <= 0) continue;
+    // store number of (binary) variables
+    HighsInt numVars = static_cast<HighsInt>(vars.size());
 
-    // lambda for branching (just performs initial lower branch)
-    auto doBranch = [&](HighsInt& cntr, std::vector<HighsInt>& status) {
-      // get column index and coefficient
-      HighsInt col = Acol[my_rowpositions[cntr + 1]];
-      // lower branch
-      status[++cntr]++;
-    };
-
-    // lambda for backtracking
-    auto doBacktrack = [&](HighsInt& cntr, std::vector<HighsInt>& status) {
-      while (cntr >= 0) {
-        // get column index and coefficient
-        HighsInt col = Acol[my_rowpositions[cntr]];
-        if (status[cntr] == 1) {
-          // try upper branch
-          status[cntr]++;
-          break;
-        } else {
-          // backtrack
-          status[cntr] = 0;
-          cntr--;
-        }
-      }
-      // check if enumeration is complete
-      return (cntr >= 0);
-    };
-
-    // lambda checking if solution is feasible
-    auto isFeasible = [&](HighsInt cntr, HighsDomain& domain,
-                          const std::vector<HighsInt>& status) {
-      // check if solution is feasible for the model
-      if (cntr < 0) return true;
-      const size_t changedend = domain.getChangedCols().size();
-      bool feasible = true;
-      for (HighsInt i = 0; i <= cntr; i++) {
-        HighsInt col = Acol[my_rowpositions[i]];
-        HighsDomain::Reason reason =
-            (i == 0 ? HighsDomain::Reason::branching()
-                    : HighsDomain::Reason::unspecified());
-        if (status[i] == 2)
-          domain.changeBound(HighsBoundType::kLower, col, 1, reason);
-        else
-          domain.changeBound(HighsBoundType::kUpper, col, 0, reason);
-        // propagate
-        domain.propagate();
-        feasible = !domain.infeasible();
-        if (!feasible) break;
-      }
-      // undo bound changes
-      domain.backtrack();
-      domain.clearChangedCols(static_cast<HighsInt>(changedend));
-      return feasible;
-    };
+    // skip rows with too few or too many non-zeros
+    if (numVars <= 1 || numVars > maxRowSize) continue;
 
     // vectors for storing variable status and solutions
-    status.clear();
+    branches.clear();
     sum.clear();
     solutions.clear();
-    status.resize(rowSize);
-    sum.resize(rowSize);
-    solutions.resize(rowSize);
+    branches.resize(numVars);
+    sum.resize(numVars);
+    solutions.resize(numVars);
 
     // main loop
-    HighsInt cntr = -1;
+    HighsInt numBranches = -1;
     HighsInt numSols = 0;
     while (true) {
       bool backtrack = false;
-      if (isFeasible(cntr, domain, status)) {
-        if (cntr + 1 >= rowSize) {
+      if (!domain.infeasible()) {
+        if (solutionFound(domain, vars)) {
           // feasible solution for row found
           backtrack = true;
           // store solution
           numSols++;
-          for (HighsInt i = 0; i < rowSize; i++) {
-            HighsInt solVal = status[i] == 1 ? HighsInt{0} : HighsInt{1};
+          for (HighsInt i = 0; i < numVars; i++) {
+            HighsInt solVal =
+                domain.col_lower_[vars[i]] == 0.0 ? HighsInt{0} : HighsInt{1};
             solutions[i].push_back(solVal);
             sum[i] += solVal;
           }
@@ -4949,29 +4947,32 @@ HPresolve::Result HPresolve::enumerateSolutions(
       } else
         backtrack = true;
 
+      // branch or backtrack
       if (!backtrack)
-        doBranch(cntr, status);
-      else if (!doBacktrack(cntr, status))
+        doBranch(domain, vars, branches, numBranches);
+      else if (!doBacktrack(domain, branches, numBranches))
         break;
     }
 
-    for (HighsInt i = 0; i < rowSize; i++) {
+    for (HighsInt i = 0; i < numVars; i++) {
       // get column index
-      HighsInt col = Acol[my_rowpositions[i]];
+      HighsInt col = vars[i];
       // skip already fixed columns
       if (domain.isFixed(col)) continue;
       if (sum[i] == 0) {
         // fix variable to its lower bound
+        numVarsFixed++;
         domain.changeBound(HighsBoundType::kUpper, col, domain.col_lower_[col],
                            HighsDomain::Reason::unspecified());
       } else if (sum[i] == numSols) {
         // fix variable to its upper bound
+        numVarsFixed++;
         domain.changeBound(HighsBoundType::kLower, col, domain.col_upper_[col],
                            HighsDomain::Reason::unspecified());
       } else {
-        for (HighsInt ii = i + 1; ii < rowSize; ii++) {
+        for (HighsInt ii = i + 1; ii < numVars; ii++) {
           // get column index
-          HighsInt col2 = Acol[my_rowpositions[ii]];
+          HighsInt col2 = vars[ii];
           // skip already fixed columns
           if (domain.isFixed(col2)) continue;
           // check if two binary variables take complementary values in all
@@ -4985,6 +4986,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
           }
           if (complementary) {
             // found two complementary binary variables; perform substitution!
+            numSubstitutions++;
             substitutions.push_back(std::make_pair(col, col2));
           }
         }
@@ -4992,7 +4994,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
     }
   }
   // now remove fixed columns and tighten domains
-  /*for (HighsInt i = 0; i != model->num_col_; ++i) {
+  for (HighsInt i = 0; i != model->num_col_; ++i) {
     if (colDeleted[i]) continue;
     if (model->col_lower_[i] < domain.col_lower_[i])
       changeColLower(i, domain.col_lower_[i]);
@@ -5004,7 +5006,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
       removeFixedCol(i);
     }
     HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
-  }*/
+  }
   return Result::kOk;
 }
 
