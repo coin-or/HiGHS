@@ -4828,12 +4828,14 @@ HPresolve::Result HPresolve::enumerateSolutions(
   // upper bound on length of row
   const HighsInt maxRowSize = 12;
 
-  // vectors for storing variable status and solutions
+  // vectors for storing branching decisions, solutions, fixed variables and
+  // substitutions
   std::vector<HighsInt> sum;
   std::vector<std::vector<HighsInt>> solutions;
-  std::vector<std::pair<HighsInt, HighsInt>> substitutions;
   std::vector<HighsInt> vars;
   std::vector<HighsInt> branches;
+  std::vector<std::pair<HighsInt, HighsInt>> fixings;
+  std::vector<std::pair<HighsInt, HighsInt>> substitutions;
 
   // lambda for branching (just performs initial lower branch)
   auto doBranch = [&](HighsDomain& domain, const std::vector<HighsInt>& vars,
@@ -4961,10 +4963,12 @@ HPresolve::Result HPresolve::enumerateSolutions(
         // fix variable to its lower bound
         domain.changeBound(HighsBoundType::kUpper, col, domain.col_lower_[col],
                            HighsDomain::Reason::unspecified());
+        fixings.push_back(std::make_pair(col, HighsInt{1}));
       } else if (sum[i] == numSols) {
         // fix variable to its upper bound
         domain.changeBound(HighsBoundType::kLower, col, domain.col_upper_[col],
                            HighsDomain::Reason::unspecified());
+        fixings.push_back(std::make_pair(col, HighsInt{-1}));
       } else {
         for (HighsInt ii = i + 1; ii < numVars; ii++) {
           // get column index
@@ -4990,18 +4994,13 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
   // now remove fixed columns and tighten domains
   HighsInt numVarsFixed = 0;
-  for (HighsInt i = 0; i != model->num_col_; ++i) {
-    if (colDeleted[i]) continue;
-    if (model->col_lower_[i] < domain.col_lower_[i])
-      changeColLower(i, domain.col_lower_[i]);
-    if (model->col_upper_[i] > domain.col_upper_[i])
-      changeColUpper(i, domain.col_upper_[i]);
-    if (domain.isFixed(i)) {
-      numVarsFixed++;
-      postsolve_stack.removedFixedCol(i, model->col_lower_[i], 0.0,
-                                      HighsEmptySlice());
-      removeFixedCol(i);
-    }
+  for (const auto& f : fixings) {
+    if (colDeleted[f.first]) continue;
+    numVarsFixed++;
+    if (f.second >= 0)
+      HPRESOLVE_CHECKED_CALL(fixColToLower(postsolve_stack, f.first));
+    else
+      HPRESOLVE_CHECKED_CALL(fixColToUpper(postsolve_stack, f.first));
     HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
   }
 
