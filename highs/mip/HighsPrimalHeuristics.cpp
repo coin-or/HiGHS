@@ -1503,7 +1503,7 @@ void HighsPrimalHeuristics::feasibilityPump() {
 
     auto localdom = mipsolver.mipdata_->domain;
     for (HighsInt i : mipsolver.mipdata_->integer_cols) {
-      assert(mipsolver.variableType(i) == HighsVarType::kInteger);
+      assert(mipsolver.isColInteger(i));
       double intval = std::floor(roundedsol[i] + randgen.real(0.4, 0.6));
       intval = std::max(intval, localdom.col_lower_[i]);
       intval = std::min(intval, localdom.col_upper_[i]);
@@ -1553,7 +1553,7 @@ void HighsPrimalHeuristics::feasibilityPump() {
       break;
 
     for (HighsInt i : mipsolver.mipdata_->integer_cols) {
-      assert(mipsolver.variableType(i) == HighsVarType::kInteger);
+      assert(mipsolver.isColInteger(i));
 
       if (mipsolver.mipdata_->uplocks[i] == 0 ||
           mipsolver.mipdata_->downlocks[i] == 0)
