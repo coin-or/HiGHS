@@ -379,7 +379,6 @@ struct HighsOptionsStruct {
   std::string hipo_parallel_type;
   std::string hipo_ordering;
   HighsInt hipo_block_size;
-  bool hipo_metis_no2hop;
 
   // Options for PDLP solver
   bool pdlp_scaling;
@@ -552,7 +551,6 @@ struct HighsOptionsStruct {
         hipo_parallel_type(""),
         hipo_ordering(""),
         hipo_block_size(0),
-        hipo_metis_no2hop(false),
         pdlp_scaling(false),
         pdlp_iteration_limit(0),
         pdlp_e_restart_method(0),
@@ -1281,11 +1279,6 @@ class HighsOptions : public HighsOptionsStruct {
         "hipo_block_size", "Block size for dense linear algebra within HiPO",
         advanced, &hipo_block_size, 0, 128, kHighsIInf);
     records.push_back(record_int);
-
-    record_bool =
-        new OptionRecordBool("hipo_metis_no2hop", "Use option no2hop in Metis",
-                             advanced, &hipo_metis_no2hop, false);
-    records.push_back(record_bool);
 
     record_bool = new OptionRecordBool(
         "pdlp_scaling", "Scaling option for PDLP solver: Default = true",

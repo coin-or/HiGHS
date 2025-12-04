@@ -6,13 +6,13 @@
 #include <random>
 #include <stack>
 
-#include "amd/amd.h"
 #include "DataCollector.h"
 #include "FactorHiGHSSettings.h"
-#include "metis/metis.h"
 #include "ReturnValues.h"
+#include "amd/amd.h"
 #include "ipm/hipo/auxiliary/Auxiliary.h"
 #include "ipm/hipo/auxiliary/Log.h"
+#include "metis/metis.h"
 #include "rcm/rcm.h"
 
 namespace hipo {
@@ -61,7 +61,7 @@ Analyse::Analyse(const std::vector<Int>& rows, const std::vector<Int>& ptr,
   ready_ = true;
 }
 
-Int Analyse::getPermutation(bool metis_no2hop) {
+Int Analyse::getPermutation() {
   // Compute fill-reducing reodering using metis, amd or rcm.
 
   perm_.resize(n_);
@@ -130,8 +130,8 @@ Int Analyse::getPermutation(bool metis_no2hop) {
     if (log_->debug(2))
       options[METIS_OPTION_DBGLVL] = METIS_DBG_INFO | METIS_DBG_COARSEN;
 
-    // set no2hop=1 if the user requested it
-    if (metis_no2hop) options[METIS_OPTION_NO2HOP] = 1;
+    // no2hop improves the quality of ordering in general
+    options[METIS_OPTION_NO2HOP] = 1;
 
     if (log_) log_->printDevInfo("Running Metis\n");
 
@@ -1302,7 +1302,7 @@ Int Analyse::run(Symbolic& S) {
 #if HIPO_TIMING_LEVEL >= 2
   Clock clock_items;
 #endif
-  if (getPermutation(S.metisNo2hop())) return kRetOrderingError;
+  if (getPermutation()) return kRetOrderingError;
 #if HIPO_TIMING_LEVEL >= 2
   data_.sumTime(kTimeAnalyseOrdering, clock_items.stop());
 #endif

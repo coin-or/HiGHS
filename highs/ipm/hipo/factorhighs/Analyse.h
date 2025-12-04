@@ -88,7 +88,7 @@ class Analyse {
   const std::string& ordering_;
 
   // Functions to perform analyse phase
-  Int getPermutation(bool metis_no2hop);
+  Int getPermutation();
   void permute(const std::vector<Int>& iperm);
   void eTree();
   void postorder();

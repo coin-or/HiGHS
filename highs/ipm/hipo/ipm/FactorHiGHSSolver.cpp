@@ -71,14 +71,6 @@ Int FactorHiGHSSolver::setup() {
 
   S_.print(log_, log_.debug(1));
 
-  // Warn about large fill-in
-  if (S_.fillin() > kLargeFillin && options_.ordering == "metis" &&
-      !options_.metis_no2hop) {
-    log_.printw(
-        "Large fill-in in factorisation. Consider setting the "
-        "hipo_metis_no2hop option to true\n");
-  }
-
   // Warn about large memory consumption
   if (S_.storage() > kLargeStorageGB * 1024 * 1024 * 1024) {
     log_.printw("Large amount of memory required\n");
@@ -539,9 +531,6 @@ Int FactorHiGHSSolver::chooseNla() {
   bool overflow_NE = false;
   bool overflow_AS = false;
 
-  symb_NE.setMetisNo2hop(options_.metis_no2hop);
-  symb_AS.setMetisNo2hop(options_.metis_no2hop);
-
   Clock clock;
 
   // Perform analyse phase of augmented system
@@ -632,8 +621,6 @@ Int FactorHiGHSSolver::chooseNla() {
 
 Int FactorHiGHSSolver::setNla() {
   std::stringstream log_stream;
-
-  S_.setMetisNo2hop(options_.metis_no2hop);
 
   switch (options_.nla) {
     case kOptionNlaAugmented: {
