@@ -379,6 +379,101 @@ void FactorHiGHSSolver::getReg(std::vector<double>& reg) {
   return FH_.getRegularisation(reg);
 }
 
+Int FactorHiGHSSolver::chooseOrdering(const std::vector<Int>& rows,
+                                      const std::vector<Int>& ptr,
+                                      const std::vector<Int>& signs,
+                                      Symbolic& S) {
+  // Run analyse phase.
+  // - If ordering is "amd", "metis", "rcm" run only the ordering requested.
+  // - If ordering is "choose", run "amd", "metis", and choose the best.
+
+  Clock clock;
+
+  // select which fill-reducing orderings should be tried
+  std::vector<std::string> orderings_to_try;
+  if (options_.ordering != kHighsChooseString)
+    orderings_to_try.push_back(options_.ordering);
+  else {
+    orderings_to_try.push_back("amd");
+    orderings_to_try.push_back("metis");
+    // rcm is much worse in general, so no point in trying for now
+  }
+
+  std::vector<Symbolic> symbolics(orderings_to_try.size(), S);
+  std::vector<bool> status(orderings_to_try.size(), 0);
+  Int num_success = 0;
+
+  for (Int i = 0; i < orderings_to_try.size(); ++i) {
+    clock.start();
+    status[i] =
+        FH_.analyse(symbolics[i], rows, ptr, signs, orderings_to_try[i]);
+    if (info_) info_->analyse_AS_time += clock.stop();
+
+    if (status[i] && log_.debug(2)) {
+      log_.print("Failed symbolic:");
+      symbolics[i].print(log_, true);
+    }
+
+    if (!status[i]) ++num_success;
+  }
+
+  if (orderings_to_try.size() < 2) {
+    S = std::move(symbolics[0]);
+
+  } else if (orderings_to_try.size() == 2) {
+    // if there's only one success, obvious choice
+    if (status[0] && !status[1])
+      S = std::move(symbolics[1]);
+    else if (!status[0] && status[1])
+      S = std::move(symbolics[0]);
+
+    else if (num_success > 1) {
+      // need to choose the better ordering
+
+      const double flops_0 = symbolics[0].flops();
+      const double flops_1 = symbolics[1].flops();
+      const double sn_avg_0 = symbolics[0].size() / symbolics[0].sn();
+      const double sn_avg_1 = symbolics[1].size() / symbolics[1].sn();
+      const double bytes_0 = symbolics[0].storage();
+      const double bytes_1 = symbolics[1].storage();
+
+      Int chosen = -1;
+
+      // selection rule:
+      // - if flops have a clear winner (+/- 20%), then choose it.
+      // - otherwise, choose the one with larger supernodes.
+
+      if (flops_0 > kFlopsOrderingThresh * flops_1)
+        chosen = 1;
+      else if (flops_1 > kFlopsOrderingThresh * flops_0)
+        chosen = 0;
+      else if (sn_avg_0 > sn_avg_1)
+        chosen = 0;
+      else
+        chosen = 1;
+
+      // fix selection if one or more require too much memory
+      const double bytes_thresh = kLargeStorageGB * 1024 * 1024 * 1024;
+      if (bytes_0 > bytes_thresh || bytes_1 > bytes_thresh) {
+        if (bytes_0 > bytes_1)
+          chosen = 1;
+        else
+          chosen = 0;
+      }
+
+      assert(chosen == 0 || chosen == 1);
+
+      S = std::move(symbolics[chosen]);
+    }
+
+  } else {
+    // only two orderings tried for now
+    assert(0 == 1);
+  }
+
+  return num_success > 0 ? kStatusOk : kStatusErrorAnalyse;
+}
+
 Int FactorHiGHSSolver::analyseAS(Symbolic& S) {
   // Perform analyse phase of augmented system and return symbolic factorisation
   // in object S and the status.
@@ -399,19 +494,7 @@ Int FactorHiGHSSolver::analyseAS(Symbolic& S) {
 
   log_.printDevInfo("Performing AS analyse phase\n");
 
-  std::string ordering = options_.ordering;
-  if (ordering == kHighsChooseString) ordering = kHipoMetisString;
-
-  clock.start();
-  Int status = FH_.analyse(S, rowsLower, ptrLower, pivot_signs, ordering);
-  if (info_) info_->analyse_AS_time = clock.stop();
-
-  if (status && log_.debug(2)) {
-    log_.print("Failed augmented system:");
-    S.print(log_, true);
-  }
-
-  return status ? kStatusErrorAnalyse : kStatusOk;
+  return chooseOrdering(rowsLower, ptrLower, pivot_signs, S);
 }
 
 void FactorHiGHSSolver::freeNEmemory() {
@@ -441,19 +524,7 @@ Int FactorHiGHSSolver::analyseNE(Symbolic& S, Int64 nz_limit) {
 
   log_.printDevInfo("Performing NE analyse phase\n");
 
-  std::string ordering = options_.ordering;
-  if (ordering == kHighsChooseString) ordering = kHipoMetisString;
-
-  clock.start();
-  Int status = FH_.analyse(S, rowsNE_, ptrNE_, pivot_signs, ordering);
-  if (info_) info_->analyse_NE_time = clock.stop();
-
-  if (status && log_.debug(2)) {
-    log_.print("Failed normal equations:");
-    S.print(log_, true);
-  }
-
-  return status ? kStatusErrorAnalyse : kStatusOk;
+  return chooseOrdering(rowsNE_, ptrNE_, pivot_signs, S);
 }
 
 Int FactorHiGHSSolver::chooseNla() {
@@ -518,11 +589,6 @@ Int FactorHiGHSSolver::chooseNla() {
       status = kStatusErrorAnalyse;
 
     log_.printe("Both NE and AS failed analyse phase\n");
-    if ((symb_AS.fillin() > kLargeFillin || symb_NE.fillin() > kLargeFillin) &&
-        options_.ordering == "metis" && !options_.metis_no2hop)
-      log_.print(
-          "Large fill-in in factorisation. Consider setting the "
-          "hipo_metis_no2hop option to true\n");
   } else {
     // Total number of operations, given by dense flops and sparse indexing
     // operations, weighted with an empirical factor
