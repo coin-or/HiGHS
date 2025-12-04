@@ -4822,6 +4822,9 @@ HPresolve::Result HPresolve::singletonColStuffing(
 
 HPresolve::Result HPresolve::enumerateSolutions(
     HighsPostsolveStack& postsolve_stack) {
+  // enumerate all solutions for pure binary constraints with a small number of
+  // variables
+
   // upper bound on length of row
   const HighsInt maxRowSize = 12;
 
