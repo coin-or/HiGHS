@@ -4871,8 +4871,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
         break;
       } else {
         // remove branch
-        branches[numBranches] = 0;
-        numBranches--;
+        branches[numBranches--] = 0;
       }
     }
     // check if enumeration is complete
