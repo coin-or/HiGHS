@@ -4825,10 +4825,6 @@ HPresolve::Result HPresolve::enumerateSolutions(
   // upper bound on length of row
   const HighsInt maxRowSize = 12;
 
-  // counters for numbers of fixed variables and substitutions
-  HighsInt numVarsFixed = 0;
-  HighsInt numSubstitutions = 0;
-
   // vectors for storing variable status and solutions
   std::vector<HighsInt> sum;
   std::vector<std::vector<HighsInt>> solutions;
@@ -4960,12 +4956,10 @@ HPresolve::Result HPresolve::enumerateSolutions(
       if (domain.isFixed(col)) continue;
       if (sum[i] == 0) {
         // fix variable to its lower bound
-        numVarsFixed++;
         domain.changeBound(HighsBoundType::kUpper, col, domain.col_lower_[col],
                            HighsDomain::Reason::unspecified());
       } else if (sum[i] == numSols) {
         // fix variable to its upper bound
-        numVarsFixed++;
         domain.changeBound(HighsBoundType::kLower, col, domain.col_upper_[col],
                            HighsDomain::Reason::unspecified());
       } else {
@@ -4983,16 +4977,16 @@ HPresolve::Result HPresolve::enumerateSolutions(
                 solutions[i][sol] == HighsInt{1} - solutions[ii][sol];
             if (!complementary) break;
           }
-          if (complementary) {
-            // found two complementary binary variables; perform substitution!
-            numSubstitutions++;
-            substitutions.push_back(std::make_pair(col, col2));
-          }
+          // if two complementary binary variables were found, store
+          // substitution!
+          if (complementary) substitutions.push_back(std::make_pair(col, col2));
         }
       }
     }
   }
+
   // now remove fixed columns and tighten domains
+  HighsInt numVarsFixed = 0;
   for (HighsInt i = 0; i != model->num_col_; ++i) {
     if (colDeleted[i]) continue;
     if (model->col_lower_[i] < domain.col_lower_[i])
@@ -5000,12 +4994,34 @@ HPresolve::Result HPresolve::enumerateSolutions(
     if (model->col_upper_[i] > domain.col_upper_[i])
       changeColUpper(i, domain.col_upper_[i]);
     if (domain.isFixed(i)) {
+      numVarsFixed++;
       postsolve_stack.removedFixedCol(i, model->col_lower_[i], 0.0,
                                       HighsEmptySlice());
       removeFixedCol(i);
     }
     HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
   }
+
+  // perform substitutions
+  HighsInt numVarsSubstituted = 0;
+  for (const auto& s : substitutions) {
+    if (colDeleted[s.first] || colDeleted[s.second]) continue;
+    numVarsSubstituted++;
+    postsolve_stack.doubletonEquation(
+        -1, s.first, s.second, 1.0, -1.0, 1.0, model->col_lower_[s.first],
+        model->col_upper_[s.first], 0.0, false, false,
+        HighsPostsolveStack::RowType::kEq, HighsEmptySlice());
+    markColDeleted(s.first);
+    substitute(s.first, s.second, 1.0, 1.0);
+    HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
+  }
+
+  if (numVarsFixed > 0 || numVarsSubstituted > 0)
+    highsLogDev(
+        options->log_options, HighsLogType::kInfo,
+        "Enumeration presolve fixed %d columns and performed %d substitutions",
+        static_cast<int>(numVarsFixed), static_cast<int>(numVarsSubstituted));
+
   return Result::kOk;
 }
 
