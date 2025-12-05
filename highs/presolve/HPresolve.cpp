@@ -4905,6 +4905,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
     if (domain.isRedundantRow(row)) continue;
     // check row
     vars.clear();
+    vars.reserve(rowsize[row]);
     bool allColsBinary = true;
     for (const auto& nz : getRowVector(row)) {
       // skip fixed variables
