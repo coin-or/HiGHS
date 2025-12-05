@@ -4834,7 +4834,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
   std::vector<std::vector<HighsInt>> solutions;
   std::vector<HighsInt> vars;
   std::vector<HighsInt> branches;
-  std::vector<std::pair<HighsInt, HighsInt>> fixings;
+  std::vector<std::pair<HighsInt, HighsBoundType>> fixings;
   std::vector<std::pair<HighsInt, HighsInt>> substitutions;
 
   // lambda for branching (just performs initial lower branch)
@@ -4963,12 +4963,12 @@ HPresolve::Result HPresolve::enumerateSolutions(
         // fix variable to its lower bound
         domain.changeBound(HighsBoundType::kUpper, col, domain.col_lower_[col],
                            HighsDomain::Reason::unspecified());
-        fixings.push_back(std::make_pair(col, HighsInt{1}));
+        fixings.push_back(std::make_pair(col, HighsBoundType::kUpper));
       } else if (sum[i] == numSols) {
         // fix variable to its upper bound
         domain.changeBound(HighsBoundType::kLower, col, domain.col_upper_[col],
                            HighsDomain::Reason::unspecified());
-        fixings.push_back(std::make_pair(col, HighsInt{-1}));
+        fixings.push_back(std::make_pair(col, HighsBoundType::kLower));
       } else {
         for (HighsInt ii = i + 1; ii < numVars; ii++) {
           // get column index
@@ -4997,7 +4997,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
   for (const auto& f : fixings) {
     if (colDeleted[f.first]) continue;
     numVarsFixed++;
-    if (f.second >= 0)
+    if (f.second == HighsBoundType::kUpper)
       HPRESOLVE_CHECKED_CALL(fixColToLower(postsolve_stack, f.first));
     else
       HPRESOLVE_CHECKED_CALL(fixColToUpper(postsolve_stack, f.first));
