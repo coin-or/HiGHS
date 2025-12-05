@@ -4830,12 +4830,17 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
   // vectors for storing branching decisions, solutions, fixed variables and
   // substitutions
+  struct subs {
+    HighsInt col;
+    HighsInt col2;
+    HighsInt scale;
+  };
   std::vector<HighsInt> sum;
   std::vector<std::vector<HighsInt>> solutions;
   std::vector<HighsInt> vars;
   std::vector<HighsInt> branches;
   std::vector<std::pair<HighsInt, HighsBoundType>> fixings;
-  std::vector<std::pair<HighsInt, HighsInt>> substitutions;
+  std::vector<subs> substitutions;
 
   // lambda for branching (just performs initial lower branch)
   auto doBranch = [&](HighsDomain& domain, const std::vector<HighsInt>& vars,
@@ -4884,6 +4889,15 @@ HPresolve::Result HPresolve::enumerateSolutions(
                            std::vector<HighsInt>& vars) {
     for (HighsInt j : vars)
       if (!domain.isFixed(j)) return false;
+    return true;
+  };
+
+  // lambda for checking whether the values of two binary variables are
+  // identical in all feasible solutions
+  auto identicalVars = [&](HighsInt index1, HighsInt index2) {
+    for (size_t sol = 0; sol < solutions[index1].size(); sol++) {
+      if (solutions[index1][sol] != solutions[index2][sol]) return false;
+    }
     return true;
   };
 
@@ -4987,12 +5001,14 @@ HPresolve::Result HPresolve::enumerateSolutions(
         for (HighsInt ii = i + 1; ii < numVars; ii++) {
           // get column index
           HighsInt col2 = vars[ii];
-          // skip already fixed columns and check if two binary variables take
-          // complementary values in all feasible solutions
-          if (domain.isFixed(col2) || !complementaryVars(i, ii)) continue;
-          // two complementary binary variables were found -> remember
-          // substitution!
-          substitutions.push_back(std::make_pair(col, col2));
+          // skip already fixed columns
+          if (domain.isFixed(col2)) continue;
+          // check if two binary variables take identical values in all feasible
+          // solutions
+          if (identicalVars(i, ii))
+            substitutions.push_back({col, col2, HighsInt{-1}});
+          else if (complementaryVars(i, ii))
+            substitutions.push_back({col, col2, HighsInt{1}});
         }
       }
     }
@@ -5012,16 +5028,32 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
   // perform substitutions
   HighsInt numVarsSubstituted = 0;
-  for (const auto& s : substitutions) {
-    if (colDeleted[s.first] || colDeleted[s.second]) continue;
+  for (size_t i = 0; i < substitutions.size(); i++) {
+    const auto& s = substitutions[i];
+    HighsInt col = s.col;
+    HighsInt col2 = s.col2;
+    double scale = s.scale;
+    double offset = scale > 0.0 ? 1.0 : 0.0;
+    if (col == col2 || colDeleted[col] || colDeleted[col2]) continue;
     numVarsSubstituted++;
     postsolve_stack.doubletonEquation(
-        -1, s.first, s.second, 1.0, 1.0, 1.0, model->col_lower_[s.first],
-        model->col_upper_[s.first], 0.0, false, false,
+        -1, col, col2, 1.0, scale, offset, model->col_lower_[col],
+        model->col_upper_[col], 0.0, false, false,
         HighsPostsolveStack::RowType::kEq, HighsEmptySlice());
-    markColDeleted(s.first);
-    substitute(s.first, s.second, 1.0, -1.0);
+    markColDeleted(col);
+    substitute(col, col2, offset, -scale);
     HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
+    for (size_t ii = i + 1; ii < substitutions.size(); ii++) {
+      // update remaining substitutions
+      auto& s2 = substitutions[ii];
+      if (s2.col == col || s2.col2 == col) {
+        if (s2.col == col)
+          s2.col = col2;
+        else
+          s2.col2 = col2;
+        s2.scale *= (-s.scale);
+      }
+    }
   }
 
   if (numVarsFixed > 0 || numVarsSubstituted > 0)
