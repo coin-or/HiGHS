@@ -607,6 +607,9 @@ restart:
         analysis_.mipTimerStart(kMipClockNodeSearchSeparation);
         sepa.separate(search.getLocalDomain());
         analysis_.mipTimerStop(kMipClockNodeSearchSeparation);
+      } else {
+        // perform aging
+        mipdata_->cutpool.performAging();
       }
 
       if (mipdata_->domain.infeasible()) {
