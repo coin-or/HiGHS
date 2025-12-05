@@ -4887,17 +4887,22 @@ HPresolve::Result HPresolve::enumerateSolutions(
     return true;
   };
 
+  // shrink problem (remove deleted rows and columns)
   if (numDeletedCols + numDeletedRows != 0) shrinkProblem(postsolve_stack);
 
+  // set up matrix
   toCSC(model->a_matrix_.value_, model->a_matrix_.index_,
         model->a_matrix_.start_);
   okFromCSC(model->a_matrix_.value_, model->a_matrix_.index_,
             model->a_matrix_.start_);
 
+  // prepare for domain propagation
   mipsolver->mipdata_->setupDomainPropagation();
   HighsDomain& domain = mipsolver->mipdata_->domain;
 
   for (HighsInt row = 0; row < model->num_row_; row++) {
+    // skip redundant rows
+    if (domain.isRedundantRow(row)) continue;
     // check row
     vars.clear();
     bool allColsBinary = true;

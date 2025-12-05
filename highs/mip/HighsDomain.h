@@ -324,8 +324,7 @@ class HighsDomain {
 
   void recomputeCapacityThreshold(HighsInt row);
 
-  void updateRedundantRows(HighsInt row, HighsInt direction, HighsInt numInf,
-                           HighsCDouble activity, double bound);
+  void updateRedundantRows(HighsInt row);
 
   double doChangeBound(const HighsDomainChange& boundchg);
 
@@ -648,6 +647,8 @@ class HighsDomain {
   double getRedundantRowValue(HighsInt row) const;
 
   void setRecordRedundantRows(bool val) { recordRedundantRows_ = val; };
+
+  bool isRedundantRow(HighsInt row) const;
 };
 
 #endif
