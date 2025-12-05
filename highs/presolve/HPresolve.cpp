@@ -4887,8 +4887,9 @@ HPresolve::Result HPresolve::enumerateSolutions(
     return true;
   };
 
-  // lambda for checking whether two solutions are complementary
-  auto complementarySolutions = [&](HighsInt index1, HighsInt index2) {
+  // lambda for checking whether the values of two binary variables are
+  // complementary in all feasible solutions
+  auto complementaryVars = [&](HighsInt index1, HighsInt index2) {
     for (size_t sol = 0; sol < solutions[index1].size(); sol++) {
       if (solutions[index1][sol] != HighsInt{1} - solutions[index2][sol])
         return false;
@@ -4988,7 +4989,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
           HighsInt col2 = vars[ii];
           // skip already fixed columns and check if two binary variables take
           // complementary values in all feasible solutions
-          if (domain.isFixed(col2) || !complementarySolutions(i, ii)) continue;
+          if (domain.isFixed(col2) || !complementaryVars(i, ii)) continue;
           // two complementary binary variables were found -> remember
           // substitution!
           substitutions.push_back(std::make_pair(col, col2));
