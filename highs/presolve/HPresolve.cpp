@@ -4887,6 +4887,15 @@ HPresolve::Result HPresolve::enumerateSolutions(
     return true;
   };
 
+  // lambda for checking whether two solutions are complementary
+  auto complementarySolutions = [&](HighsInt index1, HighsInt index2) {
+    for (size_t sol = 0; sol < solutions[index1].size(); sol++) {
+      if (solutions[index1][sol] != HighsInt{1} - solutions[index2][sol])
+        return false;
+    }
+    return true;
+  };
+
   // shrink problem (remove deleted rows and columns)
   if (numDeletedCols + numDeletedRows != 0) shrinkProblem(postsolve_stack);
 
@@ -4934,7 +4943,6 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
     // main loop
     HighsInt numBranches = -1;
-    HighsInt numSols = 0;
     while (true) {
       bool backtrack = false;
       if (!domain.infeasible()) {
@@ -4942,7 +4950,6 @@ HPresolve::Result HPresolve::enumerateSolutions(
           // feasible solution for row found
           backtrack = true;
           // store solution
-          numSols++;
           for (HighsInt i = 0; i < numVars; i++) {
             HighsInt solVal =
                 domain.col_lower_[vars[i]] == 0.0 ? HighsInt{0} : HighsInt{1};
@@ -4970,7 +4977,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
         domain.changeBound(HighsBoundType::kUpper, col, domain.col_lower_[col],
                            HighsDomain::Reason::unspecified());
         fixings.push_back(std::make_pair(col, HighsBoundType::kUpper));
-      } else if (sum[i] == numSols) {
+      } else if (sum[i] == static_cast<HighsInt>(solutions[i].size())) {
         // fix variable to its upper bound
         domain.changeBound(HighsBoundType::kLower, col, domain.col_upper_[col],
                            HighsDomain::Reason::unspecified());
@@ -4979,20 +4986,12 @@ HPresolve::Result HPresolve::enumerateSolutions(
         for (HighsInt ii = i + 1; ii < numVars; ii++) {
           // get column index
           HighsInt col2 = vars[ii];
-          // skip already fixed columns
-          if (domain.isFixed(col2)) continue;
-          // check if two binary variables take complementary values in all
-          // feasible solutions
-          bool complementary = true;
-          for (HighsInt sol = 0; sol < numSols; sol++) {
-            complementary =
-                complementary &&
-                solutions[i][sol] == HighsInt{1} - solutions[ii][sol];
-            if (!complementary) break;
-          }
-          // if two complementary binary variables were found, store
+          // skip already fixed columns and check if two binary variables take
+          // complementary values in all feasible solutions
+          if (domain.isFixed(col2) || !complementarySolutions(i, ii)) continue;
+          // two complementary binary variables were found -> remember
           // substitution!
-          if (complementary) substitutions.push_back(std::make_pair(col, col2));
+          substitutions.push_back(std::make_pair(col, col2));
         }
       }
     }
