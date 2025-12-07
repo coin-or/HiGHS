@@ -195,8 +195,18 @@ class PDLPSolver {
       } \
     } while (0)        
     
+  #define CUBLAS_CHECK(call)                                              \
+  do {                                                                    \
+      cublasStatus_t status = call;                                       \
+      if (status != CUBLAS_STATUS_SUCCESS) {                              \
+          fprintf(stderr, "cuBLAS Error at %s:%d: %d\n",                  \
+                  __FILE__, __LINE__, status);                            \
+          exit(EXIT_FAILURE);                                             \
+      }                                                                   \
+  } while(0)
   // --- GPU Members ---
   cusparseHandle_t cusparse_handle_ = nullptr;
+  cublasHandle_t cublas_handle_ = nullptr;
 
   // Matrix A in CSR format (for Ax)
   cusparseSpMatDescr_t mat_a_csr_ = nullptr;
@@ -257,6 +267,8 @@ class PDLPSolver {
   size_t spmv_buffer_size_ax_ = 0;
   void* d_spmv_buffer_aty_ = nullptr;
   size_t spmv_buffer_size_aty_ = 0;
+  double* d_buffer_; //for cublas
+  double* d_buffer2_; 
 
   void launchKernelUpdateX(double primal_step);
   void launchKernelUpdateY(double dual_step);
@@ -270,6 +282,7 @@ class PDLPSolver {
                             
   double computeNonlinearityGpu(const double* d_x_new, const double* d_x_old,
                                 const double* d_aty_new, const double* d_aty_old);
+  double computeDiffNormCuBLAS(const double* d_a, const double* d_b, int n);                              
 #endif
 };
 

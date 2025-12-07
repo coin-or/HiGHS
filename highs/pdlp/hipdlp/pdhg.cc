@@ -1844,7 +1844,7 @@ void PDLPSolver::closeDebugLog() {
 void PDLPSolver::setupGpu(){
   //1. Initialize cuSPARSE
   CUSPARSE_CHECK(cusparseCreate(&cusparse_handle_));
-
+  CUBLAS_CHECK(cublasCreate(&cublas_handle_));
   //2. Get matrix data from lp_ (CSC)
   a_num_rows_ = lp_.num_row_;
   a_num_cols_ = lp_.num_col_;
@@ -1986,11 +1986,16 @@ void PDLPSolver::setupGpu(){
     cudaFree(d_row_scale_); d_row_scale_ = nullptr;
   }
 
+  size_t max_size = std::max(a_num_cols_, a_num_rows_);
+  CUDA_CHECK(cudaMalloc(&d_buffer_, max_size * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_buffer2_, max_size * sizeof(double)));
+
   highsLogUser(params_.log_options_, HighsLogType::kInfo, "GPU setup complete. Matrix A (CSR) and A^T (CSR) transferred to device.\n");
 }
 
 void PDLPSolver::cleanupGpu(){
   if (cusparse_handle_) CUSPARSE_CHECK(cusparseDestroy(cusparse_handle_));
+  if (cublas_handle_) CUBLAS_CHECK(cublasDestroy(cublas_handle_)); 
   if (mat_a_csr_) CUSPARSE_CHECK(cusparseDestroySpMat(mat_a_csr_));
   if (mat_a_T_csr_) CUSPARSE_CHECK(cusparseDestroySpMat(mat_a_T_csr_));
   CUDA_CHECK(cudaFree(d_a_row_ptr_));
@@ -2029,6 +2034,8 @@ void PDLPSolver::cleanupGpu(){
   CUDA_CHECK(cudaFree(d_dSlackNegAvg_));
   if(d_col_scale_) CUDA_CHECK(cudaFree(d_col_scale_));
   if(d_row_scale_) CUDA_CHECK(cudaFree(d_row_scale_));
+  CUDA_CHECK(cudaFree(d_buffer_));
+  CUDA_CHECK(cudaFree(d_buffer2_));
 }
 
 void PDLPSolver::linalgGpuAx(const double* d_x_in, double* d_ax_out){
@@ -2154,39 +2161,33 @@ bool PDLPSolver::checkConvergenceGpu(
   return primal_feasible && dual_feasible && gap_small;
 
 }
+
 void PDLPSolver::computeStepSizeRatioGpu(PrimalDualParams& working_params) {
-  // 1. Compute ||x_last - x_current||^2 on GPU
-  launchKernelDiffTwoNormSquared_wrapper(d_x_at_last_restart_, d_x_current_, d_x_temp_diff_norm_result_, a_num_cols_);
+    // 1. Compute ||x_last - x_current||^2 using cuBLAS
+    double primal_diff_norm = computeDiffNormCuBLAS(
+        d_x_at_last_restart_, d_x_current_, a_num_cols_);
+    
+    // 2. Compute ||y_last - y_current||^2 using cuBLAS
+    double dual_diff_norm = computeDiffNormCuBLAS(
+        d_y_at_last_restart_, d_y_current_, a_num_rows_);
 
-  double primal_diff_sq;
-  CUDA_CHECK(cudaMemcpy(&primal_diff_sq, d_x_temp_diff_norm_result_, sizeof(double), cudaMemcpyDeviceToHost));
-  double primal_diff_norm = std::sqrt(primal_diff_sq);
+    double dMeanStepSize = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
 
-  // 2. Compute ||y_last - y_current||^2 on GPU
-  launchKernelDiffTwoNormSquared_wrapper(d_y_at_last_restart_, d_y_current_, d_y_temp_diff_norm_result_, a_num_rows_);
+    // 3. Update beta (same CPU logic)
+    if (std::min(primal_diff_norm, dual_diff_norm) > 1e-10) {
+        double beta_update_ratio = dual_diff_norm / primal_diff_norm;
+        double old_beta = stepsize_.beta;
+        double dLogBetaUpdate =
+            0.5 * std::log(beta_update_ratio) + 0.5 * std::log(std::sqrt(old_beta));
+        stepsize_.beta = std::exp(2.0 * dLogBetaUpdate);
+    }
 
-  double dual_diff_sq;
-  CUDA_CHECK(cudaMemcpy(&dual_diff_sq, d_y_temp_diff_norm_result_, sizeof(double), cudaMemcpyDeviceToHost));
-  double dual_diff_norm = std::sqrt(dual_diff_sq);
-
-  double dMeanStepSize = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
-
-  // 3. Compute new beta
-  if (std::min(primal_diff_norm, dual_diff_norm) > 1e-10) {
-    double beta_update_ratio = dual_diff_norm / primal_diff_norm;
-    double old_beta = stepsize_.beta;
-
-    double dLogBetaUpdate =
-        0.5 * std::log(beta_update_ratio) + 0.5 * std::log(std::sqrt(old_beta));
-    stepsize_.beta = std::exp(2.0 * dLogBetaUpdate);
-  }
-
-  // Update steps
-  stepsize_.primal_step = dMeanStepSize / std::sqrt(stepsize_.beta);
-  stepsize_.dual_step = stepsize_.primal_step * stepsize_.beta;
-  working_params.eta = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
-  working_params.omega = std::sqrt(stepsize_.beta);
-  restart_scheme_.UpdateBeta(stepsize_.beta);
+    // Update step sizes
+    stepsize_.primal_step = dMeanStepSize / std::sqrt(stepsize_.beta);
+    stepsize_.dual_step = stepsize_.primal_step * stepsize_.beta;
+    working_params.eta = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
+    working_params.omega = std::sqrt(stepsize_.beta);
+    restart_scheme_.UpdateBeta(stepsize_.beta);
 }
 
 void PDLPSolver::updateAverageIteratesGpu(int inner_iter) {
@@ -2211,33 +2212,65 @@ void PDLPSolver::computeAverageIterateGpu() {
   linalgGpuATy(d_y_avg_, d_aty_avg_);
 }
 
-double PDLPSolver::computeMovementGpu(const double* d_x_new, const double* d_x_old,
-                                      const double* d_y_new, const double* d_y_old) {
-  // 1. Compute ||x_new - x_old||^2
-  launchKernelDiffTwoNormSquared_wrapper(d_x_new, d_x_old, d_x_temp_diff_norm_result_, a_num_cols_);
-  double primal_diff_sq;
-  CUDA_CHECK(cudaMemcpy(&primal_diff_sq, d_x_temp_diff_norm_result_, sizeof(double), cudaMemcpyDeviceToHost));
-
-  // 2. Compute ||y_new - y_old||^2
-  launchKernelDiffTwoNormSquared_wrapper(d_y_new, d_y_old, d_x_temp_diff_norm_result_, a_num_rows_);
-  double dual_diff_sq;
-  CUDA_CHECK(cudaMemcpy(&dual_diff_sq, d_x_temp_diff_norm_result_, sizeof(double), cudaMemcpyDeviceToHost));
-
-  // 3. Combine scalar results on CPU
-  double primal_weight = std::sqrt(stepsize_.beta);
-  return (0.5 * primal_weight * primal_diff_sq) +
-         (0.5 / primal_weight) * dual_diff_sq;
+double PDLPSolver::computeMovementGpu(
+    const double* d_x_new, const double* d_x_old,
+    const double* d_y_new, const double* d_y_old) 
+{
+    // 1. Compute ||x_new - x_old|| using cuBLAS
+    double primal_diff_norm = computeDiffNormCuBLAS(d_x_new, d_x_old, a_num_cols_);
+    
+    // 2. Compute ||y_new - y_old|| using cuBLAS
+    double dual_diff_norm = computeDiffNormCuBLAS(d_y_new, d_y_old, a_num_rows_);
+    
+    // 3. Combine on CPU
+    double primal_weight = std::sqrt(stepsize_.beta);
+    double primal_diff_sq = primal_diff_norm * primal_diff_norm;
+    double dual_diff_sq = dual_diff_norm * dual_diff_norm;
+    
+    return (0.5 * primal_weight * primal_diff_sq) +
+           (0.5 / primal_weight * dual_diff_sq);
 }
 
-double PDLPSolver::computeNonlinearityGpu(const double* d_x_new, const double* d_x_old,
-                                          const double* d_aty_new, const double* d_aty_old) {
-  // Compute dot( (x_new - x_old), (aty_new - aty_old) )
-  launchKernelDiffDotDiff_wrapper(d_x_new, d_x_old, d_aty_new, d_aty_old, 
-                                  d_x_temp_diff_norm_result_, a_num_cols_);
-  
-  double interaction;
-  CUDA_CHECK(cudaMemcpy(&interaction, d_x_temp_diff_norm_result_, sizeof(double), cudaMemcpyDeviceToHost));
-  
-  return interaction; // cupdlp does not take absolute value here, it handles fabs in the check
+double PDLPSolver::computeNonlinearityGpu(
+    const double* d_x_new, const double* d_x_old,
+    const double* d_aty_new, const double* d_aty_old) 
+{
+    // 1. Compute delta_x = x_new - x_old
+    CUDA_CHECK(cudaMemcpy(d_buffer_, d_x_new, a_num_cols_ * sizeof(double), 
+                         cudaMemcpyDeviceToDevice));
+    double alpha = -1.0;
+    CUBLAS_CHECK(cublasDaxpy(cublas_handle_, a_num_cols_, &alpha, 
+                            d_x_old, 1, d_buffer_, 1));
+    
+    // 2. Compute delta_aty = aty_new - aty_old
+    CUDA_CHECK(cudaMemcpy(d_buffer2_, d_aty_new, a_num_cols_ * sizeof(double), 
+                         cudaMemcpyDeviceToDevice));
+    CUBLAS_CHECK(cublasDaxpy(cublas_handle_, a_num_cols_, &alpha, 
+                            d_aty_old, 1, d_buffer2_, 1));
+    
+    // 3. Compute dot product: delta_x' * delta_aty
+    double result;
+    CUBLAS_CHECK(cublasDdot(cublas_handle_, a_num_cols_, 
+                           d_buffer_, 1, d_buffer2_, 1, &result));
+    
+    return result;
+}
+
+double PDLPSolver::computeDiffNormCuBLAS(
+    const double* d_a, const double* d_b, int n) 
+{
+    // 1. Copy a to buffer: buffer = a
+    CUDA_CHECK(cudaMemcpy(d_buffer_, d_a, n * sizeof(double), 
+                         cudaMemcpyDeviceToDevice));
+    
+    // 2. buffer = buffer - b  (using cuBLAS axpy)
+    double alpha = -1.0;
+    CUBLAS_CHECK(cublasDaxpy(cublas_handle_, n, &alpha, d_b, 1, d_buffer_, 1));
+    
+    // 3. result = ||buffer||_2  (using cuBLAS nrm2)
+    double norm;
+    CUBLAS_CHECK(cublasDnrm2(cublas_handle_, n, d_buffer_, 1, &norm));
+    
+    return norm;
 }
 #endif
