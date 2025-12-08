@@ -4835,11 +4835,15 @@ HPresolve::Result HPresolve::enumerateSolutions(
     HighsInt col2;
     HighsInt scale;
   };
+  struct fixing {
+    HighsInt col;
+    HighsBoundType bndtype;
+  };
   std::vector<HighsInt> sum;
   std::vector<std::vector<HighsInt>> solutions;
   std::vector<HighsInt> vars;
   std::vector<HighsInt> branches;
-  std::vector<std::pair<HighsInt, HighsBoundType>> fixings;
+  std::vector<fixing> fixings;
   std::vector<subs> substitutions;
 
   // lambda for branching (just performs initial lower branch)
@@ -4990,12 +4994,12 @@ HPresolve::Result HPresolve::enumerateSolutions(
         // fix variable to its lower bound
         domain.changeBound(HighsBoundType::kUpper, col, domain.col_lower_[col],
                            HighsDomain::Reason::unspecified());
-        fixings.push_back(std::make_pair(col, HighsBoundType::kUpper));
+        fixings.push_back({col, HighsBoundType::kUpper});
       } else if (sum[i] == static_cast<HighsInt>(solutions[i].size())) {
         // fix variable to its upper bound
         domain.changeBound(HighsBoundType::kLower, col, domain.col_upper_[col],
                            HighsDomain::Reason::unspecified());
-        fixings.push_back(std::make_pair(col, HighsBoundType::kLower));
+        fixings.push_back({col, HighsBoundType::kLower});
       } else {
         for (HighsInt ii = i + 1; ii < numVars; ii++) {
           // get column index
@@ -5016,12 +5020,12 @@ HPresolve::Result HPresolve::enumerateSolutions(
   // now remove fixed columns and tighten domains
   HighsInt numVarsFixed = 0;
   for (const auto& f : fixings) {
-    if (colDeleted[f.first]) continue;
+    if (colDeleted[f.col]) continue;
     numVarsFixed++;
-    if (f.second == HighsBoundType::kUpper)
-      HPRESOLVE_CHECKED_CALL(fixColToLower(postsolve_stack, f.first));
+    if (f.bndtype == HighsBoundType::kUpper)
+      HPRESOLVE_CHECKED_CALL(fixColToLower(postsolve_stack, f.col));
     else
-      HPRESOLVE_CHECKED_CALL(fixColToUpper(postsolve_stack, f.first));
+      HPRESOLVE_CHECKED_CALL(fixColToUpper(postsolve_stack, f.col));
     HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
   }
 
