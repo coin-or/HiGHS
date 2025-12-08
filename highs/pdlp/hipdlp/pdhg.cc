@@ -573,19 +573,6 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
       CUDA_CHECK(cudaMemcpy(Ax_cache_.data(), d_ax_current_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
       CUDA_CHECK(cudaMemcpy(ATy_cache_.data(), d_aty_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
 */
-/*
-      CUDA_CHECK(cudaMemcpy(x_sum_.data(), d_x_sum_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
-      CUDA_CHECK(cudaMemcpy(y_sum_.data(), d_y_sum_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
-      CUDA_CHECK(cudaMemcpy(x_avg_.data(), d_x_avg_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
-      CUDA_CHECK(cudaMemcpy(y_avg_.data(), d_y_avg_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
-
-      double dScale_gpu = sum_weights_gpu_ > 0.0 ? 1.0 / sum_weights_gpu_ : 0.0;
-      launchKernelScaleVector(d_x_avg_, d_x_sum_, dScale_gpu, lp_.num_col_);
-      launchKernelScaleVector(d_y_avg_, d_y_sum_, dScale_gpu, lp_.num_row_);
-
-      linalgGpuAx(d_x_avg_, d_ax_avg_);
-      linalgGpuATy(d_y_avg_, d_aty_avg_);
-*/
       computeAverageIterateGpu();
 #endif
       hipdlpTimerStart(kHipdlpClockAverageIterate);
@@ -612,7 +599,27 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         d_ax_avg_, d_aty_avg_,
         params_.tolerance, average_results, "[A-GPU]"
       );
+#else
+      // === CPU Convergence Check ===//
+      hipdlpTimerStart(kHipdlpClockConvergenceCheck);
+      // Compute residuals for current iterate
+      bool current_converged = checkConvergence(
+          iter, x_current_, y_current_, Ax_cache_, ATy_cache_,
+          params_.tolerance, current_results, "[L]", dSlackPos_, dSlackNeg_);
 
+      // Compute residuals for average iterate
+      bool average_converged = checkConvergence(
+          iter, x_avg_, y_avg_, Ax_avg, ATy_avg, params_.tolerance,
+          average_results, "[A]", dSlackPosAvg_, dSlackNegAvg_);
+      hipdlpTimerStop(kHipdlpClockConvergenceCheck);
+#endif
+      debugPdlpIterHeaderLog(debug_pdlp_log_file_);
+
+      // Print iteration statistics
+      logger_.print_iteration_stats(iter, average_results, current_eta_);
+
+      // Check for convergence
+#ifdef CUPDLP_GPU
       if (current_converged_gpu) {
         logger_.info("Current GPU solution converged in " + std::to_string(iter) +
                      " iterations.");
@@ -636,26 +643,7 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         results_ = average_results;
         return solveReturn(TerminationStatus::OPTIMAL);
       }
-#endif
-      // === CPU Convergence Check ===//
-      hipdlpTimerStart(kHipdlpClockConvergenceCheck);
-      // Compute residuals for current iterate
-      bool current_converged = checkConvergence(
-          iter, x_current_, y_current_, Ax_cache_, ATy_cache_,
-          params_.tolerance, current_results, "[L]", dSlackPos_, dSlackNeg_);
-
-      // Compute residuals for average iterate
-      bool average_converged = checkConvergence(
-          iter, x_avg_, y_avg_, Ax_avg, ATy_avg, params_.tolerance,
-          average_results, "[A]", dSlackPosAvg_, dSlackNegAvg_);
-      hipdlpTimerStop(kHipdlpClockConvergenceCheck);
-
-      debugPdlpIterHeaderLog(debug_pdlp_log_file_);
-
-      // Print iteration statistics
-      logger_.print_iteration_stats(iter, average_results, current_eta_);
-
-      // Check for convergence
+#else
       if (current_converged) {
         logger_.info("Current solution converged in " + std::to_string(iter) +
                      " iterations.");
@@ -677,7 +665,7 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         results_ = average_results;
         return solveReturn(TerminationStatus::OPTIMAL);
       }
-
+#endif
       // --- 4. Restart Check (using computed results) ---
       RestartInfo restart_info =
           restart_scheme_.Check(iter, current_results, average_results);
@@ -691,17 +679,17 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
           restart_scheme_.duality_gap_last_restart_ =
               average_results.duality_gap;
 
-          x_current_ = x_avg_;
-          y_current_ = y_avg_;
-
-          Ax_cache_ = Ax_avg;
-          ATy_cache_ = ATy_avg;
-
 #ifdef CUPDLP_GPU
           CUDA_CHECK(cudaMemcpy(d_x_current_, d_x_avg_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
           CUDA_CHECK(cudaMemcpy(d_y_current_, d_y_avg_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToDevice));
           linalgGpuAx(d_x_current_, d_ax_current_);
           linalgGpuATy(d_y_current_, d_aty_current_);
+#else 
+          x_current_ = x_avg_;
+          y_current_ = y_avg_;
+
+          Ax_cache_ = Ax_avg;
+          ATy_cache_ = ATy_avg;
 #endif
         } else {
           restart_scheme_.primal_feas_last_restart_ =
@@ -726,26 +714,24 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         current_eta_ = working_params.eta;
         restart_scheme_.passParams(&working_params);
 
-        x_at_last_restart_ = x_current_;  // Current becomes the new last
-        y_at_last_restart_ = y_current_;
-
-        std::fill(x_sum_.begin(), x_sum_.end(), 0.0);
-        std::fill(y_sum_.begin(), y_sum_.end(), 0.0);
-        sum_weights_ = 0.0;
-
 #ifdef CUPDLP_GPU
         CUDA_CHECK(cudaMemcpy(d_x_at_last_restart_, d_x_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
         CUDA_CHECK(cudaMemcpy(d_y_at_last_restart_, d_y_current_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToDevice));
         CUDA_CHECK(cudaMemset(d_x_sum_, 0, a_num_cols_ * sizeof(double)));
         CUDA_CHECK(cudaMemset(d_y_sum_, 0, a_num_rows_ * sizeof(double)));
         sum_weights_gpu_ = 0.0;
+#else 
+        x_at_last_restart_ = x_current_;  // Current becomes the new last
+        y_at_last_restart_ = y_current_;
+
+        std::fill(x_sum_.begin(), x_sum_.end(), 0.0);
+        std::fill(y_sum_.begin(), y_sum_.end(), 0.0);
+        sum_weights_ = 0.0;
 #endif
 
         restart_scheme_.last_restart_iter_ = iter;
-        // Recompute Ax and ATy for the restarted iterates
-        hipdlpTimerStart(kHipdlpClockMatrixMultiply);
-        linalg::Ax(lp, x_current_, Ax_cache_);
 
+// Recompute Ax and ATy for the restarted iterates
 #ifdef CUPDLP_GPU 
         launchKernelUpdateX(stepsize_.primal_step);
         linalgGpuAx(d_x_next_, d_ax_next_);
@@ -760,13 +746,14 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         CUDA_CHECK(cudaMemcpy(y_next_gpu.data(), d_y_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
         CUDA_CHECK(cudaMemcpy(ax_next_gpu.data(), d_ax_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
         CUDA_CHECK(cudaMemcpy(aty_next_gpu.data(), d_aty_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
-#endif
-
+#else 
+        hipdlpTimerStart(kHipdlpClockMatrixMultiply);
+        linalg::Ax(lp, x_current_, Ax_cache_);
         hipdlpTimerStop(kHipdlpClockMatrixMultiply);
         hipdlpTimerStart(kHipdlpClockMatrixTransposeMultiply);
         linalg::ATy(lp, y_current_, ATy_cache_);
         hipdlpTimerStop(kHipdlpClockMatrixTransposeMultiply);
-
+#endif
         restart_scheme_.SetLastRestartIter(iter);
       }
     }
@@ -777,15 +764,19 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
 
     // Store current iterates before update (for next iteration's x_current_,
     // y_current_)
-    x_next_ = x_current_;
-    y_next_ = y_current_;
-
-    debug_pdlp_data_.ax_norm = linalg::vector_norm(Ax_cache_);
-    debug_pdlp_data_.aty_norm = linalg::vector_norm(ATy_cache_);
-
 #ifdef CUPDLP_GPU
     CUDA_CHECK(cudaMemcpy(d_x_next_, d_x_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
     CUDA_CHECK(cudaMemcpy(d_y_next_, d_y_current_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToDevice));
+    // Copy Ax and ATy cache to host
+    CUDA_CHECK(cudaMemcpy(Ax_cache_.data(), d_ax_current_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(ATy_cache_.data(), d_aty_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+    debug_pdlp_data_.ax_norm = linalg::vector_norm(Ax_cache_);
+    debug_pdlp_data_.aty_norm = linalg::vector_norm(ATy_cache_);
+#else
+    x_next_ = x_current_;
+    y_next_ = y_current_;
+    debug_pdlp_data_.ax_norm = linalg::vector_norm(Ax_cache_);
+    debug_pdlp_data_.aty_norm = linalg::vector_norm(ATy_cache_);
 #endif
 
     switch (params_.step_size_strategy) {
@@ -2159,7 +2150,6 @@ bool PDLPSolver::checkConvergenceGpu(
   bool gap_small       = results.relative_obj_gap   < epsilon;
 
   return primal_feasible && dual_feasible && gap_small;
-
 }
 
 void PDLPSolver::computeStepSizeRatioGpu(PrimalDualParams& working_params) {
@@ -2210,6 +2200,11 @@ void PDLPSolver::computeAverageIterateGpu() {
   // Recompute Ax_avg and ATy_avg on GPU
   linalgGpuAx(d_x_avg_, d_ax_avg_);
   linalgGpuATy(d_y_avg_, d_aty_avg_);
+  // copy x_avg to host
+  CUDA_CHECK(cudaMemcpy(x_avg_.data(), d_x_avg_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+  debug_pdlp_data_.x_average_norm = linalg::vector_norm_squared(x_avg_);
+  
+  //debug_pdlp_data_.ax_average_norm = computeDiffNormCuBLAS;
 }
 
 double PDLPSolver::computeMovementGpu(
