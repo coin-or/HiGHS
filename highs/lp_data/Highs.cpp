@@ -2403,37 +2403,30 @@ HighsStatus Highs::setSolution(const HighsSolution& solution) {
   return returnFromHighs(return_status);
 }
 
-HighsStatus Highs::getColOrRowName(const HighsLp& lp,
-				   const bool is_col,
-				   const HighsInt index,
-				   std::string& name) const {
+HighsStatus Highs::getColOrRowName(const HighsLp& lp, const bool is_col,
+                                   const HighsInt index,
+                                   std::string& name) const {
   HighsInt num_index = is_col ? lp.num_col_ : lp.num_row_;
   if (index < 0 || index >= num_index) {
     highsLogUser(this->options_.log_options, HighsLogType::kError,
-		 "Index %d for %s name is outside the range [0, "
-		 "num_%s = %d)\n",
-		 int(index),
-		 is_col ? "column" : "row",
-		 is_col ? "col" : "row",
-		 int(num_index));
+                 "Index %d for %s name is outside the range [0, "
+                 "num_%s = %d)\n",
+                 int(index), is_col ? "column" : "row", is_col ? "col" : "row",
+                 int(num_index));
     return HighsStatus::kError;
   }
-  const HighsInt num_index_name = is_col ?
-    this->model_.lp_.col_names_.size() :
-    this->model_.lp_.row_names_.size();
+  const HighsInt num_index_name = is_col ? this->model_.lp_.col_names_.size()
+                                         : this->model_.lp_.row_names_.size();
   if (index >= num_index_name) {
     highsLogUser(options_.log_options, HighsLogType::kError,
                  "Index %d for %s name is outside the range [0, "
                  "num_%s_name = %d)\n",
-                 int(index),
-		 is_col ? "column" : "row",
-		 is_col ? "col" : "row",
-		 int(num_index_name));
+                 int(index), is_col ? "column" : "row", is_col ? "col" : "row",
+                 int(num_index_name));
     return HighsStatus::kError;
   }
-  name = is_col ?
-    this->model_.lp_.col_names_[index]  :
-    this->model_.lp_.row_names_[index];
+  name = is_col ? this->model_.lp_.col_names_[index]
+                : this->model_.lp_.row_names_[index];
   return HighsStatus::kOk;
 }
 
@@ -3220,24 +3213,7 @@ HighsStatus Highs::getCols(const HighsInt* mask, HighsInt& num_col,
 }
 
 HighsStatus Highs::getColName(const HighsInt col, std::string& name) const {
-  const HighsInt num_col = this->model_.lp_.num_col_;
-  if (col < 0 || col >= num_col) {
-    highsLogUser(
-        options_.log_options, HighsLogType::kError,
-        "Index %d for column name is outside the range [0, num_col = %d)\n",
-        int(col), int(num_col));
-    return HighsStatus::kError;
-  }
-  const HighsInt num_col_name = this->model_.lp_.col_names_.size();
-  if (col >= num_col_name) {
-    highsLogUser(options_.log_options, HighsLogType::kError,
-                 "Index %d for column name is outside the range [0, "
-                 "num_col_name = %d)\n",
-                 int(col), int(num_col_name));
-    return HighsStatus::kError;
-  }
-  name = this->model_.lp_.col_names_[col];
-  return HighsStatus::kOk;
+  return getColOrRowName(this->model_.lp_, true, col, name);
 }
 
 HighsStatus Highs::getColByName(const std::string& name, HighsInt& col) {
@@ -3325,24 +3301,7 @@ HighsStatus Highs::getRows(const HighsInt* mask, HighsInt& num_row,
 }
 
 HighsStatus Highs::getRowName(const HighsInt row, std::string& name) const {
-  const HighsInt num_row = this->model_.lp_.num_row_;
-  if (row < 0 || row >= num_row) {
-    highsLogUser(
-        options_.log_options, HighsLogType::kError,
-        "Index %d for row name is outside the range [0, num_row = %d)\n",
-        int(row), int(num_row));
-    return HighsStatus::kError;
-  }
-  const HighsInt num_row_name = this->model_.lp_.row_names_.size();
-  if (row >= num_row_name) {
-    highsLogUser(
-        options_.log_options, HighsLogType::kError,
-        "Index %d for row name is outside the range [0, num_row_name = %d)\n",
-        int(row), int(num_row_name));
-    return HighsStatus::kError;
-  }
-  name = this->model_.lp_.row_names_[row];
-  return HighsStatus::kOk;
+  return getColOrRowName(this->model_.lp_, false, row, name);
 }
 
 HighsStatus Highs::getRowByName(const std::string& name, HighsInt& row) {

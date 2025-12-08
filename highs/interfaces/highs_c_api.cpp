@@ -1067,19 +1067,20 @@ HighsInt Highs_getRowsByMask(const void* highs, const HighsInt* mask,
 }
 
 static HighsInt Highs_getHighsLpColOrRowName(const void* highs,
-					     const HighsLp& lp,
-					     const bool is_col,
-					     const HighsInt index,
-					     char* name) {
+                                             const HighsLp& lp,
+                                             const bool is_col,
+                                             const HighsInt index, char* name) {
   std::string name_v;
-  HighsStatus status = ((Highs*)highs)->getColOrRowName(lp, is_col, index, name_v);
+  HighsStatus status =
+      ((Highs*)highs)->getColOrRowName(lp, is_col, index, name_v);
   if (status == HighsStatus::kError) return kHighsStatusError;
   strcpy(name, name_v.c_str());
   return kHighsStatusOk;
 }
 
 HighsInt Highs_getRowName(const void* highs, const HighsInt row, char* name) {
-  return Highs_getHighsLpColOrRowName(highs, ((Highs*)highs)->getLp(), false, row, name);
+  return Highs_getHighsLpColOrRowName(highs, ((Highs*)highs)->getLp(), false,
+                                      row, name);
 }
 
 HighsInt Highs_getRowByName(const void* highs, const char* name,
@@ -1091,7 +1092,8 @@ HighsInt Highs_getRowByName(const void* highs, const char* name,
 }
 
 HighsInt Highs_getColName(const void* highs, const HighsInt col, char* name) {
-  return Highs_getHighsLpColOrRowName(highs, ((Highs*)highs)->getLp(), true, col, name);
+  return Highs_getHighsLpColOrRowName(highs, ((Highs*)highs)->getLp(), true,
+                                      col, name);
 }
 
 HighsInt Highs_getColByName(const void* highs, const char* name,
@@ -1333,12 +1335,16 @@ HighsInt Highs_getPresolvedLp(const void* highs, const HighsInt a_format,
                               a_start, a_index, a_value, integrality);
 }
 
-HighsInt Highs_getPresolvedColName(const void* highs, const HighsInt col, char* name) {
-  return Highs_getHighsLpColOrRowName(highs, ((Highs*)highs)->getPresolvedLp(), true, col, name);
+HighsInt Highs_getPresolvedColName(const void* highs, const HighsInt col,
+                                   char* name) {
+  return Highs_getHighsLpColOrRowName(highs, ((Highs*)highs)->getPresolvedLp(),
+                                      true, col, name);
 }
 
-HighsInt Highs_getPresolvedRowName(const void* highs, const HighsInt row, char* name) {
-  return Highs_getHighsLpColOrRowName(highs, ((Highs*)highs)->getPresolvedLp(), false, row, name);
+HighsInt Highs_getPresolvedRowName(const void* highs, const HighsInt row,
+                                   char* name) {
+  return Highs_getHighsLpColOrRowName(highs, ((Highs*)highs)->getPresolvedLp(),
+                                      false, row, name);
 }
 
 HighsInt Highs_getIis(void* highs, HighsInt* iis_num_col, HighsInt* iis_num_row,

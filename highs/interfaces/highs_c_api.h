@@ -2262,7 +2262,8 @@ HighsInt Highs_getPresolvedLp(const void* highs, const HighsInt a_format,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getPresolvedColName(const void* highs, const HighsInt col, char* name);
+HighsInt Highs_getPresolvedColName(const void* highs, const HighsInt col,
+                                   char* name);
 
 /**
  * Get the name of a row of the presolved LP.
@@ -2273,7 +2274,8 @@ HighsInt Highs_getPresolvedColName(const void* highs, const HighsInt col, char* 
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getPresolvedRowName(const void* highs, const HighsInt row, char* name);
+HighsInt Highs_getPresolvedRowName(const void* highs, const HighsInt row,
+                                   char* name);
 
 /**
  * Get the data from a HiGHS IIS LP.
