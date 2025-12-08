@@ -5017,7 +5017,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
     }
   }
 
-  // now remove fixed columns and tighten domains
+  // now remove fixed columns
   HighsInt numVarsFixed = 0;
   for (const auto& f : fixings) {
     if (colDeleted[f.col]) continue;
@@ -5029,16 +5029,18 @@ HPresolve::Result HPresolve::enumerateSolutions(
     HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
   }
 
-  // perform substitutions
+  // check substitutions
   HighsInt numVarsSubstituted = 0;
   for (size_t i = 0; i < substitutions.size(); i++) {
     const auto& s = substitutions[i];
     HighsInt col = s.col;
     HighsInt col2 = s.col2;
-    double scale = s.scale;
-    double offset = scale > 0.0 ? 1.0 : 0.0;
+    HighsInt scale = s.scale;
+    // skip deleted columns
     if (col == col2 || colDeleted[col] || colDeleted[col2]) continue;
+    // perform substitution
     numVarsSubstituted++;
+    double offset = scale > 0 ? 1.0 : 0.0;
     postsolve_stack.doubletonEquation(
         -1, col, col2, 1.0, scale, offset, model->col_lower_[col],
         model->col_upper_[col], 0.0, false, false,
@@ -5046,16 +5048,16 @@ HPresolve::Result HPresolve::enumerateSolutions(
     markColDeleted(col);
     substitute(col, col2, offset, -scale);
     HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
+    // update remaining substitutions
     for (size_t ii = i + 1; ii < substitutions.size(); ii++) {
-      // update remaining substitutions
       auto& s2 = substitutions[ii];
-      if (s2.col == col || s2.col2 == col) {
-        if (s2.col == col)
-          s2.col = col2;
-        else
-          s2.col2 = col2;
-        s2.scale *= (-s.scale);
-      }
+      // skip substitutions that do not contain the removed variable
+      if (s2.col == s2.col2 || (s2.col != col && s2.col2 != col)) continue;
+      if (s2.col == col)
+        s2.col = col2;
+      else
+        s2.col2 = col2;
+      s2.scale *= (-scale);
     }
   }
 
