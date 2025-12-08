@@ -1327,6 +1327,26 @@ HighsInt Highs_getPresolvedLp(const void* highs, const HighsInt a_format,
                               a_start, a_index, a_value, integrality);
 }
 
+static HighsInt Highs_getHighsLpColOrRowName(const void* highs,
+					     const HighsLp& lp,
+					     const bool is_col,
+					     const HighsInt index,
+					     char* name) {
+  std::string name_v;
+  HighsStatus status = ((Highs*)highs)->getColOrRowName(lp, is_col, index, name_v);
+  if (status == HighsStatus::kError) return kHighsStatusError;
+  strcpy(name, name_v.c_str());
+  return kHighsStatusOk;
+}
+
+HighsInt Highs_getPresolvedColName(const void* highs, const HighsInt col, char* name) {
+  return Highs_getHighsLpColOrRowName(highs, ((Highs*)highs)->getPresolvedLp(), true, col, name);
+}
+
+HighsInt Highs_getPresolvedRowName(const void* highs, const HighsInt row, char* name) {
+  return Highs_getHighsLpColOrRowName(highs, ((Highs*)highs)->getPresolvedLp(), false, row, name);
+}
+
 HighsInt Highs_getIis(void* highs, HighsInt* iis_num_col, HighsInt* iis_num_row,
                       HighsInt* col_index, HighsInt* row_index,
                       HighsInt* col_bound, HighsInt* row_bound,

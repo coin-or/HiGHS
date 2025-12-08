@@ -2403,6 +2403,40 @@ HighsStatus Highs::setSolution(const HighsSolution& solution) {
   return returnFromHighs(return_status);
 }
 
+HighsStatus Highs::getColOrRowName(const HighsLp& lp,
+				   const bool is_col,
+				   const HighsInt index,
+				   std::string& name) const {
+  HighsInt num_index = is_col ? lp.num_col_ : lp.num_row_;
+  if (index < 0 || index >= num_index) {
+    highsLogUser(this->options_.log_options, HighsLogType::kError,
+		 "Index %d for %s name is outside the range [0, "
+		 "num_%s = %d)\n",
+		 int(index),
+		 is_col ? "column" : "row",
+		 is_col ? "col" : "row",
+		 int(num_index));
+    return HighsStatus::kError;
+  }
+  const HighsInt num_index_name = is_col ?
+    this->model_.lp_.col_names_.size() :
+    this->model_.lp_.row_names_.size();
+  if (index >= num_index_name) {
+    highsLogUser(options_.log_options, HighsLogType::kError,
+                 "Index %d for %s name is outside the range [0, "
+                 "num_%s_name = %d)\n",
+                 int(index),
+		 is_col ? "column" : "row",
+		 is_col ? "col" : "row",
+		 int(num_index_name));
+    return HighsStatus::kError;
+  }
+  name = is_col ?
+    this->model_.lp_.col_names_[index]  :
+    this->model_.lp_.row_names_[index];
+  return HighsStatus::kOk;
+}
+
 HighsStatus Highs::setSolution(const HighsInt num_entries,
                                const HighsInt* index, const double* value) {
   HighsStatus return_status = HighsStatus::kOk;

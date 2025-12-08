@@ -1349,6 +1349,16 @@ class Highs {
     return ekk_instance_.primal_phase1_dual_;
   }
 
+
+  /**
+   * @brief Generalisation of getColName and getRowName. Advanced
+   * method: for HiGHS C++ and C API
+   */
+  HighsStatus getColOrRowName(const HighsLp& lp,
+			      const bool is_col,
+			      const HighsInt index,
+			      std::string& name) const;
+
   /**
    * @brief Development methods
    */
