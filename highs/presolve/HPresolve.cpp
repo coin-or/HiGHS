@@ -4826,7 +4826,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
   // variables
 
   // upper bound on length of row
-  const HighsInt maxRowSize = 12;
+  const HighsInt maxRowSize = 10;
 
   // vectors for storing branching decisions, solutions, fixed variables and
   // substitutions
