@@ -4905,8 +4905,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
   // complementary in all feasible solutions
   auto complementaryVars = [&](HighsInt index1, HighsInt index2) {
     for (size_t sol = 0; sol < solutions[index1].size(); sol++) {
-      if (solutions[index1][sol] != HighsInt{1} - solutions[index2][sol])
-        return false;
+      if (solutions[index1][sol] != 1 - solutions[index2][sol]) return false;
     }
     return true;
   };
