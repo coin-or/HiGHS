@@ -1,6 +1,8 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include <cmath> 
+#include <cstdio>
+#include <cublas_v2.h>
 
 // Define Infinity for GPU 
 #define GPU_INF 1e20 
@@ -10,6 +12,15 @@
 #define IDX_DUAL_FEAS   1
 #define IDX_PRIMAL_OBJ  2
 #define IDX_DUAL_OBJ    3
+
+// Add to pdhg.cu
+#define FULL_WARP_REDUCE(val) { \
+  val += __shfl_down_sync(0xFFFFFFFF, val, 16); \
+  val += __shfl_down_sync(0xFFFFFFFF, val, 8); \
+  val += __shfl_down_sync(0xFFFFFFFF, val, 4); \
+  val += __shfl_down_sync(0xFFFFFFFF, val, 2); \
+  val += __shfl_down_sync(0xFFFFFFFF, val, 1); \
+}
 
 // Utility for robust 1D kernel launches
 #define CUDA_GRID_STRIDE_LOOP(i, n)                                  \
@@ -22,6 +33,19 @@ static dim3 GetLaunchConfig(int n, int block_size = 256) {
   return dim3(num_blocks, 1, 1);
 }
 
+// ============================================================================
+// FMA (Fused Multiply-Add) Helper
+// ============================================================================
+// Use __fma_rn for different precision:
+//   __fma_rn  - double precision, round to nearest
+//   __fmaf_rn - single precision, round to nearest
+// FMA computes (a * b + c) in a single operation with only one rounding,
+// which is faster and more numerically accurate.
+
+__device__ __forceinline__ double fma_rn(double a, double b, double c) {
+    return __fma_rn(a, b, c);  // a * b + c
+}
+
 // === KERNEL 1: Update X (Primal Step) ===
 __global__ void kernelUpdateX(
     double* d_x_new, const double* d_x_old, const double* d_aty, 
@@ -29,14 +53,10 @@ __global__ void kernelUpdateX(
     double primal_step, int n_cols) 
 {
   CUDA_GRID_STRIDE_LOOP(i, n_cols) {
-    // 1. Compute gradient: gradient = c - A'y
-    double gradient = d_cost[i] - d_aty[i];
-    
-    // 2. Perform gradient step: x_updated = x_old - step * gradient
-    double x_updated = d_x_old[i] - primal_step * gradient;
+    double x_updated = fma_rn(primal_step, d_aty[i] - d_cost[i], d_x_old[i]);
     
     // 3. Project to bounds [l, u]
-    d_x_new[i] = fmax(d_lower[i], fmin(x_updated, d_upper[i]));
+    d_x_new[i] = fmin(fmax(x_updated, d_lower[i]), d_upper[i]);
   }
 }
 
@@ -48,30 +68,29 @@ __global__ void kernelUpdateY(
     double dual_step, int n_rows)
 {
   CUDA_GRID_STRIDE_LOOP(j, n_rows) {
-    double extra_ax = 2.0 * d_ax_new[j] - d_ax_old[j];
-    double dual_update = d_y_old[j] + dual_step * (d_rhs[j] - extra_ax);
-    if (d_is_equality[j]){// to be optimized 
-      d_y_new[j] = dual_update;  // No bounds for equality constr aints
-    } else {
-      d_y_new[j] = fmax(0.0, dual_update);  // Project to non-negative orthant
-    }
+    double residual = fma_rn(-2.0, d_ax_new[j], d_rhs[j] + d_ax_old[j]);
+    double dual_update = fma_rn(dual_step, residual, d_y_old[j]);
+    d_y_new[j] = d_is_equality[j] ? dual_update : fmax(0.0, dual_update);
   }
 }
 
 // === KERNEL 3: Update Averages ===
-// x_sum = x_sum + weight * x_next
+// x_sum = x_sum + weight * x_next.
 // y_sum = y_sum + weight * y_next
 __global__ void kernelUpdateAverages(
     double* d_x_sum, double* d_y_sum,
     const double* d_x_next, const double* d_y_next,
     double weight, int n_cols, int n_rows)
 {
-  CUDA_GRID_STRIDE_LOOP(i, n_cols) {
-    d_x_sum[i] += weight * d_x_next[i];
-  }
-  CUDA_GRID_STRIDE_LOOP(j, n_rows) {
-    d_y_sum[j] += weight * d_y_next[j];
-  }
+    // Update x_sum
+    CUDA_GRID_STRIDE_LOOP(i, n_cols) {
+        d_x_sum[i] = fma_rn(weight, d_x_next[i], d_x_sum[i]);
+    }
+    
+    // Update y_sum
+    CUDA_GRID_STRIDE_LOOP(j, n_rows) {
+        d_y_sum[j] = fma_rn(weight, d_y_next[j], d_y_sum[j]);
+    }
 }
 
 __global__ void kernelScaleVector(
