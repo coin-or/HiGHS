@@ -2044,9 +2044,14 @@ void HighsDomain::changeBound(HighsDomainChange boundchg, Reason reason) {
   domchgstack_.push_back(boundchg);
   domchgreason_.push_back(reason);
 
-  if (binary && !infeasible_ && isFixed(boundchg.column))
+  if (binary && !infeasible_ && isFixed(boundchg.column)) {
     mipsolver->mipdata_->cliquetable.addImplications(
         *this, boundchg.column, col_lower_[boundchg.column] > 0.5);
+    if (!infeasible_) {
+      mipsolver->mipdata_->implications.applyImplications(
+          *this, boundchg.column, col_lower_[boundchg.column] > 0.5);
+    }
+  }
 }
 
 void HighsDomain::setDomainChangeStack(
@@ -2446,9 +2451,9 @@ bool HighsDomain::propagate() {
               numproprows, std::make_pair(HighsInt{0}, HighsInt{0}));
 
           auto propagateIndex = [&](HighsInt k) {
-            // first check if cut is marked as deleted
-            if (cutpoolprop.propagatecutflags_[k] & 2) return;
             HighsInt i = propagateinds[k];
+            // first check if cut is marked as deleted
+            if (cutpoolprop.propagatecutflags_[i] & 2) return;
 
             HighsInt Rlen;
             const HighsInt* Rindex;

@@ -827,3 +827,44 @@ void HighsImplications::cleanupVub(HighsInt col, HighsInt vubCol,
     infeasible = mipsolver.mipdata_->domain.infeasible();
   }
 }
+
+void HighsImplications::applyImplications(HighsDomain& domain,
+                                          const HighsInt col,
+                                          const HighsInt val) {
+  assert(domain.isFixed(col));
+
+  auto checkImplication = [&](const HighsDomainChange& domchg) -> bool {
+    assert(!domain.infeasible());
+    if (domain.isFixed(domchg.column)) return false;
+    const bool isint =
+        domain.variableType(domchg.column) != HighsVarType::kContinuous;
+    // Directly change bounds on all integer columns. Only change continuous
+    // columns that fix the column, as changing their domains risks
+    // suppressing further bound changes found in propagation, e.g.,
+    // change [0, 100] -> [0, 50], propagation could tighten to [0, 48], but
+    // such a tightening would not be applied due to min boundRange improvement.
+    if (domchg.boundtype == HighsBoundType::kLower) {
+      if ((!isint && domchg.boundval >
+                         domain.col_upper_[domchg.column] - domain.feastol()) ||
+          (isint && domchg.boundval >
+                        domain.col_lower_[domchg.column] + domain.feastol())) {
+        domain.changeBound(domchg, HighsDomain::Reason::cliqueTable(col, val));
+      }
+    } else {
+      if ((!isint && domchg.boundval <
+                         domain.col_lower_[domchg.column] + domain.feastol()) ||
+          (isint && domchg.boundval <
+                        domain.col_upper_[domchg.column] - domain.feastol())) {
+        domain.changeBound(domchg, HighsDomain::Reason::cliqueTable(col, val));
+      }
+    }
+    return domain.infeasible();
+  };
+
+  HighsInt loc = 2 * col + val;
+  if (implications[loc].computed) {
+    for (HighsDomainChange& domchg : implications[loc].implics) {
+      if (checkImplication(domchg)) break;
+    }
+  }
+}
