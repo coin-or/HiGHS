@@ -1066,11 +1066,20 @@ HighsInt Highs_getRowsByMask(const void* highs, const HighsInt* mask,
   return (HighsInt)status;
 }
 
-HighsInt Highs_getRowName(const void* highs, const HighsInt row, char* name) {
+static HighsInt Highs_getHighsLpColOrRowName(const void* highs,
+					     const HighsLp& lp,
+					     const bool is_col,
+					     const HighsInt index,
+					     char* name) {
   std::string name_v;
-  HighsInt retcode = (HighsInt)((Highs*)highs)->getRowName(row, name_v);
+  HighsStatus status = ((Highs*)highs)->getColOrRowName(lp, is_col, index, name_v);
+  if (status == HighsStatus::kError) return kHighsStatusError;
   strcpy(name, name_v.c_str());
-  return retcode;
+  return kHighsStatusOk;
+}
+
+HighsInt Highs_getRowName(const void* highs, const HighsInt row, char* name) {
+  return Highs_getHighsLpColOrRowName(highs, ((Highs*)highs)->getLp(), false, row, name);
 }
 
 HighsInt Highs_getRowByName(const void* highs, const char* name,
@@ -1082,10 +1091,7 @@ HighsInt Highs_getRowByName(const void* highs, const char* name,
 }
 
 HighsInt Highs_getColName(const void* highs, const HighsInt col, char* name) {
-  std::string name_v;
-  HighsInt retcode = (HighsInt)((Highs*)highs)->getColName(col, name_v);
-  strcpy(name, name_v.c_str());
-  return retcode;
+  return Highs_getHighsLpColOrRowName(highs, ((Highs*)highs)->getLp(), true, col, name);
 }
 
 HighsInt Highs_getColByName(const void* highs, const char* name,
@@ -1325,18 +1331,6 @@ HighsInt Highs_getPresolvedLp(const void* highs, const HighsInt a_format,
                               num_col, num_row, num_nz, sense, offset, col_cost,
                               col_lower, col_upper, row_lower, row_upper,
                               a_start, a_index, a_value, integrality);
-}
-
-static HighsInt Highs_getHighsLpColOrRowName(const void* highs,
-					     const HighsLp& lp,
-					     const bool is_col,
-					     const HighsInt index,
-					     char* name) {
-  std::string name_v;
-  HighsStatus status = ((Highs*)highs)->getColOrRowName(lp, is_col, index, name_v);
-  if (status == HighsStatus::kError) return kHighsStatusError;
-  strcpy(name, name_v.c_str());
-  return kHighsStatusOk;
 }
 
 HighsInt Highs_getPresolvedColName(const void* highs, const HighsInt col, char* name) {
