@@ -4826,7 +4826,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
   // variables
 
   // upper bound on length of row
-  const HighsInt maxRowSize = 10;
+  const size_t maxRowSize = 10;
 
   // vectors for storing branching decisions, solutions, fixed variables and
   // substitutions
@@ -4933,23 +4933,22 @@ HPresolve::Result HPresolve::enumerateSolutions(
     // check row
     vars.clear();
     vars.reserve(rowsize[row]);
-    bool allColsBinary = true;
+    bool skiprow = false;
     for (const auto& nz : getRowVector(row)) {
       // skip fixed variables
       if (domain.isFixed(nz.index())) continue;
-      // make sure that all variables are binary
-      allColsBinary = allColsBinary && domain.isBinary(nz.index());
-      if (!allColsBinary) break;
+      // skip row if there are non-binary variables or maximum number of
+      // elements is reached
+      skiprow =
+          skiprow || !domain.isBinary(nz.index()) || vars.size() >= maxRowSize;
+      if (skiprow) break;
       // store index of binary variable
       vars.push_back(nz.index());
     }
-    if (!allColsBinary) continue;
+    if (skiprow) continue;
 
     // store number of (binary) variables
     HighsInt numVars = static_cast<HighsInt>(vars.size());
-
-    // skip rows with too few or too many non-zeros
-    if (numVars <= 1 || numVars > maxRowSize) continue;
 
     // vectors for storing variable status and solutions
     branches.clear();
@@ -4994,11 +4993,13 @@ HPresolve::Result HPresolve::enumerateSolutions(
         // fix variable to its lower bound
         domain.changeBound(HighsBoundType::kUpper, col, domain.col_lower_[col],
                            HighsDomain::Reason::unspecified());
+        if (domain.infeasible()) return Result::kPrimalInfeasible;
         fixings.push_back({col, HighsBoundType::kUpper});
       } else if (sum[i] == static_cast<HighsInt>(solutions[i].size())) {
         // fix variable to its upper bound
         domain.changeBound(HighsBoundType::kLower, col, domain.col_upper_[col],
                            HighsDomain::Reason::unspecified());
+        if (domain.infeasible()) return Result::kPrimalInfeasible;
         fixings.push_back({col, HighsBoundType::kLower});
       } else {
         for (HighsInt ii = i + 1; ii < numVars; ii++) {
@@ -5006,8 +5007,8 @@ HPresolve::Result HPresolve::enumerateSolutions(
           HighsInt col2 = vars[ii];
           // skip already fixed columns
           if (domain.isFixed(col2)) continue;
-          // check if two binary variables take identical values in all feasible
-          // solutions
+          // check if two binary variables take identical or complementary
+          // values in all feasible solutions
           if (identicalVars(i, ii))
             substitutions.push_back({col, col2, HighsInt{-1}});
           else if (complementaryVars(i, ii))
@@ -5033,7 +5034,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
   auto removeSubstitution = [&](size_t i, size_t& numsubs) {
     assert(numsubs > 0);
     assert(i >= 0 && i < numsubs);
-    substitutions[i] = substitutions[numsubs - 1];
+    std::swap(substitutions[i], substitutions[numsubs - 1]);
     numsubs--;
   };
 
