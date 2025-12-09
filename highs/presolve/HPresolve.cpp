@@ -4830,7 +4830,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
   // vectors for storing branching decisions, solutions, fixed variables and
   // substitutions
-  struct subs {
+  struct sub {
     HighsInt col;
     HighsInt col2;
     HighsInt scale;
@@ -4844,7 +4844,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
   std::vector<HighsInt> vars;
   std::vector<HighsInt> branches;
   std::vector<fixing> fixings;
-  std::vector<subs> substitutions;
+  std::vector<sub> substitutions;
 
   // lambda for branching (just performs initial lower branch)
   auto doBranch = [&](HighsDomain& domain, const std::vector<HighsInt>& vars,
