@@ -4999,11 +4999,10 @@ HPresolve::Result HPresolve::enumerateSolutions(
     // main loop
     HighsInt numBranches = -1;
     while (true) {
-      bool backtrack = false;
-      if (!domain.infeasible()) {
-        if (solutionFound(domain, vars)) {
-          // feasible solution for row found
-          backtrack = true;
+      bool backtrack = domain.infeasible();
+      if (!backtrack) {
+        backtrack = solutionFound(domain, vars);
+        if (backtrack) {
           // store solution
           for (HighsInt i = 0; i < numVars; i++) {
             HighsInt solVal =
@@ -5012,9 +5011,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
             aggregated[i] += solVal;
           }
         }
-      } else
-        backtrack = true;
-
+      }
       // branch or backtrack
       if (!backtrack)
         doBranch(domain, vars, branches, numBranches);
