@@ -238,24 +238,28 @@ void assertLogical(const char* name, const HighsInt is) {
   }
 }
 
-void createTestLp(void* highs) {
-  HighsInt num_col = 2;
-  HighsInt num_row = 2;
-  HighsInt num_nz = 4;
-  HighsInt a_format = kHighsMatrixFormatRowwise;
-  HighsInt sense = kHighsObjSenseMinimize;
-  double offset = 0;
-  double cc[2] = {1.0, -2.0};
-  double cl[2] = {0.0, 0.0};
-  double cu[2] = {10.0, 10.0};
-  double rl[2] = {0.0, 0.0};
-  double ru[2] = {2.0, 1.0};
-  HighsInt a_start[3] = {0, 2, 4};
-  HighsInt a_index[4] = {0, 1, 0, 1};
-  double a_value[4] = {1.0, 2.0, 1.0, 3.0};
+void createBlendingLp(void* highs) {
+  // Special variant of the blending LP, with redundant constraint so
+  // that LP is reduced by presolve - but not to empty!
+  const double inf = Highs_getInfinity(highs);
 
-  assert(Highs_addCols(highs, 2, cc, cl, cu, 0, NULL, NULL, NULL) == 0);
-  assert(Highs_addRows(highs, 2, rl, ru, 4, a_start, a_index, a_value) == 0);
+  HighsInt num_col = 2;
+  HighsInt num_row = 3;
+  HighsInt num_nz = 6;
+  HighsInt sense = -1;
+  double col_cost[2] = {8, 10};
+  double col_lower[2] = {0, 0};
+  double col_upper[2] = {inf, inf};
+  double row_lower[3] = {-inf, -inf, -inf};
+  double row_upper[3] = {500, 120, 210};
+  HighsInt a_index[6] = {0, 1, 0, 1, 0, 1};
+  double a_value[6] = {0.5, 0.5, 0.3, 0.5, 0.7, 0.5};
+  HighsInt a_start[3] = {0, 2, 4};
+  Highs_addVars(highs, num_col, col_lower, col_upper);
+  Highs_changeColsCostByRange(highs, 0, num_col - 1, col_cost);
+  Highs_addRows(highs, num_row, row_lower, row_upper, num_nz, a_start, a_index,
+                a_value);
+  Highs_changeObjectiveSense(highs, sense);
 }
 
 // Test methods
@@ -556,7 +560,7 @@ void testNames() {
 
   if (!dev_run) Highs_setBoolOptionValue(highs, "output_flag", 0);
 
-  createTestLp(highs);
+  createBlendingLp(highs);
 
   HighsInt return_status;
 
@@ -657,6 +661,34 @@ void testNames() {
     if (dev_run)
       printf("Row    %" HIGHSINT_FORMAT " has name %s\n", iRow, name_p);
   }
+
+  // Check extraction of names for the presolved LP
+  Highs_presolve(highs);
+  if (dev_run) Highs_writePresolvedModel(highs, "");
+
+  HighsInt presolved_num_col = Highs_getPresolvedNumCol(highs);
+  HighsInt presolved_num_row = Highs_getPresolvedNumRow(highs);
+  assert(presolved_num_col == num_col);
+  assert(presolved_num_row == num_row-1);
+  for (HighsInt iCol = 0; iCol < presolved_num_col; iCol++) {
+    char name[5];
+    char* name_p = name;
+    return_status = Highs_getPresolvedColName(highs, iCol, name_p);
+    assert(return_status == kHighsStatusOk);
+    if (dev_run)
+      printf("Presolved column %" HIGHSINT_FORMAT " has name %s\n", iCol, name_p);
+  }
+
+  for (HighsInt iRow = 0; iRow < presolved_num_row; iRow++) {
+    char name[5];
+    char* name_p = name;
+    return_status = Highs_getPresolvedRowName(highs, iRow, name_p);
+    assert(return_status == kHighsStatusOk);
+    if (dev_run)
+      printf("Presolved row    %" HIGHSINT_FORMAT " has name %s\n", iRow, name_p);
+  }
+
+ 
 
   Highs_destroy(highs);
 }
