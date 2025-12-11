@@ -561,6 +561,12 @@ void getVariableKktFailures(const double primal_feasibility_tolerance,
     // Above upper
     primal_infeasibility = value - upper;
   }
+  std::pair<double, double> infeasiblity_residual =
+      infeasiblity(&lower, &value, &upper, &primal_feasibility_tolerance);
+  // #2653
+  //
+  //  assert(infeasiblity_residual.second == primal_infeasibility);
+
   // Determine whether this value is close to a bound
   at_status = kHighsSolutionNo;
   double residual = std::fabs(lower - value);

@@ -214,4 +214,70 @@ inline T fractionality(T input, T* intval = nullptr) {
   if (intval != nullptr) *intval = val;
   return abs(input - val);
 }
+
+inline std::pair<double, double> infeasiblity(const double* lower,
+                                              const double* value,
+                                              const double* upper,
+                                              const double* tolerance) {
+  using std::fabs;
+  using std::min;
+  double residual = 0;
+  double infeasiblity = 0;
+  std::string bound_type = "";
+  double bound_value = 0;
+  // Determine the infeasiblity exceeding the tolerance used in
+  // computing the number of infeasibilities - which defines
+  // feasibility of a solution
+  if (*value < *lower - *tolerance) {
+    infeasiblity = *lower - *value;
+  }
+  if (*value > *upper + *tolerance) {
+    infeasiblity = *value - *upper;
+  }
+  // Determine the residual used in computing the sum of
+  // infeasibilities and max infeasibility - which are just for
+  // reporting
+  if (*tolerance > 0) {
+    if (*value < *lower) {
+      bound_type = "LB";
+      bound_value = *lower;
+      residual = *lower - *value;
+    }
+    if (*value > *upper) {
+      bound_type = "UB";
+      bound_value = *upper;
+      residual = *value - *upper;
+    }
+  } else {
+    residual = infeasiblity;
+  }
+  // Now, if the bound defining the residual is large, it's possible
+  // for the infeasiblity to be zero, but the residual to exceed the
+  // tolerance due to numerical rounding
+  //
+  // Case in point is #2653 where row 1 has l = 157345 and the
+  // activity gives zero infeasiblity, but a residual of
+  // 1.00000761449e-06, exceeding the tolerance of 1e-6 by delta =
+  // 7.61449e-12.
+  //
+  // Now delta / l = 4.83937e-17, which is less than machine precision
+  // (2.22045e-16), so the reliable residual value should ignore this
+  // delta.
+  //
+  // In general, it might be possible to subtract delta from the
+  // residual conditional on (something like)
+  //
+  // delta < 1e1 * max(1.0, fabs(bound_value)) * kHighsMacheps
+  //
+  // to give a reasonable value but, in practice, when infeasiblity is
+  // 0, it would seem fine to set
+  //
+  // residual = min(residual, tolerance)
+  //
+  // so that values of maximum infeasibility defined by residual
+  // doesn't exceed the tolerance
+  //
+  //  if (infeasiblity == 0) residual = min(residual, *tolerance);
+  return std::make_pair(infeasiblity, residual);
+}
 #endif  // UTIL_HIGHSUTILS_H_
