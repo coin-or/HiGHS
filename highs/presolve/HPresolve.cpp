@@ -5003,12 +5003,16 @@ HPresolve::Result HPresolve::enumerateSolutions(
       if (!backtrack) {
         backtrack = solutionFound(domain, vars);
         if (backtrack) {
-          // store solution
-          for (HighsInt i = 0; i < numVars; i++) {
-            HighsInt solVal =
-                domain.col_lower_[vars[i]] == 0.0 ? HighsInt{0} : HighsInt{1};
-            solutions[i].push_back(solVal);
-            aggregated[i] += solVal;
+          // propagate
+          domain.propagate();
+          if (!domain.infeasible()) {
+            // store solution
+            for (HighsInt i = 0; i < numVars; i++) {
+              HighsInt solVal =
+                  domain.col_lower_[vars[i]] == 0.0 ? HighsInt{0} : HighsInt{1};
+              solutions[i].push_back(solVal);
+              aggregated[i] += solVal;
+            }
           }
         }
       }
