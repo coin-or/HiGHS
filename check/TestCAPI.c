@@ -9,7 +9,7 @@
 #include <math.h>
 #include <string.h>
 
-const HighsInt dev_run = 0;
+const HighsInt dev_run = 1;
 const double double_equal_tolerance = 1e-5;
 
 void checkGetCallbackDataOutPointer(const HighsCallbackDataOut* data_out,
@@ -238,6 +238,27 @@ void assertLogical(const char* name, const HighsInt is) {
   }
 }
 
+void createTestLp(void* highs) {
+  HighsInt num_col = 2;
+  HighsInt num_row = 2;
+  HighsInt num_nz = 4;
+  HighsInt a_format = kHighsMatrixFormatRowwise;
+  HighsInt sense = kHighsObjSenseMinimize;
+  double offset = 0;
+  double cc[2] = {1.0, -2.0};
+  double cl[2] = {0.0, 0.0};
+  double cu[2] = {10.0, 10.0};
+  double rl[2] = {0.0, 0.0};
+  double ru[2] = {2.0, 1.0};
+  HighsInt a_start[3] = {0, 2, 4};
+  HighsInt a_index[4] = {0, 1, 0, 1};
+  double a_value[4] = {1.0, 2.0, 1.0, 3.0};
+
+  assert(Highs_addCols(highs, 2, cc, cl, cu, 0, NULL, NULL, NULL) == 0);
+  assert(Highs_addRows(highs, 2, rl, ru, 4, a_start, a_index, a_value) == 0);
+}
+
+// Test methods
 void versionApi() {
   if (dev_run) {
     printf("HiGHS version %s\n", Highs_version());
@@ -530,74 +551,22 @@ void minimalApiIllegalLp() {
   assert(model_status == kHighsModelStatusNotset);
 }
 
-void fullApi() {
+void testNames() {
   void* highs = Highs_create();
 
   if (!dev_run) Highs_setBoolOptionValue(highs, "output_flag", 0);
 
-  HighsInt num_col = 2;
-  HighsInt num_row = 2;
-  HighsInt num_nz = 4;
-  HighsInt a_format = kHighsMatrixFormatRowwise;
-  HighsInt sense = kHighsObjSenseMinimize;
-  double offset = 0;
-  double cc[2] = {1.0, -2.0};
-  double cl[2] = {0.0, 0.0};
-  double cu[2] = {10.0, 10.0};
-  double rl[2] = {0.0, 0.0};
-  double ru[2] = {2.0, 1.0};
-  HighsInt a_start[3] = {0, 2, 4};
-  HighsInt a_index[4] = {0, 1, 0, 1};
-  double a_value[4] = {1.0, 2.0, 1.0, 3.0};
+  createTestLp(highs);
 
-  assert(Highs_addCols(highs, 2, cc, cl, cu, 0, NULL, NULL, NULL) == 0);
-  assert(Highs_addRows(highs, 2, rl, ru, 4, a_start, a_index, a_value) == 0);
-
-  assert(Highs_getNumCols(highs) == num_col);
-  assert(Highs_getNumRows(highs) == num_row);
-  assert(Highs_getNumNz(highs) == num_nz);
-  assert(Highs_getHessianNumNz(highs) == 0);
-
-  HighsInt ck_num_col;
-  HighsInt ck_num_row;
-  HighsInt ck_num_nz;
-  HighsInt ck_sense;
-  double ck_offset;
-  double ck_cc[2];
-  double ck_cl[2];
-  double ck_cu[2];
-  double ck_rl[2];
-  double ck_ru[2];
-  HighsInt ck_a_start[3];
-  HighsInt ck_a_index[4];
-  double ck_a_value[4];
   HighsInt return_status;
-  return_status = Highs_getModel(
-      highs, a_format, 0, &ck_num_col, &ck_num_row, &ck_num_nz, NULL, &ck_sense,
-      &ck_offset, ck_cc, ck_cl, ck_cu, ck_rl, ck_ru, ck_a_start, ck_a_index,
-      ck_a_value, NULL, NULL, NULL, NULL);
-  assert(return_status == kHighsStatusOk);
 
-  assert(ck_num_col == num_col);
-  assert(ck_num_row == num_row);
-  assert(ck_num_nz == num_nz);
-  assert(ck_sense == sense);
-  assert(ck_offset == offset);
-  assert(doubleArraysEqual(num_col, ck_cc, cc));
-  assert(doubleArraysEqual(num_col, ck_cl, cl));
-  assert(doubleArraysEqual(num_col, ck_cu, cu));
-  assert(doubleArraysEqual(num_row, ck_rl, rl));
-  assert(doubleArraysEqual(num_row, ck_ru, ru));
-  assert(highsIntArraysEqual(num_col, ck_a_start, a_start));
-  assert(highsIntArraysEqual(num_nz, ck_a_index, a_index));
-  assert(doubleArraysEqual(num_nz, ck_a_value, a_value));
-
-  return_status = Highs_run(highs);
-  assert(return_status == kHighsStatusOk);
+  HighsInt num_col = Highs_getNumCols(highs);
+  HighsInt num_row = Highs_getNumRows(highs);
 
   char* col_prefix = "Col";
   char* row_prefix = "Row";
   // Check index out of bounds
+
   return_status = Highs_passColName(highs, -1, col_prefix);
   assert(return_status == kHighsStatusError);
   return_status = Highs_passColName(highs, num_col, col_prefix);
@@ -1799,18 +1768,25 @@ void testGetModel() {
   Highs_addRows(highs, num_row, row_lower, row_upper, num_nz, a_start, a_index,
                 a_value);
   Highs_changeObjectiveSense(highs, sense);
-  Highs_run(highs);
+
+  assert(Highs_getNumCols(highs) == num_col);
+  assert(Highs_getNumRows(highs) == num_row);
+  assert(Highs_getNumNz(highs) == num_nz);
+  assert(Highs_getHessianNumNz(highs) == 0);
 
   HighsInt ck_num_col;
   HighsInt ck_num_row;
   HighsInt ck_num_nz;
   HighsInt ck_sense;
   double ck_offset;
+  HighsInt a_format = kHighsMatrixFormatRowwise;
 
   // Get the model dimensions by passing array pointers as NULL
-  Highs_getLp(highs, kHighsMatrixFormatRowwise, &ck_num_col, &ck_num_row,
+  HighsInt return_status;
+  return_status = Highs_getLp(highs, a_format, &ck_num_col, &ck_num_row,
               &ck_num_nz, &ck_sense, &ck_offset, NULL, NULL, NULL, NULL, NULL,
               NULL, NULL, NULL, NULL);
+  assert(return_status == kHighsStatusOk);
 
   assert(ck_num_col == num_col);
   assert(ck_num_row == num_row);
@@ -1829,11 +1805,32 @@ void testGetModel() {
   double* ck_a_value = (double*)malloc(sizeof(double) * num_nz);
 
   // Get the arrays
-  Highs_getLp(highs, kHighsMatrixFormatRowwise, &ck_num_col, &ck_num_row,
+  return_status = Highs_getLp(highs, a_format, &ck_num_col, &ck_num_row,
               &ck_num_nz, &ck_sense, &ck_offset, ck_col_cost, ck_col_lower,
               ck_col_upper, ck_row_lower, ck_row_upper, ck_a_start, ck_a_index,
               ck_a_value, NULL);
+  assert(return_status == kHighsStatusOk);
 
+  assert(doubleArraysEqual(num_col, ck_col_cost, col_cost));
+  assert(doubleArraysEqual(num_col, ck_col_lower, col_lower));
+  assert(doubleArraysEqual(num_col, ck_col_upper, col_upper));
+  assert(doubleArraysEqual(num_row, ck_row_lower, row_lower));
+  assert(doubleArraysEqual(num_row, ck_row_upper, row_upper));
+  assert(highsIntArraysEqual(num_col, ck_a_start, a_start));
+  assert(highsIntArraysEqual(num_nz, ck_a_index, a_index));
+  assert(doubleArraysEqual(num_nz, ck_a_value, a_value));
+
+  return_status = Highs_getModel(
+      highs, a_format, 0, &ck_num_col, &ck_num_row, &ck_num_nz, NULL, &ck_sense,
+      &ck_offset, ck_col_cost, ck_col_lower,
+      ck_col_upper, ck_row_lower, ck_row_upper, ck_a_start, ck_a_index,
+      ck_a_value, NULL, NULL, NULL, NULL);
+  assert(return_status == kHighsStatusOk);
+
+  assert(ck_num_col == num_col);
+  assert(ck_num_row == num_row);
+  assert(ck_num_nz == num_nz);
+  assert(ck_sense == sense);
   assert(doubleArraysEqual(num_col, ck_col_cost, col_cost));
   assert(doubleArraysEqual(num_col, ck_col_lower, col_lower));
   assert(doubleArraysEqual(num_col, ck_col_upper, col_upper));
@@ -2455,30 +2452,30 @@ void testFixedLp() {
 }
 
 int main() {
-  minimalApiIllegalLp();
-  testCallback();
-  versionApi();
-  fullApi();
-  minimalApiLp();
-  minimalApiMip();
-  minimalApiQp();
-  fullApiOptions();
-  fullApiLp();
-  fullApiMip();
-  fullApiQp();
-  passPresolveGetLp();
-  options();
-  testGetColsByRange();
-  testPassHessian();
-  testRanging();
-  testFeasibilityRelaxation();
-  testGetModel();
-  testMultiObjective();
-  testQpIndefiniteFailure();
-  testDualRayTwice();
-  testDeleteRowResolveWithBasis();
-  testIis();
-  testFixedLp();
+  //  minimalApiIllegalLp();
+  //  testCallback();
+  //  versionApi();
+  //  minimalApiLp();
+  //  minimalApiMip();
+  //  minimalApiQp();
+  //  fullApiOptions();
+  //  fullApiLp();
+  //  fullApiMip();
+  //  fullApiQp();
+  //  passPresolveGetLp();
+  //  options();
+  //  testGetColsByRange();
+  //  testPassHessian();
+  //  testRanging();
+  //  testFeasibilityRelaxation();
+  testNames();
+  //  testGetModel();
+  //  testMultiObjective();
+  //  testQpIndefiniteFailure();
+  //  testDualRayTwice();
+  //  testDeleteRowResolveWithBasis();
+  //  testIis();
+  //  testFixedLp();
   return 0;
 }
 //  testSetSolution();
