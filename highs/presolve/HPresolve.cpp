@@ -4956,7 +4956,6 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
   // loop over candiate rows
   HighsInt numRowsChecked = 0;
-  HighsInt numVarsFixed = 0;
   for (const auto& r : rows) {
     // get row index
     HighsInt row = r.row;
@@ -5058,6 +5057,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
   }
 
   // now remove fixed columns and tighten domains
+  HighsInt numVarsFixed = 0;
   for (HighsInt i = 0; i != model->num_col_; ++i) {
     if (colDeleted[i]) continue;
     if (model->col_lower_[i] < domain.col_lower_[i])
@@ -5065,6 +5065,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
     if (model->col_upper_[i] > domain.col_upper_[i])
       changeColUpper(i, domain.col_upper_[i]);
     if (domain.isFixed(i)) {
+      numVarsFixed++;
       postsolve_stack.removedFixedCol(i, model->col_lower_[i], 0.0,
                                       HighsEmptySlice());
       removeFixedCol(i);
