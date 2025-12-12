@@ -320,7 +320,8 @@ class HPresolve {
 
   void scaleMIP(HighsPostsolveStack& postsolve_stack);
 
-  Result applyConflictGraphSubstitutions(HighsPostsolveStack& postsolve_stack);
+  Result applyConflictGraphSubstitutions(HighsPostsolveStack& postsolve_stack,
+                                         HighsInt& numDelCol);
 
   Result fastPresolveLoop(HighsPostsolveStack& postsolve_stack);
 

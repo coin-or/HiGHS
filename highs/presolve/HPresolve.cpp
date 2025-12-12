@@ -1730,7 +1730,8 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
     }
 
     // finally apply substitutions
-    HPRESOLVE_CHECKED_CALL(applyConflictGraphSubstitutions(postsolve_stack));
+    HPRESOLVE_CHECKED_CALL(
+        applyConflictGraphSubstitutions(postsolve_stack, probingNumDelCol));
 
     highsLogDev(options->log_options, HighsLogType::kInfo,
                 "%" HIGHSINT_FORMAT " probing evaluations: %" HIGHSINT_FORMAT
@@ -2333,14 +2334,14 @@ void HPresolve::scaleMIP(HighsPostsolveStack& postsolve_stack) {
 }
 
 HPresolve::Result HPresolve::applyConflictGraphSubstitutions(
-    HighsPostsolveStack& postsolve_stack) {
+    HighsPostsolveStack& postsolve_stack, HighsInt& numDelCol) {
   HighsCliqueTable& cliquetable = mipsolver->mipdata_->cliquetable;
   HighsImplications& implications = mipsolver->mipdata_->implications;
   for (const auto& substitution : implications.substitutions) {
     if (colDeleted[substitution.substcol] || colDeleted[substitution.staycol])
       continue;
 
-    ++probingNumDelCol;
+    ++numDelCol;
 
     postsolve_stack.doubletonEquation(
         -1, substitution.substcol, substitution.staycol, 1.0,
@@ -2362,7 +2363,7 @@ HPresolve::Result HPresolve::applyConflictGraphSubstitutions(
     double scale;
     double offset;
 
-    ++probingNumDelCol;
+    ++numDelCol;
 
     if (subst.replace.val == 0) {
       scale = -1.0;
@@ -4909,6 +4910,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
   // prepare for domain propagation
   mipsolver->mipdata_->setupDomainPropagation();
   HighsDomain& domain = mipsolver->mipdata_->domain;
+  HighsCliqueTable& cliquetable = mipsolver->mipdata_->cliquetable;
 
   // maximum size of a row and maximum number of rows that will be checked
   const size_t maxRowSize = 12;
@@ -4946,26 +4948,15 @@ HPresolve::Result HPresolve::enumerateSolutions(
                                                : row1.numnzs < row2.numnzs);
           });
 
-  // vectors for storing branching decisions, solutions, fixed variables and
-  // substitutions
-  struct sub {
-    HighsInt col;
-    HighsInt col2;
-    HighsInt scale;
-  };
-  struct fixing {
-    HighsInt col;
-    HighsBoundType bndtype;
-  };
+  // vectors for storing branching decisions and solutions
   std::vector<HighsInt> aggregated;
   std::vector<std::vector<HighsInt>> solutions;
   std::vector<HighsInt> vars;
   std::vector<HighsInt> branches;
-  std::vector<fixing> fixings;
-  std::vector<sub> substitutions;
 
   // loop over candiate rows
   HighsInt numRowsChecked = 0;
+  HighsInt numVarsFixed = 0;
   for (const auto& r : rows) {
     // get row index
     HighsInt row = r.row;
@@ -5030,16 +5021,16 @@ HPresolve::Result HPresolve::enumerateSolutions(
       if (domain.isFixed(col)) continue;
       if (aggregated[i] == 0) {
         // fix variable to its lower bound
+        numVarsFixed++;
         domain.changeBound(HighsBoundType::kUpper, col, domain.col_lower_[col],
                            HighsDomain::Reason::unspecified());
         if (domain.infeasible()) return Result::kPrimalInfeasible;
-        fixings.push_back({col, HighsBoundType::kUpper});
       } else if (aggregated[i] == static_cast<HighsInt>(solutions[i].size())) {
         // fix variable to its upper bound
+        numVarsFixed++;
         domain.changeBound(HighsBoundType::kLower, col, domain.col_upper_[col],
                            HighsDomain::Reason::unspecified());
         if (domain.infeasible()) return Result::kPrimalInfeasible;
-        fixings.push_back({col, HighsBoundType::kLower});
       } else {
         for (HighsInt ii = i + 1; ii < numVars; ii++) {
           // get column index
@@ -5048,85 +5039,43 @@ HPresolve::Result HPresolve::enumerateSolutions(
           if (domain.isFixed(col2)) continue;
           // check if two binary variables take identical or complementary
           // values in all feasible solutions
-          if (identicalVars(solutions, i, ii))
-            substitutions.push_back({col, col2, HighsInt{-1}});
-          else if (complementaryVars(solutions, i, ii))
-            substitutions.push_back({col, col2, HighsInt{1}});
+          if (identicalVars(solutions, i, ii)) {
+            // add clique x_1 + (1 - x_2) = 1 to clique table
+            std::array<HighsCliqueTable::CliqueVar, 2> clique;
+            clique[0] = HighsCliqueTable::CliqueVar(col, 0);
+            clique[1] = HighsCliqueTable::CliqueVar(col2, 1);
+            cliquetable.addClique(*mipsolver, clique.data(), 2, true);
+          } else if (complementaryVars(solutions, i, ii)) {
+            // add clique x_1 + x_2 = 1 to clique table
+            std::array<HighsCliqueTable::CliqueVar, 2> clique;
+            clique[0] = HighsCliqueTable::CliqueVar(col, 0);
+            clique[1] = HighsCliqueTable::CliqueVar(col2, 0);
+            cliquetable.addClique(*mipsolver, clique.data(), 2, true);
+          }
         }
       }
     }
   }
 
-  // now remove fixed columns
-  HighsInt numVarsFixed = 0;
-  for (const auto& f : fixings) {
-    if (colDeleted[f.col]) continue;
-    numVarsFixed++;
-    if (f.bndtype == HighsBoundType::kUpper)
-      HPRESOLVE_CHECKED_CALL(fixColToLower(postsolve_stack, f.col));
-    else
-      HPRESOLVE_CHECKED_CALL(fixColToUpper(postsolve_stack, f.col));
+  // now remove fixed columns and tighten domains
+  for (HighsInt i = 0; i != model->num_col_; ++i) {
+    if (colDeleted[i]) continue;
+    if (model->col_lower_[i] < domain.col_lower_[i])
+      changeColLower(i, domain.col_lower_[i]);
+    if (model->col_upper_[i] > domain.col_upper_[i])
+      changeColUpper(i, domain.col_upper_[i]);
+    if (domain.isFixed(i)) {
+      postsolve_stack.removedFixedCol(i, model->col_lower_[i], 0.0,
+                                      HighsEmptySlice());
+      removeFixedCol(i);
+    }
     HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
   }
 
-  // lambda for removing a substitution
-  auto removeSubstitution = [&](size_t i, size_t& numsubs) {
-    assert(numsubs > 0);
-    assert(i >= 0 && i < numsubs);
-    std::swap(substitutions[i], substitutions[numsubs - 1]);
-    numsubs--;
-  };
-
-  // check substitutions
+  // finally apply substitutions
   HighsInt numVarsSubstituted = 0;
-  size_t i = 0;
-  size_t numsubs = substitutions.size();
-  while (i < numsubs) {
-    const auto& s = substitutions[i];
-    HighsInt col = s.col;
-    HighsInt col2 = s.col2;
-    HighsInt scale = s.scale;
-    // skip deleted columns
-    if (!colDeleted[col] && !colDeleted[col2]) {
-      // perform substitution
-      numVarsSubstituted++;
-      double offset = scale > 0 ? 1.0 : 0.0;
-      postsolve_stack.doubletonEquation(
-          -1, col, col2, 1.0, scale, offset, model->col_lower_[col],
-          model->col_upper_[col], 0.0, false, false,
-          HighsPostsolveStack::RowType::kEq, HighsEmptySlice());
-      markColDeleted(col);
-      substitute(col, col2, offset, -scale);
-      HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
-      // update remaining substitutions
-      size_t ii = i + 1;
-      while (ii < numsubs) {
-        auto& s2 = substitutions[ii];
-        // check if this is a duplicate substitution
-        if ((s2.col != col || s2.col2 != col2) &&
-            (s2.col != col2 || s2.col2 != col)) {
-          // update substitutions that contain the removed variable
-          if (s2.col == col || s2.col2 == col) {
-            if (s2.col == col)
-              s2.col = col2;
-            else
-              s2.col2 = col2;
-            s2.scale *= (-scale);
-          }
-        } else {
-          // remove duplicate substitution
-          removeSubstitution(ii, numsubs);
-          continue;
-        }
-        ii++;
-      }
-    } else {
-      // remove substitution containing already deleted columns
-      removeSubstitution(i, numsubs);
-      continue;
-    }
-    i++;
-  }
+  HPRESOLVE_CHECKED_CALL(
+      applyConflictGraphSubstitutions(postsolve_stack, numVarsSubstituted));
 
   if (numVarsFixed > 0 || numVarsSubstituted > 0)
     highsLogDev(
@@ -5337,8 +5286,9 @@ HPresolve::Result HPresolve::presolve(HighsPostsolveStack& postsolve_stack) {
       // structure may contain substitutions which we apply directly before
       // running the aggregator as they might lose validity otherwise
       if (mipsolver != nullptr) {
+        HighsInt numDelCol = 0;
         HPRESOLVE_CHECKED_CALL(
-            applyConflictGraphSubstitutions(postsolve_stack));
+            applyConflictGraphSubstitutions(postsolve_stack, numDelCol));
       }
 
       if (analysis_.allow_rule_[kPresolveRuleAggregator])
