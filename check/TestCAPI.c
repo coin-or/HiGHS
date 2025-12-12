@@ -573,9 +573,9 @@ void testNames() {
 
   return_status = Highs_passColName(highs, -1, col_prefix);
   assert(return_status == kHighsStatusError);
-  return_status = Highs_passColName(highs, num_col, col_prefix);
-  assert(return_status == kHighsStatusError);
   return_status = Highs_passRowName(highs, -1, row_prefix);
+  assert(return_status == kHighsStatusError);
+  return_status = Highs_passColName(highs, num_col, col_prefix);
   assert(return_status == kHighsStatusError);
   return_status = Highs_passRowName(highs, num_row, row_prefix);
   assert(return_status == kHighsStatusError);
@@ -588,12 +588,12 @@ void testNames() {
   return_status = Highs_writeModel(highs, "");
   assert(return_status == kHighsStatusError);
 
+  char name[5];  // 3 chars prefix, 1 char iCol, 1 char 0-terminator
+
   // Define all column names to be different
   for (HighsInt iCol = 0; iCol < num_col; iCol++) {
-    char name[5];  // 3 chars prefix, 1 char iCol, 1 char 0-terminator
     sprintf(name, "%s%" HIGHSINT_FORMAT "", col_prefix, iCol);
-    const char* name_p = name;
-    return_status = Highs_passColName(highs, iCol, name_p);
+    return_status = Highs_passColName(highs, iCol, name);
     assert(return_status == kHighsStatusOk);
   }
   return_status = Highs_writeModel(highs, "");
@@ -602,7 +602,6 @@ void testNames() {
   // Check that the columns can be found by name
   HighsInt ck_iCol;
   for (HighsInt iCol = 0; iCol < num_col; iCol++) {
-    char name[5];
     return_status = Highs_getColName(highs, iCol, name);
     assert(return_status == kHighsStatusOk);
     return_status = Highs_getColByName(highs, name, &ck_iCol);
@@ -622,10 +621,8 @@ void testNames() {
 
   // Define all row names to be different
   for (HighsInt iRow = 0; iRow < num_row; iRow++) {
-    char name[5];  // 3 chars prefix, 1 char iCol, 1 char 0-terminator
     sprintf(name, "%s%" HIGHSINT_FORMAT "", row_prefix, iRow);
-    const char* name_p = name;
-    return_status = Highs_passRowName(highs, iRow, name_p);
+    return_status = Highs_passRowName(highs, iRow, name);
     assert(return_status == kHighsStatusOk);
   }
   return_status = Highs_writeModel(highs, "");
@@ -645,21 +642,17 @@ void testNames() {
   assert(return_status == kHighsStatusError);
 
   for (HighsInt iCol = 0; iCol < num_col; iCol++) {
-    char name[5];
-    char* name_p = name;
-    return_status = Highs_getColName(highs, iCol, name_p);
+    return_status = Highs_getColName(highs, iCol, name);
     assert(return_status == kHighsStatusOk);
     if (dev_run)
-      printf("Column %" HIGHSINT_FORMAT " has name %s\n", iCol, name_p);
+      printf("Column %" HIGHSINT_FORMAT " has name %s\n", iCol, name);
   }
 
   for (HighsInt iRow = 0; iRow < num_row; iRow++) {
-    char name[5];
-    char* name_p = name;
-    return_status = Highs_getRowName(highs, iRow, name_p);
+    return_status = Highs_getRowName(highs, iRow, name);
     assert(return_status == kHighsStatusOk);
     if (dev_run)
-      printf("Row    %" HIGHSINT_FORMAT " has name %s\n", iRow, name_p);
+      printf("Row    %" HIGHSINT_FORMAT " has name %s\n", iRow, name);
   }
 
   // Check extraction of names for the presolved LP, in which the
@@ -671,22 +664,30 @@ void testNames() {
   HighsInt presolved_num_row = Highs_getPresolvedNumRow(highs);
   assert(presolved_num_col == num_col);
   assert(presolved_num_row == num_row-1);
+
+  char presolved_name[5];
+
+  return_status = Highs_getPresolvedColName(highs, -1, presolved_name);
+  assert(return_status == kHighsStatusError);
+  return_status = Highs_getPresolvedRowName(highs, -1, presolved_name);
+  assert(return_status == kHighsStatusError);
+  return_status = Highs_getPresolvedColName(highs, presolved_num_col, presolved_name);
+  assert(return_status == kHighsStatusError);
+  return_status = Highs_getPresolvedRowName(highs, presolved_num_row, presolved_name);
+  assert(return_status == kHighsStatusError);
+  
   for (HighsInt iCol = 0; iCol < presolved_num_col; iCol++) {
-    char presolved_name[5];
-    char* presolved_name_p = presolved_name;
-    return_status = Highs_getPresolvedColName(highs, iCol, presolved_name_p);
+    return_status = Highs_getPresolvedColName(highs, iCol, presolved_name);
     assert(return_status == kHighsStatusOk);
     if (dev_run)
-      printf("Presolved column %" HIGHSINT_FORMAT " has name %s\n", iCol, presolved_name_p);
+      printf("Presolved column %" HIGHSINT_FORMAT " has name %s\n", iCol, presolved_name);
   }
 
   for (HighsInt iRow = 0; iRow < presolved_num_row; iRow++) {
-    char presolved_name[5];
-    char* presolved_name_p = presolved_name;
-    return_status = Highs_getPresolvedRowName(highs, iRow, presolved_name_p);
+    return_status = Highs_getPresolvedRowName(highs, iRow, presolved_name);
     assert(return_status == kHighsStatusOk);
     if (dev_run)
-      printf("Presolved row    %" HIGHSINT_FORMAT " has name %s\n", iRow, presolved_name_p);
+      printf("Presolved row    %" HIGHSINT_FORMAT " has name %s\n", iRow, presolved_name);
   }
 
   Highs_destroy(highs);
