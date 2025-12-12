@@ -662,7 +662,8 @@ void testNames() {
       printf("Row    %" HIGHSINT_FORMAT " has name %s\n", iRow, name_p);
   }
 
-  // Check extraction of names for the presolved LP
+  // Check extraction of names for the presolved LP, in which the
+  // first row is removed
   Highs_presolve(highs);
   if (dev_run) Highs_writePresolvedModel(highs, "");
 
@@ -671,24 +672,22 @@ void testNames() {
   assert(presolved_num_col == num_col);
   assert(presolved_num_row == num_row-1);
   for (HighsInt iCol = 0; iCol < presolved_num_col; iCol++) {
-    char name[5];
-    char* name_p = name;
-    return_status = Highs_getPresolvedColName(highs, iCol, name_p);
+    char presolved_name[5];
+    char* presolved_name_p = presolved_name;
+    return_status = Highs_getPresolvedColName(highs, iCol, presolved_name_p);
     assert(return_status == kHighsStatusOk);
     if (dev_run)
-      printf("Presolved column %" HIGHSINT_FORMAT " has name %s\n", iCol, name_p);
+      printf("Presolved column %" HIGHSINT_FORMAT " has name %s\n", iCol, presolved_name_p);
   }
 
   for (HighsInt iRow = 0; iRow < presolved_num_row; iRow++) {
-    char name[5];
-    char* name_p = name;
-    return_status = Highs_getPresolvedRowName(highs, iRow, name_p);
+    char presolved_name[5];
+    char* presolved_name_p = presolved_name;
+    return_status = Highs_getPresolvedRowName(highs, iRow, presolved_name_p);
     assert(return_status == kHighsStatusOk);
     if (dev_run)
-      printf("Presolved row    %" HIGHSINT_FORMAT " has name %s\n", iRow, name_p);
+      printf("Presolved row    %" HIGHSINT_FORMAT " has name %s\n", iRow, presolved_name_p);
   }
-
- 
 
   Highs_destroy(highs);
 }

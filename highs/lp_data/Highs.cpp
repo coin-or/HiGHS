@@ -2415,8 +2415,8 @@ HighsStatus Highs::getColOrRowName(const HighsLp& lp, const bool is_col,
                  int(num_index));
     return HighsStatus::kError;
   }
-  const HighsInt num_index_name = is_col ? this->model_.lp_.col_names_.size()
-                                         : this->model_.lp_.row_names_.size();
+  const HighsInt num_index_name =
+      is_col ? lp.col_names_.size() : lp.row_names_.size();
   if (index >= num_index_name) {
     highsLogUser(options_.log_options, HighsLogType::kError,
                  "Index %d for %s name is outside the range [0, "
@@ -2425,8 +2425,7 @@ HighsStatus Highs::getColOrRowName(const HighsLp& lp, const bool is_col,
                  int(num_index_name));
     return HighsStatus::kError;
   }
-  name = is_col ? this->model_.lp_.col_names_[index]
-                : this->model_.lp_.row_names_[index];
+  name = is_col ? lp.col_names_[index] : lp.row_names_[index];
   return HighsStatus::kOk;
 }
 
