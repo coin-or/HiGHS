@@ -5020,13 +5020,11 @@ HPresolve::Result HPresolve::enumerateSolutions(
       if (domain.isFixed(col)) continue;
       if (aggregated[i] == 0) {
         // fix variable to its lower bound
-        numVarsFixed++;
         domain.changeBound(HighsBoundType::kUpper, col, domain.col_lower_[col],
                            HighsDomain::Reason::unspecified());
         if (domain.infeasible()) return Result::kPrimalInfeasible;
       } else if (aggregated[i] == static_cast<HighsInt>(solutions[i].size())) {
         // fix variable to its upper bound
-        numVarsFixed++;
         domain.changeBound(HighsBoundType::kLower, col, domain.col_upper_[col],
                            HighsDomain::Reason::unspecified());
         if (domain.infeasible()) return Result::kPrimalInfeasible;
