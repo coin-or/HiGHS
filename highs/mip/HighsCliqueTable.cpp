@@ -1973,7 +1973,7 @@ void HighsCliqueTable::runCliqueMerging(HighsDomain& globaldomain,
 
   HighsInt initialCliqueSize = clique.size();
   for (HighsInt i = 0; i != initialCliqueSize; ++i) {
-    if (globaldomain.isFixed(cliqueentries[i].col)) continue;
+    if (globaldomain.isFixed(clique[i].col)) continue;
 
     HighsInt thisNumClqs = numCliques(clique[i]);
     if (thisNumClqs < numcliques) {
