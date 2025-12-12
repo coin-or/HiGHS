@@ -4913,7 +4913,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
   HighsCliqueTable& cliquetable = mipsolver->mipdata_->cliquetable;
 
   // maximum size of a row and maximum number of rows that will be checked
-  const size_t maxRowSize = 12;
+  const size_t maxRowSize = 8;
   const HighsInt maxNumRowsChecked = 500;
 
   // check rows
