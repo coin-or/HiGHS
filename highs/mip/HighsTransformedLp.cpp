@@ -62,15 +62,13 @@ HighsTransformedLp::HighsTransformedLp(const HighsLpRelaxation& lprelaxation,
     if (lbDist[col] <= ubDist[col] && lbDist[col] == 0 &&
         bestVlb[col].first != -1) {
       const double frac =
-          std::min(lpSolution.col_value[bestVlb[col].first],
-                   1 - lpSolution.col_value[bestVlb[col].first]);
-      colFractionality[col] = bestVlb[col].second.coef * frac;
+          fractionality(lpSolution.col_value[bestVlb[col].first]);
+      colFractionality[col] = std::abs(bestVlb[col].second.coef * frac);
     } else if (ubDist[col] <= lbDist[col] && ubDist[col] == 0 &&
                bestVub[col].first != -1) {
       const double frac =
-          std::min(lpSolution.col_value[bestVub[col].first],
-                   1 - lpSolution.col_value[bestVub[col].first]);
-      colFractionality[col] = bestVub[col].second.coef * frac;
+          fractionality(lpSolution.col_value[bestVub[col].first]);
+      colFractionality[col] = std::abs(bestVub[col].second.coef) * frac;
     }
   }
 

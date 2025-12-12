@@ -116,9 +116,9 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
          i != lp.a_matrix_.start_[col + 1]; ++i) {
       HighsInt row = lp.a_matrix_.index_[i];
       if (rowtype[row] == RowType::kUnusuable) continue;
-      double val = lp.a_matrix_.value_[i];
-      rowscore[row].first += std::abs(val * transLp.getColFractionality(col));
-      rowscore[row].second += std::abs(val);
+      double val = std::abs(lp.a_matrix_.value_[i]);
+      rowscore[row].first += val * transLp.getColFractionality(col);
+      rowscore[row].second += val;
     }
   }
   for (HighsInt row = 0; row != lp.num_row_; ++row) {
