@@ -9,7 +9,7 @@
 #include <math.h>
 #include <string.h>
 
-const HighsInt dev_run = 1;
+const HighsInt dev_run = 0;
 const double double_equal_tolerance = 1e-5;
 
 void checkGetCallbackDataOutPointer(const HighsCallbackDataOut* data_out,
@@ -2484,30 +2484,30 @@ void testFixedLp() {
 }
 
 int main() {
-  //  minimalApiIllegalLp();
-  //  testCallback();
-  //  versionApi();
-  //  minimalApiLp();
-  //  minimalApiMip();
-  //  minimalApiQp();
-  //  fullApiOptions();
-  //  fullApiLp();
-  //  fullApiMip();
-  //  fullApiQp();
-  //  passPresolveGetLp();
-  //  options();
-  //  testGetColsByRange();
-  //  testPassHessian();
-  //  testRanging();
-  //  testFeasibilityRelaxation();
+  minimalApiIllegalLp();
+  testCallback();
+  versionApi();
+  minimalApiLp();
+  minimalApiMip();
+  minimalApiQp();
+  fullApiOptions();
+  fullApiLp();
+  fullApiMip();
+  fullApiQp();
+  passPresolveGetLp();
+  options();
+  testGetColsByRange();
+  testPassHessian();
+  testRanging();
+  testFeasibilityRelaxation();
   testNames();
-  //  testGetModel();
-  //  testMultiObjective();
-  //  testQpIndefiniteFailure();
-  //  testDualRayTwice();
-  //  testDeleteRowResolveWithBasis();
-  //  testIis();
-  //  testFixedLp();
+  testGetModel();
+  testMultiObjective();
+  testQpIndefiniteFailure();
+  testDualRayTwice();
+  testDeleteRowResolveWithBasis();
+  testIis();
+  testFixedLp();
   return 0;
 }
 //  testSetSolution();
