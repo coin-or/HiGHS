@@ -293,7 +293,7 @@ enum IisStrategy : int {
                     kIisStrategyRelaxation
 };
 
-enum IisStatus {
+enum IisStatus : int {
   kIisStatusMin = -1,
   kIisStatusNotInConflict = kIisStatusMin,  // -1
   kIisStatusMaybeInConflict,                // 0
