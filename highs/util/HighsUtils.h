@@ -216,9 +216,9 @@ inline T fractionality(T input, T* intval = nullptr) {
 }
 
 inline std::pair<double, double> infeasibility(const double* lower,
-                                              const double* value,
-                                              const double* upper,
-                                              const double* tolerance) {
+                                               const double* value,
+                                               const double* upper,
+                                               const double* tolerance) {
   using std::fabs;
   using std::min;
   double residual = 0;

@@ -284,12 +284,10 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
       // one-sided variables. For free variables, fixed variables, or
       // variables with small positive bound interval lengths,
       // mid_status is returned as kHighsSolutionNo.
-      const HighsInt index = pass == 0 ? 0 : (is_col ? iVar : -(1+(iVar-lp.num_col_)));
       getVariableKktFailures(primal_feasibility_tolerance,
                              dual_feasibility_tolerance, lower, upper, value,
                              dual, integrality, primal_infeasibility,
-                             dual_infeasibility, at_status, mid_status,
-			     index);
+                             dual_infeasibility, at_status, mid_status);
       if (pass == 0) {
         // If the primal value is close to a bound then include the bound
         // in the active bound norm
@@ -551,9 +549,11 @@ void getVariableKktFailures(const double primal_feasibility_tolerance,
                             const HighsVarType integrality,
                             double& primal_infeasibility,
                             double& dual_infeasibility, uint8_t& at_status,
-                            uint8_t& mid_status,
-			    const HighsInt index) {
-  const HighsInt feasibility_tolerance_mu = 0.0;
+                            uint8_t& mid_status, const HighsInt index) {
+  // Return the primal residual (ie infeasibility with zero tolerance)
+  // as the primal infeasibility, ensuring (cf #2653) that it doesn't
+  // exceed the primal feasibility tolerance if the standard primal
+  // infeasibility (ie infeasibility exceeding the tolerance) is zero
   std::pair<double, double> infeasibility_residual =
       infeasibility(&lower, &value, &upper, &primal_feasibility_tolerance);
   primal_infeasibility = infeasibility_residual.second;
