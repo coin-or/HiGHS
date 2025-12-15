@@ -4826,78 +4826,6 @@ HPresolve::Result HPresolve::enumerateSolutions(
   // enumerate all solutions for pure binary constraints with a small number of
   // variables
 
-  // lambda for branching (just performs initial lower branch)
-  auto doBranch = [&](HighsDomain& domain, const std::vector<HighsInt>& vars,
-                      std::vector<HighsInt>& branches, HighsInt& numBranches) {
-    // find variable for branching
-    HighsInt branchvar = -1;
-    for (HighsInt j : vars) {
-      if (!domain.isFixed(j)) {
-        branchvar = j;
-        break;
-      }
-    }
-    if (branchvar < 0) return;
-
-    // branch downwards
-    branches[++numBranches] =
-        static_cast<HighsInt>(domain.getDomainChangeStack().size());
-    domain.changeBound(HighsBoundType::kUpper, branchvar, 0);
-  };
-
-  // lambda for backtracking
-  auto doBacktrack = [&](HighsDomain& domain, std::vector<HighsInt>& branches,
-                         HighsInt& numBranches) {
-    while (numBranches >= 0) {
-      // get column index
-      const auto& domchg = domain.getDomainChangeStack()[branches[numBranches]];
-      HighsInt col = domchg.column;
-      HighsBoundType bndtype = domchg.boundtype;
-      // backtrack
-      domain.backtrack();
-      if (bndtype == HighsBoundType::kUpper) {
-        // branch upwards
-        domain.changeBound(HighsBoundType::kLower, col, 1);
-        break;
-      } else {
-        // remove branch
-        branches[numBranches--] = 0;
-      }
-    }
-    // check if enumeration is complete
-    return (numBranches >= 0);
-  };
-
-  // lambda for checking if a solution was found
-  auto solutionFound = [&](const HighsDomain& domain,
-                           std::vector<HighsInt>& vars) {
-    for (HighsInt j : vars)
-      if (!domain.isFixed(j)) return false;
-    return true;
-  };
-
-  // lambda for checking whether the values of two binary variables are
-  // identical in all feasible solutions
-  auto identicalVars = [&](const std::vector<std::vector<HighsInt>>& solutions,
-                           HighsInt index1, HighsInt index2) {
-    for (size_t sol = 0; sol < solutions[index1].size(); sol++) {
-      if (solutions[index1][sol] != solutions[index2][sol]) return false;
-    }
-    return true;
-  };
-
-  // lambda for checking whether the values of two binary variables are
-  // complementary in all feasible solutions
-  auto complementaryVars =
-      [&](const std::vector<std::vector<HighsInt>>& solutions, HighsInt index1,
-          HighsInt index2) {
-        for (size_t sol = 0; sol < solutions[index1].size(); sol++) {
-          if (solutions[index1][sol] != 1 - solutions[index2][sol])
-            return false;
-        }
-        return true;
-      };
-
   // shrink problem (remove deleted rows and columns)
   if (numDeletedCols + numDeletedRows != 0) shrinkProblem(postsolve_stack);
 
@@ -4949,10 +4877,96 @@ HPresolve::Result HPresolve::enumerateSolutions(
           });
 
   // vectors for storing branching decisions and solutions
+  struct branch {
+    size_t numDomainChanges;
+    size_t numChangedCols;
+  };
   std::vector<HighsInt> aggregated;
   std::vector<std::vector<HighsInt>> solutions;
   std::vector<HighsInt> vars;
-  std::vector<HighsInt> branches;
+  std::vector<branch> branches;
+  std::set<HighsInt> worstCaseBounds;
+  std::vector<double> worstCaseLowerBound;
+  std::vector<double> worstCaseUpperBound;
+  worstCaseLowerBound.resize(model->num_col_, kHighsInf);
+  worstCaseUpperBound.resize(model->num_col_, -kHighsInf);
+  std::vector<HighsInt> numWorstCaseBounds;
+  numWorstCaseBounds.resize(model->num_col_);
+
+  // lambda for branching (just performs initial lower branch)
+  auto doBranch = [&](HighsDomain& domain, const std::vector<HighsInt>& vars,
+                      std::vector<branch>& branches, HighsInt& numBranches) {
+    // find variable for branching
+    HighsInt branchvar = -1;
+    for (HighsInt j : vars) {
+      if (!domain.isFixed(j)) {
+        branchvar = j;
+        break;
+      }
+    }
+    if (branchvar < 0) return;
+
+    // branch downwards
+    branches[++numBranches] = {domain.getDomainChangeStack().size(),
+                               domain.getChangedCols().size()};
+    domain.changeBound(HighsBoundType::kUpper, branchvar, 0);
+  };
+
+  // lambda for backtracking
+  auto doBacktrack = [&](HighsDomain& domain, std::vector<branch>& branches,
+                         HighsInt& numBranches) {
+    while (numBranches >= 0) {
+      // get column index
+      const auto& domchg =
+          domain.getDomainChangeStack()[branches[numBranches].numDomainChanges];
+      HighsInt col = domchg.column;
+      HighsBoundType bndtype = domchg.boundtype;
+      // backtrack
+      domain.backtrack();
+      domain.clearChangedCols(
+          static_cast<HighsInt>(branches[numBranches].numChangedCols));
+      if (bndtype == HighsBoundType::kUpper) {
+        // branch upwards
+        domain.changeBound(HighsBoundType::kLower, col, 1);
+        break;
+      } else {
+        // remove branch
+        branches[numBranches--] = {0, 0};
+      }
+    }
+    // check if enumeration is complete
+    return (numBranches >= 0);
+  };
+
+  // lambda for checking if a solution was found
+  auto solutionFound = [&](const HighsDomain& domain,
+                           std::vector<HighsInt>& vars) {
+    for (HighsInt j : vars)
+      if (!domain.isFixed(j)) return false;
+    return true;
+  };
+
+  // lambda for checking whether the values of two binary variables are
+  // identical in all feasible solutions
+  auto identicalVars = [&](const std::vector<std::vector<HighsInt>>& solutions,
+                           HighsInt index1, HighsInt index2) {
+    for (size_t sol = 0; sol < solutions[index1].size(); sol++) {
+      if (solutions[index1][sol] != solutions[index2][sol]) return false;
+    }
+    return true;
+  };
+
+  // lambda for checking whether the values of two binary variables are
+  // complementary in all feasible solutions
+  auto complementaryVars =
+      [&](const std::vector<std::vector<HighsInt>>& solutions, HighsInt index1,
+          HighsInt index2) {
+        for (size_t sol = 0; sol < solutions[index1].size(); sol++) {
+          if (solutions[index1][sol] != 1 - solutions[index2][sol])
+            return false;
+        }
+        return true;
+      };
 
   // loop over candiate rows
   HighsInt numRowsChecked = 0;
@@ -4978,6 +4992,9 @@ HPresolve::Result HPresolve::enumerateSolutions(
     // store number of (binary) variables
     HighsInt numVars = static_cast<HighsInt>(vars.size());
 
+    // clear changed cols
+    domain.clearChangedCols();
+
     // vectors for storing variable status and solutions
     branches.clear();
     aggregated.clear();
@@ -4996,13 +5013,20 @@ HPresolve::Result HPresolve::enumerateSolutions(
           // propagate
           domain.propagate();
           if (!domain.infeasible()) {
-            // store solution
-            for (HighsInt i = 0; i < numVars; i++) {
-              HighsInt solVal =
-                  domain.col_lower_[vars[i]] == 0.0 ? HighsInt{0} : HighsInt{1};
-              solutions[i].push_back(solVal);
-              aggregated[i] += solVal;
+            // update worst-case bounds
+            for (HighsInt col : domain.getChangedCols()) {
+              worstCaseBounds.emplace(col);
+              numWorstCaseBounds[col]++;
+              worstCaseLowerBound[col] =
+                  std::min(worstCaseLowerBound[col], domain.col_lower_[col]);
+              worstCaseUpperBound[col] =
+                  std::max(worstCaseUpperBound[col], domain.col_upper_[col]);
             }
+            // store solution
+            for (HighsInt i = 0; i < numVars; i++)
+              solutions[i].push_back(domain.col_lower_[vars[i]] == 0.0
+                                         ? HighsInt{0}
+                                         : HighsInt{1});
           }
         }
       }
@@ -5013,42 +5037,61 @@ HPresolve::Result HPresolve::enumerateSolutions(
         break;
     }
 
+    // get number of solutions
+    HighsInt numSolutions = static_cast<HighsInt>(solutions[0].size());
+
+    // no solutions -> infeasible
+    if (numSolutions == 0) return Result::kPrimalInfeasible;
+
+    // analyse worst-case bounds
+    for (HighsInt col : worstCaseBounds) {
+      if (numWorstCaseBounds[col] == numSolutions) {
+        double lb = std::max(domain.col_lower_[col], worstCaseLowerBound[col]);
+        double ub = std::min(domain.col_upper_[col], worstCaseUpperBound[col]);
+        if (lb > domain.col_lower_[col]) {
+          // tighten lower bound
+          domain.changeBound(HighsBoundType::kLower, col, lb,
+                             HighsDomain::Reason::unspecified());
+          if (domain.infeasible()) return Result::kPrimalInfeasible;
+        }
+        if (ub < domain.col_upper_[col]) {
+          // tighten upper bound
+          domain.changeBound(HighsBoundType::kUpper, col, ub,
+                             HighsDomain::Reason::unspecified());
+          if (domain.infeasible()) return Result::kPrimalInfeasible;
+        }
+      }
+      // clean up
+      worstCaseLowerBound[col] = kHighsInf;
+      worstCaseUpperBound[col] = -kHighsInf;
+      numWorstCaseBounds[col] = 0;
+    }
+    worstCaseBounds.clear();
+
     for (HighsInt i = 0; i < numVars; i++) {
       // get column index
       HighsInt col = vars[i];
       // skip already fixed columns
       if (domain.isFixed(col)) continue;
-      if (aggregated[i] == 0) {
-        // fix variable to its lower bound
-        domain.changeBound(HighsBoundType::kUpper, col, domain.col_lower_[col],
-                           HighsDomain::Reason::unspecified());
-        if (domain.infeasible()) return Result::kPrimalInfeasible;
-      } else if (aggregated[i] == static_cast<HighsInt>(solutions[i].size())) {
-        // fix variable to its upper bound
-        domain.changeBound(HighsBoundType::kLower, col, domain.col_upper_[col],
-                           HighsDomain::Reason::unspecified());
-        if (domain.infeasible()) return Result::kPrimalInfeasible;
-      } else {
-        for (HighsInt ii = i + 1; ii < numVars; ii++) {
-          // get column index
-          HighsInt col2 = vars[ii];
-          // skip already fixed columns
-          if (domain.isFixed(col2)) continue;
-          // check if two binary variables take identical or complementary
-          // values in all feasible solutions
-          if (identicalVars(solutions, i, ii)) {
-            // add clique x_1 + (1 - x_2) = 1 to clique table
-            std::array<HighsCliqueTable::CliqueVar, 2> clique;
-            clique[0] = HighsCliqueTable::CliqueVar(col, 0);
-            clique[1] = HighsCliqueTable::CliqueVar(col2, 1);
-            cliquetable.addClique(*mipsolver, clique.data(), 2, true);
-          } else if (complementaryVars(solutions, i, ii)) {
-            // add clique x_1 + x_2 = 1 to clique table
-            std::array<HighsCliqueTable::CliqueVar, 2> clique;
-            clique[0] = HighsCliqueTable::CliqueVar(col, 0);
-            clique[1] = HighsCliqueTable::CliqueVar(col2, 0);
-            cliquetable.addClique(*mipsolver, clique.data(), 2, true);
-          }
+      for (HighsInt ii = i + 1; ii < numVars; ii++) {
+        // get column index
+        HighsInt col2 = vars[ii];
+        // skip already fixed columns
+        if (domain.isFixed(col2)) continue;
+        // check if two binary variables take identical or complementary
+        // values in all feasible solutions
+        if (identicalVars(solutions, i, ii)) {
+          // add clique x_1 + (1 - x_2) = 1 to clique table
+          std::array<HighsCliqueTable::CliqueVar, 2> clique;
+          clique[0] = HighsCliqueTable::CliqueVar(col, 0);
+          clique[1] = HighsCliqueTable::CliqueVar(col2, 1);
+          cliquetable.addClique(*mipsolver, clique.data(), 2, true);
+        } else if (complementaryVars(solutions, i, ii)) {
+          // add clique x_1 + x_2 = 1 to clique table
+          std::array<HighsCliqueTable::CliqueVar, 2> clique;
+          clique[0] = HighsCliqueTable::CliqueVar(col, 0);
+          clique[1] = HighsCliqueTable::CliqueVar(col2, 0);
+          cliquetable.addClique(*mipsolver, clique.data(), 2, true);
         }
       }
     }
