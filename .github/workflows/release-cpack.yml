@@ -71,8 +71,6 @@ jobs:
           name: windows-${{ matrix.arch }}
           path: build/*.zip
 
-windows-11-arm
-
   build-macos:
     runs-on: macos-latest
     steps:
