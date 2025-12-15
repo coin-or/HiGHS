@@ -109,24 +109,25 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
   }
 
   // Score will be used for deciding order in which rows get aggregated
-  std::vector<std::pair<double, double>> rowscore(lp.num_row_,
-                                                  std::make_pair(0.0, 0.0));
+  std::vector<double> rowNorm(lp.num_row_);
+  std::vector<double> fracActivity(lp.num_row_);
   for (HighsInt col = 0; col != lp.num_col_; ++col) {
     for (HighsInt i = lp.a_matrix_.start_[col];
          i != lp.a_matrix_.start_[col + 1]; ++i) {
       HighsInt row = lp.a_matrix_.index_[i];
       if (rowtype[row] == RowType::kUnusuable) continue;
       double val = std::abs(lp.a_matrix_.value_[i]);
-      rowscore[row].first += val * transLp.getColFractionality(col);
-      rowscore[row].second += val;
+      fracActivity[row] += val * transLp.getColFractionality(col);
+      rowNorm[row] += val * val;
     }
   }
+  std::vector<std::pair<HighsInt, double>> rowScore;
+  rowScore.reserve(lp.num_row_);
   for (HighsInt row = 0; row != lp.num_row_; ++row) {
-    if (rowscore[row].second > mip.mipdata_->feastol) {
-      rowscore[row].first /= rowscore[row].second;
-    } else {
-      rowscore[row].first = 0.0;
-    }
+    rowScore.emplace_back(numContinuous[row],
+                          rowNorm[row] <= mip.mipdata_->feastol
+                              ? 0
+                              : -fracActivity[row] / rowNorm[row]);
   }
 
   // for each continuous variable with nonzero transformed solution value
@@ -191,13 +192,13 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
             inArcRows.begin() + colInArcs[col].second,
             [&](const std::pair<HighsInt, double>& i,
                 const std::pair<HighsInt, double>& j) {
-              return rowscore[i.first] > rowscore[j.first];
+              return rowScore[i.first] < rowScore[j.first];
             });
     pdqsort(outArcRows.begin() + colOutArcs[col].first,
             outArcRows.begin() + colOutArcs[col].second,
             [&](const std::pair<HighsInt, double>& i,
                 const std::pair<HighsInt, double>& j) {
-              return rowscore[i.first] > rowscore[j.first];
+              return rowScore[i.first] < rowScore[j.first];
             });
   }
 
