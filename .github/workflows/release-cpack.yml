@@ -28,7 +28,7 @@ jobs:
           cmake --build build
           cd build && cpack
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: linux-${{ matrix.arch }}
           path: build/*.tar.gz
@@ -47,7 +47,7 @@ jobs:
           cd build
           cpack -C Release
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-${{ matrix.arch }}
           path: build/*.zip
@@ -66,7 +66,7 @@ jobs:
           cd build
           cpack -C Release
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-${{ matrix.arch }}
           path: build/*.zip
@@ -81,7 +81,7 @@ jobs:
           cmake --build build
           cd build && cpack
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: macos-universal
           path: build/*.dmg
