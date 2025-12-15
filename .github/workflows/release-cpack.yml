@@ -16,7 +16,7 @@ jobs:
       - name: Build
         run: |
           cmake -B build -DHIPO=ON -DBUILD_OPENBLAS=ON -DBUILD_SHARED_LIBS=OFF
-          cmake --build build
+          cmake --build build -j2
           cd build && cpack
 
       - name: Upload artifacts
@@ -36,7 +36,7 @@ jobs:
       - name: Build
         run: |
           cmake -B build -DHIPO=ON -DBUILD_OPENBLAS=ON
-          cmake --build build
+          cmake --build build -j2
           cd build && cpack
 
       - name: Upload artifacts
@@ -56,7 +56,7 @@ jobs:
         run: |
           cmake -B build -G "Visual Studio 17 2022" -A ${{ matrix.arch }} `
               -DHIPO=ON -DBUILD_OPENBLAS=ON
-          cmake --build build --config Release
+          cmake --build build --config Release --parallel
           cd build
           cpack -C Release
       - name: Upload artifacts
@@ -76,7 +76,7 @@ jobs:
         run: |
           cmake -B build -G "Visual Studio 17 2022" -A ${{ matrix.arch }} `
               -DHIPO=ON -DBUILD_OPENBLAS=ON
-          cmake --build build --config Release
+          cmake --build build --config Release --parallel
           cd build
           cpack -C Release
 
@@ -93,7 +93,7 @@ jobs:
       - name: Build Universal Binary
         run: |
           cmake -B build -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
-          cmake --build build -DHIPO=ON
+          cmake --build build -DHIPO=ON --parallel
           cd build && cpack
 
       - name: Upload artifacts
