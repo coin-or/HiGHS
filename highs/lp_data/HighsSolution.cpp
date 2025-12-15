@@ -557,27 +557,6 @@ void getVariableKktFailures(const double primal_feasibility_tolerance,
   std::pair<double, double> infeasibility_residual =
       infeasibility(&lower, &value, &upper, &primal_feasibility_tolerance);
   primal_infeasibility = infeasibility_residual.second;
-  bool infeasibility_ok = primal_infeasibility == infeasibility_residual.second;
-  if (!infeasibility_ok) {
-    printf("getVariableKktFailures:  pr_ifs = %11.4g; ifs.infeasibility = %11.4g; dl = %11.4g\n",
-	   primal_infeasibility, infeasibility_residual.second,
-	   primal_infeasibility- infeasibility_residual.second);
-    assert(infeasibility_ok);
-}
-  bool residual_error = primal_infeasibility > primal_feasibility_tolerance &&
-    infeasibility_residual.first == 0;
-  if (residual_error) {
-    const bool is_col = index > 0;
-    printf("getVariableKktFailures: %2s %3d [%11.4g, %11.4g, %11.4g], pr_ifs = %11.4g; ifs.infeasibility = %11.4g; ifs.residual = %11.4g\n",
-	   is_col ? "Col" : "Row",
-	   is_col ? index : -index-1,
-	   lower, value, upper, 
-	   primal_infeasibility,
-	   infeasibility_residual.first,
-	   infeasibility_residual.second);
-    assert(!residual_error);
-  }
-
   // Determine whether this value is close to a bound
   at_status = kHighsSolutionNo;
   double bound_residual = std::fabs(lower - value);
