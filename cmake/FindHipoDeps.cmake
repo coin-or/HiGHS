@@ -1,4 +1,28 @@
-# BLAS
+# Fetch OpenBLAS
+if (BUILD_OPENBLAS)
+    include(FetchContent)
+    set(FETCHCONTENT_QUIET OFF)
+    set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
+    set(BUILD_SHARED_LIBS ON)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+    set(BUILD_TESTING OFF)
+    set(CMAKE_Fortran_COMPILER OFF)
+
+    message(CHECK_START "Fetching OpenBLAS")
+    list(APPEND CMAKE_MESSAGE_INDENT "  ")
+    FetchContent_Declare(
+        openblas
+        GIT_REPOSITORY "https://github.com/OpenMathLib/OpenBLAS.git"
+        GIT_TAG        "v0.3.30"
+        GIT_SHALLOW TRUE
+        UPDATE_COMMAND git reset --hard
+    )
+    FetchContent_MakeAvailable(openblas)
+    list(POP_BACK CMAKE_MESSAGE_INDENT)
+    message(CHECK_PASS "fetched")
+endif()
+
+# Find BLAS
 set(BLAS_ROOT "" CACHE STRING "Root directory of BLAS or OpenBLAS")
 if (NOT BLAS_ROOT STREQUAL "")
     message(STATUS "BLAS_ROOT is " ${BLAS_ROOT})

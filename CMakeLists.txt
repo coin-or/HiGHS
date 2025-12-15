@@ -148,6 +148,8 @@ endif()
 
 option(HIPO "Build HIPO" OFF)
 message(STATUS "Build HIPO: ${HIPO}")
+option(BUILD_OPENBLAS "Build OpenBLAS" ON)
+message(STATUS "Build OpenBLAS: ${BUILD_OPENBLAS}")
 if (HIPO AND CSHARP)
   message(ERROR "HIPO is only available in C++. Not yet supported in C#.")
 endif()
