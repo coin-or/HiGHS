@@ -38,6 +38,8 @@ class FactorHiGHSSolver : public LinearSolver {
   Int chooseNla();
   Int setNla();
   void setParallel();
+  Int chooseOrdering(const std::vector<Int>& rows, const std::vector<Int>& ptr,
+                      const std::vector<Int>& signs, Symbolic& S);
 
   Int buildNEstructure(const HighsSparseMatrix& A, Int64 nz_limit = kHighsIInf);
   Int buildNEvalues(const HighsSparseMatrix& A,

@@ -104,9 +104,9 @@ void DataCollector::printTimes(const Log& log) const {
 
 #if HIPO_TIMING_LEVEL >= 2
 
-  log_stream << "\tMetis:                  "
-             << fix(times[kTimeAnalyseMetis], 8, 4) << " ("
-             << fix(times[kTimeAnalyseMetis] / times[kTimeAnalyse] * 100, 4, 1)
+  log_stream << "\tOrdering:               "
+             << fix(times[kTimeAnalyseOrdering], 8, 4) << " ("
+             << fix(times[kTimeAnalyseOrdering] / times[kTimeAnalyse] * 100, 4, 1)
              << "%)\n";
   log_stream << "\tTree:                   "
              << fix(times[kTimeAnalyseTree], 8, 4) << " ("

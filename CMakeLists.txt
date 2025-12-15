@@ -148,6 +148,8 @@ endif()
 
 option(HIPO "Build HIPO" OFF)
 message(STATUS "Build HIPO: ${HIPO}")
+option(BUILD_OPENBLAS "Build OpenBLAS" OFF)
+message(STATUS "Build OpenBLAS: ${BUILD_OPENBLAS}")
 if (HIPO AND CSHARP)
   message(ERROR "HIPO is only available in C++. Not yet supported in C#.")
 endif()
@@ -523,15 +525,16 @@ if(ZLIB AND NOT TARGET ZLIB::ZLIB)
   find_package(ZLIB 1.2.3)
 endif()
 
-if(CPack_CMake_INCLUDED EQUAL 0)
-  include(CPack)
+install(FILES README.md LICENSE.txt DESTINATION .)
+
+# Set default generator based on platform
+if(WIN32)
+    set(CPACK_GENERATOR "ZIP")
+elseif(APPLE)
+    set(CPACK_GENERATOR "TGZ")
+else()
+    set(CPACK_GENERATOR "TGZ")
 endif()
-
-set(CPACK_PACKAGE_VERSION_MAJOR "${HIGHS_VERSION_MAJOR}")
-set(CPACK_PACKAGE_VERSION_MINOR "${HIGHS_VERSION_MINOR}")
-set(CPACK_PACKAGE_VERSION_PATCH "${HIGHS_VERSION_PATCH}")
-set(CPACK_PACKAGE_VENDOR "University of Edinburgh")
-
 
 # Deprecate
 # string(TIMESTAMP TODAY "%Y-%m-%d")
@@ -838,3 +841,18 @@ else(FAST_BUILD)
   endif()
 
 endif()
+
+if(NOT CPack_CMake_INCLUDED)
+  include(CPack)
+endif()
+
+set(CPACK_PACKAGE_NAME "HiGHS")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_VERSION_MAJOR "${HIGHS_VERSION_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${HIGHS_VERSION_MINOR}")
+set(CPACK_PACKAGE_VERSION_PATCH "${HIGHS_VERSION_PATCH}")
+set(CPACK_PACKAGE_VENDOR "University of Edinburgh")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "\
+Open source serial and parallel solvers for large-scale sparse \
+linear programming (LP), mixed-integer programming (MIP), and \
+quadratic programming (QP) models")

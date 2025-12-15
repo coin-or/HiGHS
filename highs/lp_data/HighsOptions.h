@@ -307,6 +307,12 @@ const string kHipoTreeString = "tree";
 const string kHipoNodeString = "node";
 const string kHipoBothString = "both";
 
+// Strings for HiPO matrix reordering
+const string kHipoOrderingString = "hipo_ordering";
+const string kHipoMetisString = "metis";
+const string kHipoAmdString = "amd";
+const string kHipoRcmString = "rcm";
+
 struct HighsOptionsStruct {
   // Run-time options read from the command line
   std::string presolve;
@@ -371,8 +377,8 @@ struct HighsOptionsStruct {
   HighsInt ipm_iteration_limit;
   std::string hipo_system;
   std::string hipo_parallel_type;
+  std::string hipo_ordering;
   HighsInt hipo_block_size;
-  bool hipo_metis_no2hop;
 
   // Options for PDLP solver
   bool pdlp_scaling;
@@ -543,8 +549,8 @@ struct HighsOptionsStruct {
         ipm_iteration_limit(0),
         hipo_system(""),
         hipo_parallel_type(""),
+        hipo_ordering(""),
         hipo_block_size(0),
-        hipo_metis_no2hop(false),
         pdlp_scaling(false),
         pdlp_iteration_limit(0),
         pdlp_e_restart_method(0),
@@ -1262,15 +1268,17 @@ class HighsOptions : public HighsOptionsStruct {
                                advanced, &hipo_parallel_type, kHipoBothString);
     records.push_back(record_string);
 
+    record_string =
+        new OptionRecordString(kHipoOrderingString,
+                               "HiPO matrix reordering option: \"metis\", "
+                               "\"amd\", \"rcm\" or \"choose\".",
+                               advanced, &hipo_ordering, kHighsChooseString);
+    records.push_back(record_string);
+
     record_int = new OptionRecordInt(
         "hipo_block_size", "Block size for dense linear algebra within HiPO",
         advanced, &hipo_block_size, 0, 128, kHighsIInf);
     records.push_back(record_int);
-
-    record_bool =
-        new OptionRecordBool("hipo_metis_no2hop", "Use option no2hop in Metis",
-                             advanced, &hipo_metis_no2hop, false);
-    records.push_back(record_bool);
 
     record_bool = new OptionRecordBool(
         "pdlp_scaling", "Scaling option for PDLP solver: Default = true",

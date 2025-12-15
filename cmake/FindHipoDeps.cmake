@@ -1,4 +1,47 @@
-# BLAS
+# Fetch OpenBLAS
+if (BUILD_OPENBLAS)
+    include(FetchContent)
+    set(FETCHCONTENT_QUIET OFF)
+    set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
+    set(BUILD_SHARED_LIBS ON)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+    set(BUILD_TESTING OFF)
+    set(CMAKE_Fortran_COMPILER OFF)
+
+    message(CHECK_START "Fetching OpenBLAS")
+    list(APPEND CMAKE_MESSAGE_INDENT "  ")
+    FetchContent_Declare(
+        openblas
+        GIT_REPOSITORY "https://github.com/OpenMathLib/OpenBLAS.git"
+        GIT_TAG        "v0.3.30"
+        GIT_SHALLOW TRUE
+        UPDATE_COMMAND git reset --hard
+    )
+    FetchContent_MakeAvailable(openblas)
+    list(POP_BACK CMAKE_MESSAGE_INDENT)
+    message(CHECK_PASS "fetched")
+
+    if (TARGET openblas)
+        get_target_property(_openblas_aliased openblas ALIASED_TARGET)
+        if(_openblas_aliased)
+            set(_openblas_target ${_openblas_aliased})
+            message(STATUS "OpenBLAS is an alias for: ${_openblas_target}")
+        else()
+            set(_openblas_target openblas)
+        endif()
+    elseif (TARGET openblas_static)
+        set(_openblas_target openblas_static)
+    elseif (TARGET openblas_shared)
+        set(_openblas_target openblas_shared)
+    else()
+        message(FATAL_ERROR "OpenBLAS target not found")
+    endif()
+    message(STATUS "OpenBLAS target: ${_openblas_target}")
+
+    return()
+endif()
+
+# Find BLAS
 set(BLAS_ROOT "" CACHE STRING "Root directory of BLAS or OpenBLAS")
 if (NOT BLAS_ROOT STREQUAL "")
     message(STATUS "BLAS_ROOT is " ${BLAS_ROOT})
@@ -141,119 +184,6 @@ else()
             else()
                 message(FATAL_ERROR "No BLAS library found!")
             endif()
-        endif()
-    endif()
-endif()
-
-# METIS
-set(METIS_ROOT "" CACHE STRING "Root directory of METIS")
-message(STATUS "METIS_ROOT is " ${METIS_ROOT})
-
-# if (PYTHON_BUILD_SETUP AND NOT (METIS_ROOT STREQUAL ""))
-#     set(METIS_SRC_DIR ${METIS_ROOT})
-#     set(METIS_DST_DIR ${CMAKE_BINARY_DIR}/metis)
-#     file(COPY ${METIS_SRC_DIR}/include DESTINATION ${METIS_DST_DIR})
-#     file(COPY ${METIS_SRC_DIR}/lib DESTINATION ${METIS_DST_DIR})
-#     return()
-# endif()
-
-# If a METIS install was specified try to use it first.
-if (NOT (METIS_ROOT STREQUAL ""))
-    message(STATUS "Looking for METIS CMake targets file in " ${METIS_ROOT})
-    find_package(metis CONFIG NO_DEFAULT_PATH QUIET)
-else()
-    find_package(metis CONFIG)
-endif()
-
-if(metis_FOUND)
-    message(STATUS "metis CMake config path: ${metis_DIR}")
-else()
-    find_path(METIS_PATH
-        NAMES "metis.h"
-        PATHS "${METIS_ROOT}/include"
-        NO_DEFAULT_PATH)
-
-    message(STATUS "Found Metis header at ${METIS_PATH}")
-
-    find_library(METIS_LIB
-        NAMES metis libmetis
-        PATHS "${METIS_ROOT}/lib" "${METIS_ROOT}/bin"
-        NO_DEFAULT_PATH)
-
-    if(METIS_LIB)
-        message(STATUS "Found Metis library at ${METIS_LIB}")
-    else()
-        # METIS_ROOT was not successful
-        message(STATUS "Metis not found in METIS_PATH, fallback to default search.")
-        if (NOT (METIS_ROOT STREQUAL ""))
-            find_package(metis CONFIG)
-
-            if (metis_FOUND)
-                message(STATUS "metis CMake config path: ${metis_DIR}")
-            else()
-                # METIS_ROOT was not successful and there is no cmake config
-                find_path(METIS_PATH
-                    NAMES "metis.h")
-
-                message(STATUS "Found Metis header at ${METIS_PATH}")
-
-                find_library(METIS_LIB
-                    NAMES metis libmetis)
-
-                if(METIS_LIB)
-                    message(STATUS "Found Metis library at ${METIS_LIB}")
-                else()
-                    message(FATAL_ERROR "No Metis library found")
-                endif()
-            endif()
-        endif()
-    endif()
-endif()
-
-# GKlib optional for newer versions on ubuntu and macos
-set(GKLIB_ROOT "" CACHE STRING "Root directory of GKlib")
-if (NOT (GKLIB_ROOT STREQUAL ""))
-    message(STATUS "GKLIB_ROOT is " ${GKLIB_ROOT})
-
-    find_package(GKlib CONFIG NO_DEFAULT_PATH)
-
-    if(GKlib_FOUND)
-        message(STATUS "gklib CMake config path: ${GKlib_DIR}")
-
-        # get_cmake_property(_vars VARIABLES)
-        # foreach(_v IN LISTS _vars)
-        #     if(_v MATCHES "GKlib")
-        #     message(STATUS "${_v} = ${${_v}}")
-        #     endif()
-        # endforeach()
-
-        # get_property(_targets DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY IMPORTED_TARGETS)
-        # foreach(_t IN LISTS _targets)
-        # if(_t MATCHES "GKlib")
-        #     message(STATUS "GKlib exported target: ${_t}")
-        # endif()
-        # endforeach()
-
-    else()
-        find_path(GKLIB_PATH
-            NAMES "gklib.h" "GKlib.h"
-            REQUIRED
-            PATHS "${GKLIB_ROOT}/include"
-            NO_DEFAULT_PATH)
-
-        message(STATUS "Found GKlib header at ${GKLIB_PATH}")
-
-        find_library(GKLIB_LIB
-            NAMES GKlib libGKlib
-            REQUIRED
-            PATHS "${GKLIB_ROOT}/lib"
-            NO_DEFAULT_PATH)
-
-        if(GKLIB_LIB)
-            message(STATUS "Found GKlib library at ${GKLIB_LIB}")
-        else()
-            # GKLIB_ROOT was not successful
-            message(FATAL_ERROR "No GKlib library found at ${GKLIB_ROOT}")
         endif()
     endif()
 endif()
