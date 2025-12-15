@@ -4988,9 +4988,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
       // store index of binary variable
       vars.push_back(nz.index());
     }
-
-    // store number of (binary) variables
-    HighsInt numVars = static_cast<HighsInt>(vars.size());
+    if (vars.empty()) continue;
 
     // clear changed cols
     domain.clearChangedCols();
@@ -4999,9 +4997,9 @@ HPresolve::Result HPresolve::enumerateSolutions(
     branches.clear();
     aggregated.clear();
     solutions.clear();
-    branches.resize(numVars);
-    aggregated.resize(numVars);
-    solutions.resize(numVars);
+    branches.resize(vars.size());
+    aggregated.resize(vars.size());
+    solutions.resize(vars.size());
 
     // main loop
     HighsInt numBranches = -1;
@@ -5023,7 +5021,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
                   std::max(worstCaseUpperBound[col], domain.col_upper_[col]);
             }
             // store solution
-            for (HighsInt i = 0; i < numVars; i++)
+            for (HighsInt i = 0; i < vars.size(); i++)
               solutions[i].push_back(domain.col_lower_[vars[i]] == 0.0
                                          ? HighsInt{0}
                                          : HighsInt{1});
@@ -5068,12 +5066,12 @@ HPresolve::Result HPresolve::enumerateSolutions(
     }
     worstCaseBounds.clear();
 
-    for (HighsInt i = 0; i < numVars; i++) {
+    for (HighsInt i = 0; i < vars.size(); i++) {
       // get column index
       HighsInt col = vars[i];
       // skip already fixed columns
       if (domain.isFixed(col)) continue;
-      for (HighsInt ii = i + 1; ii < numVars; ii++) {
+      for (HighsInt ii = i + 1; ii < vars.size(); ii++) {
         // get column index
         HighsInt col2 = vars[ii];
         // skip already fixed columns
