@@ -4949,7 +4949,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
   // lambda for checking whether the values of two binary variables are
   // identical in all feasible solutions
   auto identicalVars = [&](const std::vector<std::vector<HighsInt>>& solutions,
-                           HighsInt index1, HighsInt index2) {
+                           size_t index1, size_t index2) {
     for (size_t sol = 0; sol < solutions[index1].size(); sol++) {
       if (solutions[index1][sol] != solutions[index2][sol]) return false;
     }
@@ -4959,8 +4959,8 @@ HPresolve::Result HPresolve::enumerateSolutions(
   // lambda for checking whether the values of two binary variables are
   // complementary in all feasible solutions
   auto complementaryVars =
-      [&](const std::vector<std::vector<HighsInt>>& solutions, HighsInt index1,
-          HighsInt index2) {
+      [&](const std::vector<std::vector<HighsInt>>& solutions, size_t index1,
+          size_t index2) {
         for (size_t sol = 0; sol < solutions[index1].size(); sol++) {
           if (solutions[index1][sol] != 1 - solutions[index2][sol])
             return false;
@@ -5021,7 +5021,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
                   std::max(worstCaseUpperBound[col], domain.col_upper_[col]);
             }
             // store solution
-            for (HighsInt i = 0; i < vars.size(); i++)
+            for (size_t i = 0; i < vars.size(); i++)
               solutions[i].push_back(domain.col_lower_[vars[i]] == 0.0
                                          ? HighsInt{0}
                                          : HighsInt{1});
@@ -5066,12 +5066,12 @@ HPresolve::Result HPresolve::enumerateSolutions(
     }
     worstCaseBounds.clear();
 
-    for (HighsInt i = 0; i < vars.size(); i++) {
+    for (size_t i = 0; i < vars.size(); i++) {
       // get column index
       HighsInt col = vars[i];
       // skip already fixed columns
       if (domain.isFixed(col)) continue;
-      for (HighsInt ii = i + 1; ii < vars.size(); ii++) {
+      for (size_t ii = i + 1; ii < vars.size(); ii++) {
         // get column index
         HighsInt col2 = vars[ii];
         // skip already fixed columns
