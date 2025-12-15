@@ -29,8 +29,6 @@ Factorise::Factorise(const Symbolic& S, const std::vector<Int>& rowsA,
   // Input the symmetric matrix to be factorised in CSC format and the symbolic
   // factorisation coming from Analyse.
   // Only the lower triangular part of the matrix is used.
-  // The Factorise object takes ownership of the matrix; rowsA, ptrA and valA
-  // are not valid anymore.
 
   n_ = ptrA.size() - 1;
 
@@ -42,10 +40,10 @@ Factorise::Factorise(const Symbolic& S, const std::vector<Int>& rowsA,
     return;
   }
 
-  // take ownership of the matrix
-  rowsA_ = std::move(rowsA);
-  valA_ = std::move(valA);
-  ptrA_ = std::move(ptrA);
+  // Make a copy of the matrix to be factorised
+  rowsA_ = rowsA;
+  valA_ = valA;
+  ptrA_ = ptrA;
 
   // Permute the matrix.
   // This also removes any entry not in the lower triangle.

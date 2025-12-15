@@ -26,6 +26,11 @@ class FactorHiGHSSolver : public LinearSolver {
   std::vector<Int> ptrA_rw_, idxA_rw_;
   std::vector<Int> corr_A_;
 
+  // augmented system data
+  std::vector<Int> ptrAS_;
+  std::vector<Int> rowsAS_;
+  std::vector<double> valAS_;
+
   const Regularisation& regul_;
 
   Info& info_;
@@ -45,6 +50,11 @@ class FactorHiGHSSolver : public LinearSolver {
   Int buildNEvalues(const HighsSparseMatrix& A,
                     const std::vector<double>& scaling);
   void freeNEmemory();
+
+  Int buildASstructure(const HighsSparseMatrix& A, Int64 nz_limit = kHighsIInf);
+  Int buildASvalues(const HighsSparseMatrix& A,
+                    const std::vector<double>& scaling);
+  void freeASmemory();
 
   Int analyseAS(Symbolic& S);
   Int analyseNE(Symbolic& S, Int64 nz_limit = kHighsIInf);
