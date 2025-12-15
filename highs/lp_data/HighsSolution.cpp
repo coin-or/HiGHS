@@ -284,10 +284,12 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
       // one-sided variables. For free variables, fixed variables, or
       // variables with small positive bound interval lengths,
       // mid_status is returned as kHighsSolutionNo.
+      const HighsInt index = pass == 0 ? 0 : (is_col ? iVar : -(1+(iVar-lp.num_col_)));
       getVariableKktFailures(primal_feasibility_tolerance,
                              dual_feasibility_tolerance, lower, upper, value,
                              dual, integrality, primal_infeasibility,
-                             dual_infeasibility, at_status, mid_status);
+                             dual_infeasibility, at_status, mid_status,
+			     index);
       if (pass == 0) {
         // If the primal value is close to a bound then include the bound
         // in the active bound norm
@@ -549,34 +551,43 @@ void getVariableKktFailures(const double primal_feasibility_tolerance,
                             const HighsVarType integrality,
                             double& primal_infeasibility,
                             double& dual_infeasibility, uint8_t& at_status,
-                            uint8_t& mid_status) {
+                            uint8_t& mid_status,
+			    const HighsInt index) {
   const HighsInt feasibility_tolerance_mu = 0.0;
-  // @primal_infeasibility calculation
-  primal_infeasibility = 0;
-  if (value < lower - primal_feasibility_tolerance * feasibility_tolerance_mu) {
-    // Below lower
-    primal_infeasibility = lower - value;
-  } else if (value >
-             upper + primal_feasibility_tolerance * feasibility_tolerance_mu) {
-    // Above upper
-    primal_infeasibility = value - upper;
-  }
   std::pair<double, double> infeasibility_residual =
       infeasibility(&lower, &value, &upper, &primal_feasibility_tolerance);
-  // #2653
-  //
-  //  assert(infeasibility_residual.second == primal_infeasibility);
+  primal_infeasibility = infeasibility_residual.second;
+  bool infeasibility_ok = primal_infeasibility == infeasibility_residual.second;
+  if (!infeasibility_ok) {
+    printf("getVariableKktFailures:  pr_ifs = %11.4g; ifs.infeasibility = %11.4g; dl = %11.4g\n",
+	   primal_infeasibility, infeasibility_residual.second,
+	   primal_infeasibility- infeasibility_residual.second);
+    assert(infeasibility_ok);
+}
+  bool residual_error = primal_infeasibility > primal_feasibility_tolerance &&
+    infeasibility_residual.first == 0;
+  if (residual_error) {
+    const bool is_col = index > 0;
+    printf("getVariableKktFailures: %2s %3d [%11.4g, %11.4g, %11.4g], pr_ifs = %11.4g; ifs.infeasibility = %11.4g; ifs.residual = %11.4g\n",
+	   is_col ? "Col" : "Row",
+	   is_col ? index : -index-1,
+	   lower, value, upper, 
+	   primal_infeasibility,
+	   infeasibility_residual.first,
+	   infeasibility_residual.second);
+    assert(!residual_error);
+  }
 
   // Determine whether this value is close to a bound
   at_status = kHighsSolutionNo;
-  double residual = std::fabs(lower - value);
-  if (residual * residual <= primal_feasibility_tolerance) {
+  double bound_residual = std::fabs(lower - value);
+  if (bound_residual * bound_residual <= primal_feasibility_tolerance) {
     // Close to lower bound
     at_status = kHighsSolutionLo;
   } else {
     // Not close to lower bound: maybe close to upper bound
-    residual = std::fabs(value - upper);
-    if (residual * residual <= primal_feasibility_tolerance)
+    bound_residual = std::fabs(value - upper);
+    if (bound_residual * bound_residual <= primal_feasibility_tolerance)
       at_status = kHighsSolutionUp;
   }
   // Look for dual sign errors that exceed the tolerance. For boxed

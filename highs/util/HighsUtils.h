@@ -228,6 +228,8 @@ inline std::pair<double, double> infeasibility(const double* lower,
   // Determine the infeasibility exceeding the tolerance used in
   // computing the number of infeasibilities - which defines
   // feasibility of a solution
+  //
+  // @primal_infeasibility calculation
   if (*value < *lower - *tolerance) {
     infeasibility = *lower - *value;
   }
@@ -277,7 +279,7 @@ inline std::pair<double, double> infeasibility(const double* lower,
   // so that values of maximum infeasibility defined by residual
   // doesn't exceed the tolerance
   //
-  //  if (infeasibility == 0) residual = min(residual, *tolerance);
+  if (infeasibility == 0) residual = min(residual, *tolerance);
   return std::make_pair(infeasibility, residual);
 }
 #endif  // UTIL_HIGHSUTILS_H_
