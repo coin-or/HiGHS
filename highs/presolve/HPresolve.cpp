@@ -5403,6 +5403,14 @@ HPresolve::Result HPresolve::presolve(HighsPostsolveStack& postsolve_stack) {
         if (problemSizeReduction() > 0.05) continue;
       }
 
+      // enumerate solutions
+      if (mipsolver != nullptr &&
+          analysis_.allow_rule_[kPresolveRuleEnumeration]) {
+        storeCurrentProblemSize();
+        HPRESOLVE_CHECKED_CALL(enumerateSolutions(postsolve_stack));
+        if (problemSizeReduction() > 0.05) continue;
+      }
+
       if (tryProbing && analysis_.allow_rule_[kPresolveRuleProbing]) {
         HPRESOLVE_CHECKED_CALL(detectImpliedIntegers());
         storeCurrentProblemSize();
@@ -5443,14 +5451,6 @@ HPresolve::Result HPresolve::presolve(HighsPostsolveStack& postsolve_stack) {
         HPRESOLVE_CHECKED_CALL(dominatedColumns(postsolve_stack));
         if (problemSizeReduction() > 0.0)
           HPRESOLVE_CHECKED_CALL(fastPresolveLoop(postsolve_stack));
-        if (problemSizeReduction() > 0.05) continue;
-      }
-
-      // enumerate solutions
-      if (mipsolver != nullptr &&
-          analysis_.allow_rule_[kPresolveRuleEnumeration]) {
-        storeCurrentProblemSize();
-        HPRESOLVE_CHECKED_CALL(enumerateSolutions(postsolve_stack));
         if (problemSizeReduction() > 0.05) continue;
       }
 
