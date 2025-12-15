@@ -21,13 +21,13 @@ if(HIPO)
                      ${hipo_sources_python}
                      ${factor_highs_sources_python}
                      ${hipo_util_sources_python}
-                     ${hipo_orderings_sources})
+                     ${hipo_orderings_sources_python})
 
   set(headers_python ${headers_python}
                      ${hipo_headers_python}
                      ${factor_highs_headers_python}
                      ${hipo_util_headers_python}
-                     ${hipo_orderings_headers})
+                     ${hipo_orderings_headers_python})
 
 endif()
 
