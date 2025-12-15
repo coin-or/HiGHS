@@ -2,26 +2,38 @@
 haskey(ENV, "HIGHS_RELEASE") || error("The environment variable HIGHS_RELEASE is not defined.")
 version = VersionNumber(ENV["HIGHS_RELEASE"])
 version2 = ENV["HIGHS_RELEASE"]
-package = "HIGHS"
+package = "HiGHS"
 
 platforms = [
-    ("aarch64-apple-darwin",          "lib", "dylib"),
-    ("aarch64-linux-gnu-cxx11",       "lib", "so"   ),
-    ("aarch64-linux-musl-cxx11",      "lib", "so"   ),
-    ("aarch64-unknown-freebsd",       "lib", "so"   ),
-    ("armv6l-linux-gnueabihf-cxx11",  "lib", "so"   ),
-    ("armv6l-linux-musleabihf-cxx11", "lib", "so"   ),
-    ("armv7l-linux-gnueabihf-cxx11",  "lib", "so"   ),
-    ("armv7l-linux-musleabihf-cxx11", "lib", "so"   ),
-    ("i686-linux-gnu-cxx11",          "lib", "so"   ),
-    ("i686-linux-musl-cxx11",         "lib", "so"   ),
-    ("i686-w64-mingw32",              "bin", "dll"  ),
-    ("x86_64-apple-darwin",           "lib", "dylib"),
-    ("x86_64-linux-gnu-cxx11",        "lib", "so"   ),
-    ("x86_64-linux-musl-cxx11",       "lib", "so"   ),
-    ("x86_64-unknown-freebsd",        "lib", "so"   ),
-    ("x86_64-w64-mingw32",            "bin", "dll"  )
+   ("aarch64-apple-darwin-cxx11"  , "lib", "dylib"),
+   ("aarch64-linux-gnu-cxx11"     , "lib", "so"   ),
+#  ("aarch64-linux-musl-cxx11"    , "lib", "so"   ),
+#  ("powerpc64le-linux-gnu-cxx11" , "lib", "so"   ),
+   ("x86_64-apple-darwin-cxx11"   , "lib", "dylib"),
+   ("x86_64-linux-gnu-cxx11"      , "lib", "so"   ),
+#  ("x86_64-linux-musl-cxx11"     , "lib", "so"   ),
+#  ("x86_64-unknown-freebsd-cxx11", "lib", "so"   ),
+   ("x86_64-w64-mingw32-cxx11"    , "bin", "dll"  ),
 ]
+
+# platforms = [
+#     ("aarch64-apple-darwin",          "lib", "dylib"),
+#     ("aarch64-linux-gnu-cxx11",       "lib", "so"   ),
+#     ("aarch64-linux-musl-cxx11",      "lib", "so"   ),
+#     ("aarch64-unknown-freebsd",       "lib", "so"   ),
+#     ("armv6l-linux-gnueabihf-cxx11",  "lib", "so"   ),
+#     ("armv6l-linux-musleabihf-cxx11", "lib", "so"   ),
+#     ("armv7l-linux-gnueabihf-cxx11",  "lib", "so"   ),
+#     ("armv7l-linux-musleabihf-cxx11", "lib", "so"   ),
+#     ("i686-linux-gnu-cxx11",          "lib", "so"   ),
+#     ("i686-linux-musl-cxx11",         "lib", "so"   ),
+#     ("i686-w64-mingw32",              "bin", "dll"  ),
+#     ("x86_64-apple-darwin",           "lib", "dylib"),
+#     ("x86_64-linux-gnu-cxx11",        "lib", "so"   ),
+#     ("x86_64-linux-musl-cxx11",       "lib", "so"   ),
+#     ("x86_64-unknown-freebsd",        "lib", "so"   ),
+#     ("x86_64-w64-mingw32",            "bin", "dll"  )
+# ]
 
 for (platform, libdir, ext) in platforms
 

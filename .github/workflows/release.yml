@@ -55,7 +55,7 @@ jobs:
           version: "1.7"
           arch: x64
 
-      - name: Set the environment variables BINARYBUILDER_AUTOMATIC_APPLE, UNO_RELEASE, UNO_COMMIT
+      - name: Set the environment variables BINARYBUILDER_AUTOMATIC_APPLE, HIGHS_RELEASE, HIGHS_COMMIT
         shell: bash
         run: |
           echo "BINARYBUILDER_AUTOMATIC_APPLE=true" >> $GITHUB_ENV
@@ -74,14 +74,14 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Uno_binaries.${{ github.ref_name }}.aarch64-linux-gnu-cxx11.tar.gz
-          path: ./Uno_binaries.${{ github.ref_name }}.aarch64-linux-gnu-cxx11.tar.gz
+          name: HiGHS_binaries.${{ github.ref_name }}.aarch64-linux-gnu-cxx11.tar.gz
+          path: ./HiGHS_binaries.${{ github.ref_name }}.aarch64-linux-gnu-cxx11.tar.gz
 
   build-windows-x64:
     name: HiGHS -- Windows (x86_64) -- Release ${{ github.ref_name }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Uno
+      - name: Checkout HiGHS
         uses: actions/checkout@v4
 
       - name: Install Julia
@@ -90,7 +90,7 @@ jobs:
           version: "1.7"
           arch: x64
 
-      - name: Set the environment variables BINARYBUILDER_AUTOMATIC_APPLE, UNO_RELEASE, UNO_COMMIT
+      - name: Set the environment variables BINARYBUILDER_AUTOMATIC_APPLE, HIGHS_RELEASE, HIGHS_COMMIT
         shell: bash
         run: |
           echo "BINARYBUILDER_AUTOMATIC_APPLE=true" >> $GITHUB_ENV
@@ -108,14 +108,14 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Uno_binaries.${{ github.ref_name }}.x86_64-w64-mingw32-cxx11.zip
-          path: ./Uno_binaries.${{ github.ref_name }}.x86_64-w64-mingw32-cxx11.zip
+          name: HiGHS_binaries.${{ github.ref_name }}.x86_64-w64-mingw32-cxx11.zip
+          path: ./HiGHS_binaries.${{ github.ref_name }}.x86_64-w64-mingw32-cxx11.zip
 
   build-mac-x64:
     name: HiGHS -- macOS (x86_64) -- Release ${{ github.ref_name }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Uno
+      - name: Checkout HiGHS
         uses: actions/checkout@v4
 
       - name: Install Julia
@@ -124,7 +124,7 @@ jobs:
           version: "1.7"
           arch: x64
 
-      - name: Set the environment variables BINARYBUILDER_AUTOMATIC_APPLE, UNO_RELEASE, UNO_COMMIT
+      - name: Set the environment variables BINARYBUILDER_AUTOMATIC_APPLE, HIGHS_RELEASE, HIGHS_COMMIT
         shell: bash
         run: |
           echo "BINARYBUILDER_AUTOMATIC_APPLE=true" >> $GITHUB_ENV
@@ -143,14 +143,14 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Uno_binaries.${{ github.ref_name }}.x86_64-apple-darwin-cxx11.tar.gz
-          path: ./Uno_binaries.${{ github.ref_name }}.x86_64-apple-darwin-cxx11.tar.gz
+          name: HiGHS_binaries.${{ github.ref_name }}.x86_64-apple-darwin-cxx11.tar.gz
+          path: ./HiGHS_binaries.${{ github.ref_name }}.x86_64-apple-darwin-cxx11.tar.gz
 
   build-mac-aarch64:
     name: HiGHS -- macOS (aarch64) -- Release ${{ github.ref_name }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Uno
+      - name: Checkout HiGHS
         uses: actions/checkout@v4
 
       - name: Install Julia
@@ -159,7 +159,7 @@ jobs:
           version: "1.7"
           arch: x64
 
-      - name: Set the environment variables BINARYBUILDER_AUTOMATIC_APPLE, UNO_RELEASE, UNO_COMMIT
+      - name: Set the environment variables BINARYBUILDER_AUTOMATIC_APPLE, HIGHS_RELEASE, HIGHS_COMMIT
         shell: bash
         run: |
           echo "BINARYBUILDER_AUTOMATIC_APPLE=true" >> $GITHUB_ENV
@@ -178,62 +178,62 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Uno_binaries.${{ github.ref_name }}.aarch64-apple-darwin-cxx11.tar.gz
-          path: ./Uno_binaries.${{ github.ref_name }}.aarch64-apple-darwin-cxx11.tar.gz
+          name: HiGHS_binaries.${{ github.ref_name }}.aarch64-apple-darwin-cxx11.tar.gz
+          path: ./HiGHS_binaries.${{ github.ref_name }}.aarch64-apple-darwin-cxx11.tar.gz
 
-  release:
-    name: Create Release and Upload Binaries
-    needs: [build-windows-x64, build-linux-x64, build-linux-aarch64, build-mac-x64, build-mac-aarch64]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Uno
-        uses: actions/checkout@v4
+  # release:
+  #   name: Create Release and Upload Binaries
+  #   needs: [build-windows-x64, build-linux-x64, build-linux-aarch64, build-mac-x64, build-mac-aarch64]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout HiGHS
+  #       uses: actions/checkout@v4
 
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: .
+  #     - name: Download artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         path: .
 
-      - name: Create GitHub Release
-        run: |
-          gh release create ${{ github.ref_name }} \
-            --title "${{ github.ref_name }}" \
-            --notes "" \
-            --verify-tag
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Create GitHub Release
+  #       run: |
+  #         gh release create ${{ github.ref_name }} \
+  #           --title "${{ github.ref_name }}" \
+  #           --notes "" \
+  #           --verify-tag
+  #       env:
+  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Linux (x86_64) artifact
-        run: |
-          gh release upload ${{ github.ref_name }} \
-            Uno_binaries.${{ github.ref_name }}.x86_64-linux-gnu-cxx11.tar.gz/Uno_binaries.${{ github.ref_name }}.x86_64-linux-gnu-cxx11.tar.gz#Uno.${{ github.ref_name }}.linux.x86_64.tar.gz
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Upload Linux (x86_64) artifact
+  #       run: |
+  #         gh release upload ${{ github.ref_name }} \
+  #           HiGHS_binaries.${{ github.ref_name }}.x86_64-linux-gnu-cxx11.tar.gz/HiGHS_binaries.${{ github.ref_name }}.x86_64-linux-gnu-cxx11.tar.gz#HiGHS.${{ github.ref_name }}.linux.x86_64.tar.gz
+  #       env:
+  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Linux (aarch64) artifact
-        run: |
-          gh release upload ${{ github.ref_name }} \
-            Uno_binaries.${{ github.ref_name }}.aarch64-linux-gnu-cxx11.tar.gz/Uno_binaries.${{ github.ref_name }}.aarch64-linux-gnu-cxx11.tar.gz#Uno.${{ github.ref_name }}.linux.aarch64.tar.gz
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Upload Linux (aarch64) artifact
+  #       run: |
+  #         gh release upload ${{ github.ref_name }} \
+  #           HiGHS_binaries.${{ github.ref_name }}.aarch64-linux-gnu-cxx11.tar.gz/HiGHS_binaries.${{ github.ref_name }}.aarch64-linux-gnu-cxx11.tar.gz#HiGHS.${{ github.ref_name }}.linux.aarch64.tar.gz
+  #       env:
+  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Mac (x86_64) artifact
-        run: |
-          gh release upload ${{ github.ref_name }} \
-            Uno_binaries.${{ github.ref_name }}.x86_64-apple-darwin-cxx11.tar.gz/Uno_binaries.${{ github.ref_name }}.x86_64-apple-darwin-cxx11.tar.gz#Uno.${{ github.ref_name }}.mac.x86_64.tar.gz
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Upload Mac (x86_64) artifact
+  #       run: |
+  #         gh release upload ${{ github.ref_name }} \
+  #           HiGHS_binaries.${{ github.ref_name }}.x86_64-apple-darwin-cxx11.tar.gz/HiGHS_binaries.${{ github.ref_name }}.x86_64-apple-darwin-cxx11.tar.gz#HiGHS.${{ github.ref_name }}.mac.x86_64.tar.gz
+  #       env:
+  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Mac (aarch64) artifact
-        run: |
-          gh release upload ${{ github.ref_name }} \
-            Uno_binaries.${{ github.ref_name }}.aarch64-apple-darwin-cxx11.tar.gz/Uno_binaries.${{ github.ref_name }}.aarch64-apple-darwin-cxx11.tar.gz#Uno.${{ github.ref_name }}.mac.aarch64.tar.gz
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Upload Mac (aarch64) artifact
+  #       run: |
+  #         gh release upload ${{ github.ref_name }} \
+  #           HiGHS_binaries.${{ github.ref_name }}.aarch64-apple-darwin-cxx11.tar.gz/HiGHS_binaries.${{ github.ref_name }}.aarch64-apple-darwin-cxx11.tar.gz#HiGHS.${{ github.ref_name }}.mac.aarch64.tar.gz
+  #       env:
+  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Windows (x86_64) artifact
-        run: |
-          gh release upload ${{ github.ref_name }} \
-            Uno_binaries.${{ github.ref_name }}.x86_64-w64-mingw32-cxx11.zip/Uno_binaries.${{ github.ref_name }}.x86_64-w64-mingw32-cxx11.zip#Uno.${{ github.ref_name }}.windows.x86_64.zip
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Upload Windows (x86_64) artifact
+  #       run: |
+  #         gh release upload ${{ github.ref_name }} \
+  #           HiGHS_binaries.${{ github.ref_name }}.x86_64-w64-mingw32-cxx11.zip/HiGHS_binaries.${{ github.ref_name }}.x86_64-w64-mingw32-cxx11.zip#HiGHS.${{ github.ref_name }}.windows.x86_64.zip
+  #       env:
+  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
