@@ -24,9 +24,11 @@ jobs:
         shell: bash
         run: |
           echo "BINARYBUILDER_AUTOMATIC_APPLE=true" >> $GITHUB_ENV
-          echo "HIGHS_RELEASE=${{ github.ref_name }}" >> $GITHUB_ENV
+          echo "HIGHS_RELEASE=1.12.0" >> $GITHUB_ENV
           echo "HIGHS_COMMIT=${{ github.sha }}" >> $GITHUB_ENV
           echo "HIGHS_URL=https://github.com/${{ github.repository }}.git" >> $GITHUB_ENV
+
+        # echo "HIGHS_RELEASE=${{ github.ref_name }}" >> $GITHUB_ENV
 
       - name: Cross-compilation of HiGHS -- x86_64-linux-gnu-cxx11
         run: |
@@ -59,7 +61,7 @@ jobs:
         shell: bash
         run: |
           echo "BINARYBUILDER_AUTOMATIC_APPLE=true" >> $GITHUB_ENV
-          echo "HIGHS_RELEASE=${{ github.ref_name }}" >> $GITHUB_ENV
+          echo "HIGHS_RELEASE=1.12.0" >> $GITHUB_ENV
           echo "HIGHS_COMMIT=${{ github.sha }}" >> $GITHUB_ENV
           echo "HIGHS_URL=https://github.com/${{ github.repository }}.git" >> $GITHUB_ENV
 
@@ -94,7 +96,7 @@ jobs:
         shell: bash
         run: |
           echo "BINARYBUILDER_AUTOMATIC_APPLE=true" >> $GITHUB_ENV
-          echo "HIGHS_RELEASE=${{ github.ref_name }}" >> $GITHUB_ENV
+          echo "HIGHS_RELEASE=1.12.0" >> $GITHUB_ENV
           echo "HIGHS_COMMIT=${{ github.sha }}" >> $GITHUB_ENV
           echo "HIGHS_URL=https://github.com/${{ github.repository }}.git" >> $GITHUB_ENV
 
@@ -128,7 +130,7 @@ jobs:
         shell: bash
         run: |
           echo "BINARYBUILDER_AUTOMATIC_APPLE=true" >> $GITHUB_ENV
-          echo "HIGHS_RELEASE=${{ github.ref_name }}" >> $GITHUB_ENV
+          echo "HIGHS_RELEASE=1.12.0" >> $GITHUB_ENV
           echo "HIGHS_COMMIT=${{ github.sha }}" >> $GITHUB_ENV
           echo "HIGHS_URL=https://github.com/${{ github.repository }}.git" >> $GITHUB_ENV
 
@@ -163,7 +165,7 @@ jobs:
         shell: bash
         run: |
           echo "BINARYBUILDER_AUTOMATIC_APPLE=true" >> $GITHUB_ENV
-          echo "HIGHS_RELEASE=${{ github.ref_name }}" >> $GITHUB_ENV
+          echo "HIGHS_RELEASE=1.12.0" >> $GITHUB_ENV
           echo "HIGHS_COMMIT=${{ github.sha }}" >> $GITHUB_ENV
           echo "HIGHS_URL=https://github.com/${{ github.repository }}.git" >> $GITHUB_ENV
 
