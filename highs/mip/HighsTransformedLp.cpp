@@ -216,40 +216,23 @@ bool HighsTransformedLp::transform(std::vector<double>& vals,
     // column.
     BoundType oldBoundType = boundTypes[col];
 
-    if (lprelaxation.isColIntegral(col)) {
-      if (ub - lb <= 1.5 || boundDist[col] != 0.0 || simpleLbDist[col] == 0 ||
-          simpleUbDist[col] == 0) {
-        // since we skip the handling of variable bound constraints for all
-        // binary and some general-integer variables here, the bound type used
-        // should be a simple lower or upper bound
-        if (simpleLbDist[col] < simpleUbDist[col] - mip.mipdata_->feastol) {
-          boundTypes[col] = BoundType::kSimpleLb;
-        } else if (simpleUbDist[col] <
-                   simpleLbDist[col] - mip.mipdata_->feastol) {
-          boundTypes[col] = BoundType::kSimpleUb;
-        } else if (vals[i] > 0) {
-          boundTypes[col] = BoundType::kSimpleLb;
-        } else {
-          boundTypes[col] = BoundType::kSimpleUb;
-        }
-        i++;
-        continue;
-      }
-      if (bestVlb[col].first == -1 ||
-          ubDist[col] < lbDist[col] - mip.mipdata_->feastol) {
-        assert(bestVub[col].first != -1);
-        boundTypes[col] = BoundType::kVariableUb;
-      } else if (bestVub[col].first == -1 ||
-                 lbDist[col] < ubDist[col] - mip.mipdata_->feastol) {
-        assert(bestVlb[col].first != -1);
-        boundTypes[col] = BoundType::kVariableLb;
+    if (lprelaxation.isColIntegral(col) &&
+        (ub - lb <= 1.5 || simpleLbDist[col] == 0 || simpleUbDist[col] == 0)) {
+      // since we skip the handling of variable bound constraints for all
+      // binary and some general-integer variables here, the bound type used
+      // should be a simple lower or upper bound
+      if (simpleLbDist[col] < simpleUbDist[col] - mip.mipdata_->feastol) {
+        boundTypes[col] = BoundType::kSimpleLb;
+      } else if (simpleUbDist[col] <
+                 simpleLbDist[col] - mip.mipdata_->feastol) {
+        boundTypes[col] = BoundType::kSimpleUb;
       } else if (vals[i] > 0) {
-        assert(bestVub[col].first != -1);
-        boundTypes[col] = BoundType::kVariableUb;
+        boundTypes[col] = BoundType::kSimpleLb;
       } else {
-        assert(bestVlb[col].first != -1);
-        boundTypes[col] = BoundType::kVariableLb;
+        boundTypes[col] = BoundType::kSimpleUb;
       }
+      i++;
+      continue;
     } else {
       if (lbDist[col] < ubDist[col] - mip.mipdata_->feastol) {
         if (bestVlb[col].first == -1)
@@ -286,7 +269,8 @@ bool HighsTransformedLp::transform(std::vector<double>& vals,
 
     switch (boundTypes[col]) {
       case BoundType::kSimpleLb:
-        if (vals[i] > 0) {
+        if (vals[i] > 0 &&
+            (!lprelaxation.isColIntegral(col) || ub - lb >= 3.5)) {
           // relax away using lower bound
           tmpRhs -= lb * vals[i];
           boundTypes[col] = oldBoundType;
@@ -295,7 +279,8 @@ bool HighsTransformedLp::transform(std::vector<double>& vals,
         }
         break;
       case BoundType::kSimpleUb:
-        if (vals[i] < 0) {
+        if (vals[i] < 0 &&
+            (!lprelaxation.isColIntegral(col) || ub - lb >= 3.5)) {
           // relax away using upper bound
           tmpRhs -= ub * vals[i];
           boundTypes[col] = oldBoundType;
