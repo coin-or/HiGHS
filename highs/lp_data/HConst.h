@@ -282,19 +282,23 @@ enum PresolveRuleType : int {
 enum IisStrategy : int {
   kIisStrategyMin = 0,
   kIisStrategyLight = kIisStrategyMin,  // 0
-  kIisStrategyFromLpRowPriority,        // 1
-  kIisStrategyFromLpColPriority,        // 2
-  //  kIisStrategyFromRayRowPriority,                     // 3
-  //  kIisStrategyFromRayColPriority,                     // 4
-  kIisStrategyMax = kIisStrategyFromLpColPriority
+  kIisStrategyFromRay = 1,
+  kIisStrategyFromLp = 2,
+  kIisStrategyIrreducible = 4,
+  kIisStrategyColPriority = 8,
+  kIisStrategyRelaxation = 16,
+  kIisStrategyDefault = kIisStrategyLight,
+  kIisStrategyMax = kIisStrategyFromRay + kIisStrategyFromLp +
+                    kIisStrategyIrreducible + kIisStrategyColPriority +
+                    kIisStrategyRelaxation
 };
 
 enum IisStatus {
-  kIisStatusMin = 0,
-  kIisStatusInConflict = kIisStatusMin,  // 0
-  kIisStatusNotInConflict,               // 1
-  kIisStatusMaybeInConflict,             // 2
-  kIisStatusMax = kIisStatusMaybeInConflict
+  kIisStatusMin = -1,
+  kIisStatusNotInConflict = kIisStatusMin,  // -1
+  kIisStatusMaybeInConflict,                // 0
+  kIisStatusInConflict,                     // 1
+  kIisStatusMax = kIisStatusInConflict
 };
 
 enum SubSolverIndex : int {

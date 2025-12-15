@@ -2068,8 +2068,7 @@ HighsStatus Highs::feasibilityRelaxation(const double global_lower_penalty,
   std::vector<HighsInt> infeasible_row_subset;
   return elasticityFilter(global_lower_penalty, global_upper_penalty,
                           global_rhs_penalty, local_lower_penalty,
-                          local_upper_penalty, local_rhs_penalty, false,
-                          infeasible_row_subset);
+                          local_upper_penalty, local_rhs_penalty);
 }
 
 HighsStatus Highs::getIllConditioning(HighsIllConditioning& ill_conditioning,
@@ -3772,7 +3771,7 @@ void Highs::invalidateSolverData() {
   invalidateSolution();
   invalidateBasis();
   invalidateEkk();
-  invalidateIis();
+  clearIis();
 }
 
 void Highs::invalidateSolverDualData() {
@@ -3790,7 +3789,7 @@ void Highs::invalidateModelStatusAndInfo() {
   invalidateModelStatus();
   invalidateRanging();
   invalidateInfo();
-  invalidateIis();
+  clearIis();
 }
 
 void Highs::invalidateModelStatus() {
@@ -3820,7 +3819,7 @@ void Highs::invalidateRanging() { ranging_.invalidate(); }
 
 void Highs::invalidateEkk() { ekk_instance_.invalidate(); }
 
-void Highs::invalidateIis() { iis_.invalidate(); }
+void Highs::clearIis() { iis_.clear(); }
 
 HighsStatus Highs::completeSolutionFromDiscreteAssignment() {
   // Determine whether the current solution of a MIP is feasible and,
@@ -4764,8 +4763,7 @@ HighsStatus Highs::returnFromOptimizeModel(const HighsStatus run_return_status,
   }
 
   // Unless solved as a MIP, report on the solution
-  const bool solved_as_mip = !options_.solver.compare(kHighsChooseString) &&
-                             model_.isMip() && !options_.solve_relaxation;
+  const bool solved_as_mip = model_.isMip() && !options_.solve_relaxation;
   if (!solved_as_mip) reportSolvedLpQpStats();
   return returnFromHighs(return_status);
 }

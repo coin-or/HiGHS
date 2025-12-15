@@ -2141,9 +2141,12 @@ void testIis() {
   //
   // with variables in [0, 1], constraints 0 and 2 form an IIS with
   // 
-  // x free (so should be removed?); 0 <= y; 0 <= z
+  // x free; 0 <= y; 0 <= z
   //
   // x + y - z >= 2; x + 2y + z <= 1
+  //
+  // x may be free, but can't immediately be removed, otherwise
+  // removing y >= 0 yields an infeasible LP
   //
   ret = Highs_addCol(highs, 0.0, 0.0, 1.0, 0, NULL, NULL);
   assert(ret == 0);

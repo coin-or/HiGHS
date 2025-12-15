@@ -596,6 +596,22 @@ HighsStatus highs_changeColsIntegrality(
                                   integrality_ptr);
 }
 
+HighsStatus highs_changeRowsBounds(Highs* h, HighsInt num_set_entries,
+                                   dense_array_t<HighsInt> indices,
+                                   dense_array_t<double> lower,
+                                   dense_array_t<double> upper) {
+  py::buffer_info indices_info = indices.request();
+  py::buffer_info lower_info = lower.request();
+  py::buffer_info upper_info = upper.request();
+
+  HighsInt* indices_ptr = static_cast<HighsInt*>(indices_info.ptr);
+  double* lower_ptr = static_cast<double*>(lower_info.ptr);
+  double* upper_ptr = static_cast<double*>(upper_info.ptr);
+
+  return h->changeRowsBounds(num_set_entries, indices_ptr, lower_ptr,
+                             upper_ptr);
+}
+
 // Same as deleteVars
 HighsStatus highs_deleteCols(Highs* h, HighsInt num_set_entries,
                              dense_array_t<HighsInt> indices) {
@@ -1044,10 +1060,9 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used()) {
   py::enum_<IisStrategy>(m, "IisStrategy", py::module_local())
       .value("kIisStrategyMin", IisStrategy::kIisStrategyMin)
       .value("kIisStrategyLight", IisStrategy::kIisStrategyLight)
-      .value("kIisStrategyFromLpRowPriority",
-             IisStrategy::kIisStrategyFromLpRowPriority)
-      .value("kIisStrategyFromLpColPriority",
-             IisStrategy::kIisStrategyFromLpColPriority)
+      .value("kIisStrategyFromRay", IisStrategy::kIisStrategyFromRay)
+      .value("kIisStrategyFromLp", IisStrategy::kIisStrategyFromLp)
+      .value("kIisStrategyColPriority", IisStrategy::kIisStrategyColPriority)
       .value("kIisStrategyMax", IisStrategy::kIisStrategyMax)
       .export_values();
   py::enum_<IisBoundStatus>(m, "IisBoundStatus", py::module_local())
@@ -1473,6 +1488,7 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used()) {
       .def("changeColsCost", &highs_changeColsCost)
       .def("changeColsBounds", &highs_changeColsBounds)
       .def("changeColsIntegrality", &highs_changeColsIntegrality)
+      .def("changeRowsBounds", &highs_changeRowsBounds)
       .def("deleteCols", &highs_deleteCols)
       .def("deleteVars", &highs_deleteCols)  // alias
       .def("deleteRows", &highs_deleteRows)
@@ -1498,8 +1514,9 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used()) {
 
   py::class_<HighsIis>(m, "HighsIis", py::module_local())
       .def(py::init<>())
-      .def("invalidate", &HighsIis::invalidate)
+      .def("clear", &HighsIis::clear)
       .def_readwrite("valid", &HighsIis::valid_)
+      .def_readwrite("status", &HighsIis::status_)
       .def_readwrite("strategy", &HighsIis::strategy_)
       .def_readwrite("col_index", &HighsIis::col_index_)
       .def_readwrite("row_index", &HighsIis::row_index_)

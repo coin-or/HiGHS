@@ -4,6 +4,7 @@
 #include <cmath>
 #include <iostream>
 
+#include "ipm/hipo/auxiliary/AutoDetect.h"
 #include "ipm/hipo/auxiliary/Log.h"
 #include "parallel/HighsParallel.h"
 
@@ -32,6 +33,7 @@ Int Solver::load(const Int num_var, const Int num_con, const double* obj,
 void Solver::setOptions(const Options& options) {
   options_ = options;
   if (options_.display) logH_.setOptions(options_.log_options);
+  control_.setOptions(options_);
 }
 void Solver::setCallback(HighsCallback& callback) {
   control_.setCallback(callback);
@@ -43,6 +45,8 @@ void Solver::solve() {
     info_.status = kStatusBadModel;
     return;
   }
+
+  if (checkMetis()) return;
 
   // iterate object needs to be initialised before potentially interrupting
   it_.reset(new Iterate(model_, regul_));
@@ -1080,6 +1084,22 @@ bool Solver::checkInterrupt() {
     terminate = true;
   }
   return terminate;
+}
+
+bool Solver::checkMetis() {
+  IntegerModel metis_model = getMetisIntegerModel();
+
+  if ((metis_model == IntegerModel::lp64 && sizeof(Int) != 4) ||
+      (metis_model == IntegerModel::ilp64 && sizeof(Int) != 8)) {
+    logH_.printe(
+        "Metis should be compiled with the same integer type as HiGHS\n");
+    info_.status = kStatusError;
+    return true;
+  } else if (metis_model == IntegerModel::unknown) {
+    logH_.printw("Metis integer type cannot be checked\n");
+  }
+
+  return false;
 }
 
 void Solver::printHeader() const {

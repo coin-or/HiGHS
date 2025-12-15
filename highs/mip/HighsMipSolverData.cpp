@@ -378,6 +378,7 @@ void HighsMipSolverData::startAnalyticCenterComputation(
     ipm.setOptionValue("solver", ipm_solver);
     ipm.setOptionValue("ipm_iteration_limit", 200);
     ipm.setOptionValue("run_crossover", kHighsOffString);
+    ipm.setOptionValue("run_centring", true);
     HighsLp lpmodel(*mipsolver.model_);
     lpmodel.col_cost_.assign(lpmodel.num_col_, 0.0);
     lpmodel.integrality_.clear();
@@ -929,14 +930,7 @@ void HighsMipSolverData::runSetup() {
   if (domain.infeasible()) {
     mipsolver.modelstatus_ = HighsModelStatus::kInfeasible;
 
-    double prev_lower_bound = lower_bound;
-
-    lower_bound = kHighsInf;
-
-    bool bound_change = lower_bound != prev_lower_bound;
-    if (!mipsolver.submip && bound_change)
-      updatePrimalDualIntegral(prev_lower_bound, lower_bound, upper_bound,
-                               upper_bound);
+    updateLowerBound(kHighsInf);
 
     pruned_treeweight = 1.0;
     return;
@@ -989,14 +983,7 @@ void HighsMipSolverData::runSetup() {
             // integer variable is fixed to a fractional value -> infeasible
             mipsolver.modelstatus_ = HighsModelStatus::kInfeasible;
 
-            double prev_lower_bound = lower_bound;
-
-            lower_bound = kHighsInf;
-
-            bool bound_change = lower_bound != prev_lower_bound;
-            if (!mipsolver.submip && bound_change)
-              updatePrimalDualIntegral(prev_lower_bound, lower_bound,
-                                       upper_bound, upper_bound);
+            updateLowerBound(kHighsInf);
 
             pruned_treeweight = 1.0;
             return;
@@ -1389,19 +1376,14 @@ void HighsMipSolverData::performRestart() {
     // is never applied, since MIP solving is complete, and
     // lower_bound is set to upper_bound, so apply the offset now, so
     // that housekeeping in updatePrimalDualIntegral is correct
-    double prev_lower_bound = lower_bound - mipsolver.model_->offset_;
-
-    lower_bound = upper_bound;
+    lower_bound -= mipsolver.model_->offset_;
 
     // There must be a gap change, since it's now zero, so always call
     // updatePrimalDualIntegral (unless solving a sub-MIP)
     //
     // Surely there must be a lower bound change
-    bool bound_change = lower_bound != prev_lower_bound;
-    assert(bound_change);
-    if (!mipsolver.submip && bound_change)
-      updatePrimalDualIntegral(prev_lower_bound, lower_bound, upper_bound,
-                               upper_bound);
+    updateLowerBound(upper_bound);
+
     if (mipsolver.solution_objective_ != kHighsInf &&
         mipsolver.modelstatus_ == HighsModelStatus::kInfeasible)
       mipsolver.modelstatus_ = HighsModelStatus::kOptimal;
@@ -1823,14 +1805,7 @@ HighsLpRelaxation::Status HighsMipSolverData::evaluateRootLp() {
       globalOrbits->orbitalFixing(domain);
 
     if (domain.infeasible()) {
-      double prev_lower_bound = lower_bound;
-
-      lower_bound = std::min(kHighsInf, upper_bound);
-
-      bool bound_change = lower_bound != prev_lower_bound;
-      if (!mipsolver.submip && bound_change)
-        updatePrimalDualIntegral(prev_lower_bound, lower_bound, upper_bound,
-                                 upper_bound);
+      updateLowerBound(std::min(kHighsInf, upper_bound));
       pruned_treeweight = 1.0;
       num_nodes += 1;
       num_leaves += 1;
@@ -1872,15 +1847,7 @@ HighsLpRelaxation::Status HighsMipSolverData::evaluateRootLp() {
           addIncumbent(lp.getLpSolver().getSolution().col_value,
                        lp.getObjective(), kSolutionSourceEvaluateNode)) {
         mipsolver.modelstatus_ = HighsModelStatus::kOptimal;
-
-        double prev_lower_bound = lower_bound;
-
-        lower_bound = upper_bound;
-
-        bool bound_change = lower_bound != prev_lower_bound;
-        if (!mipsolver.submip && bound_change)
-          updatePrimalDualIntegral(prev_lower_bound, lower_bound, upper_bound,
-                                   upper_bound);
+        updateLowerBound(upper_bound);
         pruned_treeweight = 1.0;
         num_nodes += 1;
         num_leaves += 1;
@@ -1895,14 +1862,7 @@ HighsLpRelaxation::Status HighsMipSolverData::evaluateRootLp() {
       status = lp.getStatus();
 
     if (status == HighsLpRelaxation::Status::kInfeasible) {
-      double prev_lower_bound = lower_bound;
-
-      lower_bound = std::min(kHighsInf, upper_bound);
-
-      bool bound_change = lower_bound != prev_lower_bound;
-      if (!mipsolver.submip && bound_change)
-        updatePrimalDualIntegral(prev_lower_bound, lower_bound, upper_bound,
-                                 upper_bound);
+      updateLowerBound(std::min(kHighsInf, upper_bound));
       pruned_treeweight = 1.0;
       num_nodes += 1;
       num_leaves += 1;
@@ -1910,14 +1870,7 @@ HighsLpRelaxation::Status HighsMipSolverData::evaluateRootLp() {
     }
 
     if (lp.unscaledDualFeasible(lp.getStatus())) {
-      double prev_lower_bound = lower_bound;
-
-      lower_bound = std::max(lp.getObjective(), lower_bound);
-
-      bool bound_change = lower_bound != prev_lower_bound;
-      if (!mipsolver.submip && bound_change)
-        updatePrimalDualIntegral(prev_lower_bound, lower_bound, upper_bound,
-                                 upper_bound);
+      updateLowerBound(std::max(lp.getObjective(), lower_bound));
 
       if (lpWasSolved) {
         redcostfixing.addRootRedcost(mipsolver,
@@ -1994,14 +1947,7 @@ restart:
   domain.clearChangedCols();
   lp.setObjectiveLimit(upper_limit);
 
-  double prev_lower_bound = lower_bound;
-
-  lower_bound = std::max(lower_bound, domain.getObjectiveLowerBound());
-
-  bool bound_change = lower_bound != prev_lower_bound;
-  if (!mipsolver.submip && bound_change)
-    updatePrimalDualIntegral(prev_lower_bound, lower_bound, upper_bound,
-                             upper_bound);
+  updateLowerBound(std::max(lower_bound, domain.getObjectiveLowerBound()));
 
   printDisplayLine();
 
@@ -2688,6 +2634,15 @@ void HighsMipSolverData::limitsToBounds(double& dual_bound,
     dual_bound = -dual_bound;
     primal_bound = -primal_bound;
   }
+}
+
+void HighsMipSolverData::updateLowerBound(double new_lower_bound) {
+  // Update lower bound
+  double prev_lower_bound = lower_bound;
+  lower_bound = new_lower_bound;
+  if (!mipsolver.submip && lower_bound != prev_lower_bound)
+    updatePrimalDualIntegral(prev_lower_bound, lower_bound, upper_bound,
+                             upper_bound);
 }
 
 // Interface to callbackAction, with mipsolver_objective_value since
