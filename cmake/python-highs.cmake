@@ -20,12 +20,14 @@ if(HIPO)
   set(sources_python ${sources_python}
                      ${hipo_sources_python}
                      ${factor_highs_sources_python}
-                     ${hipo_util_sources_python})
+                     ${hipo_util_sources_python}
+                     ${hipo_orderings_sources})
 
   set(headers_python ${headers_python}
                      ${hipo_headers_python}
                      ${factor_highs_headers_python}
-                     ${hipo_util_headers_python})
+                     ${hipo_util_headers_python}
+                     ${hipo_orderings_headers})
 
 endif()
 
@@ -56,31 +58,11 @@ python_add_library(_core MODULE highs/highs_bindings.cpp WITH_SOABI)
 target_link_libraries(_core PRIVATE pybind11::headers)
 
 if (HIPO)
-  if (WIN32)
-    target_link_libraries(_core PRIVATE OpenBLAS::OpenBLAS)
+  if (WIN32 OR LINUX)
+    target_link_libraries(_core PRIVATE openblas)
     target_compile_definitions(_core PRIVATE HIPO_USES_OPENBLAS)
-  else()
-  # if (NOT METIS_ROOT STREQUAL "")
-  #   target_include_directories(_core PRIVATE ${METIS_DST_DIR}/include)
-  #   target_link_libraries(_core PRIVATE ${METIS_DST_DIR}/lib/metis.lib)
-  # else()
-
-    target_link_libraries(_core PRIVATE BLAS::BLAS)
-
-    string(TOLOWER "${BLAS_LIBRARIES}" blas_lower)
-    if(blas_lower MATCHES "openblas")
-        target_compile_definitions(_core PRIVATE HIPO_USES_OPENBLAS)
-    elseif(blas_lower MATCHES "accelerate")
-      target_compile_definitions(_core PRIVATE HIPO_USES_APPLE_BLAS)
-    endif()
-
-  endif()
-
-  if(metis_FOUND)
-    target_link_libraries(_core PRIVATE metis)
-  else()
-    target_include_directories(_core PRIVATE "${METIS_PATH}")
-    target_link_libraries(_core PRIVATE "${METIS_LIB}")
+  else() # APPLE
+    target_compile_definitions(_core PRIVATE HIPO_USES_APPLE_BLAS)
   endif()
 
 endif()

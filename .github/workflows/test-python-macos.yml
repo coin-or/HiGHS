@@ -50,33 +50,9 @@ jobs:
           METIS_ROOT="${{ runner.workspace }}/installs"
           sed -i '' '/cmake\.args = \[/,/\]/{
             s|"-DPYTHON_BUILD_SETUP=ON"|"-DPYTHON_BUILD_SETUP=ON",\
-            "-DHIPO=ON",\
-            "-DMETIS_ROOT='"$METIS_ROOT"'"|
+            "-DHIPO=ON"|
           }' pyproject.toml
           cat pyproject.toml
-
-      - name: Checkout METIS
-        uses: actions/checkout@v4
-        with:
-          repository: galabovaa/METIS
-          ref: 521-ts
-          path: METIS
-
-      - name: Create installs dir
-        working-directory: ${{runner.workspace}}
-        run: |
-          mkdir installs
-          ls
-
-      - name: Install METIS
-        run: |
-          cmake \
-          -S $GITHUB_WORKSPACE/METIS \
-          -B build \
-          -DGKLIB_PATH=${{ github.workspace }}/METIS/GKlib \
-          -DCMAKE_INSTALL_PREFIX=${{ runner.workspace }}/installs
-          cmake --build build --parallel
-          cmake --install build
 
       - name: Install build dependencies
         run: python3 -m pip install numpy wheel pytest
