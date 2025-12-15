@@ -1295,8 +1295,7 @@ Int Analyse::run(Symbolic& S) {
 
   if (!ready_) return kRetGeneric;
 
-  HIPO_CLOCK_CREATE(1);
-  HIPO_CLOCK_CREATE(2);
+  HIPO_CLOCK_CREATE;
 
   HIPO_CLOCK_START(2);
   if (getPermutation()) return kRetOrderingError;

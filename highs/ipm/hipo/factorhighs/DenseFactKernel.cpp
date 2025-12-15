@@ -61,7 +61,7 @@ static bool blockBunchKaufman(Int j, Int n, double* A, Int lda, Int* swaps,
   // Swap of columns may be performed.
   // Regularisation of pivot may be performed.
 
-  HIPO_CLOCK_CREATE(2);
+  HIPO_CLOCK_CREATE;
 
   bool flag_2x2 = false;
 
@@ -162,7 +162,7 @@ Int denseFactK(char uplo, Int n, double* A, Int lda, Int* pivot_sign,
   // quick return
   if (n == 0) return kRetOk;
 
-  HIPO_CLOCK_CREATE(2);
+  HIPO_CLOCK_CREATE;
 
   if (uplo == 'L') {
     assert(1 == 0);

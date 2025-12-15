@@ -187,7 +187,7 @@ void Factorise::processSupernode(Int sn) {
   // store the result.
 
   TaskGroupSpecial tg;
-  HIPO_CLOCK_CREATE(2);
+  HIPO_CLOCK_CREATE;
 
   const bool parallel = S_.parTree();
   const bool serial = !parallel;
@@ -374,7 +374,7 @@ void Factorise::processSupernode(Int sn) {
 }
 
 bool Factorise::run(Numeric& num) {
-  HIPO_CLOCK_CREATE(1);
+  HIPO_CLOCK_CREATE;
 
   TaskGroupSpecial tg;
 

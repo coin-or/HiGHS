@@ -49,13 +49,16 @@ enum TimeItems {
 };
 
 // Macros for timing.
-// - Use HIPO_CLOCK_CREATE(id) to create a Clock clock_id.
+// - Use HIPO_CLOCK_CREATE to create the Clock objects.
 // - Use HIPO_CLOCK_START(id) to start the corresponding clock.
 // - Use HIPO_CLOCK_STOP(id, data, item) to read the corresponding clock and
 //   save the time in the corresponding time item of the data collector.
 // If HIPO_TIMING_LEVEL is not >= id (at compile time), then nothing happens.
 //
-#define HIPO_CLOCK_CREATE(id) HIPO_CLOCK_CREATE_##id
+#define HIPO_CLOCK_CREATE \
+  HIPO_CLOCK_CREATE_1;    \
+  HIPO_CLOCK_CREATE_2;    \
+  HIPO_CLOCK_CREATE_3;
 #define HIPO_CLOCK_START(id) HIPO_CLOCK_START_##id
 #define HIPO_CLOCK_STOP(id, data, item) HIPO_CLOCK_STOP_##id(data, item)
 

@@ -18,8 +18,7 @@ Int Numeric::solve(std::vector<double>& x) const {
 
   if (!sn_columns_ || !S_) return kRetInvalidPointer;
 
-  HIPO_CLOCK_CREATE(1);
-  HIPO_CLOCK_CREATE(2);
+  HIPO_CLOCK_CREATE;
 
   // initialise solve handler
   SH_.reset(

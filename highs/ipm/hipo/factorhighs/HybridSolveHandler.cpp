@@ -21,7 +21,7 @@ void HybridSolveHandler::forwardSolve(std::vector<double>& x) const {
 
   // supernode columns in format FH
 
-  HIPO_CLOCK_CREATE(2);
+  HIPO_CLOCK_CREATE;
 
   const Int nb = S_.blockSize();
 
@@ -103,7 +103,7 @@ void HybridSolveHandler::backwardSolve(std::vector<double>& x) const {
 
   // supernode columns in format FH
 
-  HIPO_CLOCK_CREATE(2);
+  HIPO_CLOCK_CREATE;
 
   const Int nb = S_.blockSize();
 
@@ -188,7 +188,7 @@ void HybridSolveHandler::diagSolve(std::vector<double>& x) const {
 
   // supernode columns in format FH
 
-  HIPO_CLOCK_CREATE(2);
+  HIPO_CLOCK_CREATE;
 
   const Int nb = S_.blockSize();
 

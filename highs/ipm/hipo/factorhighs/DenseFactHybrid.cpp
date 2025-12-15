@@ -23,7 +23,7 @@ Int denseFactFH(char format, Int n, Int k, Int nb, double* A, double* B,
   // BLAS calls: dcopy, dscal, daxpy, dgemm, dtrsm
   // ===========================================================================
 
-  HIPO_CLOCK_CREATE(2);
+  HIPO_CLOCK_CREATE;
 
   // check input
   if (n < 0 || k < 0 || !A || (k < n && !B)) return kRetInvalidInput;
@@ -243,7 +243,7 @@ Int denseFactFP2FH(double* A, Int nrow, Int ncol, Int nb, DataCollector& data) {
   // BLAS calls: dcopy
   // ===========================================================================
 
-  HIPO_CLOCK_CREATE(2);
+  HIPO_CLOCK_CREATE;
 
   std::vector<double> buf(nrow * nb);
 
