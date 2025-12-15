@@ -56,7 +56,7 @@ jobs:
     runs-on: windows-11-arm
     strategy:
       matrix:
-        arch: [arm64]
+        arch: [ARM, ARM64]
     steps:
       - uses: actions/checkout@v3
       - name: Build
