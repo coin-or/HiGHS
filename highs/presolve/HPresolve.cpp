@@ -5099,18 +5099,25 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
   // now remove fixed columns and tighten domains
   HighsInt numVarsFixed = 0;
+  HighsInt numBndsTightened = 0;
   for (HighsInt i = 0; i != model->num_col_; ++i) {
     if (colDeleted[i]) continue;
-    if (model->col_lower_[i] < domain.col_lower_[i])
+    bool newbnd = false;
+    if (model->col_lower_[i] < domain.col_lower_[i]) {
+      newbnd = true;
       changeColLower(i, domain.col_lower_[i]);
-    if (model->col_upper_[i] > domain.col_upper_[i])
+    }
+    if (model->col_upper_[i] > domain.col_upper_[i]) {
+      newbnd = true;
       changeColUpper(i, domain.col_upper_[i]);
+    }
     if (domain.isFixed(i)) {
       numVarsFixed++;
       postsolve_stack.removedFixedCol(i, model->col_lower_[i], 0.0,
                                       HighsEmptySlice());
       removeFixedCol(i);
-    }
+    } else if (newbnd)
+      numBndsTightened++;
     HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
   }
 
@@ -5119,11 +5126,13 @@ HPresolve::Result HPresolve::enumerateSolutions(
   HPRESOLVE_CHECKED_CALL(
       applyConflictGraphSubstitutions(postsolve_stack, numVarsSubstituted));
 
-  if (numVarsFixed > 0 || numVarsSubstituted > 0)
-    highsLogDev(
-        options->log_options, HighsLogType::kInfo,
-        "Enumeration presolve fixed %d columns and performed %d substitutions",
-        static_cast<int>(numVarsFixed), static_cast<int>(numVarsSubstituted));
+  if (numVarsFixed > 0 || numBndsTightened > 0 || numVarsSubstituted > 0)
+    highsLogDev(options->log_options, HighsLogType::kInfo,
+                "Enumeration presolve fixed %d columns, tightened %d bounds "
+                "and performed %d substitutions",
+                static_cast<int>(numVarsFixed),
+                static_cast<int>(numBndsTightened),
+                static_cast<int>(numVarsSubstituted));
 
   return Result::kOk;
 }
