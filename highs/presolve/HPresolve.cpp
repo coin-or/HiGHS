@@ -4881,7 +4881,6 @@ HPresolve::Result HPresolve::enumerateSolutions(
     size_t numDomainChanges;
     size_t numChangedCols;
   };
-  std::vector<HighsInt> aggregated;
   std::vector<std::vector<HighsInt>> solutions;
   std::vector<HighsInt> vars;
   std::vector<branch> branches;
@@ -4995,10 +4994,8 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
     // vectors for storing variable status and solutions
     branches.clear();
-    aggregated.clear();
     solutions.clear();
     branches.resize(vars.size());
-    aggregated.resize(vars.size());
     solutions.resize(vars.size());
 
     // main loop
