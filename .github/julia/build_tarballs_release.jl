@@ -44,6 +44,28 @@ cmake -DCMAKE_INSTALL_PREFIX=${prefix} \
     ..
 else
 cd $WORKSPACE/srcdir/OpenBLAS*
+
+if [[ "${target}" == x86_64-* ]]; then
+    export TARGET=HASWELL
+    export BINARY=64
+elif [[ "${target}" == i686-* ]]; then
+    export TARGET=PRESCOTT
+    export BINARY=32
+elif [[ "${target}" == aarch64-* ]]; then
+    export TARGET=ARMV8
+    export BINARY=64
+elif [[ "${target}" == arm-* ]]; then
+    export TARGET=ARMV7
+    export BINARY=32
+elif [[ "${target}" == powerpc64le-* ]]; then
+    export TARGET=POWER8
+    export BINARY=64
+fi
+
+make DYNAMIC_ARCH=1 NO_SHARED=1 USE_OPENMP=0 NUM_THREADS=64 \
+    TARGET=${TARGET} BINARY=${BINARY} NO_LAPACK=0 \
+    CC=${CC} FC=${FC} HOSTCC=gcc -j${nproc}
+
 make DYNAMIC_ARCH=1 NO_SHARED=1 USE_OPENMP=0 NUM_THREADS=64 BINARY=64 -j${nproc}
 make install PREFIX=${prefix} NO_SHARED=1
 
