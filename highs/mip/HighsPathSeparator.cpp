@@ -58,6 +58,19 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
       rowtype[i] = RowType::kLeq;
   }
 
+  std::vector<double> rowNorm(lp.num_row_);
+  std::vector<double> fracActivity(lp.num_row_);
+  for (HighsInt col = 0; col != lp.num_col_; ++col) {
+    for (HighsInt i = lp.a_matrix_.start_[col];
+         i != lp.a_matrix_.start_[col + 1]; ++i) {
+      HighsInt row = lp.a_matrix_.index_[i];
+      if (rowtype[row] == RowType::kUnusuable) continue;
+      double val = std::abs(lp.a_matrix_.value_[i]);
+      fracActivity[row] += val * transLp.getColFractionality(col);
+      rowNorm[row] += val * val;
+    }
+  }
+
   std::vector<HighsInt> numContinuous(lp.num_row_);
 
   size_t maxAggrRowSize = 0;
@@ -101,7 +114,19 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
     assert(mip.variableType(col) == HighsVarType::kContinuous);
     assert(transLp.boundDistance(col) > 0.0);
 
-    if (colSubstitutions[col].first != -1) continue;
+    // Overwrite existing substitution if fractional activity of new row is
+    // larger
+    if (colSubstitutions[col].first != -1) {
+      if (fracActivity[colSubstitutions[col].first] /
+              std::max(rowNorm[colSubstitutions[col].first],
+                       mip.mipdata_->feastol) <
+          fracActivity[i] / std::max(rowNorm[i], mip.mipdata_->feastol) -
+              mip.mipdata_->feastol) {
+        colSubstitutions[col].first = i;
+        colSubstitutions[col].second = val;
+      }
+      continue;
+    }
 
     colSubstitutions[col].first = i;
     colSubstitutions[col].second = val;
@@ -109,18 +134,6 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
   }
 
   // Score will be used for deciding order in which rows get aggregated
-  std::vector<double> rowNorm(lp.num_row_);
-  std::vector<double> fracActivity(lp.num_row_);
-  for (HighsInt col = 0; col != lp.num_col_; ++col) {
-    for (HighsInt i = lp.a_matrix_.start_[col];
-         i != lp.a_matrix_.start_[col + 1]; ++i) {
-      HighsInt row = lp.a_matrix_.index_[i];
-      if (rowtype[row] == RowType::kUnusuable) continue;
-      double val = std::abs(lp.a_matrix_.value_[i]);
-      fracActivity[row] += val * transLp.getColFractionality(col);
-      rowNorm[row] += val * val;
-    }
-  }
   std::vector<std::pair<HighsInt, double>> rowScore;
   rowScore.reserve(lp.num_row_);
   for (HighsInt row = 0; row != lp.num_row_; ++row) {
