@@ -8,9 +8,6 @@ namespace hipo {
 enum class IntegerModel { not_set, unknown, lp64, ilp64 };
 IntegerModel getBlasIntegerModel();
 
-// Detect Metis integer type
-IntegerModel getMetisIntegerModel();
-
 std::string getIntegerModelString(IntegerModel i);
 
 }  // namespace hipo
