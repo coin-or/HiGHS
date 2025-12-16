@@ -12,9 +12,8 @@ version = VersionNumber(ENV["HIGHS_RELEASE"])
 sources = [GitSource(ENV["HIGHS_URL"], ENV["HIGHS_COMMIT"])
     # ArchiveSource("https://github.com/xianyi/OpenBLAS/releases/download/v0.3.21/OpenBLAS-0.3.21.tar.gz",
     #               "f36ba3d7a60e7c8bcc54cd9aaa9b1223dd42eaf02c811791c37e8ca707c241ca")
-    ArchiveSource(
-        "https://github.com/OpenMathLib/OpenBLAS/releases/download/v0.3.30/OpenBLAS-0.3.30.tar.gz",
-                   "27342cff518646afb4c2b976d809102e368957974c250a25ccc965e53063c95d")
+    ArchiveSource("https://github.com/OpenMathLib/OpenBLAS/releases/download/v0.3.30/OpenBLAS-0.3.30.tar.gz",
+        "27342cff518646afb4c2b976d809102e368957974c250a25ccc965e53063c95d")
     ]
 
 script = raw"""
@@ -45,29 +44,33 @@ cmake -DCMAKE_INSTALL_PREFIX=${prefix} \
 else
 cd $WORKSPACE/srcdir/OpenBLAS*
 
-if [[ "${target}" == x86_64-* ]]; then
-    export TARGET=HASWELL
-    export BINARY=64
-elif [[ "${target}" == i686-* ]]; then
-    export TARGET=PRESCOTT
-    export BINARY=32
-elif [[ "${target}" == aarch64-* ]]; then
-    export TARGET=ARMV8
-    export BINARY=64
-elif [[ "${target}" == arm-* ]]; then
-    export TARGET=ARMV7
-    export BINARY=32
-elif [[ "${target}" == powerpc64le-* ]]; then
-    export TARGET=POWER8
-    export BINARY=64
-fi
+case "$target" in
+    x86_64-linux*)
+        OPENBLAS_TARGET="HASWELL"
+        ;;
+    x86_64-w64-mingw*)
+        OPENBLAS_TARGET="CORE2"
+        ;;
+    aarch64-*)
+        OPENBLAS_TARGET="ARMV8"
+        ;;
+    *)
+        OPENBLAS_TARGET="CORE2"
+        ;;
+esac
 
-make DYNAMIC_ARCH=1 NO_SHARED=1 USE_OPENMP=0 NUM_THREADS=64 \
-    TARGET=${TARGET} BINARY=${BINARY} NO_LAPACK=0 \
-    CC=${CC} FC=${FC} HOSTCC=gcc -j${nproc}
+make -j${nproc} NO_SHARED=1 USE_OPENMP=0 \
+    TARGET=${OPENBLAS_TARGET} \
+    BUILD_TARGET=${OPENBLAS_TARGET} \
+    BINARY=64 \
+    CROSS=1 \
+    NO_LAPACK=0 \
+    CC="${CC}" \
+    FC="${FC}" \
+    HOSTCC="${HOSTCC}" \
+    libs
 
-make DYNAMIC_ARCH=1 NO_SHARED=1 USE_OPENMP=0 NUM_THREADS=64 BINARY=64 -j${nproc}
-make install PREFIX=${prefix} NO_SHARED=1
+make install PREFIX=${prefix}
 
 cd $WORKSPACE/srcdir/HiGHS
 apk del cmake
