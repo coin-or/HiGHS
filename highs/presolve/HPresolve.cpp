@@ -4885,12 +4885,9 @@ HPresolve::Result HPresolve::enumerateSolutions(
   std::vector<HighsInt> vars;
   std::vector<branch> branches;
   std::set<HighsInt> worstCaseBounds;
-  std::vector<double> worstCaseLowerBound;
-  std::vector<double> worstCaseUpperBound;
-  worstCaseLowerBound.resize(model->num_col_, kHighsInf);
-  worstCaseUpperBound.resize(model->num_col_, -kHighsInf);
-  std::vector<HighsInt> numWorstCaseBounds;
-  numWorstCaseBounds.resize(model->num_col_);
+  std::vector<double> worstCaseLowerBound(model->num_col_, kHighsInf);
+  std::vector<double> worstCaseUpperBound(model->num_col_, -kHighsInf);
+  std::vector<HighsInt> numWorstCaseBounds(model->num_col_);
 
   // lambda for branching (just performs initial lower branch)
   auto doBranch = [&](HighsDomain& domain, const std::vector<HighsInt>& vars,
