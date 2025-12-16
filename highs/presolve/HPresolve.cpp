@@ -1587,8 +1587,9 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
             -std::min(int64_t{5000}, int64_t(implicsUp) * implicsDown) /
                 (int64_t{1} + static_cast<int64_t>(numProbes[i])),
             -std::min(HighsInt{100}, implicsUp + implicsDown),
-            -simscore[i].first * simscore[i].second -
-                std::max(simscore[i].first, simscore[i].second),
+            (-simscore[i].first * simscore[i].second -
+             std::max(simscore[i].first, simscore[i].second)) /
+                (1 + numProbes[i]),
             random.integer(), i);
       }
     }
