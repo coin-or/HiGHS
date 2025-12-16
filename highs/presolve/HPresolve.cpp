@@ -1768,7 +1768,7 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
     HPRESOLVE_CHECKED_CALL(finaliseProbing(postsolve_stack, firstCall,
                                            numVarsFixed, numBndsTightened,
                                            numVarsSubstituted, liftedNonzeros));
-    probingNumDelCol += numVarsFixed + numVarsSubstituted;
+    probingNumDelCol += numVarsSubstituted;
 
     highsLogDev(options->log_options, HighsLogType::kInfo,
                 "%" HIGHSINT_FORMAT " probing evaluations: %" HIGHSINT_FORMAT
