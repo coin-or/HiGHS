@@ -4885,11 +4885,10 @@ HPresolve::Result HPresolve::enumerateSolutions(
     // skip redundant rows
     if (domain.isRedundantRow(row)) continue;
     // check row
-    HighsInt start = mipsolver->mipdata_->ARstart_[row];
-    HighsInt end = mipsolver->mipdata_->ARstart_[row + 1];
     bool skiprow = false;
     size_t numnzs = 0;
-    for (HighsInt i = start; i != end; i++) {
+    for (HighsInt i = mipsolver->mipdata_->ARstart_[row];
+         i < mipsolver->mipdata_->ARstart_[row + 1]; i++) {
       // skip fixed variables
       if (domain.isFixed(mipsolver->mipdata_->ARindex_[i])) continue;
       // skip row if there are non-binary variables or maximum number of
@@ -5011,9 +5010,8 @@ HPresolve::Result HPresolve::enumerateSolutions(
     // check row
     vars.clear();
     vars.reserve(rowsize[row]);
-    HighsInt start = mipsolver->mipdata_->ARstart_[row];
-    HighsInt end = mipsolver->mipdata_->ARstart_[row + 1];
-    for (HighsInt i = start; i != end; i++) {
+    for (HighsInt i = mipsolver->mipdata_->ARstart_[row];
+         i < mipsolver->mipdata_->ARstart_[row + 1]; i++) {
       // skip fixed variables
       if (domain.isFixed(mipsolver->mipdata_->ARindex_[i])) continue;
       // store index of binary variable
