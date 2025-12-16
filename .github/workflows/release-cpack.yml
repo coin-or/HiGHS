@@ -130,8 +130,7 @@ jobs:
       - name: Build
         run: |
           cmake -B build -G "Visual Studio 17 2022" -A ${{ matrix.arch }} `
-              -DHIPO=ON -DBUILD_OPENBLAS=ON -DBUILD_STATIC_EXE=ON `
-              -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
+              -DHIPO=ON -DBUILD_OPENBLAS=ON -DBUILD_STATIC_EXE=ON
           cmake --build build --config Release --parallel
           cd build
           cpack -C Release
