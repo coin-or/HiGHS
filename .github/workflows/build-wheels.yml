@@ -46,6 +46,53 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Edit pyproject.toml (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          # macOS sed requires a backup extension (here, an empty string '')
+          sed -i '' '/cmake\.args = \[/,/\]/{
+            s|"-DPYTHON_BUILD_SETUP=ON"|"-DPYTHON_BUILD_SETUP=ON",\
+            "-DHIPO=ON"|
+          }' pyproject.toml
+          echo "--- pyproject.toml content after macOS edit ---"
+          cat pyproject.toml
+
+      - name: Edit pyproject.toml (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          # Linux sed does NOT require a backup extension
+          sed -i '/cmake\.args = \[/,/\]/{
+            s|"-DPYTHON_BUILD_SETUP=ON"|"-DPYTHON_BUILD_SETUP=ON",\
+            "-DHIPO=ON",\
+            "-DBUILD_OPENBLAS=ON"|
+          }' pyproject.toml
+          echo "--- pyproject.toml content after Linux edit ---"
+          cat pyproject.toml
+
+      - name: Edit pyproject.toml (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $filePath = "pyproject.toml"
+          $newContent = 'cmake.args = [
+            "-DPYTHON_BUILD_SETUP=ON",
+            "-DHIPO=ON",
+            "-DBUILD_OPENBLAS=ON"
+          ]'
+
+          # Read file, replace the block, and write back
+          $fileContent = Get-Content $filePath -Raw
+          $regex = "(?s)cmake\.args = \[\s*?\"-DPYTHON_BUILD_SETUP=ON\".*?\]"
+          $updatedContent = $fileContent -replace $regex, $newContent
+
+          $updatedContent | Set-Content $filePath
+
+          echo "--- pyproject.toml content after Windows edit ---"
+          Get-Content $filePath
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.0
         env:
