@@ -21,8 +21,7 @@ Int Numeric::solve(std::vector<double>& x) const {
   HIPO_CLOCK_CREATE;
 
   // initialise solve handler
-  SH_.reset(
-      new HybridSolveHandler(*S_, *sn_columns_, swaps_, pivot_2x2_, *data_));
+  HybridSolveHandler SH(*S_, *sn_columns_, swaps_, pivot_2x2_, *data_);
 
   // permute rhs
   HIPO_CLOCK_START(2);
@@ -31,9 +30,9 @@ Int Numeric::solve(std::vector<double>& x) const {
 
   // solve
   HIPO_CLOCK_START(2);
-  SH_->forwardSolve(x);
-  SH_->diagSolve(x);
-  SH_->backwardSolve(x);
+  SH.forwardSolve(x);
+  SH.diagSolve(x);
+  SH.backwardSolve(x);
   HIPO_CLOCK_STOP(2, *data_, kTimeSolveSolve);
 
   // unpermute solution
