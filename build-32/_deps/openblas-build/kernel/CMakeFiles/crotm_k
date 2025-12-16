@@ -1,8 +1,0 @@
-#define ASMNAME _crotm_k
-#define ASMFNAME _crotm_k_
-#define NAME crotm_k_
-#define CNAME crotm_k
-#define CHAR_NAME "crotm_k_"
-#define CHAR_CNAME "crotm_k"
-#define COMPLEX
-#include "C:/Users/galab/code/HiGHS/build-32/_deps/openblas-src/kernel/x86/"
