@@ -76,22 +76,16 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $filePath = "pyproject.toml"
-          $newContent = 'cmake.args = [
-            "-DPYTHON_BUILD_SETUP=ON",
-            "-DHIPO=ON",
-            "-DBUILD_OPENBLAS=ON"
-          ]'
-
-          # Read file, replace the block, and write back
-          $fileContent = Get-Content $filePath -Raw
-          $regex = "(?s)cmake\.args = \[\s*?\"-DPYTHON_BUILD_SETUP=ON\".*?\]"
-          $updatedContent = $fileContent -replace $regex, $newContent
-
-          $updatedContent | Set-Content $filePath
-
-          echo "--- pyproject.toml content after Windows edit ---"
-          Get-Content $filePath
+          $content = Get-Content pyproject.toml -Raw
+          $newContent = $content -replace 'cmake\.args = \[\s*"-DPYTHON_BUILD_SETUP=ON"\s*\]', @"
+          cmake.args = [
+          "-DPYTHON_BUILD_SETUP=ON",
+          "-DHIPO=ON",
+          "-DBUILD_OPENBLAS=ON"
+          ]
+          "@
+          $newContent | Set-Content pyproject.toml
+          cat pyproject.toml
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.0
