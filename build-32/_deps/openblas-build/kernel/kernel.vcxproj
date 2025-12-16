@@ -1,0 +1,704 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|Win32">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|Win32">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{45A584A9-CCD6-331D-A363-A701B25FA414}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>Win32</Platform>
+    <ProjectName>kernel</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">kernel.dir\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">kernel.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">kernel</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">kernel.dir\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">kernel.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">kernel</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">kernel.dir\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">kernel.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">kernel</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">kernel.dir\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">kernel.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">kernel</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">.lib</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NO_AVX;NO_AVX512;SMP_SERVER;NO_WARMUP;MAX_CPU_NUMBER=22;MAX_PARALLEL_NUMBER=1;NO_AFFINITY;VERSION="0.3.30";BUILD_SINGLE;BUILD_DOUBLE;BUILD_COMPLEX;BUILD_COMPLEX16;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;NO_AVX;NO_AVX512;SMP_SERVER;NO_WARMUP;MAX_CPU_NUMBER=22;MAX_PARALLEL_NUMBER=1;NO_AFFINITY;VERSION=\"0.3.30\";BUILD_SINGLE;BUILD_DOUBLE;BUILD_COMPLEX;BUILD_COMPLEX16;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NO_AVX;NO_AVX512;SMP_SERVER;NO_WARMUP;MAX_CPU_NUMBER=22;MAX_PARALLEL_NUMBER=1;NO_AFFINITY;VERSION="0.3.30";BUILD_SINGLE;BUILD_DOUBLE;BUILD_COMPLEX;BUILD_COMPLEX16;NDEBUG;CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NO_AVX;NO_AVX512;SMP_SERVER;NO_WARMUP;MAX_CPU_NUMBER=22;MAX_PARALLEL_NUMBER=1;NO_AFFINITY;VERSION=\"0.3.30\";BUILD_SINGLE;BUILD_DOUBLE;BUILD_COMPLEX;BUILD_COMPLEX16;NDEBUG;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NO_AVX;NO_AVX512;SMP_SERVER;NO_WARMUP;MAX_CPU_NUMBER=22;MAX_PARALLEL_NUMBER=1;NO_AFFINITY;VERSION="0.3.30";BUILD_SINGLE;BUILD_DOUBLE;BUILD_COMPLEX;BUILD_COMPLEX16;NDEBUG;CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NO_AVX;NO_AVX512;SMP_SERVER;NO_WARMUP;MAX_CPU_NUMBER=22;MAX_PARALLEL_NUMBER=1;NO_AFFINITY;VERSION=\"0.3.30\";BUILD_SINGLE;BUILD_DOUBLE;BUILD_COMPLEX;BUILD_COMPLEX16;NDEBUG;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NO_AVX;NO_AVX512;SMP_SERVER;NO_WARMUP;MAX_CPU_NUMBER=22;MAX_PARALLEL_NUMBER=1;NO_AFFINITY;VERSION="0.3.30";BUILD_SINGLE;BUILD_DOUBLE;BUILD_COMPLEX;BUILD_COMPLEX16;NDEBUG;CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NO_AVX;NO_AVX512;SMP_SERVER;NO_WARMUP;MAX_CPU_NUMBER=22;MAX_PARALLEL_NUMBER=1;NO_AFFINITY;VERSION=\"0.3.30\";BUILD_SINGLE;BUILD_DOUBLE;BUILD_COMPLEX;BUILD_COMPLEX16;NDEBUG;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\kernel\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building Custom Rule C:/Users/galab/code/HiGHS/build-32/_deps/openblas-src/kernel/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/galab/code/HiGHS -BC:/Users/galab/code/HiGHS/build-32 --check-stamp-file C:/Users/galab/code/HiGHS/build-32/_deps/openblas-build/kernel/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\cmake\kernel.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building Custom Rule C:/Users/galab/code/HiGHS/build-32/_deps/openblas-src/kernel/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/galab/code/HiGHS -BC:/Users/galab/code/HiGHS/build-32 --check-stamp-file C:/Users/galab/code/HiGHS/build-32/_deps/openblas-build/kernel/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\cmake\kernel.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">Building Custom Rule C:/Users/galab/code/HiGHS/build-32/_deps/openblas-src/kernel/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/galab/code/HiGHS -BC:/Users/galab/code/HiGHS/build-32 --check-stamp-file C:/Users/galab/code/HiGHS/build-32/_deps/openblas-build/kernel/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\cmake\kernel.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">Building Custom Rule C:/Users/galab/code/HiGHS/build-32/_deps/openblas-src/kernel/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/galab/code/HiGHS -BC:/Users/galab/code/HiGHS/build-32 --check-stamp-file C:/Users/galab/code/HiGHS/build-32/_deps/openblas-build/kernel/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\cmake\kernel.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cpuid_win.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\lsame.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\scabs1.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dcabs1.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\samax_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\samin_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\smax_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\smin_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\isamax_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\isamin_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ismax_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ismin_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\sasum_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\saxpy_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\scopy_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\snrm2_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\srot_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\srotm_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\sscal_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\sswap_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\saxpby_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ssum_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\sdot_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\damax_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\damin_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dmax_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dmin_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\idamax_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\idamin_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\idmax_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\idmin_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dasum_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\daxpy_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dcopy_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dnrm2_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\drot_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\drotm_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dscal_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dswap_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\daxpby_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dsum_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ddot_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\camax_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\camin_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\icamax_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\icamin_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\casum_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\caxpy_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ccopy_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cnrm2_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\crot_k.c" />
+    <None Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\crotm_k">
+    </None>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cscal_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cswap_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\caxpby_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\csum_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\caxpyc_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cdotu_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cdotc_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\csrot_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zamax_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zamin_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\izamax_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\izamin_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zasum_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zaxpy_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zcopy_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\znrm2_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zrot_k.c" />
+    <None Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zrotm_k">
+    </None>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zscal_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zswap_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zaxpby_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zsum_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zaxpyc_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zdotu_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zdotc_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zdrot_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dsdot_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\sdsdot_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ssymv_U.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dsymv_U.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\csymv_U.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zsymv_U.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ssymv_L.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dsymv_L.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\csymv_L.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zsymv_L.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\sger_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dger_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cger_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zger_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\sgemv_n.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\sgemv_t.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dgemv_n.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dgemv_t.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgeru_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgerc_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgerv_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgerd_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgemv_n.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgemv_t.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgemv_r.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgemv_c.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgemv_o.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgemv_u.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgemv_s.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgemv_d.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\chemv_U.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\chemv_L.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\chemv_V.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\chemv_M.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgeru_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgerc_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgerv_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgerd_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgemv_n.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgemv_t.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgemv_r.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgemv_c.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgemv_o.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgemv_u.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgemv_s.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgemv_d.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zhemv_U.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zhemv_L.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zhemv_V.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zhemv_M.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\sgemm_kernel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dgemm_kernel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\sgemm_oncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\sgemm_otcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\sgemm_beta.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_kernel_RN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_kernel_LN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_kernel_RT.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_kernel_LT.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ssymm_outcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ssymm_iutcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ssymm_oltcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ssymm_iltcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_iunucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_iunncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_ounucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_ounncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_ilnucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_ilnncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_olnucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_olnncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_iutucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_iutncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_outucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_outncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_iltucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_iltncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_oltucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strmm_oltncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_iunucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_iunncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_ounucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_ounncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_ilnucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_ilnncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_olnucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_olnncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_iutucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_iutncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_outucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_outncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_iltucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_iltncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_oltucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_oltncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_kernel_LN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_kernel_LT.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_kernel_RN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\strsm_kernel_RT.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\somatcopy_k_cn.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\somatcopy_k_rn.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\somatcopy_k_ct.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\somatcopy_k_rt.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\simatcopy_k_cn.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\simatcopy_k_rn.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\simatcopy_k_ct.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\simatcopy_k_rt.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\sgeadd_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dgemm_oncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dgemm_otcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dgemm_beta.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_kernel_RN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_kernel_LN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_kernel_RT.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_kernel_LT.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dsymm_outcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dsymm_iutcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dsymm_oltcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dsymm_iltcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_iunucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_iunncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_ounucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_ounncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_ilnucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_ilnncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_olnucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_olnncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_iutucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_iutncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_outucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_outncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_iltucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_iltncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_oltucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrmm_oltncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_iunucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_iunncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_ounucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_ounncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_ilnucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_ilnncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_olnucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_olnncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_iutucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_iutncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_outucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_outncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_iltucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_iltncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_oltucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_oltncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_kernel_LN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_kernel_LT.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_kernel_RN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dtrsm_kernel_RT.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\domatcopy_k_cn.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\domatcopy_k_rn.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\domatcopy_k_ct.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\domatcopy_k_rt.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dimatcopy_k_cn.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dimatcopy_k_rn.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dimatcopy_k_ct.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dimatcopy_k_rt.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dgeadd_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgemm_oncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgemm_otcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgemm_beta.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgemm_kernel_n.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgemm_kernel_l.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgemm_kernel_r.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgemm_kernel_b.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_kernel_LN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_kernel_LT.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_kernel_LR.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_kernel_LC.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_kernel_RN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_kernel_RT.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_kernel_RR.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_kernel_RC.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_kernel_LR.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_kernel_LC.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_kernel_RR.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_kernel_RC.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\chemm_iutcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\chemm_iltcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\chemm_outcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\chemm_oltcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\csymm_outcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\csymm_iutcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\csymm_oltcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\csymm_iltcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_iunucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_iunncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_ounucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_ounncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_ilnucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_ilnncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_olnucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_olnncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_iutucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_iutncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_outucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_outncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_iltucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_iltncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_oltucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrmm_oltncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_iunucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_iunncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_ounucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_ounncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_ilnucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_ilnncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_olnucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_olnncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_iutucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_iutncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_outucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_outncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_iltucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_iltncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_oltucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_oltncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_kernel_LN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_kernel_LT.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_kernel_RN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ctrsm_kernel_RT.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\comatcopy_k_cn.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\comatcopy_k_rn.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\comatcopy_k_ct.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\comatcopy_k_rt.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\comatcopy_k_cnc.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\comatcopy_k_rnc.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\comatcopy_k_ctc.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\comatcopy_k_rtc.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cimatcopy_k_cn.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cimatcopy_k_rn.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cimatcopy_k_ct.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cimatcopy_k_rt.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cimatcopy_k_cnc.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cimatcopy_k_rnc.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cimatcopy_k_ctc.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cimatcopy_k_rtc.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cgeadd_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgemm_oncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgemm_otcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgemm_beta.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgemm_kernel_n.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgemm_kernel_l.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgemm_kernel_r.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgemm_kernel_b.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_kernel_LN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_kernel_LT.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_kernel_LR.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_kernel_LC.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_kernel_RN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_kernel_RT.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_kernel_RR.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_kernel_RC.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_kernel_LR.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_kernel_LC.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_kernel_RR.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_kernel_RC.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zhemm_iutcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zhemm_iltcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zhemm_outcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zhemm_oltcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zsymm_outcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zsymm_iutcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zsymm_oltcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zsymm_iltcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_iunucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_iunncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_ounucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_ounncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_ilnucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_ilnncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_olnucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_olnncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_iutucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_iutncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_outucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_outncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_iltucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_iltncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_oltucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrmm_oltncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_iunucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_iunncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_ounucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_ounncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_ilnucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_ilnncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_olnucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_olnncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_iutucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_iutncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_outucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_outncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_iltucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_iltncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_oltucopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_oltncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_kernel_LN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_kernel_LT.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_kernel_RN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\ztrsm_kernel_RT.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zomatcopy_k_cn.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zomatcopy_k_rn.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zomatcopy_k_ct.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zomatcopy_k_rt.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zomatcopy_k_cnc.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zomatcopy_k_rnc.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zomatcopy_k_ctc.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zomatcopy_k_rtc.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zimatcopy_k_cn.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zimatcopy_k_rn.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zimatcopy_k_ct.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zimatcopy_k_rt.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zimatcopy_k_cnc.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zimatcopy_k_rnc.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zimatcopy_k_ctc.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zimatcopy_k_rtc.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zgeadd_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\sneg_tcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\slaswp_ncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dneg_tcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\dlaswp_ncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\cneg_tcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\claswp_ncopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zneg_tcopy.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\kernel\CMakeFiles\zlaswp_ncopy.c" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="C:\Users\galab\code\HiGHS\build-32\ZERO_CHECK.vcxproj">
+      <Project>{C481ADDB-1E96-3970-9D60-8ECD97EEF9C2}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

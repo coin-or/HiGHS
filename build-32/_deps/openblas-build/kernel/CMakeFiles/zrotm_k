@@ -1,0 +1,9 @@
+#define ASMNAME _zrotm_k
+#define ASMFNAME _zrotm_k_
+#define NAME zrotm_k_
+#define CNAME zrotm_k
+#define CHAR_NAME "zrotm_k_"
+#define CHAR_CNAME "zrotm_k"
+#define DOUBLE
+#define COMPLEX
+#include "C:/Users/galab/code/HiGHS/build-32/_deps/openblas-src/kernel/x86/"

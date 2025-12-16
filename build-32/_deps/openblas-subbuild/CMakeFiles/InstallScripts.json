@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

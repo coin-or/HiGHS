@@ -506,8 +506,10 @@ if(MSVC)
   # add_compile_options("/Z7")
   # add_link_options("/DEBUG:FASTLINK")
 
-  add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:/Z7>")
-  add_link_options("$<$<COMPILE_LANGUAGE:C,CXX>:/DEBUG:FASTLINK>")
+  if (NOT BUILD_STATIC_EXE)
+    add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:/Z7>")
+    add_link_options("$<$<COMPILE_LANGUAGE:C,CXX>:/DEBUG:FASTLINK>")
+  endif()
 
   if(STDCALL)
     # /Gz - stdcall calling convention

@@ -1,0 +1,78 @@
+# CMake generation dependency list for this directory.
+C:/Program Files/CMake/share/cmake-4.0/Modules/BasicConfigVersion-SameMajorVersion.cmake.in
+C:/Program Files/CMake/share/cmake-4.0/Modules/CMakeCInformation.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CMakeCXXInformation.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CMakeCommonLanguageInclude.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CMakeDependentOption.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CMakeGenericSystem.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CMakeInitializeConfigs.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CMakeLanguageInformation.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CMakePackageConfigHelpers.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CMakePushCheckState.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CMakeRCInformation.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CMakeSystemSpecificInformation.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CMakeSystemSpecificInitialize.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CPack.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CPackComponent.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CheckCCompilerFlag.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CheckCXXCompilerFlag.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CheckCXXSourceCompiles.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CheckCompilerFlag.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CheckIPOSupported.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CheckIPOSupported/CMakeLists-C.txt.in
+C:/Program Files/CMake/share/cmake-4.0/Modules/CheckIPOSupported/CMakeLists-CXX.txt.in
+C:/Program Files/CMake/share/cmake-4.0/Modules/CheckIPOSupported/foo.c
+C:/Program Files/CMake/share/cmake-4.0/Modules/CheckIPOSupported/foo.cpp
+C:/Program Files/CMake/share/cmake-4.0/Modules/CheckIPOSupported/main.c
+C:/Program Files/CMake/share/cmake-4.0/Modules/CheckIPOSupported/main.cpp
+C:/Program Files/CMake/share/cmake-4.0/Modules/CheckIncludeFile.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CheckIncludeFileCXX.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CheckSourceCompiles.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/CheckTypeSize.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Compiler/CMakeCommonCompilerMacros.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Compiler/MSVC-C.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Compiler/MSVC-CXX.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Compiler/MSVC.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/ExternalProject/shared_internal_commands.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/FetchContent.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/FetchContent/CMakeLists.cmake.in
+C:/Program Files/CMake/share/cmake-4.0/Modules/FindGit.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/FindPackageHandleStandardArgs.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/FindPackageMessage.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/FindZLIB.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/GNUInstallDirs.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/GenerateExportHeader.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Internal/CMakeCLinkerInformation.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Internal/CMakeCXXLinkerInformation.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Internal/CMakeCommonLinkerInformation.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Internal/CheckCompilerFlag.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Internal/CheckSourceCompiles.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Linker/MSVC-C.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Linker/MSVC-CXX.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Linker/MSVC.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Platform/Linker/Windows-MSVC-C.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Platform/Linker/Windows-MSVC-CXX.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Platform/Linker/Windows-MSVC.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Platform/Windows-Initialize.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Platform/Windows-MSVC-C.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Platform/Windows-MSVC-CXX.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Platform/Windows-MSVC.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Platform/Windows.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/Platform/WindowsPaths.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/SelectLibraryConfigurations.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/WriteBasicConfigVersionFile.cmake
+C:/Program Files/CMake/share/cmake-4.0/Modules/exportheader.cmake.in
+C:/Program Files/CMake/share/cmake-4.0/Templates/CPackConfig.cmake.in
+C:/Users/galab/code/HiGHS/CMakeLists.txt
+C:/Users/galab/code/HiGHS/build-32/CMakeFiles/4.0.1/CMakeCCompiler.cmake
+C:/Users/galab/code/HiGHS/build-32/CMakeFiles/4.0.1/CMakeCXXCompiler.cmake
+C:/Users/galab/code/HiGHS/build-32/CMakeFiles/4.0.1/CMakeRCCompiler.cmake
+C:/Users/galab/code/HiGHS/build-32/CMakeFiles/4.0.1/CMakeSystem.cmake
+C:/Users/galab/code/HiGHS/cmake/FindHipoDeps.cmake
+C:/Users/galab/code/HiGHS/cmake/cpp-highs.cmake
+C:/Users/galab/code/HiGHS/cmake/dotnet.cmake
+C:/Users/galab/code/HiGHS/cmake/highs-config.cmake.in
+C:/Users/galab/code/HiGHS/cmake/python-highs.cmake
+C:/Users/galab/code/HiGHS/cmake/set-version.cmake
+C:/Users/galab/code/HiGHS/highs.pc.in
+C:/Users/galab/code/HiGHS/highs/HConfig.h.in

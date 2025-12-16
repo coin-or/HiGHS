@@ -20,12 +20,6 @@ jobs:
           cmake --build build -j2
           cd build && cpack
 
-  #         cmake -B build \
-  # -DCMAKE_BUILD_TYPE=Release \
-  # -DBUILD_SHARED_LIBS=OFF \
-  # -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc -static-libstdc++" \
-  # .
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -57,7 +51,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        arch: [x64, Win32]
+        arch: [x64]
     steps:
       - uses: actions/checkout@v3
       - name: Build
@@ -67,23 +61,77 @@ jobs:
           cmake --build build --config Release --parallel
           cd build
           cpack -C Release
+
+        # -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
+        # Win32
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-${{ matrix.arch }}
           path: build/*.zip
 
+  # build-windows-32:
+  #   runs-on: windows-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       arch: [Win32]
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Build
+  #       run: |
+  #         cmake -B build -G "Visual Studio 17 2022" -A ${{ matrix.arch }} `
+  #             -DHIPO=ON -DBUILD_OPENBLAS=ON -DBUILD_STATIC_EXE=ON `
+  #             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
+  #         cmake --build build --config Release --parallel
+  #         cd build
+  #         cpack -C Release
+
+  #       # -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
+  #       # Win32
+
+  #     - name: Upload artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: windows-${{ matrix.arch }}
+  #         path: build/*.zip
+
+  # build-windows-arm-32:
+  #   runs-on: windows-11-arm
+  #   strategy:
+  #     matrix:
+  #       arch: [ARM]
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Build
+  #       run: |
+  #         cmake -B build -G "Visual Studio 17 2022" -A ${{ matrix.arch }} `
+  #             -DHIPO=ON -DBUILD_OPENBLAS=ON -DBUILD_STATIC_EXE=ON `
+  #             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL `
+  #             -DCMAKE_VS_WINDOWS_SDK_VERSION=10.0.20348.0
+  #         cmake --build build --config Release --parallel
+  #         cd build
+  #         cpack -C Release
+
+  #     - name: Upload artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: windows-${{ matrix.arch }}
+  #         path: build/*.zip
+
   build-windows-arm:
     runs-on: windows-11-arm
     strategy:
       matrix:
-        arch: [ARM, ARM64]
+        arch: [ARM64]
     steps:
       - uses: actions/checkout@v3
       - name: Build
         run: |
           cmake -B build -G "Visual Studio 17 2022" -A ${{ matrix.arch }} `
-              -DHIPO=ON -DBUILD_OPENBLAS=ON -DBUILD_STATIC_EXE=ON
+              -DHIPO=ON -DBUILD_OPENBLAS=ON -DBUILD_STATIC_EXE=ON `
+              -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
           cmake --build build --config Release --parallel
           cd build
           cpack -C Release

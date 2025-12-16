@@ -1,0 +1,302 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{87D21EEB-0354-3DB9-8D43-DBD9BFAA4FA8}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>Win32</Platform>
+    <ProjectName>openblas-populate</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\c2da652ec70f5b89871075b517b11dfc\openblas-populate-mkdir.rule">
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Creating directories for 'openblas-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -Dcfgdir=/Debug -P C:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild/openblas-populate-prefix/tmp/openblas-populate-mkdirs.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild/openblas-populate-prefix/src/openblas-populate-stamp/Debug/openblas-populate-mkdir
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-mkdir</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\c2da652ec70f5b89871075b517b11dfc\openblas-populate-download.rule">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Performing download step (git clone) for 'openblas-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+cd C:\Users\galab\code\HiGHS\build-32\_deps
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE -P C:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild/openblas-populate-prefix/tmp/openblas-populate-gitclone.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild/openblas-populate-prefix/src/openblas-populate-stamp/Debug/openblas-populate-download
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\openblas-populate-gitinfo.txt;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-mkdir;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-download</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\c2da652ec70f5b89871075b517b11dfc\openblas-populate-update_disconnected.rule">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Performing update_disconnected step for 'openblas-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+cd C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+git reset --hard
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild/openblas-populate-prefix/src/openblas-populate-stamp/Debug/openblas-populate-update_disconnected
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\openblas-populate-update-info.txt;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-download;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-update_disconnected</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\c2da652ec70f5b89871075b517b11dfc\openblas-populate-patch_disconnected.rule">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">No patch_disconnected step for 'openblas-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild/openblas-populate-prefix/src/openblas-populate-stamp/Debug/openblas-populate-patch_disconnected
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\openblas-populate-patch-info.txt;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-update_disconnected;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-patch_disconnected</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\c2da652ec70f5b89871075b517b11dfc\openblas-populate-configure.rule">
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">No configure step for 'openblas-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+cd C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild/openblas-populate-prefix/src/openblas-populate-stamp/Debug/openblas-populate-configure
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\tmp\openblas-populate-cfgcmd.txt;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-patch_disconnected;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-configure</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\c2da652ec70f5b89871075b517b11dfc\openblas-populate-build.rule">
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">No build step for 'openblas-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+cd C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild/openblas-populate-prefix/src/openblas-populate-stamp/Debug/openblas-populate-build
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-configure;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-build</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\c2da652ec70f5b89871075b517b11dfc\openblas-populate-install.rule">
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">No install step for 'openblas-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+cd C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild/openblas-populate-prefix/src/openblas-populate-stamp/Debug/openblas-populate-install
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-build;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-install</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\c2da652ec70f5b89871075b517b11dfc\openblas-populate-test.rule">
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">No test step for 'openblas-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+cd C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild/openblas-populate-prefix/src/openblas-populate-stamp/Debug/openblas-populate-test
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-install;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-test</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\f16316326eca877e183a2fc85025f0a3\openblas-populate-complete.rule">
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Completed 'openblas-populate'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild/CMakeFiles/Debug
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild/CMakeFiles/Debug/openblas-populate-complete
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild/openblas-populate-prefix/src/openblas-populate-stamp/Debug/openblas-populate-done
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-install;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-mkdir;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-download;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-update_disconnected;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-patch_disconnected;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-configure;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-build;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\src\openblas-populate-stamp\Debug\openblas-populate-test;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\Debug\openblas-populate-complete</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\945fe7a9e1340e7823ca1a2199486b68\openblas-populate.rule">
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'"></Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\Debug\openblas-populate-complete;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\openblas-populate</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+      <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</VerifyInputsAndOutputsExist>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building Custom Rule C:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild -BC:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild --check-stamp-file C:/Users/galab/code/HiGHS/build-32/_deps/openblas-subbuild/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Program Files\CMake\share\cmake-4.0\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.0\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.0\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.0\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.0\Modules\ExternalProject.cmake;C:\Program Files\CMake\share\cmake-4.0\Modules\ExternalProject\PatchInfo.txt.in;C:\Program Files\CMake\share\cmake-4.0\Modules\ExternalProject\RepositoryInfo.txt.in;C:\Program Files\CMake\share\cmake-4.0\Modules\ExternalProject\UpdateInfo.txt.in;C:\Program Files\CMake\share\cmake-4.0\Modules\ExternalProject\cfgcmd.txt.in;C:\Program Files\CMake\share\cmake-4.0\Modules\ExternalProject\gitclone.cmake.in;C:\Program Files\CMake\share\cmake-4.0\Modules\ExternalProject\mkdirs.cmake.in;C:\Program Files\CMake\share\cmake-4.0\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files\CMake\share\cmake-4.0\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.0\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.0\Modules\Platform\WindowsPaths.cmake;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\4.0.1\CMakeSystem.cmake;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\openblas-populate-prefix\tmp\openblas-populate-mkdirs.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\openblas-populate">
+    </None>
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\ZERO_CHECK.vcxproj">
+      <Project>{D65B0214-E4A0-3A23-B626-BA0D95A29774}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

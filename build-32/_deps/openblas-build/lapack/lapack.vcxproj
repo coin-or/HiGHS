@@ -1,0 +1,432 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|Win32">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|Win32">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{76972865-6AF2-3B88-9069-A146D614DD14}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>Win32</Platform>
+    <ProjectName>lapack</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lapack.dir\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lapack.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lapack</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lapack.dir\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lapack.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lapack</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">lapack.dir\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">lapack.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">lapack</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">lapack.dir\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">lapack.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">lapack</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">.lib</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NO_AVX;NO_AVX512;SMP_SERVER;NO_WARMUP;MAX_CPU_NUMBER=22;MAX_PARALLEL_NUMBER=1;NO_AFFINITY;VERSION="0.3.30";BUILD_SINGLE;BUILD_DOUBLE;BUILD_COMPLEX;BUILD_COMPLEX16;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;NO_AVX;NO_AVX512;SMP_SERVER;NO_WARMUP;MAX_CPU_NUMBER=22;MAX_PARALLEL_NUMBER=1;NO_AFFINITY;VERSION=\"0.3.30\";BUILD_SINGLE;BUILD_DOUBLE;BUILD_COMPLEX;BUILD_COMPLEX16;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NO_AVX;NO_AVX512;SMP_SERVER;NO_WARMUP;MAX_CPU_NUMBER=22;MAX_PARALLEL_NUMBER=1;NO_AFFINITY;VERSION="0.3.30";BUILD_SINGLE;BUILD_DOUBLE;BUILD_COMPLEX;BUILD_COMPLEX16;NDEBUG;CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NO_AVX;NO_AVX512;SMP_SERVER;NO_WARMUP;MAX_CPU_NUMBER=22;MAX_PARALLEL_NUMBER=1;NO_AFFINITY;VERSION=\"0.3.30\";BUILD_SINGLE;BUILD_DOUBLE;BUILD_COMPLEX;BUILD_COMPLEX16;NDEBUG;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NO_AVX;NO_AVX512;SMP_SERVER;NO_WARMUP;MAX_CPU_NUMBER=22;MAX_PARALLEL_NUMBER=1;NO_AFFINITY;VERSION="0.3.30";BUILD_SINGLE;BUILD_DOUBLE;BUILD_COMPLEX;BUILD_COMPLEX16;NDEBUG;CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NO_AVX;NO_AVX512;SMP_SERVER;NO_WARMUP;MAX_CPU_NUMBER=22;MAX_PARALLEL_NUMBER=1;NO_AFFINITY;VERSION=\"0.3.30\";BUILD_SINGLE;BUILD_DOUBLE;BUILD_COMPLEX;BUILD_COMPLEX16;NDEBUG;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NO_AVX;NO_AVX512;SMP_SERVER;NO_WARMUP;MAX_CPU_NUMBER=22;MAX_PARALLEL_NUMBER=1;NO_AFFINITY;VERSION="0.3.30";BUILD_SINGLE;BUILD_DOUBLE;BUILD_COMPLEX;BUILD_COMPLEX16;NDEBUG;CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NO_AVX;NO_AVX512;SMP_SERVER;NO_WARMUP;MAX_CPU_NUMBER=22;MAX_PARALLEL_NUMBER=1;NO_AFFINITY;VERSION=\"0.3.30\";BUILD_SINGLE;BUILD_DOUBLE;BUILD_COMPLEX;BUILD_COMPLEX16;NDEBUG;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src;C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\lapack\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building Custom Rule C:/Users/galab/code/HiGHS/build-32/_deps/openblas-src/lapack/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/galab/code/HiGHS -BC:/Users/galab/code/HiGHS/build-32 --check-stamp-file C:/Users/galab/code/HiGHS/build-32/_deps/openblas-build/lapack/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building Custom Rule C:/Users/galab/code/HiGHS/build-32/_deps/openblas-src/lapack/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/galab/code/HiGHS -BC:/Users/galab/code/HiGHS/build-32 --check-stamp-file C:/Users/galab/code/HiGHS/build-32/_deps/openblas-build/lapack/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">Building Custom Rule C:/Users/galab/code/HiGHS/build-32/_deps/openblas-src/lapack/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/galab/code/HiGHS -BC:/Users/galab/code/HiGHS/build-32 --check-stamp-file C:/Users/galab/code/HiGHS/build-32/_deps/openblas-build/lapack/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">Building Custom Rule C:/Users/galab/code/HiGHS/build-32/_deps/openblas-src/lapack/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/galab/code/HiGHS -BC:/Users/galab/code/HiGHS/build-32 --check-stamp-file C:/Users/galab/code/HiGHS/build-32/_deps/openblas-build/lapack/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\spotrf_U_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\spotrf_L_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\slauum_U_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\slauum_L_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dpotrf_U_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dpotrf_L_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dlauum_U_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dlauum_L_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\cpotrf_U_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\cpotrf_L_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\clauum_U_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\clauum_L_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zpotrf_U_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zpotrf_L_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zlauum_U_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zlauum_L_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\sgetf2_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\slauu2_U.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\slauu2_L.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\spotf2_U.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\spotf2_L.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dgetf2_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dlauu2_U.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dlauu2_L.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dpotf2_U.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dpotf2_L.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\cgetf2_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\clauu2_U.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\clauu2_L.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\cpotf2_U.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\cpotf2_L.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zgetf2_k.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zlauu2_U.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zlauu2_L.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zpotf2_U.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zpotf2_L.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\slaswp_plus.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dlaswp_plus.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\claswp_plus.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zlaswp_plus.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\slaswp_minus.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dlaswp_minus.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\claswp_minus.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zlaswp_minus.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\sgetrf_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dgetrf_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\cgetrf_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zgetrf_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\sgetrf_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dgetrf_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\cgetrf_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zgetrf_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\slauum_U_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\slauum_L_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\spotrf_U_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\spotrf_L_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dlauum_U_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dlauum_L_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dpotrf_U_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dpotrf_L_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\clauum_U_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\clauum_L_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\cpotrf_U_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\cpotrf_L_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zlauum_U_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zlauum_L_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zpotrf_U_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zpotrf_L_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\sgetrs_N_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\sgetrs_N_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\sgetrs_T_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\sgetrs_T_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dgetrs_N_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dgetrs_N_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dgetrs_T_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dgetrs_T_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\cgetrs_N_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\cgetrs_T_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\cgetrs_R_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\cgetrs_C_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\cgetrs_N_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\cgetrs_T_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\cgetrs_R_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\cgetrs_C_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zgetrs_N_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zgetrs_T_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zgetrs_R_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zgetrs_C_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zgetrs_N_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zgetrs_T_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zgetrs_R_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\zgetrs_C_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\strtri_UN_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dtrtri_UN_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ctrtri_UN_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ztrtri_UN_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\strtri_LN_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dtrtri_LN_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ctrtri_LN_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ztrtri_LN_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\strtri_UN_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dtrtri_UN_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ctrtri_UN_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ztrtri_UN_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\strtri_LN_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dtrtri_LN_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ctrtri_LN_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ztrtri_LN_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\strtri_UU_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dtrtri_UU_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ctrtri_UU_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ztrtri_UU_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\strtri_LU_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dtrtri_LU_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ctrtri_LU_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ztrtri_LU_single.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\strtri_UU_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dtrtri_UU_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ctrtri_UU_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ztrtri_UU_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\strtri_LU_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dtrtri_LU_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ctrtri_LU_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ztrtri_LU_parallel.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\strti2_UN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dtrti2_UN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ctrti2_UN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ztrti2_UN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\strti2_LN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dtrti2_LN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ctrti2_LN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ztrti2_LN.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\strti2_UU.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dtrti2_UU.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ctrti2_UU.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ztrti2_UU.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\strti2_LU.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\dtrti2_LU.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ctrti2_LU.c" />
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-build\lapack\CMakeFiles\ztrti2_LU.c" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="C:\Users\galab\code\HiGHS\build-32\ZERO_CHECK.vcxproj">
+      <Project>{C481ADDB-1E96-3970-9D60-8ECD97EEF9C2}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

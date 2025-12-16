@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\c2da652ec70f5b89871075b517b11dfc\openblas-populate-mkdir.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\c2da652ec70f5b89871075b517b11dfc\openblas-populate-download.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\c2da652ec70f5b89871075b517b11dfc\openblas-populate-update_disconnected.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\c2da652ec70f5b89871075b517b11dfc\openblas-populate-patch_disconnected.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\c2da652ec70f5b89871075b517b11dfc\openblas-populate-configure.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\c2da652ec70f5b89871075b517b11dfc\openblas-populate-build.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\c2da652ec70f5b89871075b517b11dfc\openblas-populate-install.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\c2da652ec70f5b89871075b517b11dfc\openblas-populate-test.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\f16316326eca877e183a2fc85025f0a3\openblas-populate-complete.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\945fe7a9e1340e7823ca1a2199486b68\openblas-populate.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-subbuild\CMakeFiles\openblas-populate" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{30ED368D-8594-3BF2-9241-4161967D5B32}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

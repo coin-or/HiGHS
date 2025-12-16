@@ -1,0 +1,12 @@
+prefix=C:/Users/galab/installs/highs-static-nohipo
+libdir=C:/Users/galab/installs/highs-static-nohipo/lib
+includedir=C:/Users/galab/installs/highs-static-nohipo/include/highs
+
+Name: HiGHS
+Description: Linear Optimization Software
+URL: https://github.com/ERGO-Code/HiGHS
+Version: 1.12.0
+Libs: -L${libdir} -lhighs
+#TODO Libs.private (when HiGHS lib is build as static lib)
+Cflags: -I${includedir}
+Requires:

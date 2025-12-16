@@ -1,0 +1,202 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\utest_main.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\common.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\xerbla.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_isamin.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_idamin.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_icamin.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_izamin.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_ssum.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_dsum.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_scsum.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_dzsum.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_samin.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_damin.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_scamin.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_dzamin.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_scamax.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_dzamax.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_zrotg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_crotg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_drotmg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_srotmg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_zscal.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_cscal.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_domatcopy.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_somatcopy.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_zomatcopy.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_comatcopy.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_simatcopy.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_dimatcopy.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_cimatcopy.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_zimatcopy.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_sgeadd.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_dgeadd.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_cgeadd.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_zgeadd.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_saxpby.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_daxpby.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_caxpby.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_zaxpby.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_caxpyc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_zaxpyc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_cgemv_t.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_zgemv_t.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_cgemv_n.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_zgemv_n.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_crot.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_zrot.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_cgbmv.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_zgbmv.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_dgemmt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_sgemmt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_cgemmt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_zgemmt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_ztrmv.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_ctrmv.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_ztrsv.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_ctrsv.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_zgemm.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_cgemm.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_cspmv.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_zspmv.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_csbmv.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\test_extensions\test_zsbmv.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\galab\code\HiGHS\build-32\_deps\openblas-src\utest\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4539B7C9-1D55-3B79-8E93-147A3D54F054}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
