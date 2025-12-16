@@ -326,8 +326,7 @@ void Factorise::processSupernode(Int sn) {
 
     // Schur contribution of the child is no longer needed
     if (parallel) {
-      // Swap with temporary empty vector to deallocate memory
-      std::vector<double>().swap(schur_contribution_[child_sn]);
+      freeVector(schur_contribution_[child_sn]);
     } else {
       stack_->popChild();
     }

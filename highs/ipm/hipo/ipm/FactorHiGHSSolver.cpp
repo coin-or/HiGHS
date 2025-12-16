@@ -728,24 +728,20 @@ void FactorHiGHSSolver::getReg(std::vector<double>& reg) {
 }
 
 void FactorHiGHSSolver::freeASmemory() {
-  // Swap AS data structures with empty vectors, to guarantee that memory is
-  // freed.
-
-  std::vector<Int>().swap(ptrAS_);
-  std::vector<Int>().swap(rowsAS_);
-  std::vector<double>().swap(valAS_);
+  // Give up memory used for AS.
+  freeVector(ptrAS_);
+  freeVector(rowsAS_);
+  freeVector(valAS_);
 }
 
 void FactorHiGHSSolver::freeNEmemory() {
-  // Swap NE data structures with empty vectors, to guarantee that memory is
-  // freed.
-
-  std::vector<Int>().swap(ptrNE_);
-  std::vector<Int>().swap(rowsNE_);
-  std::vector<double>().swap(valNE_);
-  std::vector<Int>().swap(ptrA_rw_);
-  std::vector<Int>().swap(idxA_rw_);
-  std::vector<Int>().swap(corr_A_);
+  // Give up memory used for NE.
+  freeVector(ptrNE_);
+  freeVector(rowsNE_);
+  freeVector(valNE_);
+  freeVector(ptrA_rw_);
+  freeVector(idxA_rw_);
+  freeVector(corr_A_);
 }
 
 }  // namespace hipo
