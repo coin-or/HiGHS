@@ -48,6 +48,10 @@ jobs:
       - name: Edit pyproject
         run: |
           ls
+
+
+          $content = Get-Content pyproject.toml -Raw
+          $newContent = $content -replace 'cmake\.args = \[\s*"-DPYTHON_BUILD_SETUP=ON"\s*\]', @"
           cmake.args = [
           "-DPYTHON_BUILD_SETUP=ON",
           "-DHIPO=ON",
