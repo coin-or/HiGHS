@@ -554,8 +554,8 @@ void getVariableKktFailures(const double primal_feasibility_tolerance,
   // as the primal infeasibility, ensuring (cf #2653) that it doesn't
   // exceed the primal feasibility tolerance if the standard primal
   // infeasibility (ie infeasibility exceeding the tolerance) is zero
-  std::pair<double, double> infeasibility_residual =
-      infeasibility(&lower, &value, &upper, &primal_feasibility_tolerance);
+  auto infeasibility_residual =
+      infeasibility(lower, value, upper, primal_feasibility_tolerance);
   primal_infeasibility = infeasibility_residual.second;
   // Determine whether this value is close to a bound
   at_status = kHighsSolutionNo;

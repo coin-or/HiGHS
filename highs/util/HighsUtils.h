@@ -215,41 +215,27 @@ inline T fractionality(T input, T* intval = nullptr) {
   return abs(input - val);
 }
 
-inline std::pair<double, double> infeasibility(const double* lower,
-                                               const double* value,
-                                               const double* upper,
-                                               const double* tolerance) {
+inline std::pair<double, double> infeasibility(const double lower,
+                                               const double value,
+                                               const double upper,
+                                               const double tolerance) {
   using std::fabs;
   using std::min;
   double residual = 0;
   double infeasibility = 0;
-  std::string bound_type = "";
-  double bound_value = 0;
   // Determine the infeasibility exceeding the tolerance used in
-  // computing the number of infeasibilities - which defines
-  // feasibility of a solution
+  // computing the number of infeasibilities in a basic solution -
+  // which defines its feasibility
   //
   // @primal_infeasibility calculation
-  if (*value < *lower - *tolerance) {
-    infeasibility = *lower - *value;
-  }
-  if (*value > *upper + *tolerance) {
-    infeasibility = *value - *upper;
-  }
+  if (value < lower - tolerance) infeasibility = lower - value;
+  if (value > upper + tolerance) infeasibility = value - upper;
   // Determine the residual used in computing the sum of
   // infeasibilities and max infeasibility - which are just for
   // reporting
-  if (*tolerance > 0) {
-    if (*value < *lower) {
-      bound_type = "LB";
-      bound_value = *lower;
-      residual = *lower - *value;
-    }
-    if (*value > *upper) {
-      bound_type = "UB";
-      bound_value = *upper;
-      residual = *value - *upper;
-    }
+  if (tolerance > 0) {
+    if (value < lower) residual = lower - value;
+    if (value > upper) residual = value - upper;
   } else {
     residual = infeasibility;
   }
@@ -279,7 +265,7 @@ inline std::pair<double, double> infeasibility(const double* lower,
   // so that values of maximum infeasibility defined by residual
   // doesn't exceed the tolerance
   //
-  if (infeasibility == 0) residual = min(residual, *tolerance);
+  if (infeasibility == 0) residual = min(residual, tolerance);
   return std::make_pair(infeasibility, residual);
 }
 #endif  // UTIL_HIGHSUTILS_H_
