@@ -4881,18 +4881,21 @@ HPresolve::Result HPresolve::enumerateSolutions(
   };
   std::vector<candidaterow> rows;
   rows.reserve(model->num_row_);
-  for (HighsInt row = 0; row < model->num_row_; row++) {
+  for (HighsInt row = 0; row < mipsolver->numRow(); row++) {
     // skip redundant rows
     if (domain.isRedundantRow(row)) continue;
     // check row
+    HighsInt start = mipsolver->mipdata_->ARstart_[row];
+    HighsInt end = mipsolver->mipdata_->ARstart_[row + 1];
     bool skiprow = false;
     size_t numnzs = 0;
-    for (const auto& nz : getRowVector(row)) {
+    for (HighsInt i = start; i != end; i++) {
       // skip fixed variables
-      if (domain.isFixed(nz.index())) continue;
+      if (domain.isFixed(mipsolver->mipdata_->ARindex_[i])) continue;
       // skip row if there are non-binary variables or maximum number of
       // elements is reached
-      skiprow = skiprow || !domain.isBinary(nz.index()) || numnzs >= maxRowSize;
+      skiprow = skiprow || !domain.isBinary(mipsolver->mipdata_->ARindex_[i]) ||
+                numnzs >= maxRowSize;
       if (skiprow) break;
       numnzs++;
     }
@@ -5008,11 +5011,13 @@ HPresolve::Result HPresolve::enumerateSolutions(
     // check row
     vars.clear();
     vars.reserve(rowsize[row]);
-    for (const auto& nz : getRowVector(row)) {
+    HighsInt start = mipsolver->mipdata_->ARstart_[row];
+    HighsInt end = mipsolver->mipdata_->ARstart_[row + 1];
+    for (HighsInt i = start; i != end; i++) {
       // skip fixed variables
-      if (domain.isFixed(nz.index())) continue;
+      if (domain.isFixed(mipsolver->mipdata_->ARindex_[i])) continue;
       // store index of binary variable
-      vars.push_back(nz.index());
+      vars.push_back(mipsolver->mipdata_->ARindex_[i]);
     }
     if (vars.empty()) continue;
 

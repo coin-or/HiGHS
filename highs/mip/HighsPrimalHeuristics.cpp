@@ -1475,8 +1475,8 @@ void HighsPrimalHeuristics::feasibilityPump() {
   std::vector<double> fracintcost;
   std::vector<HighsInt> fracintset;
 
-  std::vector<HighsInt> mask(mipsolver.model_->num_col_, 1);
-  std::vector<double> cost(mipsolver.model_->num_col_, 0.0);
+  std::vector<HighsInt> mask(mipsolver.numCol(), 1);
+  std::vector<double> cost(mipsolver.numCol(), 0.0);
 
   lprelax.getLpSolver().setOptionValue("simplex_strategy",
                                        kSimplexStrategyPrimal);
