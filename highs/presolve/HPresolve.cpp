@@ -1526,7 +1526,55 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
 
   // store binary variables in vector with their number of implications on
   // other binaries
-  std::vector<std::tuple<int64_t, HighsInt, HighsInt, HighsInt>> binaries;
+  std::vector<std::pair<double, double>> simscore(model->num_col_);
+  for (HighsInt i = 0; i != model->num_row_; ++i) {
+    HighsInt start = mipsolver->mipdata_->ARstart_[i];
+    HighsInt end = mipsolver->mipdata_->ARstart_[i + 1];
+    HighsInt kminusone = end - start - 1;
+    if (kminusone == 0) continue;
+    const double rhs = mipsolver->rowUpper(i);
+    const double lhs = mipsolver->rowLower(i);
+    const double minactivity = domain.getMinActivity(i);
+    const double maxactivity = domain.getMaxActivity(i);
+    if (!((minactivity != -kHighsInf && rhs != kHighsInf) ||
+          (maxactivity != kHighsInf && lhs != -kHighsInf)))
+      continue;
+    for (HighsInt j = start; j != end; ++j) {
+      const HighsInt col = mipsolver->mipdata_->ARindex_[j];
+      if (domain.isBinary(col)) {
+        double val = mipsolver->mipdata_->ARvalue_[j];
+        if (val == 0) continue;
+        if (minactivity != -kHighsInf && rhs != kHighsInf) {
+          double row_range = rhs - minactivity;
+          if (row_range <= primal_feastol) continue;
+          double rel_range_closed = std::abs(val) / row_range;
+          assert(rel_range_closed >= 0 &&
+                 rel_range_closed <= 1 + primal_feastol);
+          if (val > 0)
+            simscore[col].second +=
+                std::sqrt(kminusone) * rel_range_closed * rel_range_closed;
+          else
+            simscore[col].first +=
+                std::sqrt(kminusone) * rel_range_closed * rel_range_closed;
+        }
+        if (maxactivity != kHighsInf && lhs != -kHighsInf) {
+          double row_range = maxactivity - lhs;
+          if (row_range <= primal_feastol) continue;
+          double rel_range_closed = std::abs(val) / row_range;
+          assert(rel_range_closed >= 0 &&
+                 rel_range_closed <= 1 + primal_feastol);
+          if (val > 0)
+            simscore[col].first +=
+                std::sqrt(kminusone) * rel_range_closed * rel_range_closed;
+          else
+            simscore[col].second +=
+                std::sqrt(kminusone) * rel_range_closed * rel_range_closed;
+        }
+      }
+    }
+  }
+  std::vector<std::tuple<int64_t, HighsInt, double, HighsInt, HighsInt>>
+      binaries;
 
   if (!mipsolver->mipdata_->cliquetable.isFull()) {
     binaries.reserve(model->num_col_);
@@ -1538,8 +1586,10 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
         binaries.emplace_back(
             -std::min(int64_t{5000}, int64_t(implicsUp) * implicsDown) /
                 (int64_t{1} + static_cast<int64_t>(numProbes[i])),
-            -std::min(HighsInt{100}, implicsUp + implicsDown), random.integer(),
-            i);
+            -std::min(HighsInt{100}, implicsUp + implicsDown),
+            -simscore[i].first * simscore[i].second -
+                std::max(simscore[i].first, simscore[i].second),
+            random.integer(), i);
       }
     }
   }
@@ -1606,7 +1656,7 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
     }
 
     for (const auto& binvar : binaries) {
-      HighsInt i = std::get<3>(binvar);
+      HighsInt i = std::get<4>(binvar);
 
       if (cliquetable.getSubstitution(i) != nullptr || !domain.isBinary(i))
         continue;
