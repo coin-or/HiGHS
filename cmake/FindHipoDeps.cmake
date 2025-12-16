@@ -32,7 +32,7 @@ if (BUILD_OPENBLAS)
         GIT_TAG        "v0.3.30"
         GIT_SHALLOW TRUE
         UPDATE_COMMAND git reset --hard
-        CMAKE_ARGS ${OPENBLAS_MINIMAL_FLASS}
+        CMAKE_ARGS ${OPENBLAS_MINIMAL_FLAGS}
     )
     FetchContent_MakeAvailable(openblas)
     list(POP_BACK CMAKE_MESSAGE_INDENT)
