@@ -409,6 +409,15 @@ inline HighsStatus solveLpSimplex(HighsLpSolverObject& solver_object) {
                       (int)ekk_instance.iteration_count_);
         }
       } else {
+	// There are unscaled primal infeasibilities, so use dual
+	// simplex
+	assert(num_unscaled_primal_infeasibilities > 0);
+	if (options.simplex_strategy != kSimplexStrategyDual)
+	  printf("solveLpSimplex:: Forcing simplex strategy from %d to %d\n",
+		 int(options.simplex_strategy),
+		 int(kSimplexStrategyDual));
+		 
+        options.simplex_strategy = kSimplexStrategyDual;
         // Using dual simplex, so force Devex if starting from an advanced
         // basis with no steepest edge weights
         if ((status.has_basis || basis.valid) &&
