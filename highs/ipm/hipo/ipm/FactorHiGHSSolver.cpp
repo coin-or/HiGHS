@@ -433,9 +433,10 @@ Int FactorHiGHSSolver::chooseNla() {
 
     Int NE_status = analyseNE(symb_NE, NE_nz_limit);
     if (NE_status) failure_NE = true;
-    if (NE_status == kStatusOverflow)
+    if (NE_status == kStatusOverflow) {
       log_.printDevInfo("Integer overflow forming NE matrix\n");
-    overflow_NE = true;
+      overflow_NE = true;
+    }
   }
 
   Int status = kStatusOk;
