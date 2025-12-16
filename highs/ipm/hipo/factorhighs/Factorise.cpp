@@ -14,9 +14,9 @@
 
 namespace hipo {
 
-Factorise::Factorise(const Symbolic& S, const std::vector<Int>& rowsA,
-                     const std::vector<Int>& ptrA,
-                     const std::vector<double>& valA, const Regul& regul,
+Factorise::Factorise(const Symbolic& S, const std::vector<Int>& rowsM,
+                     const std::vector<Int>& ptrM,
+                     const std::vector<double>& valM, const Regul& regul,
                      const Log* log, DataCollector& data,
                      std::vector<std::vector<double>>& sn_columns,
                      CliqueStack* stack)
@@ -30,7 +30,7 @@ Factorise::Factorise(const Symbolic& S, const std::vector<Int>& rowsA,
   // factorisation coming from Analyse.
   // Only the lower triangular part of the matrix is used.
 
-  n_ = ptrA.size() - 1;
+  n_ = ptrM.size() - 1;
 
   if (n_ != S_.size()) {
     if (log_)
@@ -41,22 +41,22 @@ Factorise::Factorise(const Symbolic& S, const std::vector<Int>& rowsA,
   }
 
   // Make a copy of the matrix to be factorised
-  rowsA_ = rowsA;
-  valA_ = valA;
-  ptrA_ = ptrA;
+  rowsM_ = rowsM;
+  valM_ = valM;
+  ptrM_ = ptrM;
 
   // Permute the matrix.
   // This also removes any entry not in the lower triangle.
   permute(S_.iperm());
 
-  nzA_ = ptrA_.back();
+  nzM_ = ptrM_.back();
 
   // Double transpose to sort columns
   std::vector<Int> temp_ptr(n_ + 1);
-  std::vector<Int> temp_rows(nzA_);
-  std::vector<double> temp_val(nzA_);
-  transpose(ptrA_, rowsA_, valA_, temp_ptr, temp_rows, temp_val);
-  transpose(temp_ptr, temp_rows, temp_val, ptrA_, rowsA_, valA_);
+  std::vector<Int> temp_rows(nzM_);
+  std::vector<double> temp_val(nzM_);
+  transpose(ptrM_, rowsM_, valM_, temp_ptr, temp_rows, temp_val);
+  transpose(temp_ptr, temp_rows, temp_val, ptrM_, rowsM_, valM_);
 
   // create linked lists of children in supernodal elimination tree
   childrenLinkedList(S_.snParent(), first_child_, next_child_);
@@ -70,28 +70,28 @@ Factorise::Factorise(const Symbolic& S, const std::vector<Int>& rowsA,
   max_diag_ = 0.0;
   min_diag_ = kHighsInf;
   for (Int col = 0; col < n_; ++col) {
-    double val = std::abs(valA_[ptrA_[col]]);
+    double val = std::abs(valM_[ptrM_[col]]);
     max_diag_ = std::max(max_diag_, val);
     min_diag_ = std::min(min_diag_, val);
   }
 
-  // one norm of columns of A
+  // one norm of columns of M
   std::vector<double> one_norm_cols(n_, 0.0);
   for (Int col = 0; col < n_; ++col) {
-    for (Int el = ptrA_[col]; el < ptrA_[col + 1]; ++el) {
-      Int row = rowsA_[el];
-      double val = valA_[el];
+    for (Int el = ptrM_[col]; el < ptrM_[col + 1]; ++el) {
+      Int row = rowsM_[el];
+      double val = valM_[el];
       one_norm_cols[col] += std::abs(val);
       if (row != col) one_norm_cols[row] += std::abs(val);
     }
   }
-  A_norm1_ = *std::max_element(one_norm_cols.begin(), one_norm_cols.end());
+  M_norm1_ = *std::max_element(one_norm_cols.begin(), one_norm_cols.end());
 
-  data_.setNorms(A_norm1_, max_diag_);
+  data_.setNorms(M_norm1_, max_diag_);
 }
 
 void Factorise::permute(const std::vector<Int>& iperm) {
-  // Symmetric permutation of the lower triangular matrix A based on inverse
+  // Symmetric permutation of the lower triangular matrix M based on inverse
   // permutation iperm.
   // The resulting matrix is lower triangular, regardless of the input matrix.
 
@@ -103,8 +103,8 @@ void Factorise::permute(const std::vector<Int>& iperm) {
     const Int col = iperm[j];
 
     // go through elements of column
-    for (Int el = ptrA_[j]; el < ptrA_[j + 1]; ++el) {
-      const Int i = rowsA_[el];
+    for (Int el = ptrM_[j]; el < ptrM_[j + 1]; ++el) {
+      const Int i = rowsM_[el];
 
       // ignore potential entries in upper triangular part
       if (i < j) continue;
@@ -133,8 +133,8 @@ void Factorise::permute(const std::vector<Int>& iperm) {
     const Int col = iperm[j];
 
     // go through elements of column
-    for (Int el = ptrA_[j]; el < ptrA_[j + 1]; ++el) {
-      const Int i = rowsA_[el];
+    for (Int el = ptrM_[j]; el < ptrM_[j + 1]; ++el) {
+      const Int i = rowsM_[el];
 
       // ignore potential entries in upper triangular part
       if (i < j) continue;
@@ -148,13 +148,13 @@ void Factorise::permute(const std::vector<Int>& iperm) {
 
       Int pos = work[actual_col]++;
       new_rows[pos] = actual_row;
-      new_val[pos] = valA_[el];
+      new_val[pos] = valM_[el];
     }
   }
 
-  ptrA_ = std::move(new_ptr);
-  rowsA_ = std::move(new_rows);
-  valA_ = std::move(new_val);
+  ptrM_ = std::move(new_ptr);
+  rowsM_ = std::move(new_rows);
+  valM_ = std::move(new_val);
 }
 
 class TaskGroupSpecial : public highs::parallel::TaskGroup {
@@ -232,7 +232,7 @@ void Factorise::processSupernode(Int sn) {
   HIPO_CLOCK_STOP(2, data_, kTimeFactorisePrepare);
 
   // ===================================================
-  // Assemble original matrix A into frontal
+  // Assemble original matrix M into frontal
   // ===================================================
   HIPO_CLOCK_START(2);
   // j is relative column index in the frontal matrix
@@ -241,11 +241,11 @@ void Factorise::processSupernode(Int sn) {
     const Int col = sn_begin + j;
 
     // go through the column
-    for (Int el = ptrA_[col]; el < ptrA_[col + 1]; ++el) {
+    for (Int el = ptrM_[col]; el < ptrM_[col + 1]; ++el) {
       // relative row index in the frontal matrix
       const Int i = S_.relindCols(el);
 
-      FH->assembleFrontal(i, j, valA_[el]);
+      FH->assembleFrontal(i, j, valM_[el]);
     }
   }
   HIPO_CLOCK_STOP(2, data_, kTimeFactoriseAssembleOriginal);
@@ -343,7 +343,7 @@ void Factorise::processSupernode(Int sn) {
   HIPO_CLOCK_START(2);
   // threshold for regularisation
   // const double reg_thresh = max_diag_ * kDynamicDiagCoeff;
-  const double reg_thresh = A_norm1_ * kDynamicDiagCoeff;
+  const double reg_thresh = M_norm1_ * kDynamicDiagCoeff;
 
   if (Int flag = FH->denseFactorise(reg_thresh)) {
     flag_stop_ = true;
