@@ -1350,6 +1350,13 @@ class Highs {
   }
 
   /**
+   * @brief Generalisation of getColName and getRowName. Advanced
+   * method: for HiGHS C++ and C API
+   */
+  HighsStatus getColOrRowName(const HighsLp& lp, const bool is_col,
+                              const HighsInt index, std::string& name) const;
+
+  /**
    * @brief Development methods
    */
   HighsInt defineClock(const char* name) {

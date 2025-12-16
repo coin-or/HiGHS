@@ -3,10 +3,26 @@ if (BUILD_OPENBLAS)
     include(FetchContent)
     set(FETCHCONTENT_QUIET OFF)
     set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
-    set(BUILD_SHARED_LIBS ON)
+    # set(BUILD_SHARED_LIBS ON)
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
     set(BUILD_TESTING OFF)
     set(CMAKE_Fortran_COMPILER OFF)
+
+    # Define the size-minimizing flags as a list
+    set(OPENBLAS_MINIMAL_FLAGS
+        # Exclude components not used by HiGHS
+        -DNO_LAPACK=ON
+        -DNO_LAPACKE=ON
+        -DNO_COMPLEX=ON
+        -DNO_SINGLE=ON
+        -DONLY_BLAS=ON
+
+        # Crucial for size on ARM: Target the specific architecture
+        -DTARGET=ARMV8
+
+        # may be needed for 32 bit
+        # -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
+    )
 
     message(CHECK_START "Fetching OpenBLAS")
     list(APPEND CMAKE_MESSAGE_INDENT "  ")
@@ -16,6 +32,7 @@ if (BUILD_OPENBLAS)
         GIT_TAG        "v0.3.30"
         GIT_SHALLOW TRUE
         UPDATE_COMMAND git reset --hard
+        CMAKE_ARGS ${OPENBLAS_MINIMAL_FLAGS}
     )
     FetchContent_MakeAvailable(openblas)
     list(POP_BACK CMAKE_MESSAGE_INDENT)

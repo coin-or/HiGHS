@@ -481,7 +481,6 @@ struct HighsOptionsStruct {
   double mip_min_logging_interval;
   std::string mip_lp_solver;
   std::string mip_ipm_solver;
-
 #ifdef HIGHS_DEBUGSOL
   std::string mip_debug_solution_file;
 #endif
@@ -490,6 +489,7 @@ struct HighsOptionsStruct {
   std::string mip_improving_solution_file;
   bool mip_root_presolve_only;
   HighsInt mip_lifting_for_probing;
+  bool mip_allow_cut_separation_at_nodes;
 
   // Logging callback identifiers
   HighsLogOptions log_options;
@@ -637,15 +637,18 @@ struct HighsOptionsStruct {
         mip_heuristic_run_zi_round(false),
         mip_heuristic_run_shifting(false),
         mip_min_logging_interval(0.0),
+        mip_lp_solver(""),
+        mip_ipm_solver(""),
 #ifdef HIGHS_DEBUGSOL
         mip_debug_solution_file(""),
 #endif
         mip_improving_solution_save(false),
         mip_improving_solution_report_sparse(false),
-        // clang-format off
         mip_improving_solution_file(""),
         mip_root_presolve_only(false),
-        mip_lifting_for_probing(-1) {};
+        mip_lifting_for_probing(-1),
+        // clang-format off
+        mip_allow_cut_separation_at_nodes(true) {};
   // clang-format on
 };
 
@@ -1210,6 +1213,12 @@ class HighsOptions : public HighsOptionsStruct {
     record_bool = new OptionRecordBool("mip_heuristic_run_shifting",
                                        "Use the Shifting heuristic", advanced,
                                        &mip_heuristic_run_shifting, false);
+    records.push_back(record_bool);
+
+    record_bool = new OptionRecordBool(
+        "mip_allow_cut_separation_at_nodes",
+        "Whether cut separation at nodes is permitted", advanced,
+        &mip_allow_cut_separation_at_nodes, true);
     records.push_back(record_bool);
 
     record_double = new OptionRecordDouble(

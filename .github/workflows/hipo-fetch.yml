@@ -1,0 +1,77 @@
+name: hipo-fetch
+
+on: [push, pull_request]
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # config: [Release, Debug]
+        config: [Release]
+        all_tests: [ON]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Build Environment
+        run: cmake -E make_directory ${{runner.workspace}}/build
+
+      - name: Configure CMake
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          cmake $GITHUB_WORKSPACE -DHIPO=ON -DBUILD_OPENBLAS=ON \
+          -DALL_TESTS=${{ matrix.all_tests }}
+
+      - name: Build
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          cmake --build . --parallel
+
+      - name: Test executable
+        working-directory: ${{runner.workspace}}/build
+        run: ./bin/highs --solver=hipo $GITHUB_WORKSPACE/check/instances/afiro.mps
+
+      - name: Ctest
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          ctest --parallel --timeout 300 --output-on-failure
+
+  windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        config: [Release]
+        all_tests: [ON]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          cmake `
+          -S "$env:GITHUB_WORKSPACE" `
+          -B "${{ runner.workspace }}/build" `
+          -DHIPO=ON `
+          -DALL_TESTS=${{ matrix.all_tests }} `
+          -DBUILD_OPENBLAS=ON
+
+      - name: Build
+        shell: pwsh
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          cmake --build . --parallel --config ${{ matrix.config }}
+
+      - name: Test executable
+        shell: pwsh
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          & ".\${{ matrix.config }}\bin\highs.exe" --solver=hipo `
+          "$env:GITHUB_WORKSPACE/check/instances/afiro.mps"
+
+      - name: Ctest
+        shell: pwsh
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          ctest --parallel --timeout 300 --output-on-failure -C ${{ matrix.config }}
