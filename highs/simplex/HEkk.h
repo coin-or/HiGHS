@@ -139,6 +139,7 @@ class HEkk {
   void initialisePartitionedRowwiseMatrix();
   bool lpFactorRowCompatible() const;
   bool lpFactorRowCompatible(const HighsInt expectedNumRow) const;
+  std::string simplexStrategyToString(const HighsInt simplex_strategy) const;
 
   // Interface methods
   void appendColsToVectors(const HighsInt num_new_col,

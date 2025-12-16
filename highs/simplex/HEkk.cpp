@@ -1054,8 +1054,8 @@ HighsStatus HEkk::solve(const bool force_phase2) {
     algorithm_name = "primal";
     reportSimplexPhaseIterations(options_->log_options, iteration_count_, info_,
                                  true);
-    highsLogUser(options_->log_options, HighsLogType::kInfo,
-                 "Using EKK primal simplex solver\n");
+    highsLogUser(options_->log_options, HighsLogType::kInfo, "Using %s\n",
+                 simplexStrategyToString(kSimplexStrategyPrimal).c_str());
     HEkkPrimal primal_solver(*this);
     call_status = primal_solver.solve(force_phase2);
     assert(called_return_from_solve_);
@@ -1068,17 +1068,17 @@ HighsStatus HEkk::solve(const bool force_phase2) {
     // Solve, depending on the particular strategy
     if (simplex_strategy == kSimplexStrategyDualTasks) {
       highsLogUser(options_->log_options, HighsLogType::kInfo,
-                   "Using EKK parallel dual simplex solver - SIP with "
-                   "concurrency of %d\n",
+                   "Using %s with concurrency of %d\n",
+                   simplexStrategyToString(kSimplexStrategyDualTasks).c_str(),
                    int(info_.num_concurrency));
     } else if (simplex_strategy == kSimplexStrategyDualMulti) {
       highsLogUser(options_->log_options, HighsLogType::kInfo,
-                   "Using EKK parallel dual simplex solver - PAMI with "
-                   "concurrency of %d\n",
+                   "Using %s with concurrency of %d\n",
+                   simplexStrategyToString(kSimplexStrategyDualMulti).c_str(),
                    int(info_.num_concurrency));
     } else {
-      highsLogUser(options_->log_options, HighsLogType::kInfo,
-                   "Using EKK dual simplex solver - serial\n");
+      highsLogUser(options_->log_options, HighsLogType::kInfo, "Using %s\n",
+                   simplexStrategyToString(kSimplexStrategyDual).c_str());
     }
     HEkkDual dual_solver(*this);
     call_status = dual_solver.solve(force_phase2);
@@ -1103,7 +1103,7 @@ HighsStatus HEkk::solve(const bool force_phase2) {
   if (return_status == HighsStatus::kError)
     return returnFromEkkSolve(return_status);
   highsLogDev(options_->log_options, HighsLogType::kInfo,
-              "EKK %s simplex solver returns %" HIGHSINT_FORMAT
+              "%s simplex solver returns %" HIGHSINT_FORMAT
               " primal and %" HIGHSINT_FORMAT
               " dual infeasibilities: "
               "Status %s\n",
@@ -2294,6 +2294,24 @@ bool HEkk::lpFactorRowCompatible(const HighsInt expectedNumRow) const {
                 (int)this->simplex_nla_.factor_.num_row);
   }
   return consistent_num_row;
+}
+
+std::string HEkk::simplexStrategyToString(
+    const HighsInt simplex_strategy) const {
+  assert(kSimplexStrategyMin <= simplex_strategy &&
+         simplex_strategy <= kSimplexStrategyMax);
+  if (simplex_strategy == kSimplexStrategyChoose)
+    return "choose simplex solver";
+  if (simplex_strategy == kSimplexStrategyDual) return "dual simplex solver";
+  if (simplex_strategy == kSimplexStrategyDualPlain)
+    return "serial dual simplex solver";
+  if (simplex_strategy == kSimplexStrategyDualTasks)
+    return "parallel dual simplex solver - SIP";
+  if (simplex_strategy == kSimplexStrategyDualMulti)
+    return "parallel dual simplex solver - PAMI";
+  if (simplex_strategy == kSimplexStrategyPrimal)
+    return "primal simplex solver";
+  return "Unknown";
 }
 
 void HEkk::setNonbasicMove() {
@@ -3589,7 +3607,7 @@ HighsStatus HEkk::returnFromSolve(const HighsStatus return_status) {
     default: {
       highsLogDev(
           options_->log_options, HighsLogType::kError,
-          "EKK %s simplex solver returns status %s\n",
+          "%s simplex solver returns status %s\n",
           exit_algorithm_ == SimplexAlgorithm::kPrimal ? "primal" : "dual",
           utilModelStatusToString(model_status_).c_str());
       return HighsStatus::kError;
