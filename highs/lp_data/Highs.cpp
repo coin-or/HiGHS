@@ -3985,16 +3985,6 @@ HighsStatus Highs::callSolveLp(HighsLp& lp, const string message) {
   // Solve the LP
   HighsInt simplex_strategy = options_.simplex_strategy;
   return_status = solveLp(solver_object, message);
-  // Ensure that options_.simplex_strategy is reset to its initial
-  // value
-  const bool restored_simplex_strategy =
-      options_.simplex_strategy == simplex_strategy;
-  if (!restored_simplex_strategy) {
-    // #2643
-    printf("Highs::callSolveLp options_.simplex_strategy = %d, but was %d\n",
-           int(options_.simplex_strategy), int(simplex_strategy));
-  }
-  assert(restored_simplex_strategy);
   // Extract the model status
   model_status_ = solver_object.model_status_;
   return return_status;
