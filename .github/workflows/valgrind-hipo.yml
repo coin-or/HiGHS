@@ -8,34 +8,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install Valgrind
         run: sudo apt-get update && sudo apt-get install valgrind
-
-      - name: Checkout METIS
-        uses: actions/checkout@v4
-        with:
-          repository: galabovaa/METIS
-          ref: 521-ts
-          path: METIS
-
-      - name: Create installs dir
-        working-directory: ${{runner.workspace}}
-        run: |
-          mkdir installs
-          ls
-
-      - name: Install METIS
-        run: |
-          cmake \
-          -S $GITHUB_WORKSPACE/METIS \
-          -B build \
-          -DGKLIB_PATH=${{ github.workspace }}/METIS/GKlib \
-          -DCMAKE_INSTALL_PREFIX=${{ runner.workspace }}/installs
-          cmake --build build --parallel
-          cmake --install build
-
-      # no default blas available on runner
 
       - name: Cache APT packages
         uses: actions/cache@v4
@@ -60,8 +35,7 @@ jobs:
           cmake $GITHUB_WORKSPACE -DHIPO=ON \
           -DCMAKE_BUILD_TYPE=Debug \
           -DALL_TESTS=ON \
-          -DBLA_VENDOR=OpenBLAS \
-          -DMETIS_ROOT=${{runner.workspace}}/installs
+          -DBLA_VENDOR=OpenBLAS
 
       - name: Build
         working-directory: ${{runner.workspace}}/build
@@ -104,31 +78,6 @@ jobs:
       - name: Install Valgrind
         run: sudo apt-get update && sudo apt-get install valgrind
 
-      - name: Checkout METIS
-        uses: actions/checkout@v4
-        with:
-          repository: galabovaa/METIS
-          ref: 521-ts
-          path: METIS
-
-      - name: Create installs dir
-        working-directory: ${{runner.workspace}}
-        run: |
-          mkdir installs
-          ls
-
-      - name: Install METIS
-        run: |
-          cmake \
-          -S $GITHUB_WORKSPACE/METIS \
-          -B build \
-          -DGKLIB_PATH=${{ github.workspace }}/METIS/GKlib \
-          -DCMAKE_INSTALL_PREFIX=${{ runner.workspace }}/installs
-          cmake --build build --parallel
-          cmake --install build
-
-      # no default blas available on runner
-
       - name: Cache APT packages
         uses: actions/cache@v4
         with:
@@ -155,8 +104,7 @@ jobs:
           cmake $GITHUB_WORKSPACE -DHIPO=ON \
           -DCMAKE_BUILD_TYPE=Debug \
           -DALL_TESTS=ON \
-          -DBLA_VENDOR=OpenBLAS \
-          -DMETIS_ROOT=${{runner.workspace}}/installs
+          -DBLA_VENDOR=OpenBLAS
 
       - name: Build
         working-directory: ${{runner.workspace}}/build
@@ -200,31 +148,6 @@ jobs:
 
       - name: Install Valgrind
         run: sudo apt-get update && sudo apt-get install valgrind
-      
-      - name: Checkout METIS
-        uses: actions/checkout@v4
-        with:
-          repository: galabovaa/METIS
-          ref: 521-ts
-          path: METIS
-
-      - name: Create installs dir
-        working-directory: ${{runner.workspace}}
-        run: |
-          mkdir installs
-          ls
-
-      - name: Install METIS
-        run: |
-          cmake \
-          -S $GITHUB_WORKSPACE/METIS \
-          -B build \
-          -DGKLIB_PATH=${{ github.workspace }}/METIS/GKlib \
-          -DCMAKE_INSTALL_PREFIX=${{ runner.workspace }}/installs
-          cmake --build build --parallel
-          cmake --install build
-
-      # no default blas available on runner
 
       - name: Cache APT packages
         uses: actions/cache@v4
@@ -252,9 +175,7 @@ jobs:
           cmake $GITHUB_WORKSPACE -DHIPO=ON \
           -DCMAKE_BUILD_TYPE=Debug \
           -DALL_TESTS=ON \
-          -DBLA_VENDOR=OpenBLAS \
-          -DMETIS_ROOT=${{runner.workspace}}/installs
-
+          -DBLA_VENDOR=OpenBLAS
 
       - name: Build
         working-directory: ${{runner.workspace}}/build
@@ -286,7 +207,7 @@ jobs:
             exit 0
           fi
           exit 1
-      
+
       - name: Test C example
         working-directory: ${{runner.workspace}}/build
         shell: bash
