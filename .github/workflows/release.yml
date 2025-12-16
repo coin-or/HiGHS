@@ -33,7 +33,7 @@ jobs:
       - name: Cross-compilation of HiGHS -- x86_64-linux-gnu-cxx11
         run: |
           julia --color=yes -e 'using Pkg; Pkg.add("BinaryBuilder")'
-          julia --color=yes .github/julia/build_tarballs.jl x86_64-linux-gnu-cxx11 --verbose
+          julia --color=yes .github/julia/build_tarballs_release.jl x86_64-linux-gnu-cxx11 --verbose
 
       - name: Archive artifact
         run: julia --color=yes .github/julia/generate_binaries.jl
@@ -69,7 +69,7 @@ jobs:
       - name: Cross-compilation of HiGHS -- aarch64-linux-gnu-cxx11
         run: |
           julia --color=yes -e 'using Pkg; Pkg.add("BinaryBuilder")'
-          julia --color=yes .github/julia/build_tarballs.jl aarch64-linux-gnu-cxx11 --verbose
+          julia --color=yes .github/julia/build_tarballs_release.jl aarch64-linux-gnu-cxx11 --verbose
 
       - name: Archive artifact
         run: julia --color=yes .github/julia/generate_binaries.jl
@@ -105,7 +105,7 @@ jobs:
       - name: Cross-compilation of HiGHS -- x86_64-w64-mingw32-cxx11
         run: |
           julia --color=yes -e 'using Pkg; Pkg.add("BinaryBuilder")'
-          julia --color=yes .github/julia/build_tarballs.jl x86_64-w64-mingw32-cxx11 --verbose
+          julia --color=yes .github/julia/build_tarballs_release.jl x86_64-w64-mingw32-cxx11 --verbose
       - name: Archive artifact
         run: julia --color=yes .github/julia/generate_binaries.jl
 
@@ -139,7 +139,7 @@ jobs:
       - name: Cross-compilation of HiGHS -- x86_64-apple-darwin-cxx11
         run: |
           julia --color=yes -e 'using Pkg; Pkg.add("BinaryBuilder")'
-          julia --color=yes .github/julia/build_tarballs.jl x86_64-apple-darwin-cxx11 --verbose
+          julia --color=yes .github/julia/build_tarballs_release.jl x86_64-apple-darwin-cxx11 --verbose
 
       - name: Archive artifact
         run: julia --color=yes .github/julia/generate_binaries.jl
@@ -174,7 +174,7 @@ jobs:
       - name: Cross-compilation of HiGHS -- aarch64-apple-darwin-cxx11
         run: |
           julia --color=yes -e 'using Pkg; Pkg.add("BinaryBuilder")'
-          julia --color=yes .github/julia/build_tarballs.jl aarch64-apple-darwin-cxx11 --verbose
+          julia --color=yes .github/julia/build_tarballs_release.jl aarch64-apple-darwin-cxx11 --verbose
 
       - name: Archive artifact
         run: julia --color=yes .github/julia/generate_binaries.jl

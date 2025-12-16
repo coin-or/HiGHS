@@ -19,6 +19,12 @@ jobs:
           cmake --build build -j2
           cd build && cpack
 
+  #         cmake -B build \
+  # -DCMAKE_BUILD_TYPE=Release \
+  # -DBUILD_SHARED_LIBS=OFF \
+  # -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc -static-libstdc++" \
+  # .
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

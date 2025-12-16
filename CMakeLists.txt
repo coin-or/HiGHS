@@ -197,6 +197,25 @@ if(HIPO)
   include(FindHipoDeps)
 endif()
 
+# Option to build static
+option(BUILD_STATIC_EXE "Build static executable" OFF)
+
+if(BUILD_STATIC_EXE)
+  set(BUILD_SHARED_LIBS OFF)
+
+  # Link statically on Linux
+  if(UNIX AND NOT APPLE)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+  endif()
+
+  # Windows: link runtime statically
+  if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  endif()
+endif()
+
+
 if (BUILD_CXX)
   # Default Build Type to be Release
   get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
@@ -409,6 +428,10 @@ else()
     set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
     set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 endif()
+
+# In your CMakeLists.txt
+set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "cli;libs")
+
 
 if(NOT FAST_BUILD)
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${HIGHS_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
@@ -842,6 +865,52 @@ else(FAST_BUILD)
 
 endif()
 
+# Detect system information
+if(UNIX AND NOT APPLE)
+  set(OS_NAME "linux")
+elseif(APPLE)
+  set(OS_NAME "apple")
+elseif(WIN32)
+  set(OS_NAME "windows")
+else()
+  set(OS_NAME "unknown")
+endif()
+
+# Get architecture
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+  set(ARCH "x86_64")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64")
+  set(ARCH "aarch64")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
+  set(ARCH "arm")
+else()
+  set(ARCH ${CMAKE_SYSTEM_PROCESSOR})
+endif()
+
+# Get libc info (for Linux)
+if(UNIX AND NOT APPLE)
+  execute_process(
+    COMMAND ldd --version
+    OUTPUT_VARIABLE LDD_OUTPUT
+    ERROR_VARIABLE LDD_OUTPUT
+  )
+  if(LDD_OUTPUT MATCHES "musl")
+    set(LIBC "musl")
+  else()
+    set(LIBC "gnu")
+  endif()
+  set(PLATFORM "${ARCH}-${OS_NAME}-${LIBC}")
+else()
+  set(PLATFORM "${ARCH}-${OS_NAME}")
+endif()
+
+# Set CPack filename
+if(BUILD_STATIC_EXE)
+  set(CPACK_PACKAGE_FILE_NAME "highs-${VERSION}-${PLATFORM}-static")
+else()
+  set(CPACK_PACKAGE_FILE_NAME "highs-${VERSION}-${PLATFORM}")
+endif()
+
 if(NOT CPack_CMake_INCLUDED)
   include(CPack)
 endif()
@@ -856,3 +925,7 @@ set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "\
 Open source serial and parallel solvers for large-scale sparse \
 linear programming (LP), mixed-integer programming (MIP), and \
 quadratic programming (QP) models")
+
+set(CPACK_COMPONENTS_ALL cli libs)
+set(CPACK_COMPONENT_CLI_DISPLAY_NAME "HiGHS CLI (static)")
+set(CPACK_COMPONENT_LIBS_DISPLAY_NAME "HiGHS Libraries")
