@@ -718,7 +718,7 @@ void HighsImplications::cleanupVarbounds(HighsInt col) {
     HighsInt numVubs = 0;
     vubs[col].for_each([&](HighsInt vubCol, VarBound& vub) { numVubs++; });
     HighsInt numVlbs = 0;
-    vlbs[col].for_each([&](HighsInt vlbCol, VarBound& vub) { numVlbs++; });
+    vlbs[col].for_each([&](HighsInt vlbCol, VarBound& vlb) { numVlbs++; });
     numVarBounds -= numVubs + numVlbs;
     vlbs[col].clear();
     vubs[col].clear();
