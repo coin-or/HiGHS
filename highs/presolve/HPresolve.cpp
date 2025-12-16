@@ -5041,17 +5041,19 @@ HPresolve::Result HPresolve::enumerateSolutions(
     // analyse worst-case bounds
     for (HighsInt col : worstCaseBounds) {
       if (numWorstCaseBounds[col] == numSolutions) {
-        double lb = std::max(domain.col_lower_[col], worstCaseLowerBound[col]);
-        double ub = std::min(domain.col_upper_[col], worstCaseUpperBound[col]);
-        if (lb > domain.col_lower_[col]) {
+        assert(worstCaseLowerBound[col] >= domain.col_lower_[col]);
+        assert(worstCaseUpperBound[col] <= domain.col_upper_[col]);
+        if (worstCaseLowerBound[col] > domain.col_lower_[col]) {
           // tighten lower bound
-          domain.changeBound(HighsBoundType::kLower, col, lb,
+          domain.changeBound(HighsBoundType::kLower, col,
+                             worstCaseLowerBound[col],
                              HighsDomain::Reason::unspecified());
           if (domain.infeasible()) return Result::kPrimalInfeasible;
         }
-        if (ub < domain.col_upper_[col]) {
+        if (worstCaseUpperBound[col] < domain.col_upper_[col]) {
           // tighten upper bound
-          domain.changeBound(HighsBoundType::kUpper, col, ub,
+          domain.changeBound(HighsBoundType::kUpper, col,
+                             worstCaseUpperBound[col],
                              HighsDomain::Reason::unspecified());
           if (domain.infeasible()) return Result::kPrimalInfeasible;
         }
@@ -5097,22 +5099,19 @@ HPresolve::Result HPresolve::enumerateSolutions(
   HighsInt numBndsTightened = 0;
   for (HighsInt i = 0; i != model->num_col_; ++i) {
     if (colDeleted[i]) continue;
-    bool newbnd = false;
-    if (model->col_lower_[i] < domain.col_lower_[i]) {
-      newbnd = true;
-      changeColLower(i, domain.col_lower_[i]);
-    }
-    if (model->col_upper_[i] > domain.col_upper_[i]) {
-      newbnd = true;
-      changeColUpper(i, domain.col_upper_[i]);
-    }
+    bool newLowerBnd = model->col_lower_[i] < domain.col_lower_[i];
+    bool newUpperBnd = model->col_upper_[i] > domain.col_upper_[i];
+    if (newLowerBnd) changeColLower(i, domain.col_lower_[i]);
+    if (newUpperBnd) changeColUpper(i, domain.col_upper_[i]);
     if (domain.isFixed(i)) {
       numVarsFixed++;
       postsolve_stack.removedFixedCol(i, model->col_lower_[i], 0.0,
                                       HighsEmptySlice());
       removeFixedCol(i);
-    } else if (newbnd)
-      numBndsTightened++;
+    } else {
+      if (newLowerBnd) numBndsTightened++;
+      if (newUpperBnd) numBndsTightened++;
+    }
     HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
   }
 
