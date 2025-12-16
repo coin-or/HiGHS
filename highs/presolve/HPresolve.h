@@ -365,6 +365,13 @@ class HPresolve {
 
   void addToMatrix(const HighsInt row, const HighsInt col, const double val);
 
+  Result prepareProbing(HighsPostsolveStack& postsolve_stack, bool& firstCall);
+
+  Result finaliseProbing(HighsPostsolveStack& postsolve_stack, bool firstCall,
+                         HighsInt& numVarsFixed, HighsInt& numBndsTightened,
+                         HighsInt& numVarsSubstituted,
+                         HighsInt& liftedNonZeros);
+
   Result runProbing(HighsPostsolveStack& postsolve_stack);
 
   Result liftingForProbing(HighsPostsolveStack& postsolve_stack);

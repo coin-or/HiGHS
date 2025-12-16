@@ -1445,10 +1445,9 @@ HPresolve::Result HPresolve::dominatedColumns(
   return Result::kOk;
 }
 
-HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
-  mipsolver->analysis_.mipTimerStart(kMipClockProbingPresolve);
-  probingEarlyAbort = false;
-  if (numDeletedCols + numDeletedRows != 0) shrinkProblem(postsolve_stack);
+HPresolve::Result HPresolve::prepareProbing(
+    HighsPostsolveStack& postsolve_stack, bool& firstCall) {
+  shrinkProblem(postsolve_stack);
 
   toCSC(model->a_matrix_.value_, model->a_matrix_.index_,
         model->a_matrix_.start_);
@@ -1456,14 +1455,6 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
             model->a_matrix_.start_);
 
   mipsolver->mipdata_->cliquetable.setMaxEntries(numNonzeros());
-
-  auto checkInfeasible = [&](const HighsDomain& domain) {
-    if (domain.infeasible()) {
-      mipsolver->analysis_.mipTimerStop(kMipClockProbingPresolve);
-      return Result::kPrimalInfeasible;
-    }
-    return Result::kOk;
-  };
 
   // first tighten all bounds if they have an implied bound that is tighter
   // than their column bound before probing this is not done for continuous
@@ -1479,25 +1470,23 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
       changeColUpper(i, implColUpper[i]);
   }
 
-  HighsInt oldNumProbed = numProbed;
-
   mipsolver->mipdata_->setupDomainPropagation();
   HighsDomain& domain = mipsolver->mipdata_->domain;
+  HighsCliqueTable& cliquetable = mipsolver->mipdata_->cliquetable;
+
+  firstCall = !mipsolver->mipdata_->cliquesExtracted;
 
   domain.propagate();
-  HPRESOLVE_CHECKED_CALL(checkInfeasible(domain));
-
-  HighsCliqueTable& cliquetable = mipsolver->mipdata_->cliquetable;
-  HighsImplications& implications = mipsolver->mipdata_->implications;
-  bool firstCall = !mipsolver->mipdata_->cliquesExtracted;
-  mipsolver->mipdata_->cliquesExtracted = true;
+  if (domain.infeasible()) return Result::kPrimalInfeasible;
 
   // extract cliques that are part of the formulation every time before probing
   // after the first call we only add cliques that directly correspond to set
   // packing constraints so that the clique merging step can extend/delete them
   if (firstCall) {
     cliquetable.extractCliques(*mipsolver);
-    HPRESOLVE_CHECKED_CALL(checkInfeasible(domain));
+    if (domain.infeasible()) return Result::kPrimalInfeasible;
+
+    mipsolver->mipdata_->cliquesExtracted = true;
 
     // during presolve we keep the objective upper bound without the current
     // offset so we need to update it
@@ -1507,21 +1496,107 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
       mipsolver->mipdata_->upper_limit = tmpLimit - model->offset_;
       cliquetable.extractObjCliques(*mipsolver);
       mipsolver->mipdata_->upper_limit = tmpLimit;
-      HPRESOLVE_CHECKED_CALL(checkInfeasible(domain));
+      if (domain.infeasible()) return Result::kPrimalInfeasible;
     }
 
     domain.propagate();
-    HPRESOLVE_CHECKED_CALL(checkInfeasible(domain));
+    if (domain.infeasible()) return Result::kPrimalInfeasible;
   }
 
   cliquetable.cleanupFixed(domain);
-  HPRESOLVE_CHECKED_CALL(checkInfeasible(domain));
+  if (domain.infeasible()) return Result::kPrimalInfeasible;
+
+  return Result::kOk;
+}
+
+HPresolve::Result HPresolve::finaliseProbing(
+    HighsPostsolveStack& postsolve_stack, bool firstCall,
+    HighsInt& numVarsFixed, HighsInt& numBndsTightened,
+    HighsInt& numVarsSubstituted, HighsInt& liftedNonZeros) {
+  HighsDomain& domain = mipsolver->mipdata_->domain;
+  HighsCliqueTable& cliquetable = mipsolver->mipdata_->cliquetable;
+
+  cliquetable.cleanupFixed(domain);
+
+  if (!firstCall) cliquetable.extractCliques(*mipsolver, false);
+  cliquetable.runCliqueMerging(domain);
+
+  // apply changes from probing
+
+  // first delete redundant clique inequalities
+  for (HighsInt delrow : cliquetable.getDeletedRows())
+    if (!rowDeleted[delrow]) removeRow(delrow);
+  cliquetable.getDeletedRows().clear();
+
+  // add nonzeros from clique lifting before removing fixed variables, since
+  // this might lead to stronger constraint sides
+  auto& extensionvars = cliquetable.getCliqueExtensions();
+  liftedNonZeros += static_cast<HighsInt>(extensionvars.size());
+  for (const auto& cliqueextension : extensionvars) {
+    if (rowDeleted[cliqueextension.first]) {
+      --liftedNonZeros;
+      continue;
+    }
+    double val;
+    if (cliqueextension.second.val == 0) {
+      model->row_lower_[cliqueextension.first] -= 1;
+      model->row_upper_[cliqueextension.first] -= 1;
+      val = -1.0;
+    } else
+      val = 1.0;
+    addToMatrix(cliqueextension.first, cliqueextension.second.col, val);
+  }
+  extensionvars.clear();
+
+  // now remove fixed columns and tighten domains
+  for (HighsInt i = 0; i != model->num_col_; ++i) {
+    if (colDeleted[i]) continue;
+    bool newLowerBnd = model->col_lower_[i] < domain.col_lower_[i];
+    bool newUpperBnd = model->col_upper_[i] > domain.col_upper_[i];
+    if (newLowerBnd) changeColLower(i, domain.col_lower_[i]);
+    if (newUpperBnd) changeColUpper(i, domain.col_upper_[i]);
+    if (domain.isFixed(i)) {
+      numVarsFixed++;
+      postsolve_stack.removedFixedCol(i, model->col_lower_[i], 0.0,
+                                      HighsEmptySlice());
+      removeFixedCol(i);
+    } else {
+      if (newLowerBnd) numBndsTightened++;
+      if (newUpperBnd) numBndsTightened++;
+    }
+    HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
+  }
+
+  // finally apply substitutions
+  HPRESOLVE_CHECKED_CALL(
+      applyConflictGraphSubstitutions(postsolve_stack, numVarsSubstituted));
+
+  return Result::kOk;
+}
+
+HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
+  mipsolver->analysis_.mipTimerStart(kMipClockProbingPresolve);
+  probingEarlyAbort = false;
+
+  HighsInt oldNumProbed = numProbed;
+
+  // prepare probing
+  bool firstCall = false;
+  Result prepareResult = prepareProbing(postsolve_stack, firstCall);
+  if (prepareResult != Result::kOk)
+    mipsolver->analysis_.mipTimerStop(kMipClockProbingPresolve);
+  HPRESOLVE_CHECKED_CALL(prepareResult);
+
+  mipsolver->mipdata_->setupDomainPropagation();
+  HighsDomain& domain = mipsolver->mipdata_->domain;
+  HighsCliqueTable& cliquetable = mipsolver->mipdata_->cliquetable;
+  HighsImplications& implications = mipsolver->mipdata_->implications;
 
   // store binary variables in vector with their number of implications on
   // other binaries
   std::vector<std::tuple<int64_t, HighsInt, HighsInt, HighsInt>> binaries;
 
-  if (!mipsolver->mipdata_->cliquetable.isFull()) {
+  if (!cliquetable.isFull()) {
     binaries.reserve(model->num_col_);
     HighsRandom random(options->random_seed);
     for (HighsInt i = 0; i != model->num_col_; ++i) {
@@ -1679,59 +1754,21 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
       // printf("nprobed: %" HIGHSINT_FORMAT ", numCliques: %" HIGHSINT_FORMAT
       // "\n", nprobed,
       //       cliquetable.numCliques());
-      HPRESOLVE_CHECKED_CALL(checkInfeasible(domain));
-    }
-
-    cliquetable.cleanupFixed(domain);
-
-    if (!firstCall) cliquetable.extractCliques(*mipsolver, false);
-    cliquetable.runCliqueMerging(domain);
-
-    // apply changes from probing
-
-    // first delete redundant clique inequalities
-    for (HighsInt delrow : cliquetable.getDeletedRows())
-      if (!rowDeleted[delrow]) removeRow(delrow);
-    cliquetable.getDeletedRows().clear();
-
-    // add nonzeros from clique lifting before removing fixed variables, since
-    // this might lead to stronger constraint sides
-    auto& extensionvars = cliquetable.getCliqueExtensions();
-    HighsInt addednnz = static_cast<HighsInt>(extensionvars.size());
-    for (const auto& cliqueextension : extensionvars) {
-      if (rowDeleted[cliqueextension.first]) {
-        --addednnz;
-        continue;
+      if (domain.infeasible()) {
+        mipsolver->analysis_.mipTimerStop(kMipClockProbingPresolve);
+        return Result::kPrimalInfeasible;
       }
-      double val;
-      if (cliqueextension.second.val == 0) {
-        model->row_lower_[cliqueextension.first] -= 1;
-        model->row_upper_[cliqueextension.first] -= 1;
-        val = -1.0;
-      } else
-        val = 1.0;
-      addToMatrix(cliqueextension.first, cliqueextension.second.col, val);
-    }
-    extensionvars.clear();
-
-    // now remove fixed columns and tighten domains
-    for (HighsInt i = 0; i != model->num_col_; ++i) {
-      if (colDeleted[i]) continue;
-      if (model->col_lower_[i] < domain.col_lower_[i])
-        changeColLower(i, domain.col_lower_[i]);
-      if (model->col_upper_[i] > domain.col_upper_[i])
-        changeColUpper(i, domain.col_upper_[i]);
-      if (domain.isFixed(i)) {
-        postsolve_stack.removedFixedCol(i, model->col_lower_[i], 0.0,
-                                        HighsEmptySlice());
-        removeFixedCol(i);
-      }
-      HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
     }
 
-    // finally apply substitutions
-    HPRESOLVE_CHECKED_CALL(
-        applyConflictGraphSubstitutions(postsolve_stack, probingNumDelCol));
+    // finalise probing
+    HighsInt numVarsFixed = 0;
+    HighsInt numBndsTightened = 0;
+    HighsInt numVarsSubstituted = 0;
+    HighsInt liftedNonzeros = 0;
+    HPRESOLVE_CHECKED_CALL(finaliseProbing(postsolve_stack, firstCall,
+                                           numVarsFixed, numBndsTightened,
+                                           numVarsSubstituted, liftedNonzeros));
+    probingNumDelCol += (numVarsFixed + numVarsSubstituted);
 
     highsLogDev(options->log_options, HighsLogType::kInfo,
                 "%" HIGHSINT_FORMAT " probing evaluations: %" HIGHSINT_FORMAT
@@ -1739,12 +1776,12 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
                 " deleted "
                 "columns, %" HIGHSINT_FORMAT " lifted nonzeros\n",
                 numProbed - oldNumProbed, numDeletedRows, numDeletedCols,
-                addednnz);
+                liftedNonzeros);
 
     // lifting for probing
     if (mipsolver->options_mip_->mip_lifting_for_probing != -1) {
       // only perform lifting if probing did not modify the problem so far
-      if (numDeletedRows == 0 && numDeletedCols == 0 && addednnz == 0)
+      if (numDeletedRows == 0 && numDeletedCols == 0 && liftedNonzeros == 0)
         HPRESOLVE_CHECKED_CALL(liftingForProbing(postsolve_stack));
       // clear lifting opportunities
       liftingOpportunities.clear();
@@ -4826,23 +4863,16 @@ HPresolve::Result HPresolve::enumerateSolutions(
   // enumerate all solutions for pure binary constraints with a small number of
   // variables
 
-  // shrink problem (remove deleted rows and columns)
-  if (numDeletedCols + numDeletedRows != 0) shrinkProblem(postsolve_stack);
+  // prepare probing
+  bool firstCall = false;
+  HPRESOLVE_CHECKED_CALL(prepareProbing(postsolve_stack, firstCall));
 
-  // set up matrix
-  toCSC(model->a_matrix_.value_, model->a_matrix_.index_,
-        model->a_matrix_.start_);
-  okFromCSC(model->a_matrix_.value_, model->a_matrix_.index_,
-            model->a_matrix_.start_);
-
-  // prepare for domain propagation
-  mipsolver->mipdata_->setupDomainPropagation();
   HighsDomain& domain = mipsolver->mipdata_->domain;
   HighsCliqueTable& cliquetable = mipsolver->mipdata_->cliquetable;
 
   // maximum size of a row and maximum number of rows that will be checked
   const size_t maxRowSize = 8;
-  const HighsInt maxNumRowsChecked = 500;
+  const HighsInt maxNumRowsChecked = 400;
 
   // check rows
   struct candidaterow {
@@ -5091,31 +5121,14 @@ HPresolve::Result HPresolve::enumerateSolutions(
     }
   }
 
-  // now remove fixed columns and tighten domains
+  // finalise probing
   HighsInt numVarsFixed = 0;
   HighsInt numBndsTightened = 0;
-  for (HighsInt i = 0; i != model->num_col_; ++i) {
-    if (colDeleted[i]) continue;
-    bool newLowerBnd = model->col_lower_[i] < domain.col_lower_[i];
-    bool newUpperBnd = model->col_upper_[i] > domain.col_upper_[i];
-    if (newLowerBnd) changeColLower(i, domain.col_lower_[i]);
-    if (newUpperBnd) changeColUpper(i, domain.col_upper_[i]);
-    if (domain.isFixed(i)) {
-      numVarsFixed++;
-      postsolve_stack.removedFixedCol(i, model->col_lower_[i], 0.0,
-                                      HighsEmptySlice());
-      removeFixedCol(i);
-    } else {
-      if (newLowerBnd) numBndsTightened++;
-      if (newUpperBnd) numBndsTightened++;
-    }
-    HPRESOLVE_CHECKED_CALL(checkLimits(postsolve_stack));
-  }
-
-  // finally apply substitutions
   HighsInt numVarsSubstituted = 0;
-  HPRESOLVE_CHECKED_CALL(
-      applyConflictGraphSubstitutions(postsolve_stack, numVarsSubstituted));
+  HighsInt liftedNonzeros = 0;
+  HPRESOLVE_CHECKED_CALL(finaliseProbing(postsolve_stack, firstCall,
+                                         numVarsFixed, numBndsTightened,
+                                         numVarsSubstituted, liftedNonzeros));
 
   if (numVarsFixed > 0 || numBndsTightened > 0 || numVarsSubstituted > 0)
     highsLogDev(options->log_options, HighsLogType::kInfo,
