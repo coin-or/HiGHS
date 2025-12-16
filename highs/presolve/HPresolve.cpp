@@ -4887,14 +4887,15 @@ HPresolve::Result HPresolve::enumerateSolutions(
     // check row
     bool skiprow = false;
     size_t numnzs = 0;
-    for (HighsInt i = mipsolver->mipdata_->ARstart_[row];
-         i < mipsolver->mipdata_->ARstart_[row + 1]; i++) {
+    for (HighsInt j = mipsolver->mipdata_->ARstart_[row];
+         j < mipsolver->mipdata_->ARstart_[row + 1]; j++) {
+      // get index
+      HighsInt col = mipsolver->mipdata_->ARindex_[j];
       // skip fixed variables
-      if (domain.isFixed(mipsolver->mipdata_->ARindex_[i])) continue;
+      if (domain.isFixed(col)) continue;
       // skip row if there are non-binary variables or maximum number of
       // elements is reached
-      skiprow = skiprow || !domain.isBinary(mipsolver->mipdata_->ARindex_[i]) ||
-                numnzs >= maxRowSize;
+      skiprow = skiprow || !domain.isBinary(col) || numnzs >= maxRowSize;
       if (skiprow) break;
       numnzs++;
     }
@@ -5010,12 +5011,14 @@ HPresolve::Result HPresolve::enumerateSolutions(
     // check row
     vars.clear();
     vars.reserve(rowsize[row]);
-    for (HighsInt i = mipsolver->mipdata_->ARstart_[row];
-         i < mipsolver->mipdata_->ARstart_[row + 1]; i++) {
+    for (HighsInt j = mipsolver->mipdata_->ARstart_[row];
+         j < mipsolver->mipdata_->ARstart_[row + 1]; j++) {
+      // get index
+      HighsInt col = mipsolver->mipdata_->ARindex_[j];
       // skip fixed variables
-      if (domain.isFixed(mipsolver->mipdata_->ARindex_[i])) continue;
+      if (domain.isFixed(col)) continue;
       // store index of binary variable
-      vars.push_back(mipsolver->mipdata_->ARindex_[i]);
+      vars.push_back(col);
     }
     if (vars.empty()) continue;
 
