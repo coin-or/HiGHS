@@ -1,9 +1,0 @@
-#define UNIT
-#define ASMNAME _ctrti2_LU
-#define ASMFNAME _ctrti2_LU_
-#define NAME ctrti2_LU_
-#define CNAME ctrti2_LU
-#define CHAR_NAME "ctrti2_LU_"
-#define CHAR_CNAME "ctrti2_LU"
-#define COMPLEX
-#include "C:/Users/galab/code/HiGHS/build-32/_deps/openblas-src/lapack/trti2/ztrti2_L.c"
