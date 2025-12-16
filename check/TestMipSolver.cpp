@@ -519,7 +519,7 @@ TEST_CASE("MIP-infeasible-start", "[highs_test_mip_solver]") {
 
   // Stefan's example
   std::string filename;
-  filename = std::string(HIGHS_DIR) + "/check/instances/infeasible.mps";
+  filename = std::string(HIGHS_DIR) + "/check/instances/infeasible-mip1.mps";
 
   highs.readModel(filename);
   sol.col_value = {75, 0, 275, 300, 300, 0, 0, 0, 50, 0, 0,
