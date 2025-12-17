@@ -1537,13 +1537,12 @@ HPresolve::Result HPresolve::finaliseProbing(
       --liftedNonZeros;
       continue;
     }
-    double val;
+    double val = 1.0;
     if (cliqueextension.second.val == 0) {
       model->row_lower_[cliqueextension.first] -= 1;
       model->row_upper_[cliqueextension.first] -= 1;
       val = -1.0;
-    } else
-      val = 1.0;
+    }
     addToMatrix(cliqueextension.first, cliqueextension.second.col, val);
   }
   extensionvars.clear();
