@@ -70,6 +70,12 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
       rowNorm[row] += val * val;
     }
   }
+  // Score will be used for deciding order in which rows get aggregated
+  std::vector<double> rowScore(lp.num_row_);
+  for (HighsInt i = 0; i != lp.num_row_; ++i) {
+    rowScore[i] =
+        rowNorm[i] <= mip.mipdata_->feastol ? 0 : fracActivity[i] / rowNorm[i];
+  }
 
   std::vector<HighsInt> numContinuous(lp.num_row_);
 
@@ -119,9 +125,7 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
     // larger
     if (colSubstitutions[col].first != -1) {
       HighsInt k = colSubstitutions[col].first;
-      if (fracActivity[k] / std::max(rowNorm[k], mip.mipdata_->feastol) <
-          fracActivity[i] / std::max(rowNorm[i], mip.mipdata_->feastol) -
-              mip.mipdata_->feastol) {
+      if (rowScore[k] < rowScore[i] - mip.mipdata_->feastol) {
         colSubstitutions[col].first = i;
         colSubstitutions[col].second = val;
         rowtype[k] = origrowtype[k];
@@ -135,14 +139,19 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
     rowtype[i] = RowType::kUnusuable;
   }
 
-  // Score will be used for deciding order in which rows get aggregated
-  std::vector<std::pair<HighsInt, double>> rowScore;
-  rowScore.reserve(lp.num_row_);
-  for (HighsInt row = 0; row != lp.num_row_; ++row) {
-    rowScore.emplace_back(numContinuous[row],
-                          rowNorm[row] <= mip.mipdata_->feastol
-                              ? 0
-                              : -fracActivity[row] / rowNorm[row]);
+  // Adjust the numContinuous to reflect columns that will always be replaced
+  for (HighsInt col : mip.mipdata_->continuous_cols) {
+    if (transLp.boundDistance(col) == 0.0 || colSubstitutions[col].first == -1)
+      continue;
+    for (HighsInt i = lp.a_matrix_.start_[col];
+         i != lp.a_matrix_.start_[col + 1]; ++i) {
+      --numContinuous[lp.a_matrix_.index_[i]];
+    }
+  }
+
+  // Adjust the score by some factor
+  for (HighsInt i = 0; i != lp.num_row_; ++i) {
+    rowScore[i] /= 1 + numContinuous[i];
   }
 
   // for each continuous variable with nonzero transformed solution value
