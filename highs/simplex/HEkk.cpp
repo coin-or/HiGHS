@@ -2291,6 +2291,11 @@ bool HEkk::lpFactorRowCompatible(const HighsInt expectedNumRow) const {
   return consistent_num_row;
 }
 
+void HEkk::zeroBasicDuals() {
+  for (HighsInt iRow = 0; iRow < lp_.num_row_; iRow++)
+    info_.workDual_[basis_.basicIndex_[iRow]] = 0;
+}
+
 void HEkk::setNonbasicMove() {
   const bool have_solution = false;
   // Don't have a simplex basis since nonbasicMove is not set up.
@@ -3585,6 +3590,7 @@ HighsStatus HEkk::returnFromSolve(const HighsStatus return_status) {
       break;
     }
   }
+  this->zeroBasicDuals();
   assert(info_.num_primal_infeasibilities >= 0);
   assert(info_.num_dual_infeasibilities >= 0);
   if (info_.num_primal_infeasibilities == 0) {
