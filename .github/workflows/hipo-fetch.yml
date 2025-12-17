@@ -114,7 +114,7 @@ jobs:
           ctest --parallel --timeout 300 --output-on-failure
 
   windows:
-    runs-on: windows-latest
+    runs-on: windows-latest, windows-latest-arm
     strategy:
       matrix:
         config: [Release]
