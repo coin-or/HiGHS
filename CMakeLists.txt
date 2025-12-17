@@ -150,6 +150,8 @@ option(HIPO "Build HIPO" OFF)
 message(STATUS "Build HIPO: ${HIPO}")
 option(BUILD_OPENBLAS "Build OpenBLAS" OFF)
 message(STATUS "Build OpenBLAS: ${BUILD_OPENBLAS}")
+option(OPENBLAS_WIN_32 "Build 32bit OpenBLAS on Windows" OFF)
+
 if (HIPO AND CSHARP)
   message(ERROR "HIPO is only available in C++. Not yet supported in C#.")
 endif()

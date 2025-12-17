@@ -31,6 +31,11 @@ IntegerModel getBlasIntegerModel() {
 
     const float X[3] = {1.0f, 2.0f, 3.0f};
 
+    // Check windows
+#ifndef OPENBLAS_WIN_32
+      blas_model = IntegerModel::lp32;
+#else
+
     const int64_t incx = 1;
     int64_t max_idx = cblas_isamax(n, X, incx);
 
@@ -49,6 +54,8 @@ IntegerModel getBlasIntegerModel() {
       // something went wrong
       blas_model = IntegerModel::unknown;
     }
+#endif
+
   }
 
   return blas_model;
@@ -61,6 +68,9 @@ std::string getIntegerModelString(IntegerModel i) {
 
     case IntegerModel::unknown:
       return "Unknown";
+
+    case IntegerModel::lp32:
+      return "LP32";
 
     case IntegerModel::lp64:
       return "LP64";
