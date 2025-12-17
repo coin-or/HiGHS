@@ -65,7 +65,7 @@ void HybridSolveHandler::forwardSolve(std::vector<double>& x) const {
       const Int* current_swaps = &swaps_[sn][nb * j];
       permuteWithSwaps(&x[x_start], current_swaps, jb);
 #if HIPO_TIMING_LEVEL >= 2
-      if (data_) data_->sumTime(kTimeSolveSolve_swap, clock.stop());
+      data_.sumTime(kTimeSolveSolve_swap, clock.stop());
 #endif
 #endif
 
@@ -85,7 +85,7 @@ void HybridSolveHandler::forwardSolve(std::vector<double>& x) const {
                           jb, &x[x_start], 1, 0.0, y.data(), 1, data_);
         SnCol_ind += jb * gemv_space;
 #if HIPO_TIMING_LEVEL >= 2
-        if (data_) data_->sumTime(kTimeSolveSolve_dense, clock.stop());
+        data_.sumTime(kTimeSolveSolve_dense, clock.stop());
 #endif
 
 #if HIPO_TIMING_LEVEL >= 2
@@ -97,7 +97,7 @@ void HybridSolveHandler::forwardSolve(std::vector<double>& x) const {
           x[row] -= y[i];
         }
 #if HIPO_TIMING_LEVEL >= 2
-        if (data_) data_->sumTime(kTimeSolveSolve_sparse, clock.stop());
+        data_.sumTime(kTimeSolveSolve_sparse, clock.stop());
 #endif
       }
 
@@ -108,7 +108,7 @@ void HybridSolveHandler::forwardSolve(std::vector<double>& x) const {
       // apply inverse swaps
       permuteWithSwaps(&x[x_start], current_swaps, jb, true);
 #if HIPO_TIMING_LEVEL >= 2
-      if (data_) data_->sumTime(kTimeSolveSolve_swap, clock.stop());
+      data_.sumTime(kTimeSolveSolve_swap, clock.stop());
 #endif
 #endif
     }
@@ -167,7 +167,7 @@ void HybridSolveHandler::backwardSolve(std::vector<double>& x) const {
       const Int* current_swaps = &swaps_[sn][nb * j];
       permuteWithSwaps(&x[x_start], current_swaps, jb);
 #if HIPO_TIMING_LEVEL >= 2
-      if (data_) data_->sumTime(kTimeSolveSolve_swap, clock.stop());
+      data_.sumTime(kTimeSolveSolve_swap, clock.stop());
 #endif
 #endif
 
@@ -184,7 +184,7 @@ void HybridSolveHandler::backwardSolve(std::vector<double>& x) const {
           y[i] = x[row];
         }
 #if HIPO_TIMING_LEVEL >= 2
-        if (data_) data_->sumTime(kTimeSolveSolve_sparse, clock.stop());
+        data_.sumTime(kTimeSolveSolve_sparse, clock.stop());
 #endif
 
 #if HIPO_TIMING_LEVEL >= 2
@@ -195,7 +195,7 @@ void HybridSolveHandler::backwardSolve(std::vector<double>& x) const {
                           &sn_columns_[sn][SnCol_ind], jb, y.data(), 1, 1.0,
                           &x[x_start], 1, data_);
 #if HIPO_TIMING_LEVEL >= 2
-        if (data_) data_->sumTime(kTimeSolveSolve_dense, clock.stop());
+        data_.sumTime(kTimeSolveSolve_dense, clock.stop());
 #endif
       }
 
@@ -206,7 +206,7 @@ void HybridSolveHandler::backwardSolve(std::vector<double>& x) const {
       callAndTime_dtrsv('U', 'N', 'U', jb, &sn_columns_[sn][SnCol_ind], jb,
                         &x[x_start], 1, data_);
 #if HIPO_TIMING_LEVEL >= 2
-      if (data_) data_->sumTime(kTimeSolveSolve_dense, clock.stop());
+      data_.sumTime(kTimeSolveSolve_dense, clock.stop());
 #endif
 
 #ifdef HIPO_PIVOTING
@@ -216,7 +216,7 @@ void HybridSolveHandler::backwardSolve(std::vector<double>& x) const {
       // apply inverse swaps
       permuteWithSwaps(&x[x_start], current_swaps, jb, true);
 #if HIPO_TIMING_LEVEL >= 2
-      if (data_) data_->sumTime(kTimeSolveSolve_swap, clock.stop());
+      data_.sumTime(kTimeSolveSolve_swap, clock.stop());
 #endif
 #endif
     }
@@ -263,7 +263,7 @@ void HybridSolveHandler::diagSolve(std::vector<double>& x) const {
       const Int* current_swaps = &swaps_[sn][nb * j];
       permuteWithSwaps(&x[sn_start + nb * j], current_swaps, jb);
 #if HIPO_TIMING_LEVEL >= 2
-      if (data_) data_->sumTime(kTimeSolveSolve_swap, clock.stop());
+      data_.sumTime(kTimeSolveSolve_swap, clock.stop());
 #endif
 #endif
 
@@ -300,7 +300,7 @@ void HybridSolveHandler::diagSolve(std::vector<double>& x) const {
       }
 
 #if HIPO_TIMING_LEVEL >= 2
-      if (data_) data_->sumTime(kTimeSolveSolve_dense, clock.stop());
+      data_.sumTime(kTimeSolveSolve_dense, clock.stop());
 #endif
 
 #ifdef HIPO_PIVOTING
@@ -310,7 +310,7 @@ void HybridSolveHandler::diagSolve(std::vector<double>& x) const {
       // apply inverse swaps
       permuteWithSwaps(&x[sn_start + nb * j], current_swaps, jb, true);
 #if HIPO_TIMING_LEVEL >= 2
-      if (data_) data_->sumTime(kTimeSolveSolve_swap, clock.stop());
+      data_.sumTime(kTimeSolveSolve_swap, clock.stop());
 #endif
 #endif
 

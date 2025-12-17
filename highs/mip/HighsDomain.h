@@ -439,8 +439,7 @@ class HighsDomain {
 
   void removeContinuousChangedCols() {
     for (HighsInt i : changedcols_)
-      changedcolsflags_[i] =
-          mipsolver->variableType(i) != HighsVarType::kContinuous;
+      changedcolsflags_[i] = mipsolver->isColIntegral(i);
 
     changedcols_.erase(
         std::remove_if(changedcols_.begin(), changedcols_.end(),
@@ -611,12 +610,12 @@ class HighsDomain {
   double getMinCutActivity(const HighsCutPool& cutpool, HighsInt cut) const;
 
   bool isBinary(HighsInt col) const {
-    return mipsolver->variableType(col) != HighsVarType::kContinuous &&
-           col_lower_[col] == 0.0 && col_upper_[col] == 1.0;
+    return mipsolver->isColIntegral(col) && col_lower_[col] == 0.0 &&
+           col_upper_[col] == 1.0;
   }
 
   bool isGlobalBinary(HighsInt col) const {
-    return mipsolver->variableType(col) != HighsVarType::kContinuous &&
+    return mipsolver->isColIntegral(col) &&
            mipsolver->model_->col_lower_[col] == 0.0 &&
            mipsolver->model_->col_upper_[col] == 1.0;
   }

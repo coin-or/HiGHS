@@ -2,11 +2,7 @@
 
 #include <stdint.h>
 
-// declare Metis with 32-bit integers for the test
-#define IDXTYPEWIDTH 32
-#include "metis.h"
-
-// Weird tricks to detect the integer type width used by BLAS and Metis.
+// Weird tricks to detect the integer type width used by BLAS.
 // These are technically undefined behaviour, because they rely on using a
 // function declaration that involves a certain integer type, while the actual
 // implementation may use a different one. Their behaviour may depend on the
@@ -72,38 +68,5 @@ std::string getIntegerModelString(IntegerModel i) {
     case IntegerModel::ilp64:
       return "ILP64";
   }
-}
-
-IntegerModel getMetisIntegerModel() {
-  static IntegerModel metis_model = IntegerModel::not_set;
-
-  if (metis_model == IntegerModel::not_set) {
-    idx_t options[METIS_NOPTIONS];
-    for (int i = 0; i < METIS_NOPTIONS; ++i) options[i] = -1;
-
-    // if 32 bits are used, this sets iptype to 2, otherwise it sets objtype to
-    // a wrong value
-    options[METIS_OPTION_IPTYPE] = 2;
-
-    idx_t n = 3;
-    idx_t ptr[4] = {0, 2, 4, 6};
-    idx_t rows[6] = {1, 2, 0, 2, 0, 1};
-    idx_t perm[3], iperm[3];
-
-    idx_t status = METIS_NodeND(&n, ptr, rows, NULL, options, perm, iperm);
-
-    if (status == METIS_OK) {
-      if (perm[0] != 0 || perm[1] != 1 || perm[2] != 2)
-        metis_model = IntegerModel::unknown;
-      else
-        metis_model = IntegerModel::lp64;
-    } else if (status == METIS_ERROR_INPUT) {
-      metis_model = IntegerModel::ilp64;
-    } else {
-      metis_model = IntegerModel::unknown;
-    }
-  }
-
-  return metis_model;
 }
 }  // namespace hipo

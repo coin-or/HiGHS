@@ -4853,8 +4853,8 @@ HPresolve::Result HPresolve::singletonColStuffing(
   HPRESOLVE_CHECKED_CALL(checkRow(row, model->row_lower_[row], HighsInt{-1}));
 
   if (numFixedCols > 0)
-    highsLogDev(options->log_options, HighsLogType::kInfo,
-                "Singleton column stuffing fixed %d columns",
+    highsLogDev(options->log_options, HighsLogType::kDetailed,
+                "Singleton column stuffing fixed %d columns\n",
                 static_cast<int>(numFixedCols));
 
   return Result::kOk;

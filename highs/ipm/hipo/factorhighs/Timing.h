@@ -5,7 +5,7 @@ namespace hipo {
 
 enum TimeItems {
   kTimeAnalyse,                           // TIMING_LEVEL 1
-  kTimeAnalyseMetis,                      // TIMING_LEVEL 2
+  kTimeAnalyseOrdering,                      // TIMING_LEVEL 2
   kTimeAnalyseTree,                       // TIMING_LEVEL 2
   kTimeAnalyseCount,                      // TIMING_LEVEL 2
   kTimeAnalysePattern,                    // TIMING_LEVEL 2

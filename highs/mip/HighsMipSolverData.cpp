@@ -101,8 +101,7 @@ bool HighsMipSolverData::checkSolution(
   for (HighsInt i = 0; i != mipsolver.numCol(); ++i) {
     if (solution[i] < mipsolver.model_->col_lower_[i] - feastol) return false;
     if (solution[i] > mipsolver.model_->col_upper_[i] + feastol) return false;
-    if (mipsolver.variableType(i) == HighsVarType::kInteger &&
-        fractionality(solution[i]) > feastol)
+    if (mipsolver.isColInteger(i) && fractionality(solution[i]) > feastol)
       return false;
   }
 
@@ -157,8 +156,7 @@ bool HighsMipSolverData::trySolution(const std::vector<double>& solution,
   for (HighsInt i = 0; i != mipsolver.numCol(); ++i) {
     if (solution[i] < mipsolver.model_->col_lower_[i] - feastol) return false;
     if (solution[i] > mipsolver.model_->col_upper_[i] + feastol) return false;
-    if (mipsolver.variableType(i) == HighsVarType::kInteger &&
-        fractionality(solution[i]) > feastol)
+    if (mipsolver.isColInteger(i) && fractionality(solution[i]) > feastol)
       return false;
 
     obj += mipsolver.colCost(i) * solution[i];
@@ -465,7 +463,7 @@ void HighsMipSolverData::finishAnalyticCenterComputation(
             HighsDomain::Reason::unspecified());
         if (mipsolver.mipdata_->domain.infeasible()) return;
         ++nfixed;
-        if (mipsolver.variableType(i) == HighsVarType::kInteger) ++nintfixed;
+        if (mipsolver.isColInteger(i)) ++nintfixed;
       } else if (analyticCenter[i] >=
                  mipsolver.model_->col_upper_[i] - tolerance) {
         mipsolver.mipdata_->domain.changeBound(
@@ -473,7 +471,7 @@ void HighsMipSolverData::finishAnalyticCenterComputation(
             HighsDomain::Reason::unspecified());
         if (mipsolver.mipdata_->domain.infeasible()) return;
         ++nfixed;
-        if (mipsolver.variableType(i) == HighsVarType::kInteger) ++nintfixed;
+        if (mipsolver.isColInteger(i)) ++nintfixed;
       }
     }
     if (nfixed > 0)
@@ -899,10 +897,8 @@ void HighsMipSolverData::runSetup() {
     HighsInt end = ARstart_[i + 1];
     bool integral = true;
     for (HighsInt j = start; j != end; ++j) {
-      integral =
-          integral &&
-          mipsolver.variableType(ARindex_[j]) != HighsVarType::kContinuous &&
-          fractionality(ARvalue_[j]) <= epsilon;
+      integral = integral && mipsolver.isColIntegral(ARindex_[j]) &&
+                 fractionality(ARvalue_[j]) <= epsilon;
 
       maxabsval = std::max(maxabsval, std::abs(ARvalue_[j]));
     }

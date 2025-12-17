@@ -140,6 +140,8 @@ class HEkk {
   bool lpFactorRowCompatible() const;
   bool lpFactorRowCompatible(const HighsInt expectedNumRow) const;
 
+  void zeroBasicDuals();
+
   // Interface methods
   void appendColsToVectors(const HighsInt num_new_col,
                            const vector<double>& colCost,

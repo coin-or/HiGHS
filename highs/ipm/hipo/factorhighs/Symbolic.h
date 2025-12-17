@@ -14,9 +14,6 @@ class Symbolic {
   bool parallel_tree_ = false;
   bool parallel_node_ = false;
 
-  // metis options
-  bool metis_no2hop_ = false;
-
   // Size of blocks for dense factorisation
   Int block_size_;
 
@@ -100,12 +97,13 @@ class Symbolic {
 
   Int64 max_stack_size_{};
 
+  std::string ordering;
+
   friend class Analyse;
 
  public:
   Symbolic();
   void setParallel(bool par_tree, bool par_node);
-  void setMetisNo2hop(bool metis_no2hop);
 
   // provide const access to symbolic factorisation
   Int64 nz() const;
@@ -128,7 +126,6 @@ class Symbolic {
   Int64 maxStackSize() const;
   bool parTree() const;
   bool parNode() const;
-  bool metisNo2hop() const;
   double storage() const;
   const std::vector<Int64>& ptr() const;
   const std::vector<Int>& iperm() const;
