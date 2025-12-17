@@ -183,7 +183,7 @@ jobs:
         shell: pwsh
         working-directory: ${{runner.workspace}}/build
         run: |
-          cmake --build . --parallel --config ${{ matrix.config }}
+          cmake --build . --parallel --config Release
 
       - name: Test executable
         shell: pwsh
