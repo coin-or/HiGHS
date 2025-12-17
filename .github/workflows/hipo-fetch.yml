@@ -51,6 +51,11 @@ jobs:
       - name: Create Build Environment
         run: cmake -E make_directory ${{runner.workspace}}/build
 
+      - name: Install 32-bit deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-multilib g++-multilib libc6-dev-i386
+
       - name: Configure CMake
         working-directory: ${{runner.workspace}}/build
         run: |
@@ -75,7 +80,7 @@ jobs:
           ctest --parallel --timeout 300 --output-on-failure ubuntu_32:
 
   ubuntu_32_arm:
-    runs-on: ubuntu-latest-arm
+    runs-on: ubuntu-24.04-arm
     strategy:
       matrix:
         # config: [Release, Debug]
@@ -114,7 +119,7 @@ jobs:
           ctest --parallel --timeout 300 --output-on-failure
 
   windows:
-    runs-on: windows-latest, windows-latest-arm
+    runs-on: [windows-latest, windows-11-arm]
     strategy:
       matrix:
         config: [Release]
