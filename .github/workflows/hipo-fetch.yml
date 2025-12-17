@@ -121,9 +121,9 @@ jobs:
 
   windows:
     runs-on: [windows-latest]
+    fail-fast: false
     strategy:
       matrix:
-        fail-fast: false
         config: [Release]
         all_tests: [ON]
         arch: ["x64", "Win32"]
