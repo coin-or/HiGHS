@@ -84,6 +84,7 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
     }
   }
 
+  std::vector<RowType> origrowtype = rowtype;
   std::vector<std::pair<HighsInt, double>> colSubstitutions(
       lp.num_col_, std::make_pair(-1, 0.0));
 
@@ -117,13 +118,14 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
     // Overwrite existing substitution if fractional activity of new row is
     // larger
     if (colSubstitutions[col].first != -1) {
-      if (fracActivity[colSubstitutions[col].first] /
-              std::max(rowNorm[colSubstitutions[col].first],
-                       mip.mipdata_->feastol) <
+      HighsInt k = colSubstitutions[col].first;
+      if (fracActivity[k] / std::max(rowNorm[k], mip.mipdata_->feastol) <
           fracActivity[i] / std::max(rowNorm[i], mip.mipdata_->feastol) -
               mip.mipdata_->feastol) {
         colSubstitutions[col].first = i;
         colSubstitutions[col].second = val;
+        rowtype[k] = origrowtype[k];
+        rowtype[i] = RowType::kUnusuable;
       }
       continue;
     }
