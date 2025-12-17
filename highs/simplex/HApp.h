@@ -43,16 +43,18 @@ inline HighsStatus returnFromSolveLpSimplex(HighsLpSolverObject& solver_object,
   // Identify which clock to stop. Can't inspect the basis, as there
   // will generally be one after simplex, so have to deduce whether
   // there was one before
-  const HighsInt sub_solver_ix =
-      solver_object.sub_solver_call_time_.run_time[kSubSolverSimplexBasis] < 0
-          ? kSubSolverSimplexBasis
-          : kSubSolverSimplexNoBasis;
-  const HighsInt sub_solver_not_ix = sub_solver_ix == kSubSolverSimplexBasis
-                                         ? kSubSolverSimplexNoBasis
-                                         : kSubSolverSimplexBasis;
-  assert(solver_object.sub_solver_call_time_.run_time[sub_solver_not_ix] >= 0);
-  (void)sub_solver_not_ix;
-  assert(solver_object.sub_solver_call_time_.run_time[sub_solver_ix] < 0);
+  HighsInt sub_solver_ix = -1;
+  if (solver_object.sub_solver_call_time_.run_time[kSubSolverSimplexBasis] < 0) sub_solver_ix = kSubSolverSimplexBasis;
+  if (solver_object.sub_solver_call_time_.run_time[kSubSolverSimplexNoBasis] < 0) sub_solver_ix = kSubSolverSimplexNoBasis;
+  if (solver_object.sub_solver_call_time_.run_time[kSubSolverPrimalSimplexBasis] < 0) sub_solver_ix = kSubSolverPrimalSimplexBasis;
+  if (solver_object.sub_solver_call_time_.run_time[kSubSolverPrimalSimplexNoBasis] < 0) sub_solver_ix = kSubSolverPrimalSimplexNoBasis;
+  // Ensure that one clock has been identified
+  assert(sub_solver_ix >= 0);
+  // Check that only one clock was started
+  if (sub_solver_ix != kSubSolverSimplexBasis) assert(solver_object.sub_solver_call_time_.run_time[kSubSolverSimplexBasis] >= 0);
+  if (sub_solver_ix != kSubSolverSimplexNoBasis) assert(solver_object.sub_solver_call_time_.run_time[kSubSolverSimplexNoBasis] >= 0);
+  if (sub_solver_ix != kSubSolverPrimalSimplexBasis) assert(solver_object.sub_solver_call_time_.run_time[kSubSolverPrimalSimplexBasis] >= 0);
+  if (sub_solver_ix != kSubSolverPrimalSimplexNoBasis) assert(solver_object.sub_solver_call_time_.run_time[kSubSolverPrimalSimplexNoBasis] >= 0);
   // Update the call count and run time
   solver_object.sub_solver_call_time_.num_call[sub_solver_ix]++;
   solver_object.sub_solver_call_time_.run_time[sub_solver_ix] +=
@@ -117,8 +119,21 @@ inline HighsStatus solveLpSimplex(HighsLpSolverObject& solver_object) {
     assert(retained_ekk_data_ok);
     return_status = HighsStatus::kError;
   }
-  const HighsInt sub_solver_ix =
-      basis.valid ? kSubSolverSimplexBasis : kSubSolverSimplexNoBasis;
+  HighsInt sub_solver_ix = -1;
+  if (options.simplex_strategy == kSimplexStrategyPrimal) {
+    if (basis.valid) {
+      sub_solver_ix = kSubSolverPrimalSimplexBasis;
+    } else {
+      sub_solver_ix = kSubSolverPrimalSimplexNoBasis;
+    }
+  } else {
+    if (basis.valid) {
+      sub_solver_ix = kSubSolverSimplexBasis;
+    } else {
+      sub_solver_ix = kSubSolverSimplexNoBasis;
+    }
+  }
+  assert(sub_solver_ix >= 0);
   assert(solver_object.sub_solver_call_time_.run_time.size() > 0);
   solver_object.sub_solver_call_time_.run_time[sub_solver_ix] =
       -solver_object.timer_.read();
