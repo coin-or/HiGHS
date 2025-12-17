@@ -444,17 +444,18 @@ class HighsDomain {
 
     changedcols_.erase(
         std::remove_if(changedcols_.begin(), changedcols_.end(),
-                       [&](HighsInt i) { return !changedcolsflags_[i]; }),
+                       [&](HighsInt i) { return !isChangedCol(i); }),
         changedcols_.end());
   }
 
-  void clearChangedCols(HighsInt start) {
-    HighsInt end = changedcols_.size();
-    for (HighsInt i = start; i != end; ++i)
+  void clearChangedCols(size_t start) {
+    for (size_t i = start; i != changedcols_.size(); ++i)
       changedcolsflags_[changedcols_[i]] = 0;
 
     changedcols_.resize(start);
   }
+
+  bool isChangedCol(HighsInt col) const { return changedcolsflags_[col] != 0; }
 
   void markPropagate(HighsInt row);
 

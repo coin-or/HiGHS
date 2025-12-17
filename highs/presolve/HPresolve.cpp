@@ -4924,10 +4924,9 @@ HPresolve::Result HPresolve::enumerateSolutions(
   std::vector<std::vector<HighsInt>> solutions;
   std::vector<HighsInt> vars;
   std::vector<branch> branches;
-  std::set<HighsInt> worstCaseBounds;
+  std::vector<HighsInt> worstCaseBounds(model->num_col_);
   std::vector<double> worstCaseLowerBound(model->num_col_, kHighsInf);
   std::vector<double> worstCaseUpperBound(model->num_col_, -kHighsInf);
-  std::vector<HighsInt> numWorstCaseBounds(model->num_col_);
 
   // lambda for branching (just performs initial lower branch)
   auto doBranch = [&](HighsDomain& domain, const std::vector<HighsInt>& vars,
@@ -5048,6 +5047,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
     // main loop
     HighsInt numBranches = -1;
+    size_t numWorstCaseBounds = 0;
     while (true) {
       bool backtrack = domain.infeasible();
       if (!backtrack) {
@@ -5056,14 +5056,37 @@ HPresolve::Result HPresolve::enumerateSolutions(
           // propagate
           domain.propagate();
           if (!domain.infeasible()) {
-            // update worst-case bounds
-            for (HighsInt col : domain.getChangedCols()) {
-              worstCaseBounds.emplace(col);
-              numWorstCaseBounds[col]++;
-              worstCaseLowerBound[col] =
-                  std::min(worstCaseLowerBound[col], domain.col_lower_[col]);
-              worstCaseUpperBound[col] =
-                  std::max(worstCaseUpperBound[col], domain.col_upper_[col]);
+            // handling of worst-case bounds
+            if (solutions[0].empty()) {
+              for (HighsInt col : domain.getChangedCols()) {
+                // initialize
+                worstCaseBounds[numWorstCaseBounds++] = col;
+                worstCaseLowerBound[col] =
+                    std::min(worstCaseLowerBound[col], domain.col_lower_[col]);
+                worstCaseUpperBound[col] =
+                    std::max(worstCaseUpperBound[col], domain.col_upper_[col]);
+              }
+            } else {
+              size_t i = 0;
+              while (i < numWorstCaseBounds) {
+                HighsInt col = worstCaseBounds[i];
+                if (!domain.isChangedCol(col)) {
+                  // no bound changes for this variable -> reset worst-case
+                  // bounds and remove variable
+                  worstCaseLowerBound[col] = kHighsInf;
+                  worstCaseUpperBound[col] = -kHighsInf;
+                  worstCaseBounds[i] = worstCaseBounds[numWorstCaseBounds - 1];
+                  worstCaseBounds[numWorstCaseBounds - 1] = 0;
+                  numWorstCaseBounds--;
+                } else {
+                  // update worst-case bounds
+                  worstCaseLowerBound[col] = std::min(worstCaseLowerBound[col],
+                                                      domain.col_lower_[col]);
+                  worstCaseUpperBound[col] = std::max(worstCaseUpperBound[col],
+                                                      domain.col_upper_[col]);
+                  i++;
+                }
+              }
             }
             // store solution
             for (size_t i = 0; i < vars.size(); i++)
@@ -5087,31 +5110,29 @@ HPresolve::Result HPresolve::enumerateSolutions(
     HPRESOLVE_CHECKED_CALL(handleInfeasibility(numSolutions == 0));
 
     // analyse worst-case bounds
-    for (HighsInt col : worstCaseBounds) {
-      if (numWorstCaseBounds[col] == numSolutions) {
-        assert(worstCaseLowerBound[col] >= domain.col_lower_[col]);
-        assert(worstCaseUpperBound[col] <= domain.col_upper_[col]);
-        if (worstCaseLowerBound[col] > domain.col_lower_[col]) {
-          // tighten lower bound
-          domain.changeBound(HighsBoundType::kLower, col,
-                             worstCaseLowerBound[col],
-                             HighsDomain::Reason::unspecified());
-          HPRESOLVE_CHECKED_CALL(handleInfeasibility(domain.infeasible()));
-        }
-        if (worstCaseUpperBound[col] < domain.col_upper_[col]) {
-          // tighten upper bound
-          domain.changeBound(HighsBoundType::kUpper, col,
-                             worstCaseUpperBound[col],
-                             HighsDomain::Reason::unspecified());
-          HPRESOLVE_CHECKED_CALL(handleInfeasibility(domain.infeasible()));
-        }
+    for (size_t i = 0; i < numWorstCaseBounds; i++) {
+      HighsInt col = worstCaseBounds[i];
+      assert(worstCaseLowerBound[col] >= domain.col_lower_[col]);
+      assert(worstCaseUpperBound[col] <= domain.col_upper_[col]);
+      if (worstCaseLowerBound[col] > domain.col_lower_[col]) {
+        // tighten lower bound
+        domain.changeBound(HighsBoundType::kLower, col,
+                           worstCaseLowerBound[col],
+                           HighsDomain::Reason::unspecified());
+        HPRESOLVE_CHECKED_CALL(handleInfeasibility(domain.infeasible()));
+      }
+      if (worstCaseUpperBound[col] < domain.col_upper_[col]) {
+        // tighten upper bound
+        domain.changeBound(HighsBoundType::kUpper, col,
+                           worstCaseUpperBound[col],
+                           HighsDomain::Reason::unspecified());
+        HPRESOLVE_CHECKED_CALL(handleInfeasibility(domain.infeasible()));
       }
       // clean up
       worstCaseLowerBound[col] = kHighsInf;
       worstCaseUpperBound[col] = -kHighsInf;
-      numWorstCaseBounds[col] = 0;
+      worstCaseBounds[i] = 0;
     }
-    worstCaseBounds.clear();
 
     for (size_t i = 0; i < vars.size(); i++) {
       // get column index

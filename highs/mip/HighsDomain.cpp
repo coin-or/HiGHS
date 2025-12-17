@@ -1948,7 +1948,7 @@ double HighsDomain::doChangeBound(const HighsDomainChange& boundchg) {
       if (!infeasible_)
         updateActivityLbChange(boundchg.column, oldbound, boundchg.boundval);
 
-      if (!changedcolsflags_[boundchg.column]) {
+      if (!isChangedCol(boundchg.column)) {
         changedcolsflags_[boundchg.column] = 1;
         changedcols_.push_back(boundchg.column);
       }
@@ -1960,7 +1960,7 @@ double HighsDomain::doChangeBound(const HighsDomainChange& boundchg) {
       if (!infeasible_)
         updateActivityUbChange(boundchg.column, oldbound, boundchg.boundval);
 
-      if (!changedcolsflags_[boundchg.column]) {
+      if (!isChangedCol(boundchg.column)) {
         changedcolsflags_[boundchg.column] = 1;
         changedcols_.push_back(boundchg.column);
       }
