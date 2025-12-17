@@ -5058,8 +5058,8 @@ HPresolve::Result HPresolve::enumerateSolutions(
           if (!domain.infeasible()) {
             // handling of worst-case bounds
             if (solutions[0].empty()) {
+              // initialize
               for (HighsInt col : domain.getChangedCols()) {
-                // initialize
                 worstCaseBounds[numWorstCaseBounds++] = col;
                 worstCaseLowerBound[col] =
                     std::min(worstCaseLowerBound[col], domain.col_lower_[col]);
