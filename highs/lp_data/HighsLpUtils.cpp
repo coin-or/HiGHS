@@ -3660,38 +3660,38 @@ void getSubVectorsTranspose(const HighsIndexCollection& index_collection,
 
 std::string highsVarTypeToString(const HighsVarType type) {
   switch (type) {
-  case HighsVarType::kContinuous: {
-    return "continuous";
-    break;
+    case HighsVarType::kContinuous: {
+      return "continuous";
+      break;
+    }
+    case HighsVarType::kInteger: {
+      return "integer";
+      break;
+    }
+    case HighsVarType::kSemiContinuous: {
+      return "semi continuous";
+      break;
+    }
+    case HighsVarType::kSemiInteger: {
+      return "semi integer";
+      break;
+    }
+    case HighsVarType::kImplicitInteger: {
+      return "implicit integer";
+      break;
+    }
+    default:
+      return "unknown";
   }
-  case HighsVarType::kInteger: {
-    return "integer";
-    break;
-  }
-  case HighsVarType::kSemiContinuous: {
-    return "semi continuous";
-    break;
-  }
-  case HighsVarType::kSemiInteger: {
-    return "semi integer";
-    break;
-  }
-  case HighsVarType::kImplicitInteger: {
-    return "implicit integer";
-    break;
-  }
-  default: 
-    return "unknown";
-  }  
 }
 
 std::string highsVarTypeToString(const HighsInt type) {
   if (type < HighsInt(HighsVarType::kContinuous) ||
-      type > HighsInt(HighsVarType::kImplicitInteger)) return "Unknown";
+      type > HighsInt(HighsVarType::kImplicitInteger))
+    return "Unknown";
   HighsVarType type_ = HighsVarType(uint8_t(type));
-  return highsVarTypeToString(type_);  
+  return highsVarTypeToString(type_);
 }
-
 
 void initialiseUserScaleData(const HighsOptions& options,
                              HighsUserScaleData& user_scale_data) {

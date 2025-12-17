@@ -464,16 +464,17 @@ HighsStatus Highs::passModel(
     for (HighsInt iCol = 0; iCol < num_col; iCol++) {
       HighsInt integrality_status = integrality[iCol];
       const bool legal_integrality_status =
-	integrality_status == HighsInt(HighsVarType::kContinuous) ||
-	integrality_status == HighsInt(HighsVarType::kInteger) ||
-	integrality_status == HighsInt(HighsVarType::kSemiContinuous) ||
-	integrality_status == HighsInt(HighsVarType::kSemiInteger) ;
+          integrality_status == HighsInt(HighsVarType::kContinuous) ||
+          integrality_status == HighsInt(HighsVarType::kInteger) ||
+          integrality_status == HighsInt(HighsVarType::kSemiContinuous) ||
+          integrality_status == HighsInt(HighsVarType::kSemiInteger) ||
+          integrality_status == HighsInt(HighsVarType::kImplicitInteger);
       if (!legal_integrality_status) {
-        highsLogUser(
-            options_.log_options, HighsLogType::kError,
-            "Model has illegal integer value of %d (type %s) for integrality[%d]\n",
-            int(integrality_status), highsIntVarTypeToString(integrality_status).c_str(),
-	    iCol);
+        highsLogUser(options_.log_options, HighsLogType::kError,
+                     "Model has illegal integer value of %d (type %s) for "
+                     "integrality[%d]\n",
+                     int(integrality_status),
+                     highsVarTypeToString(integrality_status).c_str(), iCol);
         return HighsStatus::kError;
       }
       lp.integrality_[iCol] = (HighsVarType)integrality_status;
