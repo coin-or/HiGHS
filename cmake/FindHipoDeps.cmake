@@ -19,8 +19,13 @@ if (BUILD_OPENBLAS)
     )
 
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|armv8|arm")
-        message(STATUS "ARM architecture detected. Applying -DTARGET=ARMV8.")
-        list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=ARMV8)
+        if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+            message(STATUS "ARM architecture detected. Applying -DTARGET=ARMV7.")
+            list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=ARMV7)
+        else()
+            message(STATUS "ARM architecture detected. Applying -DTARGET=ARMV8.")
+            list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=ARMV8)
+        endif()
     endif()
 
     # CMAKE_SIZEOF_VOID_P is 4 for 32-bit builds, 8 for 64-bit builds.
@@ -35,7 +40,6 @@ if (BUILD_OPENBLAS)
         if (NOT BUILD_SHARED_LIBS)
             set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
         endif()
-
 
         # list(APPEND OPENBLAS_MINIMAL_FLAGS -DUSE_THREAD=OFF)
         list(APPEND OPENBLAS_MINIMAL_FLAGS -DINTERFACE64=0)
