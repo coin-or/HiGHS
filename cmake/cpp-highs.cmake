@@ -50,9 +50,9 @@ install(FILES ${PROJECT_BINARY_DIR}/highs_export.h
 
 string (TOLOWER ${PROJECT_NAME} lower)
 
-install(RUNTIME_DEPENDENCY_SET highs_runtime_deps
-    DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
+# install(RUNTIME_DEPENDENCY_SET highs_runtime_deps
+#     DESTINATION ${CMAKE_INSTALL_BINDIR}
+# )
 
 install(TARGETS highs
     EXPORT ${lower}-targets
@@ -60,7 +60,7 @@ install(TARGETS highs
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    RUNTIME_DEPENDENCY_SET highs_runtime_deps
+    # RUNTIME_DEPENDENCY_SET highs_runtime_deps
     COMPONENT libs)
 
 if (NOT HIGHS_COVERAGE)
