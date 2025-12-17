@@ -33,18 +33,12 @@ if (BUILD_OPENBLAS)
 
         # Crucial for static linking: Force OpenBLAS to use the static runtime
         if (NOT BUILD_SHARED_LIBS)
-            list(APPEND OPENBLAS_MINIMAL_FLAGS -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded)
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
         endif()
 
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
-        list(APPEND OPENBLAS_MINIMAL_FLAGS -DUSE_THREAD=OFF)
+        # list(APPEND OPENBLAS_MINIMAL_FLAGS -DUSE_THREAD=OFF)
         list(APPEND OPENBLAS_MINIMAL_FLAGS -DINTERFACE64=0)
-
-
-        # Note: If OpenBLAS has an internal logic flag to force 32-bit, you would add it here.
-        # Example (hypothetical):
-        # list(APPEND OPENBLAS_MINIMAL_FLAGS -DOPENBLAS_32BIT=ON)
 
         # If the MSVC runtime library issue persists, you can try this flag as well,
         # though CMAKE_GENERATOR_PLATFORM should usually be sufficient.
