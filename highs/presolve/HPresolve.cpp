@@ -1447,6 +1447,9 @@ HPresolve::Result HPresolve::dominatedColumns(
 
 HPresolve::Result HPresolve::prepareProbing(
     HighsPostsolveStack& postsolve_stack, bool& firstCall) {
+  HighsDomain& domain = mipsolver->mipdata_->domain;
+  HighsCliqueTable& cliquetable = mipsolver->mipdata_->cliquetable;
+
   shrinkProblem(postsolve_stack);
 
   toCSC(model->a_matrix_.value_, model->a_matrix_.index_,
@@ -1454,7 +1457,7 @@ HPresolve::Result HPresolve::prepareProbing(
   okFromCSC(model->a_matrix_.value_, model->a_matrix_.index_,
             model->a_matrix_.start_);
 
-  mipsolver->mipdata_->cliquetable.setMaxEntries(numNonzeros());
+  cliquetable.setMaxEntries(numNonzeros());
 
   // first tighten all bounds if they have an implied bound that is tighter
   // than their column bound before probing this is not done for continuous
@@ -1470,10 +1473,10 @@ HPresolve::Result HPresolve::prepareProbing(
       changeColUpper(i, implColUpper[i]);
   }
 
+  // prepare for domain propagation
   mipsolver->mipdata_->setupDomainPropagation();
-  HighsDomain& domain = mipsolver->mipdata_->domain;
-  HighsCliqueTable& cliquetable = mipsolver->mipdata_->cliquetable;
 
+  // first call?
   firstCall = !mipsolver->mipdata_->cliquesExtracted;
 
   domain.propagate();
@@ -1483,10 +1486,10 @@ HPresolve::Result HPresolve::prepareProbing(
   // after the first call we only add cliques that directly correspond to set
   // packing constraints so that the clique merging step can extend/delete them
   if (firstCall) {
+    mipsolver->mipdata_->cliquesExtracted = true;
+
     cliquetable.extractCliques(*mipsolver);
     if (domain.infeasible()) return Result::kPrimalInfeasible;
-
-    mipsolver->mipdata_->cliquesExtracted = true;
 
     // during presolve we keep the objective upper bound without the current
     // offset so we need to update it
