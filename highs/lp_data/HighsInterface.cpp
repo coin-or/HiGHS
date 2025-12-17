@@ -4329,6 +4329,8 @@ void HighsSubSolverCallTime::initialise() {
   this->name.assign(kSubSolverCount, "");
   this->name[kSubSolverSimplexBasis] = "Simplex (basis)";
   this->name[kSubSolverSimplexNoBasis] = "Simplex (no basis)";
+  this->name[kSubSolverPrimalSimplexBasis] = "Primal simplex (basis)";
+  this->name[kSubSolverPrimalSimplexNoBasis] = "Primal simplex (no basis)";
   this->name[kSubSolverHipo] = "HiPO";
   this->name[kSubSolverIpx] = "IPX";
   this->name[kSubSolverHipoAc] = "HiPO (AC)";

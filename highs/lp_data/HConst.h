@@ -305,6 +305,8 @@ enum SubSolverIndex : int {
   kSubSolverMip = 0,
   kSubSolverSimplexBasis,
   kSubSolverSimplexNoBasis,
+  kSubSolverPrimalSimplexBasis,
+  kSubSolverPrimalSimplexNoBasis,
   kSubSolverHipo,
   kSubSolverIpx,
   kSubSolverHipoAc,

@@ -102,6 +102,10 @@ void HighsMipAnalysis::mipTimerAdd(const HighsInt mip_clock,
                                    // , const HighsInt thread_id
 ) const {
   if (!analyse_mip_time) return;
+  if (num_call == 0) {
+    assert(time == 0);
+    return;
+  }
   HighsInt highs_timer_clock = mip_clocks.clock_[mip_clock];
   mip_clocks.timer_pointer_->add(highs_timer_clock, num_call, time);
 }
