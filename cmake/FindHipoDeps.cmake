@@ -16,13 +16,34 @@ if (BUILD_OPENBLAS)
         -DNO_COMPLEX=ON
         -DNO_SINGLE=ON
         -DONLY_BLAS=ON
-
-        # Crucial for size on ARM: Target the specific architecture
-        -DTARGET=ARMV8
-
-        # may be needed for 32 bit
-        # -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
     )
+
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|armv8|arm")
+        message(STATUS "ARM architecture detected. Applying -DTARGET=ARMV8.")
+        list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=ARMV8)
+    endif()
+
+    # CMAKE_SIZEOF_VOID_P is 4 for 32-bit builds, 8 for 64-bit builds.
+    if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+        message(STATUS "32-bit target detected. Applying 32-bit configuration flags for OpenBLAS.")
+
+        set(OPENBLAS_WIN_32 ON)
+
+        list(APPEND OPENBLAS_MINIMAL_FLAGS -DCMAKE_GENERATOR_PLATFORM=Win32)
+
+        # Crucial for static linking: Force OpenBLAS to use the static runtime
+        if (NOT BUILD_SHARED_LIBS)
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+        endif()
+
+
+        # list(APPEND OPENBLAS_MINIMAL_FLAGS -DUSE_THREAD=OFF)
+        list(APPEND OPENBLAS_MINIMAL_FLAGS -DINTERFACE64=0)
+
+        # If the MSVC runtime library issue persists, you can try this flag as well,
+        # though CMAKE_GENERATOR_PLATFORM should usually be sufficient.
+        # list(APPEND OPENBLAS_MINIMAL_FLAGS -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL)
+    endif()
 
     message(CHECK_START "Fetching OpenBLAS")
     list(APPEND CMAKE_MESSAGE_INDENT "  ")

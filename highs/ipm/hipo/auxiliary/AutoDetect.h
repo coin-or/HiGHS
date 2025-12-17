@@ -5,7 +5,7 @@
 
 namespace hipo {
 // Detect BLAS integer model
-enum class IntegerModel { not_set, unknown, lp64, ilp64 };
+enum class IntegerModel { not_set, unknown, lp32, lp64, ilp64 };
 IntegerModel getBlasIntegerModel();
 
 std::string getIntegerModelString(IntegerModel i);
