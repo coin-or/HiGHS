@@ -294,7 +294,6 @@ jobs:
     strategy:
       matrix:
         config: [Release]
-            config: [Release, Debug]
 
     steps:
       - uses: actions/checkout@v4
