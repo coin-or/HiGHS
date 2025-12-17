@@ -196,7 +196,8 @@ jobs:
           cmake --build . --parallel
 
       - name: Test executable
-        run: ./bin/highs --solver=hipo $GITHUB_WORKSPACE/check/instances/afiro.mps
+        working-directory: ${{runner.workspace}}/build
+        run: ../bin/highs --solver=hipo $GITHUB_WORKSPACE/check/instances/afiro.mps
 
       - name: Ctest
         working-directory: ${{runner.workspace}}/build
