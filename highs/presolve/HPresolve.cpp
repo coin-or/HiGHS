@@ -5046,7 +5046,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
                                                                : HighsInt{1});
   };
 
-  // loop over candiate rows
+  // loop over candidate rows
   HighsInt numRowsChecked = 0;
   for (const auto& r : rows) {
     // get row index
