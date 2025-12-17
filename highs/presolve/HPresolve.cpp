@@ -1571,7 +1571,7 @@ HPresolve::Result HPresolve::finaliseProbing(
   HPRESOLVE_CHECKED_CALL(
       applyConflictGraphSubstitutions(postsolve_stack, numVarsSubstituted));
 
-  return Result::kOk;
+  return checkLimits(postsolve_stack);
 }
 
 HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
