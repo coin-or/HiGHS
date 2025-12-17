@@ -158,3 +158,34 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         run: |
           ctest --parallel --timeout 300 --output-on-failure -C ${{ matrix.config }}
+
+  # linux shared is default, static build tested in the release artifacts
+  # windows static is default so test shared
+  windows_shared:
+    runs-on: [windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          cmake `
+          -S "$env:GITHUB_WORKSPACE" `
+          -B "${{ runner.workspace }}/build" `
+          -DHIPO=ON `
+          -DBUILD_OPENBLAS=ON `
+          -DBUILD_SHARED_LIBS=ON
+
+      - name: Build
+        shell: pwsh
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          cmake --build . --parallel --config ${{ matrix.config }}
+
+      - name: Test executable
+        shell: pwsh
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          & ".\${{ matrix.config }}\bin\highs.exe" --solver=hipo `
+          "$env:GITHUB_WORKSPACE/check/instances/afiro.mps"
