@@ -102,6 +102,8 @@ enum iClockMip {
   kMipClockIpxSolveAnalyticCentreLp,
   kMipClockHipoSolveLp,
   kMipClockIpxSolveLp,
+  kMipClockPrimalSimplexBasisSolveLp,
+  kMipClockPrimalSimplexNoBasisSolveLp,
 
   // Sub-MIP solves
   kMipClockSubMipSolve,
@@ -149,6 +151,10 @@ class MipTimer {
     assert(clock[kMipClockIpxSolveAnalyticCentreLp] == 10);
     clock[kMipClockHipoSolveLp] = timer_pointer->clock_def("Solve LP: HiPO");
     clock[kMipClockIpxSolveLp] = timer_pointer->clock_def("Solve LP: IPX");
+    clock[kMipClockPrimalSimplexBasisSolveLp] =
+        timer_pointer->clock_def("Solve LP - primal simplex basis");
+    clock[kMipClockPrimalSimplexNoBasisSolveLp] =
+        timer_pointer->clock_def("Solve LP - primal simplex no basis");
 
     // Level 1 - Should correspond to kMipClockTotal
     clock[kMipClockInit] = timer_pointer->clock_def("Initialise");
@@ -368,6 +374,8 @@ class MipTimer {
     const std::vector<HighsInt> mip_clock_list{
         kMipClockSimplexBasisSolveLp,
         kMipClockSimplexNoBasisSolveLp,
+        kMipClockPrimalSimplexBasisSolveLp,
+        kMipClockPrimalSimplexNoBasisSolveLp,
         kMipClockHipoSolveAnalyticCentreLp,
         kMipClockIpxSolveAnalyticCentreLp,
         kMipClockHipoSolveLp,

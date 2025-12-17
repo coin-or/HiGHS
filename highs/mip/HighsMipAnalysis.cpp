@@ -124,36 +124,30 @@ void HighsMipAnalysis::mipTimerUpdate(
     // If IPM has not been run first, then check that simplex call
     // counts are consistent with valid_basis and presolve
     if (valid_basis) {
-      mipTimerAdd(kMipClockSimplexBasisSolveLp,
-                  sub_solver_call_time.num_call[kSubSolverSimplexBasis],
-                  sub_solver_call_time.run_time[kSubSolverSimplexBasis]);
       assert(sub_solver_call_time.num_call[kSubSolverSimplexNoBasis] == 0);
-    } else if (presolve) {
-      mipTimerAdd(kMipClockSimplexBasisSolveLp,
-                  sub_solver_call_time.num_call[kSubSolverSimplexBasis],
-                  sub_solver_call_time.run_time[kSubSolverSimplexBasis]);
-      mipTimerAdd(kMipClockSimplexNoBasisSolveLp,
-                  sub_solver_call_time.num_call[kSubSolverSimplexNoBasis],
-                  sub_solver_call_time.run_time[kSubSolverSimplexNoBasis]);
-    } else {
-      mipTimerAdd(kMipClockSimplexNoBasisSolveLp,
-                  sub_solver_call_time.num_call[kSubSolverSimplexNoBasis],
-                  sub_solver_call_time.run_time[kSubSolverSimplexNoBasis]);
+    } else if (!presolve) {
       assert(sub_solver_call_time.num_call[kSubSolverSimplexBasis] == 0);
     }
   } else {
     // IPM has been run first, then at least one of the simplex call
     // counts should be zero
-    assert(sub_solver_call_time.num_call[kSubSolverSimplexBasis] *
-               sub_solver_call_time.num_call[kSubSolverSimplexNoBasis] ==
-           0);
-    mipTimerAdd(kMipClockSimplexBasisSolveLp,
-                sub_solver_call_time.num_call[kSubSolverSimplexBasis],
-                sub_solver_call_time.run_time[kSubSolverSimplexBasis]);
-    mipTimerAdd(kMipClockSimplexNoBasisSolveLp,
-                sub_solver_call_time.num_call[kSubSolverSimplexNoBasis],
-                sub_solver_call_time.run_time[kSubSolverSimplexNoBasis]);
+    assert(sub_solver_call_time.num_call[kSubSolverSimplexBasis] == 0 ||
+	   sub_solver_call_time.num_call[kSubSolverSimplexNoBasis] == 0);
   }
+
+  mipTimerAdd(kMipClockSimplexBasisSolveLp,
+	      sub_solver_call_time.num_call[kSubSolverSimplexBasis],
+	      sub_solver_call_time.run_time[kSubSolverSimplexBasis]);
+  mipTimerAdd(kMipClockSimplexNoBasisSolveLp,
+	      sub_solver_call_time.num_call[kSubSolverSimplexNoBasis],
+	      sub_solver_call_time.run_time[kSubSolverSimplexNoBasis]);
+  mipTimerAdd(kMipClockPrimalSimplexBasisSolveLp,
+	      sub_solver_call_time.num_call[kSubSolverPrimalSimplexBasis],
+	      sub_solver_call_time.run_time[kSubSolverPrimalSimplexBasis]);
+  mipTimerAdd(kMipClockPrimalSimplexNoBasisSolveLp,
+	      sub_solver_call_time.num_call[kSubSolverPrimalSimplexNoBasis],
+	      sub_solver_call_time.run_time[kSubSolverPrimalSimplexNoBasis]);
+
   if (sub_solver_call_time.num_call[kSubSolverHipo]) {
     const HighsInt mip_clock = analytic_centre
                                    ? kMipClockHipoSolveAnalyticCentreLp
