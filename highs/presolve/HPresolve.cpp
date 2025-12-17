@@ -4929,8 +4929,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
   std::vector<double> worstCaseUpperBound(model->num_col_, -kHighsInf);
 
   // lambda for branching (just performs initial lower branch)
-  auto doBranch = [&](HighsDomain& domain, const std::vector<HighsInt>& vars,
-                      std::vector<branch>& branches, HighsInt& numBranches) {
+  auto doBranch = [&](HighsInt& numBranches) {
     // find variable for branching
     HighsInt branchvar = -1;
     for (HighsInt j : vars) {
@@ -4948,8 +4947,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
   };
 
   // lambda for backtracking
-  auto doBacktrack = [&](HighsDomain& domain, std::vector<branch>& branches,
-                         HighsInt& numBranches) {
+  auto doBacktrack = [&](HighsInt& numBranches) {
     while (numBranches >= 0) {
       // get column index
       const auto& domchg =
@@ -4974,8 +4972,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
   };
 
   // lambda for checking if a solution was found
-  auto solutionFound = [&](const HighsDomain& domain,
-                           std::vector<HighsInt>& vars) {
+  auto solutionFound = [&]() {
     for (HighsInt j : vars)
       if (!domain.isFixed(j)) return false;
     return true;
@@ -4983,8 +4980,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
   // lambda for checking whether the values of two binary variables are
   // identical in all feasible solutions
-  auto identicalVars = [&](const std::vector<std::vector<HighsInt>>& solutions,
-                           size_t index1, size_t index2) {
+  auto identicalVars = [&](size_t index1, size_t index2) {
     for (size_t sol = 0; sol < solutions[index1].size(); sol++) {
       if (solutions[index1][sol] != solutions[index2][sol]) return false;
     }
@@ -4993,15 +4989,12 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
   // lambda for checking whether the values of two binary variables are
   // complementary in all feasible solutions
-  auto complementaryVars =
-      [&](const std::vector<std::vector<HighsInt>>& solutions, size_t index1,
-          size_t index2) {
-        for (size_t sol = 0; sol < solutions[index1].size(); sol++) {
-          if (solutions[index1][sol] != 1 - solutions[index2][sol])
-            return false;
-        }
-        return true;
-      };
+  auto complementaryVars = [&](size_t index1, size_t index2) {
+    for (size_t sol = 0; sol < solutions[index1].size(); sol++) {
+      if (solutions[index1][sol] != 1 - solutions[index2][sol]) return false;
+    }
+    return true;
+  };
 
   auto handleInfeasibility = [&](bool infeasible) {
     if (infeasible) {
@@ -5009,6 +5002,48 @@ HPresolve::Result HPresolve::enumerateSolutions(
       return Result::kPrimalInfeasible;
     }
     return Result::kOk;
+  };
+
+  auto handleSolution = [&](size_t& numWorstCaseBounds) {
+    // propagate
+    domain.propagate();
+    if (domain.infeasible()) return;
+    // handling of worst-case bounds
+    if (solutions[0].empty()) {
+      // initialize
+      for (HighsInt col : domain.getChangedCols()) {
+        worstCaseBounds[numWorstCaseBounds++] = col;
+        worstCaseLowerBound[col] =
+            std::min(worstCaseLowerBound[col], domain.col_lower_[col]);
+        worstCaseUpperBound[col] =
+            std::max(worstCaseUpperBound[col], domain.col_upper_[col]);
+      }
+    } else {
+      size_t i = 0;
+      while (i < numWorstCaseBounds) {
+        HighsInt col = worstCaseBounds[i];
+        if (!domain.isChangedCol(col)) {
+          // no bound changes for this variable -> reset worst-case
+          // bounds and remove variable
+          worstCaseLowerBound[col] = kHighsInf;
+          worstCaseUpperBound[col] = -kHighsInf;
+          worstCaseBounds[i] = worstCaseBounds[numWorstCaseBounds - 1];
+          worstCaseBounds[numWorstCaseBounds - 1] = 0;
+          numWorstCaseBounds--;
+        } else {
+          // update worst-case bounds
+          worstCaseLowerBound[col] =
+              std::min(worstCaseLowerBound[col], domain.col_lower_[col]);
+          worstCaseUpperBound[col] =
+              std::max(worstCaseUpperBound[col], domain.col_upper_[col]);
+          i++;
+        }
+      }
+    }
+    // store solution
+    for (size_t i = 0; i < vars.size(); i++)
+      solutions[i].push_back(domain.col_lower_[vars[i]] == 0.0 ? HighsInt{0}
+                                                               : HighsInt{1});
   };
 
   // loop over candiate rows
@@ -5051,55 +5086,13 @@ HPresolve::Result HPresolve::enumerateSolutions(
     while (true) {
       bool backtrack = domain.infeasible();
       if (!backtrack) {
-        backtrack = solutionFound(domain, vars);
-        if (backtrack) {
-          // propagate
-          domain.propagate();
-          if (!domain.infeasible()) {
-            // handling of worst-case bounds
-            if (solutions[0].empty()) {
-              // initialize
-              for (HighsInt col : domain.getChangedCols()) {
-                worstCaseBounds[numWorstCaseBounds++] = col;
-                worstCaseLowerBound[col] =
-                    std::min(worstCaseLowerBound[col], domain.col_lower_[col]);
-                worstCaseUpperBound[col] =
-                    std::max(worstCaseUpperBound[col], domain.col_upper_[col]);
-              }
-            } else {
-              size_t i = 0;
-              while (i < numWorstCaseBounds) {
-                HighsInt col = worstCaseBounds[i];
-                if (!domain.isChangedCol(col)) {
-                  // no bound changes for this variable -> reset worst-case
-                  // bounds and remove variable
-                  worstCaseLowerBound[col] = kHighsInf;
-                  worstCaseUpperBound[col] = -kHighsInf;
-                  worstCaseBounds[i] = worstCaseBounds[numWorstCaseBounds - 1];
-                  worstCaseBounds[numWorstCaseBounds - 1] = 0;
-                  numWorstCaseBounds--;
-                } else {
-                  // update worst-case bounds
-                  worstCaseLowerBound[col] = std::min(worstCaseLowerBound[col],
-                                                      domain.col_lower_[col]);
-                  worstCaseUpperBound[col] = std::max(worstCaseUpperBound[col],
-                                                      domain.col_upper_[col]);
-                  i++;
-                }
-              }
-            }
-            // store solution
-            for (size_t i = 0; i < vars.size(); i++)
-              solutions[i].push_back(domain.col_lower_[vars[i]] == 0.0
-                                         ? HighsInt{0}
-                                         : HighsInt{1});
-          }
-        }
+        backtrack = solutionFound();
+        if (backtrack) handleSolution(numWorstCaseBounds);
       }
       // branch or backtrack
       if (!backtrack)
-        doBranch(domain, vars, branches, numBranches);
-      else if (!doBacktrack(domain, branches, numBranches))
+        doBranch(numBranches);
+      else if (!doBacktrack(numBranches))
         break;
     }
 
@@ -5146,13 +5139,13 @@ HPresolve::Result HPresolve::enumerateSolutions(
         if (domain.isFixed(col2)) continue;
         // check if two binary variables take identical or complementary
         // values in all feasible solutions
-        if (identicalVars(solutions, i, ii)) {
+        if (identicalVars(i, ii)) {
           // add clique x_1 + (1 - x_2) = 1 to clique table
           std::array<HighsCliqueTable::CliqueVar, 2> clique;
           clique[0] = HighsCliqueTable::CliqueVar(col, 0);
           clique[1] = HighsCliqueTable::CliqueVar(col2, 1);
           cliquetable.addClique(*mipsolver, clique.data(), 2, true);
-        } else if (complementaryVars(solutions, i, ii)) {
+        } else if (complementaryVars(i, ii)) {
           // add clique x_1 + x_2 = 1 to clique table
           std::array<HighsCliqueTable::CliqueVar, 2> clique;
           clique[0] = HighsCliqueTable::CliqueVar(col, 0);
