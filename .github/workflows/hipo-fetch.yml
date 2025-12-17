@@ -170,7 +170,7 @@ jobs:
         all_tests: [ON]
         # ARM32 Windows development is basically deprecated:
         # https://learn.microsoft.com/en-us/windows/arm/arm32-to-arm64
-        arch: ["x64"]
+        arch: ["ARM64"]
 
     steps:
       - uses: actions/checkout@v4
