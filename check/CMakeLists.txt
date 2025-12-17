@@ -48,7 +48,6 @@ if ((NOT FAST_BUILD OR ALL_TESTS) AND NOT (BUILD_EXTRA_UNIT_ONLY))
       TestHighsRbTree.cpp
       TestHighsSparseMatrix.cpp
       TestHighsVersion.cpp
-      TestHipo.cpp
       TestHSet.cpp
       TestICrash.cpp
       TestIis.cpp
@@ -81,6 +80,11 @@ if ((NOT FAST_BUILD OR ALL_TESTS) AND NOT (BUILD_EXTRA_UNIT_ONLY))
       TestTspSolver.cpp
       TestUserScale.cpp
       Avgas.cpp)
+
+
+  if (HIPO)
+      list(APPEND TEST_SOURCES TestHipo.cpp)
+  endif()
 
   set(OPT_LEVEL_CHANGED OFF)
 
