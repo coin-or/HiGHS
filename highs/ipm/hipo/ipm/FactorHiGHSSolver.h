@@ -38,6 +38,9 @@ class FactorHiGHSSolver : public LinearSolver {
   const LogHighs& log_;
 
   const Model& model_;
+  const HighsSparseMatrix& A_;
+  const Int mA_, nA_, nzA_;
+
   Options& options_;
 
   Int chooseNla();
@@ -46,14 +49,12 @@ class FactorHiGHSSolver : public LinearSolver {
   Int chooseOrdering(const std::vector<Int>& rows, const std::vector<Int>& ptr,
                       const std::vector<Int>& signs, Symbolic& S);
 
-  Int buildNEstructure(const HighsSparseMatrix& A, Int64 nz_limit = kHighsIInf);
-  Int buildNEvalues(const HighsSparseMatrix& A,
-                    const std::vector<double>& scaling);
+  Int buildNEstructure(Int64 nz_limit = kHighsIInf);
+  Int buildNEvalues(const std::vector<double>& scaling);
   void freeNEmemory();
 
-  Int buildASstructure(const HighsSparseMatrix& A, Int64 nz_limit = kHighsIInf);
-  Int buildASvalues(const HighsSparseMatrix& A,
-                    const std::vector<double>& scaling);
+  Int buildASstructure(Int64 nz_limit = kHighsIInf);
+  Int buildASvalues(const std::vector<double>& scaling);
   void freeASmemory();
 
   Int analyseAS(Symbolic& S);

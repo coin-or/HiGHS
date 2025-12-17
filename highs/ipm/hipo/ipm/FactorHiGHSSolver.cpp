@@ -18,6 +18,10 @@ FactorHiGHSSolver::FactorHiGHSSolver(Options& options, const Model& model,
       data_{record},
       log_{log},
       model_{model},
+      A_{model.A()},
+      mA_{A_.num_row_},
+      nA_{A_.num_col_},
+      nzA_{A_.numNz()},
       options_{options} {}
 
 void FactorHiGHSSolver::clear() {
@@ -29,35 +33,30 @@ void FactorHiGHSSolver::clear() {
 // Build structure and values of matrices
 // =========================================================================
 
-Int FactorHiGHSSolver::buildASstructure(const HighsSparseMatrix& A,
-                                        Int64 nz_limit) {
+Int FactorHiGHSSolver::buildASstructure(Int64 nz_limit) {
   // Build lower triangular structure of the augmented system.
   // Build values of AS that will not change during the iterations.
 
   log_.printDevInfo("Building AS structure\n");
 
-  Int nA = A.num_col_;
-  Int mA = A.num_row_;
-  Int nzA = A.numNz();
-
   // AS matrix must fit into HighsInt
-  if ((Int64)nA + mA + nzA > nz_limit) return kStatusOverflow;
+  if ((Int64)nA_ + mA_ + nzA_ > nz_limit) return kStatusOverflow;
 
-  ptrAS_.resize(nA + mA + 1);
-  rowsAS_.resize(nA + nzA + mA);
-  valAS_.resize(nA + nzA + mA);
+  ptrAS_.resize(nA_ + mA_ + 1);
+  rowsAS_.resize(nA_ + nzA_ + mA_);
+  valAS_.resize(nA_ + nzA_ + mA_);
 
   Int next = 0;
 
-  for (Int i = 0; i < nA; ++i) {
+  for (Int i = 0; i < nA_; ++i) {
     // diagonal element
     rowsAS_[next] = i;
     ++next;
 
     // column of A
-    for (Int el = A.start_[i]; el < A.start_[i + 1]; ++el) {
-      rowsAS_[next] = nA + A.index_[el];
-      valAS_[next] = A.value_[el];  // values of AS that will not change
+    for (Int el = A_.start_[i]; el < A_.start_[i + 1]; ++el) {
+      rowsAS_[next] = nA_ + A_.index_[el];
+      valAS_[next] = A_.value_[el];  // values of AS that will not change
       ++next;
     }
 
@@ -65,34 +64,28 @@ Int FactorHiGHSSolver::buildASstructure(const HighsSparseMatrix& A,
   }
 
   // 2,2 block
-  for (Int i = 0; i < mA; ++i) {
-    rowsAS_[next] = nA + i;
+  for (Int i = 0; i < mA_; ++i) {
+    rowsAS_[next] = nA_ + i;
     ++next;
-    ptrAS_[nA + i + 1] = ptrAS_[nA + i] + 1;
+    ptrAS_[nA_ + i + 1] = ptrAS_[nA_ + i] + 1;
   }
 
   return kStatusOk;
 }
 
-Int FactorHiGHSSolver::buildASvalues(const HighsSparseMatrix& A,
-                                     const std::vector<double>& scaling) {
+Int FactorHiGHSSolver::buildASvalues(const std::vector<double>& scaling) {
   // build AS values that change during iterations.
 
   assert(!ptrAS_.empty() && !rowsAS_.empty());
 
-  Int nA = A.num_col_;
-  Int mA = A.num_row_;
-  Int nzA = A.numNz();
-
-  for (Int i = 0; i < nA; ++i) {
+  for (Int i = 0; i < nA_; ++i) {
     valAS_[ptrAS_[i]] = -scaling[i];
   }
 
   return kStatusOk;
 }
 
-Int FactorHiGHSSolver::buildNEstructure(const HighsSparseMatrix& A,
-                                        Int64 nz_limit) {
+Int FactorHiGHSSolver::buildNEstructure(Int64 nz_limit) {
   // Build lower triangular structure of AAt.
   // This approach uses a column-wise copy of A, a partial row-wise copy and a
   // vector of corresponding indices.
@@ -104,20 +97,20 @@ Int FactorHiGHSSolver::buildNEstructure(const HighsSparseMatrix& A,
   // create partial row-wise representation without values, and array or
   // corresponding indices between cw and rw representation
   {
-    ptrA_rw_.assign(A.num_row_ + 1, 0);
-    idxA_rw_.assign(A.numNz(), 0);
+    ptrA_rw_.assign(mA_ + 1, 0);
+    idxA_rw_.assign(nzA_, 0);
 
     // pointers of row-start
-    for (Int el = 0; el < A.numNz(); ++el) ptrA_rw_[A.index_[el] + 1]++;
-    for (Int i = 0; i < A.num_row_; ++i) ptrA_rw_[i + 1] += ptrA_rw_[i];
+    for (Int el = 0; el < nzA_; ++el) ptrA_rw_[A_.index_[el] + 1]++;
+    for (Int i = 0; i < mA_; ++i) ptrA_rw_[i + 1] += ptrA_rw_[i];
 
     std::vector<Int> temp = ptrA_rw_;
-    corr_A_.assign(A.numNz(), 0);
+    corr_A_.assign(nzA_, 0);
 
     // rw-indices and corresponding indices created together
-    for (Int col = 0; col < A.num_col_; ++col) {
-      for (Int el = A.start_[col]; el < A.start_[col + 1]; ++el) {
-        Int row = A.index_[el];
+    for (Int col = 0; col < nA_; ++col) {
+      for (Int el = A_.start_[col]; el < A_.start_[col + 1]; ++el) {
+        Int row = A_.index_[el];
 
         corr_A_[temp[row]] = el;
         idxA_rw_[temp[row]] = col;
@@ -130,15 +123,15 @@ Int FactorHiGHSSolver::buildNEstructure(const HighsSparseMatrix& A,
   rowsNE_.clear();
 
   // ptr is allocated its exact size
-  ptrNE_.resize(A.num_row_ + 1, 0);
+  ptrNE_.resize(mA_ + 1, 0);
 
   // keep track if given entry is nonzero, in column considered
-  std::vector<bool> is_nz(A.num_row_, false);
+  std::vector<bool> is_nz(mA_, false);
 
   // temporary storage of indices
-  std::vector<Int> temp_index(A.num_row_);
+  std::vector<Int> temp_index(mA_);
 
-  for (Int row = 0; row < A.num_row_; ++row) {
+  for (Int row = 0; row < mA_; ++row) {
     // go along the entries of the row, and then down each column.
     // this builds the lower triangular part of the row-th column of AAt.
 
@@ -150,8 +143,8 @@ Int FactorHiGHSSolver::buildNEstructure(const HighsSparseMatrix& A,
 
       // for each nonzero in the row, go down corresponding column, starting
       // from current position
-      for (Int colEl = corr; colEl < A.start_[col + 1]; ++colEl) {
-        Int row2 = A.index_[colEl];
+      for (Int colEl = corr; colEl < A_.start_[col + 1]; ++colEl) {
+        Int row2 = A_.index_[colEl];
 
         // row2 is guaranteed to be larger or equal than row
         // (provided that the columns of A are sorted)
@@ -184,17 +177,16 @@ Int FactorHiGHSSolver::buildNEstructure(const HighsSparseMatrix& A,
   return kStatusOk;
 }
 
-Int FactorHiGHSSolver::buildNEvalues(const HighsSparseMatrix& A,
-                                     const std::vector<double>& scaling) {
+Int FactorHiGHSSolver::buildNEvalues(const std::vector<double>& scaling) {
   // given the NE structure already computed, fill in the NE values
 
   assert(!ptrNE_.empty() && !rowsNE_.empty());
 
   valNE_.resize(rowsNE_.size());
 
-  std::vector<double> work(A.num_row_, 0.0);
+  std::vector<double> work(mA_, 0.0);
 
-  for (Int row = 0; row < A.num_row_; ++row) {
+  for (Int row = 0; row < mA_; ++row) {
     // go along the entries of the row, and then down each column.
     // this builds the lower triangular part of the row-th column of AAt.
 
@@ -205,18 +197,18 @@ Int FactorHiGHSSolver::buildNEvalues(const HighsSparseMatrix& A,
       const double theta =
           scaling.empty() ? 1.0 : 1.0 / (scaling[col] + regul_.primal);
 
-      const double row_value = theta * A.value_[corr];
+      const double row_value = theta * A_.value_[corr];
 
       // for each nonzero in the row, go down corresponding column, starting
       // from current position
-      for (Int colEl = corr; colEl < A.start_[col + 1]; ++colEl) {
-        Int row2 = A.index_[colEl];
+      for (Int colEl = corr; colEl < A_.start_[col + 1]; ++colEl) {
+        Int row2 = A_.index_[colEl];
 
         // row2 is guaranteed to be larger or equal than row
         // (provided that the columns of A are sorted)
 
         // compute and accumulate value
-        double value = row_value * A.value_[colEl];
+        double value = row_value * A_.value_[colEl];
         work[row2] += value;
       }
     }
@@ -242,13 +234,12 @@ Int FactorHiGHSSolver::analyseAS(Symbolic& S) {
   // in object S and the status.
 
   Clock clock;
-  if (Int status = buildASstructure(model_.A())) return status;
+  if (Int status = buildASstructure()) return status;
   info_.matrix_structure_time = clock.stop();
 
   // create vector of signs of pivots
-  std::vector<Int> pivot_signs(model_.A().num_col_ + model_.A().num_row_, -1);
-  for (Int i = 0; i < model_.A().num_row_; ++i)
-    pivot_signs[model_.A().num_col_ + i] = 1;
+  std::vector<Int> pivot_signs(nA_ + mA_, -1);
+  for (Int i = 0; i < mA_; ++i) pivot_signs[nA_ + i] = 1;
 
   log_.printDevInfo("Performing AS analyse phase\n");
 
@@ -258,14 +249,14 @@ Int FactorHiGHSSolver::analyseAS(Symbolic& S) {
 Int FactorHiGHSSolver::analyseNE(Symbolic& S, Int64 nz_limit) {
   // Perform analyse phase of augmented system and return symbolic factorisation
   // in object S and the status. If building the matrix failed, the status is
-  // set to OoM.
+  // set to kStatusOverflow.
 
   Clock clock;
-  if (Int status = buildNEstructure(model_.A(), nz_limit)) return status;
+  if (Int status = buildNEstructure(nz_limit)) return status;
   info_.matrix_structure_time = clock.stop();
 
   // create vector of signs of pivots
-  std::vector<Int> pivot_signs(model_.A().num_row_, 1);
+  std::vector<Int> pivot_signs(mA_, 1);
 
   log_.printDevInfo("Performing NE analyse phase\n");
 
@@ -284,7 +275,7 @@ Int FactorHiGHSSolver::factorAS(const HighsSparseMatrix& A,
   Clock clock;
 
   // build matrix
-  buildASvalues(A, scaling);
+  buildASvalues(scaling);
   info_.matrix_time += clock.stop();
 
   // set static regularisation, since it may have changed
@@ -308,7 +299,7 @@ Int FactorHiGHSSolver::factorNE(const HighsSparseMatrix& A,
   Clock clock;
 
   // build matrix
-  buildNEvalues(A, scaling);
+  buildNEvalues(scaling);
   info_.matrix_time += clock.stop();
 
   // set static regularisation, since it may have changed
