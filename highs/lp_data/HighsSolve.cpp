@@ -718,18 +718,11 @@ bool useHipo(const HighsOptions& options,
     use_hipo = false;
   } else if (specific_solver_option_value == kIpmString ||
              specific_solver_option_value == kHipoString || force_ipm) {
-
 #ifdef HIPO
     use_hipo = true;
 #else
-    if (specific_solver_option_value == kHipoString) {
-    highsLogUser(options.log_options, HighsLogType::kError,
-                  "HiPO is not available in this build.\n");
-    return HighsStatus::kError;
-
     use_hipo = false;
 #endif
-
   }
   if (options.run_centring) use_hipo = false;
   // Later decide between HiPO and IPX based on LP properties
