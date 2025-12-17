@@ -22,7 +22,7 @@ if (BUILD_OPENBLAS)
         if(CMAKE_SIZEOF_VOID_P EQUAL 4)
             message(STATUS "ARM architecture detected. Applying -DTARGET=ARMV7.")
             list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=ARMV7)
-            set(SKIP_PARSE_GETARCH TRUE)
+            # set(SKIP_PARSE_GETARCH TRUE)
         else()
             message(STATUS "ARM architecture detected. Applying -DTARGET=ARMV8.")
             list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=ARMV8)
@@ -30,7 +30,7 @@ if (BUILD_OPENBLAS)
     endif()
 
     # CMAKE_SIZEOF_VOID_P is 4 for 32-bit builds, 8 for 64-bit builds.
-    if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
         message(STATUS "32-bit target detected. Applying 32-bit configuration flags for OpenBLAS.")
         set(OPENBLAS_32 ON)
 
