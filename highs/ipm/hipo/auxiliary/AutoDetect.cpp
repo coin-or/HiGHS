@@ -32,7 +32,7 @@ IntegerModel getBlasIntegerModel() {
     const float X[3] = {1.0f, 2.0f, 3.0f};
 
     // Check windows
-#ifndef OPENBLAS_WIN_32
+#ifndef OPENBLAS_32
       blas_model = IntegerModel::lp32;
 #else
 
