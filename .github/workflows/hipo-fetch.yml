@@ -121,8 +121,8 @@ jobs:
 
   windows:
     runs-on: [windows-latest]
-    fail-fast: false
     strategy:
+      fail-fast: false
       matrix:
         config: [Release]
         all_tests: [ON]
