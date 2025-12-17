@@ -549,28 +549,24 @@ void getVariableKktFailures(const double primal_feasibility_tolerance,
                             const HighsVarType integrality,
                             double& primal_infeasibility,
                             double& dual_infeasibility, uint8_t& at_status,
-                            uint8_t& mid_status) {
-  const HighsInt feasibility_tolerance_mu = 0.0;
-  // @primal_infeasibility calculation
-  primal_infeasibility = 0;
-  if (value < lower - primal_feasibility_tolerance * feasibility_tolerance_mu) {
-    // Below lower
-    primal_infeasibility = lower - value;
-  } else if (value >
-             upper + primal_feasibility_tolerance * feasibility_tolerance_mu) {
-    // Above upper
-    primal_infeasibility = value - upper;
-  }
+                            uint8_t& mid_status, const HighsInt index) {
+  // Return the primal residual (ie infeasibility with zero tolerance)
+  // as the primal infeasibility, ensuring (cf #2653) that it doesn't
+  // exceed the primal feasibility tolerance if the standard primal
+  // infeasibility (ie infeasibility exceeding the tolerance) is zero
+  auto infeasibility_residual =
+      infeasibility(lower, value, upper, primal_feasibility_tolerance);
+  primal_infeasibility = infeasibility_residual.second;
   // Determine whether this value is close to a bound
   at_status = kHighsSolutionNo;
-  double residual = std::fabs(lower - value);
-  if (residual * residual <= primal_feasibility_tolerance) {
+  double bound_residual = std::fabs(lower - value);
+  if (bound_residual * bound_residual <= primal_feasibility_tolerance) {
     // Close to lower bound
     at_status = kHighsSolutionLo;
   } else {
     // Not close to lower bound: maybe close to upper bound
-    residual = std::fabs(value - upper);
-    if (residual * residual <= primal_feasibility_tolerance)
+    bound_residual = std::fabs(value - upper);
+    if (bound_residual * bound_residual <= primal_feasibility_tolerance)
       at_status = kHighsSolutionUp;
   }
   // Look for dual sign errors that exceed the tolerance. For boxed
