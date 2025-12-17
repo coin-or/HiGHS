@@ -53,7 +53,8 @@ jobs:
       - name: Install 32-bit deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-multilib g++-multilib libc6-dev-i386
+          sudo apt-get install -y gcc-multilib g++-multilib
+          sudo apt-get install -y libc6-dev-i386 libstdc++-devel.i686
 
       - name: Configure CMake
         working-directory: ${{runner.workspace}}/build
