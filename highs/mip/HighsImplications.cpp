@@ -715,8 +715,11 @@ void HighsImplications::cleanupVarbounds(HighsInt col) {
   double lb = mipsolver.mipdata_->domain.col_lower_[col];
 
   if (ub == lb) {
-    numVarBounds -= vlbs.size();
-    numVarBounds -= vubs.size();
+    HighsInt numVubs = 0;
+    vubs[col].for_each([&](HighsInt vubCol, VarBound& vub) { numVubs++; });
+    HighsInt numVlbs = 0;
+    vlbs[col].for_each([&](HighsInt vlbCol, VarBound& vlb) { numVlbs++; });
+    numVarBounds -= numVubs + numVlbs;
     vlbs[col].clear();
     vubs[col].clear();
     return;
