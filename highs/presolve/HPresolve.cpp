@@ -1583,9 +1583,10 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
   // prepare probing
   bool firstCall = false;
   Result prepareResult = prepareProbing(postsolve_stack, firstCall);
-  if (prepareResult != Result::kOk)
+  if (prepareResult != Result::kOk) {
     mipsolver->analysis_.mipTimerStop(kMipClockProbingPresolve);
-  HPRESOLVE_CHECKED_CALL(prepareResult);
+    return prepareResult;
+  }
 
   mipsolver->mipdata_->setupDomainPropagation();
   HighsDomain& domain = mipsolver->mipdata_->domain;
@@ -4862,10 +4863,15 @@ HPresolve::Result HPresolve::enumerateSolutions(
     HighsPostsolveStack& postsolve_stack) {
   // enumerate all solutions for pure binary constraints with a small number of
   // variables
+  mipsolver->analysis_.mipTimerStart(kMipClockEnumerationPresolve);
 
   // prepare probing
   bool firstCall = false;
-  HPRESOLVE_CHECKED_CALL(prepareProbing(postsolve_stack, firstCall));
+  Result prepareResult = prepareProbing(postsolve_stack, firstCall);
+  if (prepareResult != Result::kOk) {
+    mipsolver->analysis_.mipTimerStop(kMipClockEnumerationPresolve);
+    return prepareResult;
+  }
 
   HighsDomain& domain = mipsolver->mipdata_->domain;
   HighsCliqueTable& cliquetable = mipsolver->mipdata_->cliquetable;
@@ -4997,6 +5003,14 @@ HPresolve::Result HPresolve::enumerateSolutions(
         return true;
       };
 
+  auto handleInfeasibility = [&](bool infeasible) {
+    if (infeasible) {
+      mipsolver->analysis_.mipTimerStop(kMipClockEnumerationPresolve);
+      return Result::kPrimalInfeasible;
+    }
+    return Result::kOk;
+  };
+
   // loop over candiate rows
   HighsInt numRowsChecked = 0;
   for (const auto& r : rows) {
@@ -5069,7 +5083,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
     HighsInt numSolutions = static_cast<HighsInt>(solutions[0].size());
 
     // no solutions -> infeasible
-    if (numSolutions == 0) return Result::kPrimalInfeasible;
+    HPRESOLVE_CHECKED_CALL(handleInfeasibility(numSolutions == 0));
 
     // analyse worst-case bounds
     for (HighsInt col : worstCaseBounds) {
@@ -5081,14 +5095,14 @@ HPresolve::Result HPresolve::enumerateSolutions(
           domain.changeBound(HighsBoundType::kLower, col,
                              worstCaseLowerBound[col],
                              HighsDomain::Reason::unspecified());
-          if (domain.infeasible()) return Result::kPrimalInfeasible;
+          HPRESOLVE_CHECKED_CALL(handleInfeasibility(domain.infeasible()));
         }
         if (worstCaseUpperBound[col] < domain.col_upper_[col]) {
           // tighten upper bound
           domain.changeBound(HighsBoundType::kUpper, col,
                              worstCaseUpperBound[col],
                              HighsDomain::Reason::unspecified());
-          if (domain.infeasible()) return Result::kPrimalInfeasible;
+          HPRESOLVE_CHECKED_CALL(handleInfeasibility(domain.infeasible()));
         }
       }
       // clean up
@@ -5144,6 +5158,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
                 static_cast<int>(numBndsTightened),
                 static_cast<int>(numVarsSubstituted));
 
+  mipsolver->analysis_.mipTimerStop(kMipClockEnumerationPresolve);
   return Result::kOk;
 }
 

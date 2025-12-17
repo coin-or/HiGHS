@@ -28,6 +28,7 @@ enum iClockMip {
   kMipClockSearch,
   // Search
   kMipClockProbingPresolve,
+  kMipClockEnumerationPresolve,
   kMipClockPerformAging1,
   kMipClockDive,
   kMipClockOpenNodesToQueue0,
@@ -231,6 +232,9 @@ class MipTimer {
     clock[kMipClockProbingPresolve] =
         timer_pointer->clock_def("Probing - presolve");
 
+    clock[kMipClockEnumerationPresolve] =
+        timer_pointer->clock_def("Enumeration - presolve");
+
     // Search - Should correspond to kMipClockSearch
     clock[kMipClockPerformAging1] = timer_pointer->clock_def("Perform aging 1");
     clock[kMipClockDive] = timer_pointer->clock_def("Dive");
@@ -383,7 +387,8 @@ class MipTimer {
   };
 
   void reportMipPresolveClock(const HighsTimerClock& mip_timer_clock) {
-    const std::vector<HighsInt> mip_clock_list{kMipClockProbingPresolve};
+    const std::vector<HighsInt> mip_clock_list{kMipClockProbingPresolve,
+                                               kMipClockEnumerationPresolve};
     reportMipClockList("MipPrslv", mip_clock_list, mip_timer_clock,
                        kMipClockRunPresolve, tolerance_percent_report);
   };
