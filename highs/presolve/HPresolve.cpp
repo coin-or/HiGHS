@@ -5159,7 +5159,8 @@ HPresolve::Result HPresolve::enumerateSolutions(
                 static_cast<int>(numVarsSubstituted));
 
   mipsolver->analysis_.mipTimerStop(kMipClockEnumerationPresolve);
-  return Result::kOk;
+
+  return checkLimits(postsolve_stack);
 }
 
 double HPresolve::computeImpliedLowerBound(HighsInt col, HighsInt boundCol,
