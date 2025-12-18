@@ -5130,11 +5130,8 @@ HPresolve::Result HPresolve::enumerateSolutions(
       continue;
     }
 
-    // get number of solutions
-    HighsInt numSolutions = static_cast<HighsInt>(solutions[0].size());
-
     // no solutions -> infeasible
-    HPRESOLVE_CHECKED_CALL(handleInfeasibility(numSolutions == 0));
+    HPRESOLVE_CHECKED_CALL(handleInfeasibility(solutions[0].empty()));
 
     // analyse worst-case bounds
     for (size_t i = 0; i < numWorstCaseBounds; i++) {
