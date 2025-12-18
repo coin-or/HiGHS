@@ -64,7 +64,7 @@ void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
                       HighsPrimalDualErrors& primal_dual_errors,
                       const bool get_residuals) {
   getKktFailures(options, false, lp, lp.col_cost_, solution, highs_info,
-                 get_residuals, basis.valid);
+                 get_residuals);
   getPrimalDualBasisErrors(options, lp, solution, basis, primal_dual_errors);
   getPrimalDualGlpsolErrors(options, lp, lp.col_cost_, solution,
                             primal_dual_errors);
@@ -73,7 +73,7 @@ void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
 void getKktFailures(const HighsOptions& options, const bool is_qp,
                     const HighsLp& lp, const std::vector<double>& gradient,
                     const HighsSolution& solution, HighsInfo& highs_info,
-                    const bool get_residuals, const bool basic_solution) {
+                    const bool get_residuals) {
   double primal_feasibility_tolerance = options.primal_feasibility_tolerance;
   double dual_feasibility_tolerance = options.dual_feasibility_tolerance;
   double primal_residual_tolerance = options.primal_residual_tolerance;
@@ -444,7 +444,7 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
     // Determine the sum of complementarity violations
     const bool have_values = getComplementarityViolations(
         lp, solution, optimality_tolerance, num_complementarity_violation,
-        max_complementarity_violation, basic_solution);
+        max_complementarity_violation);
     assert(have_values);
   }
 
@@ -955,8 +955,7 @@ bool getComplementarityViolations(const HighsLp& lp,
                                   const HighsSolution& solution,
                                   const double optimality_tolerance,
                                   HighsInt& num_complementarity_violation,
-                                  double& max_complementarity_violation,
-                                  const bool basic_solution) {
+                                  double& max_complementarity_violation) {
   num_complementarity_violation = kHighsIllegalComplementarityCount;
   max_complementarity_violation = kHighsIllegalComplementarityViolation;
   if (!solution.dual_valid) return false;

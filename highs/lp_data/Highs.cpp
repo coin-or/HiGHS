@@ -3983,7 +3983,6 @@ HighsStatus Highs::callSolveLp(HighsLp& lp, const string message) {
   assert(model_.lp_.a_matrix_.isColwise());
 
   // Solve the LP
-  HighsInt simplex_strategy = options_.simplex_strategy;
   return_status = solveLp(solver_object, message);
   // Extract the model status
   model_status_ = solver_object.model_status_;
