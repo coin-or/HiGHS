@@ -5059,7 +5059,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
     // if no reductions are possible, stop enumerating solutions
     noReductions = numWorstCaseBounds == 0;
     if (noReductions) {
-      for (size_t i = 0; i < vars.size(); i++) {
+      for (size_t i = 0; i < vars.size() - 1; i++) {
         for (size_t ii = i + 1; ii < vars.size(); ii++) {
           noReductions = noReductions && !identicalVars(i, ii) &&
                          !complementaryVars(i, ii);
@@ -5160,7 +5160,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
       worstCaseBounds[i] = 0;
     }
 
-    for (size_t i = 0; i < vars.size(); i++) {
+    for (size_t i = 0; i < vars.size() - 1; i++) {
       // get column index
       HighsInt col = vars[i];
       // skip already fixed columns
