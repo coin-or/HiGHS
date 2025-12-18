@@ -5124,7 +5124,10 @@ HPresolve::Result HPresolve::enumerateSolutions(
     }
 
     // no reductions for this row?
-    if (noReductions) continue;
+    if (noReductions) {
+      while (doBacktrack(numBranches));
+      continue;
+    }
 
     // get number of solutions
     HighsInt numSolutions = static_cast<HighsInt>(solutions[0].size());
