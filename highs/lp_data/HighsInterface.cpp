@@ -4327,10 +4327,10 @@ void HighsSubSolverCallTime::initialise() {
   this->num_call.assign(kSubSolverCount, 0);
   this->run_time.assign(kSubSolverCount, 0);
   this->name.assign(kSubSolverCount, "");
-  this->name[kSubSolverSimplexBasis] = "Simplex (basis)";
-  this->name[kSubSolverSimplexNoBasis] = "Simplex (no basis)";
-  this->name[kSubSolverPrimalSimplexBasis] = "Primal simplex (basis)";
-  this->name[kSubSolverPrimalSimplexNoBasis] = "Primal simplex (no basis)";
+  this->name[kSubSolverDuSimplexBasis] = "Du simplex (basis)";
+  this->name[kSubSolverDuSimplexNoBasis] = "Du simplex (no basis)";
+  this->name[kSubSolverPrSimplexBasis] = "Pr simplex (basis)";
+  this->name[kSubSolverPrSimplexNoBasis] = "Pr simplex (no basis)";
   this->name[kSubSolverHipo] = "HiPO";
   this->name[kSubSolverIpx] = "IPX";
   this->name[kSubSolverHipoAc] = "HiPO (AC)";
@@ -4361,7 +4361,7 @@ void Highs::reportSubSolverCallTime() const {
   std::stringstream ss;
   ss.str(std::string());
   ss << highsFormatToString(
-      "\nSub-solver timing\nSolver                 Calls    Time       "
+      "\nSub-solver timing\nSolver                    Calls    Time       "
       "Time/call");
   if (mip_time > 0) ss << "  MIP%";
   highsLogUser(options_.log_options, HighsLogType::kInfo, "%s\n",
@@ -4372,7 +4372,7 @@ void Highs::reportSubSolverCallTime() const {
     if (this->sub_solver_call_time_.num_call[Ix]) {
       ss.str(std::string());
       ss << highsFormatToString(
-          "%-18s %9d %11.4e %11.4e",
+          "%-21s %9d %11.4e %11.4e",
           this->sub_solver_call_time_.name[Ix].c_str(),
           int(this->sub_solver_call_time_.num_call[Ix]),
           this->sub_solver_call_time_.run_time[Ix],
@@ -4391,7 +4391,7 @@ void Highs::reportSubSolverCallTime() const {
   }
   if (mip_time > 0)
     highsLogUser(options_.log_options, HighsLogType::kInfo,
-                 "TOTAL (excluding AC)         %11.4e             %5.1f\n",
+                 "TOTAL (excluding AC)            %11.4e             %5.1f\n",
                  sum_mip_sub_solve_time,
                  1e2 * sum_mip_sub_solve_time / mip_time);
 }
