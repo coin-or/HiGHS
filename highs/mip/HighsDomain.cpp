@@ -1333,7 +1333,7 @@ double HighsDomain::adjustedUb(HighsInt col, HighsCDouble boundVal,
                                bool& accept) const {
   double bound;
 
-  if (mipsolver->variableType(col) != HighsVarType::kContinuous) {
+  if (mipsolver->isColIntegral(col)) {
     bound = static_cast<double>(floor(boundVal + mipsolver->mipdata_->feastol));
     accept = bound < col_upper_[col] &&
              col_upper_[col] - bound >
@@ -1365,7 +1365,7 @@ double HighsDomain::adjustedLb(HighsInt col, HighsCDouble boundVal,
                                bool& accept) const {
   double bound;
 
-  if (mipsolver->variableType(col) != HighsVarType::kContinuous) {
+  if (mipsolver->isColIntegral(col)) {
     bound = static_cast<double>(ceil(boundVal - mipsolver->mipdata_->feastol));
     accept = bound > col_lower_[col] &&
              bound - col_lower_[col] >
@@ -2053,9 +2053,14 @@ void HighsDomain::changeBound(HighsDomainChange boundchg, Reason reason) {
   domchgstack_.push_back(boundchg);
   domchgreason_.push_back(reason);
 
-  if (binary && !infeasible_ && isFixed(boundchg.column))
+  if (binary && !infeasible_ && isFixed(boundchg.column)) {
     mipsolver->mipdata_->cliquetable.addImplications(
         *this, boundchg.column, col_lower_[boundchg.column] > 0.5);
+    if (!infeasible_) {
+      mipsolver->mipdata_->implications.applyImplications(
+          *this, boundchg.column, col_lower_[boundchg.column] > 0.5);
+    }
+  }
 }
 
 void HighsDomain::setDomainChangeStack(
@@ -2455,9 +2460,9 @@ bool HighsDomain::propagate() {
               numproprows, std::make_pair(HighsInt{0}, HighsInt{0}));
 
           auto propagateIndex = [&](HighsInt k) {
-            // first check if cut is marked as deleted
-            if (cutpoolprop.propagatecutflags_[k] & 2) return;
             HighsInt i = propagateinds[k];
+            // first check if cut is marked as deleted
+            if (cutpoolprop.propagatecutflags_[i] & 2) return;
 
             HighsInt Rlen;
             const HighsInt* Rindex;
@@ -2619,8 +2624,7 @@ void HighsDomain::tightenCoefficients(HighsInt* inds, double* vals,
     HighsCDouble upper = rhs;
     HighsInt tightened = 0;
     for (HighsInt i = 0; i != len; ++i) {
-      if (mipsolver->variableType(inds[i]) == HighsVarType::kContinuous)
-        continue;
+      if (mipsolver->isColContinuous(inds[i])) continue;
       if (vals[i] > maxabscoef) {
         HighsCDouble delta = vals[i] - maxabscoef;
         upper -= delta * col_upper_[inds[i]];
@@ -2672,13 +2676,13 @@ HighsDomainChange HighsDomain::flip(const HighsDomainChange& domchg) const {
   if (domchg.boundtype == HighsBoundType::kLower) {
     HighsDomainChange flipped{domchg.boundval - mipsolver->mipdata_->feastol,
                               domchg.column, HighsBoundType::kUpper};
-    if (mipsolver->variableType(domchg.column) != HighsVarType::kContinuous)
+    if (mipsolver->isColIntegral(domchg.column))
       flipped.boundval = std::floor(flipped.boundval);
     return flipped;
   } else {
     HighsDomainChange flipped{domchg.boundval + mipsolver->mipdata_->feastol,
                               domchg.column, HighsBoundType::kLower};
-    if (mipsolver->variableType(domchg.column) != HighsVarType::kContinuous)
+    if (mipsolver->isColIntegral(domchg.column))
       flipped.boundval = std::ceil(flipped.boundval);
     return flipped;
   }

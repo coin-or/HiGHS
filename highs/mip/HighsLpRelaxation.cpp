@@ -838,7 +838,7 @@ bool HighsLpRelaxation::computeDualProof(const HighsDomain& globaldomain,
 
     if (!removeValue &&
         (globaldomain.col_lower_[i] == globaldomain.col_upper_[i] ||
-         mipsolver.variableType(i) == HighsVarType::kContinuous)) {
+         mipsolver.isColContinuous(i))) {
       if (val > 0)
         removeValue =
             lpsolver.getSolution().col_value[i] - globaldomain.col_lower_[i] <=
@@ -948,7 +948,7 @@ void HighsLpRelaxation::storeDualInfProof() {
 
     if (!removeValue &&
         (globaldomain.col_lower_[i] == globaldomain.col_upper_[i] ||
-         mipsolver.variableType(i) == HighsVarType::kContinuous)) {
+         mipsolver.isColContinuous(i))) {
       // remove continuous entries and globally fixed entries whenever the
       // local LP's bound is not tighter than the global bound
       if (val > 0)
@@ -1580,7 +1580,7 @@ HighsLpRelaxation::Status HighsLpRelaxation::resolveLp(HighsDomain* domain) {
               fixSol[i] = lpsolver.getLp().col_lower_[i];
             else if (fixSol[i] > lpsolver.getLp().col_upper_[i])
               fixSol[i] = lpsolver.getLp().col_upper_[i];
-            else if (mipsolver.variableType(i) != HighsVarType::kContinuous)
+            else if (mipsolver.isColIntegral(i))
               fixSol[i] = std::round(fixSol[i]);
           }
 

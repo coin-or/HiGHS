@@ -869,7 +869,7 @@ void HighsCliqueTable::extractCliques(
         HighsCDouble colub =
             HighsCDouble(globaldom.col_upper_[col]) - globaldom.col_lower_[col];
         HighsCDouble implcolub = impliedub / vals[perm[j]];
-        if (mipsolver.variableType(col) != HighsVarType::kContinuous)
+        if (mipsolver.isColIntegral(col))
           implcolub =
               std::floor(double(implcolub) + mipsolver.mipdata_->feastol);
 
@@ -1112,7 +1112,7 @@ void HighsCliqueTable::extractCliquesFromCut(const HighsMipSolver& mipsolver,
   }
 
   for (HighsInt i = 0; i != len; ++i) {
-    if (mipsolver.variableType(inds[i]) == HighsVarType::kContinuous) continue;
+    if (mipsolver.isColContinuous(inds[i])) continue;
 
     double boundVal = double((rhs - minact) / vals[i]);
     if (vals[i] > 0) {
@@ -1157,7 +1157,7 @@ void HighsCliqueTable::extractCliquesFromCut(const HighsMipSolver& mipsolver,
           double implcolub = double(impliedActivity +
                                     vals[perm[j]] * globaldom.col_lower_[col]) /
                              vals[perm[j]];
-          if (mipsolver.variableType(col) != HighsVarType::kContinuous)
+          if (mipsolver.isColIntegral(col))
             implcolub = std::floor(implcolub + mipsolver.mipdata_->feastol);
 
           if (implcolub < globaldom.col_upper_[col] - feastol) {
@@ -1182,7 +1182,7 @@ void HighsCliqueTable::extractCliquesFromCut(const HighsMipSolver& mipsolver,
           double implcollb = double(impliedActivity +
                                     vals[perm[j]] * globaldom.col_upper_[col]) /
                              vals[perm[j]];
-          if (mipsolver.variableType(col) != HighsVarType::kContinuous)
+          if (mipsolver.isColIntegral(col))
             implcollb = std::ceil(implcollb - mipsolver.mipdata_->feastol);
 
           if (implcollb > globaldom.col_lower_[col] + feastol) {
@@ -1973,7 +1973,7 @@ void HighsCliqueTable::runCliqueMerging(HighsDomain& globaldomain,
 
   HighsInt initialCliqueSize = clique.size();
   for (HighsInt i = 0; i != initialCliqueSize; ++i) {
-    if (globaldomain.isFixed(cliqueentries[i].col)) continue;
+    if (globaldomain.isFixed(clique[i].col)) continue;
 
     HighsInt thisNumClqs = numCliques(clique[i]);
     if (thisNumClqs < numcliques) {

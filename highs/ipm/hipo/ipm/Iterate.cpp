@@ -8,48 +8,55 @@ namespace hipo {
 NewtonDir::NewtonDir(Int m, Int n)
     : x(n, 0.0), y(m, 0.0), xl(n, 0.0), xu(n, 0.0), zl(n, 0.0), zu(n, 0.0) {}
 
+void NewtonDir::clear() {
+  std::fill(x.begin(), x.end(), 0.0);
+  std::fill(y.begin(), y.end(), 0.0);
+  std::fill(xl.begin(), xl.end(), 0.0);
+  std::fill(xu.begin(), xu.end(), 0.0);
+  std::fill(zl.begin(), zl.end(), 0.0);
+  std::fill(zu.begin(), zu.end(), 0.0);
+}
+
+void NewtonDir::add(const NewtonDir& d) {
+  vectorAdd(x, d.x);
+  vectorAdd(y, d.y);
+  vectorAdd(xl, d.xl);
+  vectorAdd(xu, d.xu);
+  vectorAdd(zl, d.zl);
+  vectorAdd(zu, d.zu);
+}
+
 Iterate::Iterate(const Model& model_input, Regularisation& r)
     : model{&model_input}, delta(model->m(), model->n()), regul{r} {
   clearIter();
   clearRes();
+  clearIres();
   best_mu = 0;
 }
 
 bool Iterate::isNan() const {
-  if (isNanVector(x) || isNanVector(xl) || isNanVector(xu) || isNanVector(y) ||
-      isNanVector(zl) || isNanVector(zu))
-    return true;
-  return false;
+  return (isNanVector(x) || isNanVector(xl) || isNanVector(xu) ||
+          isNanVector(y) || isNanVector(zl) || isNanVector(zu));
 }
 bool Iterate::isInf() const {
-  if (isInfVector(x) || isInfVector(xl) || isInfVector(xu) || isInfVector(y) ||
-      isInfVector(zl) || isInfVector(zu))
-    return true;
-  return false;
+  return (isInfVector(x) || isInfVector(xl) || isInfVector(xu) ||
+          isInfVector(y) || isInfVector(zl) || isInfVector(zu));
 }
 bool Iterate::isResNan() const {
-  if (isNanVector(res1) || isNanVector(res2) || isNanVector(res3) ||
-      isNanVector(res4) || isNanVector(res5) || isNanVector(res6))
-    return true;
-  return false;
+  return (isNanVector(res.r1) || isNanVector(res.r2) || isNanVector(res.r3) ||
+          isNanVector(res.r4) || isNanVector(res.r5) || isNanVector(res.r6));
 }
 bool Iterate::isResInf() const {
-  if (isInfVector(res1) || isInfVector(res2) || isInfVector(res3) ||
-      isInfVector(res4) || isInfVector(res5) || isInfVector(res6))
-    return true;
-  return false;
+  return (isInfVector(res.r1) || isInfVector(res.r2) || isInfVector(res.r3) ||
+          isInfVector(res.r4) || isInfVector(res.r5) || isInfVector(res.r6));
 }
-bool Iterate::isDirNan() const {
-  if (isNanVector(delta.x) || isNanVector(delta.xl) || isNanVector(delta.xu) ||
-      isNanVector(delta.y) || isNanVector(delta.zl) || isNanVector(delta.zu))
-    return true;
-  return false;
+bool Iterate::isDirNan(const NewtonDir& d) const {
+  return (isNanVector(d.x) || isNanVector(d.xl) || isNanVector(d.xu) ||
+          isNanVector(d.y) || isNanVector(d.zl) || isNanVector(d.zu));
 }
-bool Iterate::isDirInf() const {
-  if (isInfVector(delta.x) || isInfVector(delta.xl) || isInfVector(delta.xu) ||
-      isInfVector(delta.y) || isInfVector(delta.zl) || isInfVector(delta.zu))
-    return true;
-  return false;
+bool Iterate::isDirInf(const NewtonDir& d) const {
+  return (isInfVector(d.x) || isInfVector(d.xl) || isInfVector(d.xu) ||
+          isInfVector(d.y) || isInfVector(d.zl) || isInfVector(d.zu));
 }
 
 void Iterate::computeMu() {
@@ -146,29 +153,29 @@ void Iterate::pdGap() {
 
 void Iterate::primalInfeas() {
   // relative infinity norm of scaled primal residuals
-  pinf = infNorm(res1);
-  pinf = std::max(pinf, infNorm(res2));
-  pinf = std::max(pinf, infNorm(res3));
+  pinf = infNorm(res.r1);
+  pinf = std::max(pinf, infNorm(res.r2));
+  pinf = std::max(pinf, infNorm(res.r3));
   pinf /= (1.0 + model->normScaledRhs());
 }
 void Iterate::dualInfeas() {
   // relative infinity norm of scaled dual residual
-  dinf = infNorm(res4) / (1.0 + model->normScaledObj());
+  dinf = infNorm(res.r4) / (1.0 + model->normScaledObj());
 }
 void Iterate::primalInfeasUnscaled() {
   // relative infinity norm of unscaled primal residuals
   pinf = 0.0;
   for (Int i = 0; i < model->m(); ++i) {
-    double val = std::abs(res1[i]);
+    double val = std::abs(res.r1[i]);
     if (model->scaled()) val /= model->rowScale(i);
     pinf = std::max(pinf, val);
   }
   for (Int i = 0; i < model->n(); ++i) {
-    double val = std::abs(res2[i]);
+    double val = std::abs(res.r2[i]);
     if (model->scaled()) val *= model->colScale(i);
     pinf = std::max(pinf, val);
 
-    val = std::abs(res3[i]);
+    val = std::abs(res.r3[i]);
     if (model->scaled()) val *= model->colScale(i);
     pinf = std::max(pinf, val);
   }
@@ -178,7 +185,7 @@ void Iterate::dualInfeasUnscaled() {
   // relative infinity norm of unscaled dual residual
   dinf = 0.0;
   for (Int i = 0; i < model->n(); ++i) {
-    double val = std::abs(res4[i]);
+    double val = std::abs(res.r4[i]);
     if (model->scaled()) val /= model->colScale(i);
     dinf = std::max(dinf, val);
   }
@@ -187,59 +194,60 @@ void Iterate::dualInfeasUnscaled() {
 
 void Iterate::residual1234() {
   // res1
-  res1 = model->b();
-  model->A().alphaProductPlusY(-1.0, x, res1);
+  res.r1 = model->b();
+  model->A().alphaProductPlusY(-1.0, x, res.r1);
 
   // res2
   for (Int i = 0; i < model->n(); ++i) {
     if (model->hasLb(i))
-      res2[i] = model->lb(i) - x[i] + xl[i];
+      res.r2[i] = model->lb(i) - x[i] + xl[i];
     else
-      res2[i] = 0.0;
+      res.r2[i] = 0.0;
   }
 
   // res3
   for (Int i = 0; i < model->n(); ++i) {
     if (model->hasUb(i))
-      res3[i] = model->ub(i) - x[i] - xu[i];
+      res.r3[i] = model->ub(i) - x[i] - xu[i];
     else
-      res3[i] = 0.0;
+      res.r3[i] = 0.0;
   }
 
   // res4
-  res4 = model->c();
-  model->A().alphaProductPlusY(-1.0, y, res4, true);
+  res.r4 = model->c();
+  model->A().alphaProductPlusY(-1.0, y, res.r4, true);
   for (Int i = 0; i < model->n(); ++i) {
-    if (model->hasLb(i)) res4[i] -= zl[i];
-    if (model->hasUb(i)) res4[i] += zu[i];
+    if (model->hasLb(i)) res.r4[i] -= zl[i];
+    if (model->hasUb(i)) res.r4[i] += zu[i];
   }
 }
 void Iterate::residual56(double sigma) {
   for (Int i = 0; i < model->n(); ++i) {
     // res5
     if (model->hasLb(i))
-      res5[i] = sigma * mu - xl[i] * zl[i];
+      res.r5[i] = sigma * mu - xl[i] * zl[i];
     else
-      res5[i] = 0.0;
+      res.r5[i] = 0.0;
 
     // res6
     if (model->hasUb(i))
-      res6[i] = sigma * mu - xu[i] * zu[i];
+      res.r6[i] = sigma * mu - xu[i] * zu[i];
     else
-      res6[i] = 0.0;
+      res.r6[i] = 0.0;
   }
 }
 
-std::vector<double> Iterate::residual7() const {
-  std::vector<double> res7(res4);
+std::vector<double> Iterate::residual7(const Residuals& r) const {
+  std::vector<double> res7(r.r4);
   for (Int i = 0; i < model->n(); ++i) {
-    if (model->hasLb(i)) res7[i] -= ((res5[i] + zl[i] * res2[i]) / xl[i]);
-    if (model->hasUb(i)) res7[i] += ((res6[i] - zu[i] * res3[i]) / xu[i]);
+    if (model->hasLb(i)) res7[i] -= ((r.r5[i] + zl[i] * r.r2[i]) / xl[i]);
+    if (model->hasUb(i)) res7[i] += ((r.r6[i] - zu[i] * r.r3[i]) / xu[i]);
   }
   return res7;
 }
-std::vector<double> Iterate::residual8(const std::vector<double>& res7) const {
-  std::vector<double> res8(res1);
+std::vector<double> Iterate::residual8(const Residuals& r,
+                                       const std::vector<double>& res7) const {
+  std::vector<double> res8(r.r1);
   std::vector<double> temp(res7);
 
   // temp = (Theta^-1+Rp)^-1 * res7
@@ -260,20 +268,21 @@ void Iterate::clearIter() {
   zu.assign(model->n(), 0.0);
 }
 void Iterate::clearRes() {
-  res1.assign(model->m(), 0.0);
-  res2.assign(model->n(), 0.0);
-  res3.assign(model->n(), 0.0);
-  res4.assign(model->n(), 0.0);
-  res5.assign(model->n(), 0.0);
-  res6.assign(model->n(), 0.0);
+  res.r1.assign(model->m(), 0.0);
+  res.r2.assign(model->n(), 0.0);
+  res.r3.assign(model->n(), 0.0);
+  res.r4.assign(model->n(), 0.0);
+  res.r5.assign(model->n(), 0.0);
+  res.r6.assign(model->n(), 0.0);
 }
-void Iterate::clearDir() {
-  delta.x.assign(model->n(), 0.0);
-  delta.xl.assign(model->n(), 0.0);
-  delta.xu.assign(model->n(), 0.0);
-  delta.y.assign(model->m(), 0.0);
-  delta.zl.assign(model->n(), 0.0);
-  delta.zu.assign(model->n(), 0.0);
+void Iterate::clearDir() { delta.clear(); }
+void Iterate::clearIres() {
+  ires.r1.assign(model->m(), 0.0);
+  ires.r2.assign(model->n(), 0.0);
+  ires.r3.assign(model->n(), 0.0);
+  ires.r4.assign(model->n(), 0.0);
+  ires.r5.assign(model->n(), 0.0);
+  ires.r6.assign(model->n(), 0.0);
 }
 
 void Iterate::extract(std::vector<double>& x_user, std::vector<double>& xl_user,
@@ -615,6 +624,83 @@ void Iterate::finalResiduals(Info& info) const {
     info.p_obj = info.ipx_info.pobjval;
     info.d_obj = info.ipx_info.dobjval;
     info.pd_gap = info.ipx_info.rel_objgap;
+  }
+}
+
+void Iterate::setReg(LinearSolver& LS, OptionNla opt) {
+  // extract regularisation
+  LS.getReg(total_reg);
+
+  // easy access to primal/dual regularisation
+  if (opt == kOptionNlaNormEq) {
+    Rp = nullptr;
+    Rd = total_reg.data();
+  } else {
+    Rp = total_reg.data();
+    Rd = &total_reg[model->n()];
+  }
+}
+
+void Iterate::residuals6x6(const NewtonDir& d) {
+  const std::vector<double>& dx = d.x;
+  const std::vector<double>& dy = d.y;
+  const std::vector<double>& dxl = d.xl;
+  const std::vector<double>& dxu = d.xu;
+  const std::vector<double>& dzl = d.zl;
+  const std::vector<double>& dzu = d.zu;
+  const Int m = model->m();
+  const Int n = model->n();
+  assert(Rd);
+
+  // res1,2,3,4,5,6 contain the rhs of the linear system
+
+  // ires1 = res1 - A * dx - Rd * dy
+  ires.r1 = res.r1;
+  model->A().alphaProductPlusY(-1.0, dx, ires.r1);
+  for (Int i = 0; i < m; ++i) {
+    ires.r1[i] -= Rd[i] * dy[i];
+  }
+
+  // ires2 = res2 - dx + dxl
+  for (Int i = 0; i < n; ++i)
+    if (model->hasLb(i))
+      ires.r2[i] = res.r2[i] - dx[i] + dxl[i];
+    else
+      ires.r2[i] = 0.0;
+
+  // ires3 = res3 - dx - dxu
+  for (Int i = 0; i < n; ++i)
+    if (model->hasUb(i))
+      ires.r3[i] = res.r3[i] - dx[i] - dxu[i];
+    else
+      ires.r3[i] = 0.0;
+
+  // ires4 = res4 - A^T * dy - dzl + dzu + Rp * dx
+  ires.r4 = res.r4;
+  for (Int i = 0; i < n; ++i) {
+    if (model->hasLb(i)) ires.r4[i] -= dzl[i];
+    if (model->hasUb(i)) ires.r4[i] += dzu[i];
+  }
+  model->A().alphaProductPlusY(-1.0, dy, ires.r4, true);
+  for (Int i = 0; i < n; ++i) {
+    double reg_p = Rp ? Rp[i] : regul.primal;
+    ires.r4[i] += reg_p * dx[i];
+  }
+
+  // ires5 = res5 - zl * dxl - xl * dzl
+  for (Int i = 0; i < n; ++i) {
+    if (model->hasLb(i))
+      ires.r5[i] = res.r5[i] - zl[i] * dxl[i] - xl[i] * dzl[i];
+    else
+      ires.r5[i] = 0.0;
+  }
+
+  // ires6 = res6 - zu * dxu - xu * dzu
+  for (Int i = 0; i < n; ++i) {
+    if (model->hasUb(i))
+      ires.r6[i] = res.r6[i] - zu[i] * dxu[i] - xu[i] * dzu[i];
+    else
+      ires.r6[i] = 0.0;
   }
 }
 

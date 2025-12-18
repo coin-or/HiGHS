@@ -6,10 +6,10 @@
 #include <vector>
 
 #include "CurtisReidScaling.h"
+#include "LogHighs.h"
 #include "ipm/hipo/auxiliary/IntConfig.h"
 #include "ipm/ipx/lp_solver.h"
 #include "util/HighsSparseMatrix.h"
-#include "LogHighs.h"
 
 namespace hipo {
 
@@ -66,6 +66,10 @@ class Model {
   // information about empty rows, for postprocessing
   std::vector<Int> rows_shift_{};
   Int empty_rows_{};
+
+  // norms of rows and cols of A
+  std::vector<double> one_norm_cols_, one_norm_rows_, inf_norm_cols_,
+      inf_norm_rows_;
 
   void reformulate();
   void scale();
@@ -126,6 +130,10 @@ class Model {
   double offset() const { return offset_; }
   double maxColDensity() const { return max_col_density_; }
   Int numDenseCols() const { return num_dense_cols_; }
+  double oneNormRows(Int i) const { return one_norm_rows_[i]; }
+  double oneNormCols(Int i) const { return one_norm_cols_[i]; }
+  double infNormRows(Int i) const { return inf_norm_rows_[i]; }
+  double infNormCols(Int i) const { return inf_norm_cols_[i]; }
 
   Int loadIntoIpx(ipx::LpSolver& lps) const;
 };

@@ -141,6 +141,8 @@ class HEkk {
   bool lpFactorRowCompatible(const HighsInt expectedNumRow) const;
   std::string simplexStrategyToString(const HighsInt simplex_strategy) const;
 
+  void zeroBasicDuals();
+
   // Interface methods
   void appendColsToVectors(const HighsInt num_new_col,
                            const vector<double>& colCost,

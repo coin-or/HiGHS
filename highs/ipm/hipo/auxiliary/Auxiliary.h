@@ -8,11 +8,9 @@
 #include <vector>
 
 #include "ipm/hipo/auxiliary/IntConfig.h"
-#include "util/HighsCDouble.h"
 
 namespace hipo {
 
-void counts2Ptr(std::vector<Int>& ptr, std::vector<Int>& w);
 void inversePerm(const std::vector<Int>& perm, std::vector<Int>& iperm);
 void subtreeSize(const std::vector<Int>& parent, std::vector<Int>& sizes);
 void transpose(const std::vector<Int>& ptr, const std::vector<Int>& rows,
@@ -20,13 +18,6 @@ void transpose(const std::vector<Int>& ptr, const std::vector<Int>& rows,
 void transpose(const std::vector<Int>& ptr, const std::vector<Int>& rows,
                const std::vector<double>& val, std::vector<Int>& ptrT,
                std::vector<Int>& rowsT, std::vector<double>& valT);
-void symProduct(const std::vector<Int>& ptr, const std::vector<Int>& rows,
-                const std::vector<double>& vals, const std::vector<double>& x,
-                std::vector<double>& y, double alpha = 1.0);
-void symProductQuad(const std::vector<Int>& ptr, const std::vector<Int>& rows,
-                    const std::vector<double>& vals,
-                    const std::vector<double>& x, std::vector<HighsCDouble>& y,
-                    double alpha);
 void childrenLinkedList(const std::vector<Int>& parent, std::vector<Int>& head,
                         std::vector<Int>& next);
 void reverseLinkedList(std::vector<Int>& head, std::vector<Int>& next);
@@ -35,8 +26,24 @@ void dfsPostorder(Int node, Int& start, std::vector<Int>& head,
 void processEdge(Int j, Int i, const std::vector<Int>& first,
                  std::vector<Int>& maxfirst, std::vector<Int>& delta,
                  std::vector<Int>& prevleaf, std::vector<Int>& ancestor);
-double getDiagStart(Int n, Int k, Int nb, Int n_blocks, std::vector<Int>& start,
-                    bool triang = false);
+Int64 getDiagStart(Int n, Int k, Int nb, Int n_blocks,
+                   std::vector<Int64>& start, bool triang = false);
+
+template <typename T>
+void counts2Ptr(std::vector<T>& ptr, std::vector<T>& w) {
+  // Given the column counts in the vector w (of size n),
+  // compute the column pointers in the vector ptr (of size n+1),
+  // and copy the first n pointers back into w.
+
+  T temp_nz{};
+  T n = w.size();
+  for (T j = 0; j < n; ++j) {
+    ptr[j] = temp_nz;
+    temp_nz += w[j];
+    w[j] = ptr[j];
+  }
+  ptr[n] = temp_nz;
+}
 
 template <typename T>
 void permuteVector(std::vector<T>& v, const std::vector<Int>& perm) {

@@ -2,29 +2,28 @@
 
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <random>
 #include <stack>
 
 #include "DataCollector.h"
 #include "FactorHiGHSSettings.h"
 #include "ReturnValues.h"
+#include "amd/amd.h"
 #include "ipm/hipo/auxiliary/Auxiliary.h"
 #include "ipm/hipo/auxiliary/Log.h"
-
-// define correct int type for Metis before header is included
-#ifdef HIGHSINT64
-#define IDXTYPEWIDTH 64
-#else
-#define IDXTYPEWIDTH 32
-#endif
-#include "metis.h"
+#include "metis/metis.h"
+#include "rcm/rcm.h"
 
 namespace hipo {
 
+const Int64 int32_limit = std::numeric_limits<int32_t>::max();
+const Int64 int64_limit = std::numeric_limits<int64_t>::max();
+
 Analyse::Analyse(const std::vector<Int>& rows, const std::vector<Int>& ptr,
                  const std::vector<Int>& signs, Int nb, const Log* log,
-                 DataCollector& data)
-    : log_{log}, data_{data} {
+                 DataCollector& data, const std::string& ordering)
+    : log_{log}, data_{data}, ordering_{ordering} {
   // Input the symmetric matrix to be analysed in CSC format.
   // rows contains the row indices.
   // ptr contains the starting points of each column.
@@ -62,17 +61,18 @@ Analyse::Analyse(const std::vector<Int>& rows, const std::vector<Int>& ptr,
   ready_ = true;
 }
 
-Int Analyse::getPermutation(bool metis_no2hop) {
-  // Use Metis to compute a nested dissection permutation of the original matrix
+Int Analyse::getPermutation() {
+  // Compute fill-reducing reodering using metis, amd or rcm.
 
   perm_.resize(n_);
   iperm_.resize(n_);
 
-  // Build temporary full copy of the matrix, to be used for Metis.
-  // NB: Metis adjacency list should not contain the vertex itself, so diagonal
+  // Build temporary full copy of the matrix, to be used for reordering.
+  // NB: adjacency list should not contain the vertex itself, so diagonal
   // element is skipped.
 
   std::vector<Int> work(n_, 0);
+  Int64 total_nz = 0;
 
   // go through the columns to count nonzeros
   for (Int j = 0; j < n_; ++j) {
@@ -87,7 +87,14 @@ Int Analyse::getPermutation(bool metis_no2hop) {
 
       // duplicated on the lower part of column i
       ++work[i];
+
+      total_nz += 2;
     }
+  }
+
+  if (total_nz > kHighsIInf) {
+    if (log_) log_->printe("Integer overflow while computing ordering.\n");
+    return kRetIntOverflow;
   }
 
   // compute column pointers from column counts
@@ -110,27 +117,72 @@ Int Analyse::getPermutation(bool metis_no2hop) {
     }
   }
 
-  idx_t options[METIS_NOPTIONS];
-  METIS_SetDefaultOptions(options);
-  options[METIS_OPTION_SEED] = kMetisSeed;
+  if (ordering_ == "metis") {
+    // ----------------------------
+    // ----- METIS ----------------
+    // ----------------------------
+    idx_t options[METIS_NOPTIONS];
+    METIS_SetDefaultOptions(options);
+    options[METIS_OPTION_SEED] = kMetisSeed;
 
-  // set logging of Metis depending on debug level
-  options[METIS_OPTION_DBGLVL] = 0;
-  if (log_->debug(2))
-    options[METIS_OPTION_DBGLVL] = METIS_DBG_INFO | METIS_DBG_COARSEN;
+    // set logging of Metis depending on debug level
+    options[METIS_OPTION_DBGLVL] = 0;
+    if (log_->debug(2))
+      options[METIS_OPTION_DBGLVL] = METIS_DBG_INFO | METIS_DBG_COARSEN;
 
-  // set no2hop=1 if the user requested it
-  if (metis_no2hop) options[METIS_OPTION_NO2HOP] = 1;
+    // no2hop improves the quality of ordering in general
+    options[METIS_OPTION_NO2HOP] = 1;
 
-  if (log_) log_->printDevInfo("Running Metis\n");
+    if (log_) log_->printDevInfo("Running Metis\n");
 
-  Int status = METIS_NodeND(&n_, temp_ptr.data(), temp_rows.data(), NULL,
-                            options, perm_.data(), iperm_.data());
+    Int status = METIS_NodeND(&n_, temp_ptr.data(), temp_rows.data(), NULL,
+                              options, perm_.data(), iperm_.data());
 
-  if (log_) log_->printDevInfo("Metis done\n");
-  if (status != METIS_OK) {
-    if (log_) log_->printDevInfo("Error with Metis\n");
-    return kRetMetisError;
+    if (log_) log_->printDevInfo("Metis done\n");
+    if (status != METIS_OK) {
+      if (log_) log_->printDevInfo("Error with Metis\n");
+      return kRetOrderingError;
+    }
+
+  } else if (ordering_ == "amd") {
+    // ----------------------------
+    // ------ AMD -----------------
+    // ----------------------------
+    double control[AMD_CONTROL];
+    amd_defaults(control);
+    double info[AMD_INFO];
+
+    if (log_) log_->printDevInfo("Running AMD\n");
+    Int status = amd_order(n_, temp_ptr.data(), temp_rows.data(), perm_.data(),
+                           control, info);
+    if (log_) log_->printDevInfo("AMD done\n");
+
+    if (status != AMD_OK) {
+      if (log_) log_->printDevInfo("Error with AMD\n");
+      return kRetOrderingError;
+    }
+    inversePerm(perm_, iperm_);
+  }
+
+  else if (ordering_ == "rcm") {
+    // ----------------------------
+    // ------ RCM -----------------
+    // ----------------------------
+
+    if (log_) log_->printDevInfo("Running RCM\n");
+    Int status = genrcm(n_, temp_ptr.back(), temp_ptr.data(), temp_rows.data(),
+                        perm_.data());
+    if (log_) log_->printDevInfo("RCM done\n");
+
+    if (status != 0) {
+      if (log_) log_->printDevInfo("Error with RCM\n");
+      return kRetOrderingError;
+    }
+    inversePerm(perm_, iperm_);
+
+  } else {
+    if (log_) log_->printe("Invalid ordering option passed to Analyse\n");
+    return kRetOrderingError;
   }
 
   return kRetOk;
@@ -324,7 +376,7 @@ void Analyse::colCount() {
   dense_ops_norelax_ = 0.0;
   nz_factor_ = 0;
   for (Int j = 0; j < n_; ++j) {
-    nz_factor_ += (int64_t)col_count_[j];
+    nz_factor_ += col_count_[j];
     dense_ops_norelax_ += (double)(col_count_[j] - 1) * (col_count_[j] - 1);
   }
 }
@@ -375,7 +427,7 @@ void Analyse::fundamentalSupernodes() {
   // number of supernodes found
   sn_count_ = sn_belong_.back() + 1;
 
-  // fsn_ptr contains pointers to the starting node of each supernode
+  // sn_start_ contains pointers to the starting node of each supernode
   sn_start_.resize(sn_count_ + 1);
   Int next = 0;
   for (Int i = 0; i < n_; ++i) {
@@ -399,7 +451,7 @@ void Analyse::fundamentalSupernodes() {
   sn_parent_.back() = -1;
 }
 
-double Analyse::doRelaxSupernodes(int64_t max_artificial_nz) {
+double Analyse::doRelaxSupernodes(Int64 max_artificial_nz) {
   // =================================================
   // Build information about supernodes
   // =================================================
@@ -430,20 +482,20 @@ double Analyse::doRelaxSupernodes(int64_t max_artificial_nz) {
       Int child = first_child[sn];
 
       // info for first criterion
-      int64_t nz_fakenz = kHighsIInf;
+      Int64 nz_fakenz = int64_limit;
       Int size_fakenz = 0;
       Int child_fakenz = -1;
 
       while (child != -1) {
         // how many zero rows would become nonzero
-        const int64_t rows_filled =
+        const Int rows_filled =
             sn_size[sn] + clique_size[sn] - clique_size[child];
 
         // how many zero entries would become nonzero
-        const int64_t nz_added = rows_filled * sn_size[child];
+        const Int64 nz_added = (Int64)rows_filled * sn_size[child];
 
         // how many artificial nonzeros would the merged supernode have
-        const int64_t total_art_nz = nz_added + fake_nz_[sn] + fake_nz_[child];
+        const Int64 total_art_nz = nz_added + fake_nz_[sn] + fake_nz_[child];
 
         // Save child with smallest number of artificial zeros created.
         // Ties are broken based on size of child.
@@ -518,12 +570,12 @@ void Analyse::relaxSupernodes() {
   // Multiple values of max_artificial_nz are tried, chosen with bisection
   // method, until the percentage of artificial nonzeros is in the range [1,2]%.
 
-  int64_t max_artificial_nz = kStartThreshRelax;
-  int64_t largest_below = -1;
-  int64_t smallest_above = -1;
+  Int64 max_artificial_nz = kStartThreshRelax;
+  Int64 largest_below = -1;
+  Int64 smallest_above = -1;
 
   double best_dist_ratio = kHighsInf;
-  int64_t best_max_art_nz = -1;
+  Int64 best_max_art_nz = -1;
 
   for (Int iter = 0; iter < kMaxIterRelax; ++iter) {
     // relax the supernodes and obtain the ratio of how many new ops have been
@@ -736,9 +788,9 @@ void Analyse::afterRelaxSn() {
 
 void Analyse::snPattern() {
   // number of total indices needed
-  Int indices{};
+  Int64 indices{};
 
-  for (Int i : sn_indices_) indices += i;
+  for (Int64 i : sn_indices_) indices += i;
 
   // allocate space for sn pattern
   rows_sn_.resize(indices);
@@ -748,7 +800,8 @@ void Analyse::snPattern() {
   std::vector<Int> mark(sn_count_, -1);
 
   // compute column pointers of L
-  std::vector<Int> work(sn_indices_);
+  std::vector<Int64> work(sn_indices_.size());
+  for (Int i = 0; i < sn_indices_.size(); ++i) work[i] = sn_indices_[i];
   counts2Ptr(ptr_sn_, work);
 
   // consider each row
@@ -787,14 +840,14 @@ void Analyse::relativeIndCols() {
 
   // go through the supernodes
   for (Int sn = 0; sn < sn_count_; ++sn) {
-    const Int ptL_start = ptr_sn_[sn];
-    const Int ptL_end = ptr_sn_[sn + 1];
+    const Int64 ptL_start = ptr_sn_[sn];
+    const Int64 ptL_end = ptr_sn_[sn + 1];
 
     // go through the columns of the supernode
     for (Int col = sn_start_[sn]; col < sn_start_[sn + 1]; ++col) {
       // go through original column and supernodal column
       Int ptA = ptr_lower_[col];
-      Int ptL = ptL_start;
+      Int64 ptL = ptL_start;
 
       // offset wrt ptrLower[col]
       Int index{};
@@ -811,6 +864,7 @@ void Analyse::relativeIndCols() {
         // check if indices coincide
         if (rows_sn_[ptL] == rows_lower_[ptA]) {
           // yes: save relative index and move pointers forward
+          // NB: difference fits into Int
           relind_cols_[ptr_lower_[col] + index] = ptL - ptL_start;
           ++index;
           ++ptL;
@@ -853,14 +907,14 @@ void Analyse::relativeIndClique() {
     relind_clique_[sn].resize(sn_clique_size);
 
     // iterate through the clique of sn
-    Int ptr_current = ptr_sn_[sn] + sn_size;
+    Int64 ptr_current = ptr_sn_[sn] + sn_size;
 
     // iterate through the full column of parent sn
-    Int ptr_parent = ptr_sn_[sn_parent_[sn]];
+    Int64 ptr_parent = ptr_sn_[sn_parent_[sn]];
 
     // keep track of start and end of parent sn column
-    const Int ptr_parent_start = ptr_parent;
-    const Int ptr_parent_end = ptr_sn_[sn_parent_[sn] + 1];
+    const Int64 ptr_parent_start = ptr_parent;
+    const Int64 ptr_parent_end = ptr_sn_[sn_parent_[sn] + 1];
 
     // where to write into relind
     Int index{};
@@ -875,6 +929,7 @@ void Analyse::relativeIndClique() {
       // check if indices coincide
       if (rows_sn_[ptr_current] == rows_sn_[ptr_parent]) {
         // yes: save relative index and move pointers forward
+        // NB: difference fits into Int
         relind_clique_[sn][index] = ptr_parent - ptr_parent_start;
         ++index;
         ++ptr_parent;
@@ -907,101 +962,24 @@ void Analyse::relativeIndClique() {
   }
 }
 
-void Analyse::computeStorage(Int fr, Int sz, double& fr_entries,
-                             double& cl_entries) const {
+void Analyse::computeStorage(Int fr, Int sz, Int64& fr_entries,
+                             Int64& cl_entries) const {
   // compute storage required by frontal and clique, based on the format used
 
   const Int cl = fr - sz;
 
   Int n_blocks = (sz - 1) / nb_ + 1;
-  std::vector<Int> temp;
+  std::vector<Int64> temp;
   fr_entries = getDiagStart(fr, sz, nb_, n_blocks, temp);
 
   // clique is stored as a collection of rectangles
   n_blocks = (cl - 1) / nb_ + 1;
-  double schur_size{};
+  Int64 schur_size{};
   for (Int j = 0; j < n_blocks; ++j) {
     const Int jb = std::min(nb_, cl - j * nb_);
-    schur_size += (double)(cl - j * nb_) * jb;
+    schur_size += (Int64)(cl - j * nb_) * jb;
   }
   cl_entries = schur_size;
-}
-
-void Analyse::computeStorage() {
-  std::vector<double> clique_entries(sn_count_);
-  std::vector<double> frontal_entries(sn_count_);
-  std::vector<double> storage(sn_count_);
-  std::vector<double> storage_factors(sn_count_);
-
-  // initialise data of supernodes
-  for (Int sn = 0; sn < sn_count_; ++sn) {
-    // supernode size
-    const Int sz = sn_start_[sn + 1] - sn_start_[sn];
-
-    // frontal size
-    const Int fr = ptr_sn_[sn + 1] - ptr_sn_[sn];
-
-    // compute storage based on format used
-    computeStorage(fr, sz, frontal_entries[sn], clique_entries[sn]);
-
-    // compute number of entries in factors within the subtree
-    storage_factors[sn] += frontal_entries[sn];
-    if (sn_parent_[sn] != -1)
-      storage_factors[sn_parent_[sn]] += storage_factors[sn];
-  }
-
-  // linked lists of children
-  std::vector<Int> head, next;
-  childrenLinkedList(sn_parent_, head, next);
-
-  // go through the supernodes
-  for (Int sn = 0; sn < sn_count_; ++sn) {
-    // leaf node
-    if (head[sn] == -1) {
-      storage[sn] = frontal_entries[sn] + clique_entries[sn];
-      continue;
-    }
-
-    double clique_total_entries{};
-    double factors_total_entries{};
-    Int child = head[sn];
-    while (child != -1) {
-      clique_total_entries += clique_entries[child];
-      factors_total_entries += storage_factors[child];
-      child = next[child];
-    }
-
-    // Compute storage
-    // storage is found as max(storage_1,storage_2), where
-    // storage_1 = max_j storage[j] + \sum_{k up to j-1} clique_entries[k] +
-    //                                                   storage_factors[k]
-    // storage_2 = frontal_entries + clique_entries + clique_total_entries +
-    //             factors_total_entries
-    const double storage_2 = frontal_entries[sn] + clique_entries[sn] +
-                             clique_total_entries + factors_total_entries;
-
-    double clique_partial_entries{};
-    double factors_partial_entries{};
-    double storage_1{};
-
-    child = head[sn];
-    while (child != -1) {
-      double current =
-          storage[child] + clique_partial_entries + factors_partial_entries;
-
-      clique_partial_entries += clique_entries[child];
-      factors_partial_entries += storage_factors[child];
-      storage_1 = std::max(storage_1, current);
-
-      child = next[child];
-    }
-    storage[sn] = std::max(storage_1, storage_2);
-  }
-
-  for (Int sn = 0; sn < sn_count_; ++sn) {
-    // save max storage needed, multiply by 8 because double needs 8 bytes
-    serial_storage_ = std::max(serial_storage_, 8 * storage[sn]);
-  }
 }
 
 void Analyse::computeCriticalPath() {
@@ -1049,8 +1027,8 @@ void Analyse::computeCriticalPath() {
 }
 
 void Analyse::reorderChildren() {
-  std::vector<double> clique_entries(sn_count_);
-  std::vector<double> frontal_entries(sn_count_);
+  std::vector<Int64> clique_entries(sn_count_);
+  std::vector<Int64> frontal_entries(sn_count_);
   std::vector<double> storage(sn_count_);
   std::vector<double> storage_factors(sn_count_);
 
@@ -1220,10 +1198,95 @@ void Analyse::computeBlockStart() {
     const Int ldc = ldf - sn_size;
     const Int n_blocks = (ldc - 1) / nb_ + 1;
 
-    Int schur_size =
+    Int64 schur_size =
         getDiagStart(ldc, ldc, nb_, n_blocks, clique_block_start_[sn]);
     clique_block_start_[sn].push_back(schur_size);
   }
+}
+
+Int Analyse::checkOverflow() const {
+  // In order to use 32-bit BLAS, any data accessed by BLAS must be addressable
+  // using 32-bit integer offset. If BLAS is given a pointer double* A, the
+  // distance between the first and last entry of A used by BLAS needs to be
+  // smaller than int32_limit. Since the matrices are stored in blocked data
+  // structures, and BLAS only uses contiguous data from a given block of
+  // columns, we need to impose that:
+  //   front_size * min(block_size, sn_size) <= int32_limit
+
+  for (Int sn = 0; sn < sn_count_; ++sn) {
+    const Int sn_size = sn_start_[sn + 1] - sn_start_[sn];
+    const Int front_size = ptr_sn_[sn + 1] - ptr_sn_[sn];
+
+    if ((Int64)front_size * std::min(sn_size, nb_) > int32_limit) return 1;
+  }
+
+  return 0;
+}
+
+void Analyse::computeStackSize() {
+  // Compute the minimum size of the stack to process the elimination tree
+  // serially.
+
+  std::vector<Int64> clique_entries(sn_count_);
+  std::vector<Int64> stack_subtrees(sn_count_);
+  Int64 total_frontal{};
+
+  // initialise data of supernodes
+  for (Int sn = 0; sn < sn_count_; ++sn) {
+    // supernode size
+    const Int sz = sn_start_[sn + 1] - sn_start_[sn];
+
+    // frontal size
+    const Int fr = ptr_sn_[sn + 1] - ptr_sn_[sn];
+
+    Int64 frontal_entries{};
+
+    // compute storage based on format used
+    computeStorage(fr, sz, frontal_entries, clique_entries[sn]);
+
+    total_frontal += frontal_entries;
+  }
+
+  // linked lists of children
+  std::vector<Int> head, next;
+  childrenLinkedList(sn_parent_, head, next);
+
+  // go through the supernodes
+  for (Int sn = 0; sn < sn_count_; ++sn) {
+    // leaf node
+    if (head[sn] == -1) {
+      stack_subtrees[sn] = clique_entries[sn];
+      continue;
+    }
+
+    // Compute storage
+    // storage is found as max(storage_1,storage_2), where
+    // storage_1 = max_j stack_size[j] + \sum_{k up to j-1} clique_entries[k]
+    // storage_2 = clique_total_entries (including node itself)
+
+    Int64 clique_partial_entries{};
+    Int64 storage_1{};
+
+    Int child = head[sn];
+    while (child != -1) {
+      Int64 current = stack_subtrees[child] + clique_partial_entries;
+
+      clique_partial_entries += clique_entries[child];
+      storage_1 = std::max(storage_1, current);
+
+      child = next[child];
+    }
+
+    Int64 storage_2 = clique_partial_entries + clique_entries[sn];
+
+    stack_subtrees[sn] = std::max(storage_1, storage_2);
+    max_stack_size_ = std::max(max_stack_size_, stack_subtrees[sn]);
+  }
+
+  // minimum storage in serial is equal to the space needed to store the
+  // factorisation and the maximum size of the stack. Times 8 to obtain the
+  // number of bytes.
+  serial_storage_ = (total_frontal + max_stack_size_) * 8;
 }
 
 Int Analyse::run(Symbolic& S) {
@@ -1239,9 +1302,9 @@ Int Analyse::run(Symbolic& S) {
 #if HIPO_TIMING_LEVEL >= 2
   Clock clock_items;
 #endif
-  if (getPermutation(S.metisNo2hop())) return kRetMetisError;
+  if (getPermutation()) return kRetOrderingError;
 #if HIPO_TIMING_LEVEL >= 2
-  data_.sumTime(kTimeAnalyseMetis, clock_items.stop());
+  data_.sumTime(kTimeAnalyseOrdering, clock_items.stop());
 #endif
 
 #if HIPO_TIMING_LEVEL >= 2
@@ -1297,9 +1360,9 @@ Int Analyse::run(Symbolic& S) {
   data_.sumTime(kTimeAnalyseRelInd, clock_items.stop());
 #endif
 
-  computeStorage();
   computeBlockStart();
   computeCriticalPath();
+  computeStackSize();
 
   // move relevant stuff into S
   S.n_ = n_;
@@ -1314,6 +1377,8 @@ Int Analyse::run(Symbolic& S) {
   S.serial_storage_ = serial_storage_;
   S.flops_ = dense_ops_;
   S.block_size_ = nb_;
+  S.max_stack_size_ = max_stack_size_;
+  S.ordering = ordering_;
 
   // compute largest supernode
   std::vector<Int> sn_size(sn_start_.begin() + 1, sn_start_.end());
@@ -1327,11 +1392,8 @@ Int Analyse::run(Symbolic& S) {
     if (i <= 100) S.sn_size_100_++;
   }
 
-  // Too many nonzeros for the integer type selected.
-  // Check after statistics have been moved into S, so that info is accessible
-  // for debug logging.
-  if (nz_factor_ >= kHighsIInf) {
-    if (log_) log_->printDevInfo("Integer overflow in analyse phase\n");
+  if (checkOverflow()) {
+    if (log_) log_->printe("Integer overflow in analyse phase\n");
     return kRetIntOverflow;
   }
 

@@ -3963,7 +3963,7 @@ bool Highs::hasRepeatedLinearObjectivePriorities(
 
 static bool comparison(std::pair<HighsInt, HighsInt> x1,
                        std::pair<HighsInt, HighsInt> x2) {
-  return x1.first >= x2.first;
+  return x1.first > x2.first;
 }
 
 HighsStatus Highs::returnFromLexicographicOptimization(

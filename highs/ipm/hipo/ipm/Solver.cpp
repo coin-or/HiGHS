@@ -4,6 +4,7 @@
 #include <cmath>
 #include <iostream>
 
+#include "ipm/hipo/auxiliary/AutoDetect.h"
 #include "ipm/hipo/auxiliary/Log.h"
 #include "parallel/HighsParallel.h"
 
@@ -32,6 +33,7 @@ Int Solver::load(const Int num_var, const Int num_con, const double* obj,
 void Solver::setOptions(const Options& options) {
   options_ = options;
   if (options_.display) logH_.setOptions(options_.log_options);
+  control_.setOptions(options_);
 }
 void Solver::setCallback(HighsCallback& callback) {
   control_.setCallback(callback);
@@ -151,7 +153,6 @@ bool Solver::predictor() {
   it_->residual56(sigma_);
 
   if (solveNewtonSystem(it_->delta)) return true;
-  if (recoverDirection(it_->delta)) return true;
 
   return false;
 }
@@ -267,21 +268,41 @@ void Solver::runCrossover() {
 }
 
 bool Solver::solveNewtonSystem(NewtonDir& delta) {
+  solve6x6(delta, it_->res);
+  refine(delta);
+
+  // Check for NaN of Inf
+  if (it_->isDirNan(delta)) {
+    logH_.printDevInfo("Direction is nan\n");
+    info_.status = kStatusError;
+    return true;
+  } else if (it_->isDirInf(delta)) {
+    logH_.printDevInfo("Direction is inf\n");
+    info_.status = kStatusError;
+    return true;
+  }
+
+  return false;
+}
+
+bool Solver::solve2x2(NewtonDir& delta, const Residuals& rhs) {
   std::vector<double>& theta_inv = it_->scaling;
 
-  std::vector<double> res7 = it_->residual7();
+  std::vector<double> res7 = it_->residual7(rhs);
 
   // NORMAL EQUATIONS
   if (options_.nla == kOptionNlaNormEq) {
-    std::vector<double> res8 = it_->residual8(res7);
+    std::vector<double> res8 = it_->residual8(rhs, res7);
 
     // factorise normal equations, if not yet done
-    if (!LS_->valid_)
+    if (!LS_->valid_) {
       if (Int status = LS_->factorNE(model_.A(), theta_inv)) {
         logH_.printe("Error while factorising normal equations\n");
         info_.status = (Status)status;
         return true;
       }
+      it_->setReg(*LS_, options_.nla);
+    }
 
     // solve with normal equations
     if (Int status = LS_->solveNE(res8, delta.y)) {
@@ -304,15 +325,17 @@ bool Solver::solveNewtonSystem(NewtonDir& delta) {
   // AUGMENTED SYSTEM
   else {
     // factorise augmented system, if not yet done
-    if (!LS_->valid_)
+    if (!LS_->valid_) {
       if (Int status = LS_->factorAS(model_.A(), theta_inv)) {
         logH_.printe("Error while factorising augmented system\n");
         info_.status = (Status)status;
         return true;
       }
+      it_->setReg(*LS_, options_.nla);
+    }
 
     // solve with augmented system
-    if (Int status = LS_->solveAS(res7, it_->res1, delta.x, delta.y)) {
+    if (Int status = LS_->solveAS(res7, rhs.r1, delta.x, delta.y)) {
       logH_.printe("Error while solving augmented system\n");
       info_.status = (Status)status;
       return true;
@@ -322,17 +345,23 @@ bool Solver::solveNewtonSystem(NewtonDir& delta) {
   return false;
 }
 
-bool Solver::recoverDirection(NewtonDir& delta) {
+bool Solver::solve6x6(NewtonDir& delta, const Residuals& rhs) {
+  if (solve2x2(delta, rhs)) return true;
+  recoverDirection(delta, rhs);
+  return false;
+}
+
+void Solver::recoverDirection(NewtonDir& delta, const Residuals& rhs) const {
   // Recover components xl, xu, zl, zu of partial direction delta.
-  std::vector<double>& xl = it_->xl;
-  std::vector<double>& xu = it_->xu;
-  std::vector<double>& zl = it_->zl;
-  std::vector<double>& zu = it_->zu;
-  std::vector<double>& res2 = it_->res2;
-  std::vector<double>& res3 = it_->res3;
-  std::vector<double>& res4 = it_->res4;
-  std::vector<double>& res5 = it_->res5;
-  std::vector<double>& res6 = it_->res6;
+  const std::vector<double>& xl = it_->xl;
+  const std::vector<double>& xu = it_->xu;
+  const std::vector<double>& zl = it_->zl;
+  const std::vector<double>& zu = it_->zu;
+  const std::vector<double>& res2 = rhs.r2;
+  const std::vector<double>& res3 = rhs.r3;
+  const std::vector<double>& res4 = rhs.r4;
+  const std::vector<double>& res5 = rhs.r5;
+  const std::vector<double>& res6 = rhs.r6;
 
   for (Int i = 0; i < n_; ++i) {
     if (model_.hasLb(i) || model_.hasUb(i)) {
@@ -370,20 +399,6 @@ bool Solver::recoverDirection(NewtonDir& delta) {
       }
     }
   }
-
-  backwardError(delta);
-
-  // Check for NaN of Inf
-  if (it_->isDirNan()) {
-    logH_.printDevInfo("Direction is nan\n");
-    info_.status = kStatusError;
-    return true;
-  } else if (it_->isDirInf()) {
-    logH_.printDevInfo("Direction is inf\n");
-    info_.status = kStatusError;
-    return true;
-  }
-  return false;
 }
 
 double Solver::stepToBoundary(const std::vector<double>& x,
@@ -788,8 +803,8 @@ void Solver::residualsMcc() {
   std::vector<double>& xu = it_->xu;
   std::vector<double>& zl = it_->zl;
   std::vector<double>& zu = it_->zu;
-  std::vector<double>& res5 = it_->res5;
-  std::vector<double>& res6 = it_->res6;
+  std::vector<double>& res5 = it_->res.r5;
+  std::vector<double>& res6 = it_->res.r6;
   double& mu = it_->mu;
 
   // clear existing residuals
@@ -877,7 +892,6 @@ bool Solver::centralityCorrectors() {
     // compute corrector
     NewtonDir corr(m_, n_);
     if (solveNewtonSystem(corr)) return true;
-    if (recoverDirection(corr)) return true;
 
     double alpha_p, alpha_d;
     double wp = alpha_p_old * alpha_d_old;
@@ -1070,298 +1084,6 @@ bool Solver::checkInterrupt() {
   return terminate;
 }
 
-void Solver::backwardError(const NewtonDir& delta) const {
-  if (logH_.debug(1)) {
-    std::vector<double>& x = it_->x;
-    std::vector<double>& xl = it_->xl;
-    std::vector<double>& xu = it_->xu;
-    std::vector<double>& y = it_->y;
-    std::vector<double>& zl = it_->zl;
-    std::vector<double>& zu = it_->zu;
-    std::vector<double>& res1 = it_->res1;
-    std::vector<double>& res2 = it_->res2;
-    std::vector<double>& res3 = it_->res3;
-    std::vector<double>& res4 = it_->res4;
-    std::vector<double>& res5 = it_->res5;
-    std::vector<double>& res6 = it_->res6;
-
-    // ===================================================================================
-    // Normwise backward error
-    // ===================================================================================
-
-    // residuals of the six blocks of equations
-    // res1 - A * dx
-    std::vector<double> r1 = res1;
-    model_.A().alphaProductPlusY(-1.0, delta.x, r1);
-
-    // res2 - dx + dxl
-    std::vector<double> r2(n_);
-    for (Int i = 0; i < n_; ++i)
-      if (model_.hasLb(i)) r2[i] = res2[i] - delta.x[i] + delta.xl[i];
-
-    // res3 - dx - dxu
-    std::vector<double> r3(n_);
-    for (Int i = 0; i < n_; ++i)
-      if (model_.hasUb(i)) r3[i] = res3[i] - delta.x[i] - delta.xu[i];
-
-    // res4 - A^T * dy - dzl + dzu
-    std::vector<double> r4(n_);
-    for (Int i = 0; i < n_; ++i) {
-      r4[i] = res4[i];
-      if (model_.hasLb(i)) r4[i] -= delta.zl[i];
-      if (model_.hasUb(i)) r4[i] += delta.zu[i];
-    }
-    model_.A().alphaProductPlusY(-1.0, delta.y, r4, true);
-
-    // res5 - Zl * Dxl - Xl * Dzl
-    std::vector<double> r5(n_);
-    for (Int i = 0; i < n_; ++i) {
-      if (model_.hasLb(i))
-        r5[i] = res5[i] - zl[i] * delta.xl[i] - xl[i] * delta.zl[i];
-    }
-
-    // res6 - Zu * Dxu - Xu * Dzu
-    std::vector<double> r6(n_);
-    for (Int i = 0; i < n_; ++i) {
-      if (model_.hasUb(i))
-        r6[i] = res6[i] - zu[i] * delta.xu[i] - xu[i] * delta.zu[i];
-    }
-
-    // ...and their infinity norm
-    double inf_norm_r{};
-    inf_norm_r = std::max(inf_norm_r, infNorm(r1));
-    inf_norm_r = std::max(inf_norm_r, infNorm(r2));
-    inf_norm_r = std::max(inf_norm_r, infNorm(r3));
-    inf_norm_r = std::max(inf_norm_r, infNorm(r4));
-    inf_norm_r = std::max(inf_norm_r, infNorm(r5));
-    inf_norm_r = std::max(inf_norm_r, infNorm(r6));
-
-    // infinity norm of solution
-    double inf_norm_delta{};
-    inf_norm_delta = std::max(inf_norm_delta, infNorm(delta.x));
-    inf_norm_delta = std::max(inf_norm_delta, infNorm(delta.xl));
-    inf_norm_delta = std::max(inf_norm_delta, infNorm(delta.xu));
-    inf_norm_delta = std::max(inf_norm_delta, infNorm(delta.y));
-    inf_norm_delta = std::max(inf_norm_delta, infNorm(delta.zl));
-    inf_norm_delta = std::max(inf_norm_delta, infNorm(delta.zu));
-
-    // infinity norm of rhs
-    double inf_norm_res{};
-    inf_norm_res = std::max(inf_norm_res, infNorm(res1));
-    inf_norm_res = std::max(inf_norm_res, infNorm(res2));
-    inf_norm_res = std::max(inf_norm_res, infNorm(res3));
-    inf_norm_res = std::max(inf_norm_res, infNorm(res4));
-    inf_norm_res = std::max(inf_norm_res, infNorm(res5));
-    inf_norm_res = std::max(inf_norm_res, infNorm(res6));
-
-    // infinity norm of big 6x6 matrix:
-    // max( ||A||_inf, 2, 2+||A||_1, max_j(zl_j+xl_j), max_j(zu_j+xu_j) )
-
-    std::vector<double> one_norm_cols_A(n_);
-    std::vector<double> one_norm_rows_A(m_);
-    std::vector<double> inf_norm_rows_A(m_);
-    std::vector<double> inf_norm_cols_A(n_);
-    for (Int col = 0; col < n_; ++col) {
-      for (Int el = model_.A().start_[col]; el < model_.A().start_[col + 1];
-           ++el) {
-        Int row = model_.A().index_[el];
-        double val = model_.A().value_[el];
-        one_norm_cols_A[col] += std::abs(val);
-        one_norm_rows_A[row] += std::abs(val);
-        inf_norm_rows_A[row] = std::max(inf_norm_rows_A[row], std::abs(val));
-        inf_norm_cols_A[col] = std::max(inf_norm_cols_A[col], std::abs(val));
-      }
-    }
-    double one_norm_A =
-        *std::max_element(one_norm_cols_A.begin(), one_norm_cols_A.end());
-    double inf_norm_A =
-        *std::max_element(one_norm_rows_A.begin(), one_norm_rows_A.end());
-
-    double inf_norm_matrix = inf_norm_A;
-    inf_norm_matrix = std::max(inf_norm_matrix, one_norm_A + 2);
-    for (Int i = 0; i < n_; ++i) {
-      if (model_.hasLb(i))
-        inf_norm_matrix = std::max(inf_norm_matrix, zl[i] + xl[i]);
-      if (model_.hasUb(i))
-        inf_norm_matrix = std::max(inf_norm_matrix, zu[i] + xu[i]);
-    }
-
-    // compute normwise backward error:
-    // ||residual|| / ( ||matrix|| * ||solution|| + ||rhs|| )
-    double nw_back_err =
-        inf_norm_r / (inf_norm_matrix * inf_norm_delta + inf_norm_res);
-
-    // ===================================================================================
-    // Componentwise backward error
-    // ===================================================================================
-
-    // Compute |A| * |dx| and |A^T| * |dy|
-    std::vector<double> abs_prod_A(m_);
-    std::vector<double> abs_prod_At(n_);
-    for (Int col = 0; col < n_; ++col) {
-      for (Int el = model_.A().start_[col]; el < model_.A().start_[col + 1];
-           ++el) {
-        Int row = model_.A().index_[el];
-        double val = model_.A().value_[el];
-        abs_prod_A[row] += std::abs(val) * std::abs(delta.x[col]);
-        abs_prod_At[col] += std::abs(val) * std::abs(delta.y[row]);
-      }
-    }
-
-    // componentwise backward error:
-    // max |residual_i| / (|matrix| * |solution| + |rhs|)_i
-    // unless denominator is small. See "Solving sparse linear systems
-    // with sparse backward error", Arioli, Demmel, Duff.
-
-    double cw_back_err{};
-    Int large_components{};
-    const double large_thresh = 1e-2;
-
-    // first block
-    for (Int i = 0; i < m_; ++i) {
-      double denom = abs_prod_A[i] + std::abs(res1[i]);
-      double num = std::abs(r1[i]);
-
-      const double tau =
-          1000 * (5 * n_ + m_) * 1e-16 *
-          (inf_norm_rows_A[i] * inf_norm_delta + std::abs(res1[i]));
-      if (denom <= tau) {
-        denom = abs_prod_A[i] + one_norm_rows_A[i] * inf_norm_delta;
-        ++large_components;
-      }
-
-      if (denom == 0.0) {
-        if (num != 0.0) cw_back_err = kHighsInf;
-      } else {
-        const double temp = num / denom;
-        cw_back_err = std::max(cw_back_err, temp);
-      }
-    }
-    // second and third block
-    for (Int i = 0; i < n_; ++i) {
-      if (model_.hasLb(i)) {
-        double denom =
-            std::abs(delta.x[i]) + std::abs(delta.xl[i]) + std::abs(res2[i]);
-        double num = std::abs(r2[i]);
-
-        const double tau = 1000 * (5 * n_ + m_) * 1e-16 *
-                           (1.0 * inf_norm_delta + std::abs(res2[i]));
-        if (denom <= tau) {
-          denom = std::abs(delta.x[i]) + std::abs(delta.xl[i]) +
-                  2.0 * inf_norm_delta;
-          ++large_components;
-        }
-
-        if (denom == 0.0) {
-          if (num != 0.0) cw_back_err = kHighsInf;
-        } else {
-          const double temp = num / denom;
-          cw_back_err = std::max(cw_back_err, temp);
-        }
-      }
-      if (model_.hasUb(i)) {
-        double denom =
-            std::abs(delta.x[i]) + std::abs(delta.xu[i]) + std::abs(res3[i]);
-        double num = std::abs(r3[i]);
-
-        const double tau = 1000 * (5 * n_ + m_) * 1e-16 *
-                           (1.0 * inf_norm_delta + std::abs(res3[i]));
-        if (denom <= tau) {
-          denom = std::abs(delta.x[i]) + std::abs(delta.xu[i]) +
-                  2.0 * inf_norm_delta;
-          ++large_components;
-        }
-
-        if (denom == 0.0) {
-          if (num != 0.0) cw_back_err = kHighsInf;
-        } else {
-          const double temp = num / denom;
-          cw_back_err = std::max(cw_back_err, temp);
-        }
-      }
-    }
-    // fourth block
-    for (Int i = 0; i < n_; ++i) {
-      double denom = abs_prod_At[i] + std::abs(res4[i]);
-      if (model_.hasLb(i)) denom += std::abs(delta.zl[i]);
-      if (model_.hasUb(i)) denom += std::abs(delta.zu[i]);
-      double num = std::abs(r4[i]);
-
-      double inf_norm_row = std::max(inf_norm_cols_A[i], 1.0);
-      const double tau = 1000 * (5 * n_ + m_) * 1e-16 *
-                         (inf_norm_row * inf_norm_delta + std::abs(res4[i]));
-      if (denom <= tau) {
-        denom = abs_prod_At[i];
-        if (model_.hasLb(i)) denom += std::abs(delta.zl[i]);
-        if (model_.hasUb(i)) denom += std::abs(delta.zu[i]);
-        denom += (one_norm_cols_A[i] + 2.0) * inf_norm_delta;
-        ++large_components;
-      }
-
-      if (denom == 0.0) {
-        if (num != 0.0) cw_back_err = kHighsInf;
-      } else {
-        const double temp = num / denom;
-        cw_back_err = std::max(cw_back_err, temp);
-      }
-    }
-    // fifth and sixth block
-    for (Int i = 0; i < n_; ++i) {
-      if (model_.hasLb(i)) {
-        double denom = zl[i] * std::abs(delta.xl[i]) +
-                       xl[i] * std::abs(delta.zl[i]) + std::abs(res5[i]);
-        double num = std::abs(r5[i]);
-
-        const double tau =
-            1000 * (5 * n_ + m_) * 1e-16 *
-            (std::max(xl[i], zl[i]) * inf_norm_delta + std::abs(res5[i]));
-        if (denom <= tau) {
-          denom = zl[i] * std::abs(delta.xl[i]) +
-                  xl[i] * std::abs(delta.zl[i]) +
-                  (zl[i] + xl[i]) * inf_norm_delta;
-          ++large_components;
-        }
-
-        if (denom == 0.0) {
-          if (num != 0.0) cw_back_err = kHighsInf;
-        } else {
-          const double temp = num / denom;
-          cw_back_err = std::max(cw_back_err, temp);
-        }
-      }
-      if (model_.hasUb(i)) {
-        double denom = zu[i] * std::abs(delta.xu[i]) +
-                       xu[i] * std::abs(delta.zu[i]) + std::abs(res6[i]);
-        double num = std::abs(r6[i]);
-
-        const double tau =
-            1000 * (5 * n_ + m_) * 1e-16 *
-            (std::max(xu[i], zu[i]) * inf_norm_delta + std::abs(res6[i]));
-        if (denom <= tau) {
-          denom = zu[i] * std::abs(delta.xu[i]) +
-                  xu[i] * std::abs(delta.zu[i]) +
-                  (zu[i] + xu[i]) * inf_norm_delta;
-          ++large_components;
-        }
-
-        if (denom == 0.0) {
-          if (num != 0.0) cw_back_err = kHighsInf;
-        } else {
-          const double temp = num / denom;
-          cw_back_err = std::max(cw_back_err, temp);
-        }
-      }
-    }
-
-    it_->data.back().nw_back_err =
-        std::max(it_->data.back().nw_back_err, nw_back_err);
-    it_->data.back().cw_back_err =
-        std::max(it_->data.back().cw_back_err, nw_back_err);
-    it_->data.back().large_components_cw =
-        std::max(it_->data.back().large_components_cw, large_components);
-  }
-}
-
 void Solver::printHeader() const {
   if (iter_ % 20 == 0) {
     std::stringstream log_stream;
@@ -1489,6 +1211,10 @@ void Solver::printSummary() const {
                << fix(info_.factor_time, 0, 2) << '\n';
     log_stream << textline("Solve time:") << fix(info_.solve_time, 0, 2)
                << '\n';
+    log_stream << textline("Residual time:") << fix(info_.residual_time, 0, 2)
+               << '\n';
+    log_stream << textline("Omega time:") << fix(info_.omega_time, 0, 2)
+               << '\n';
     log_stream << textline("Factorisations:") << integer(info_.factor_number)
                << '\n';
     log_stream << textline("Solves:") << integer(info_.solve_number) << '\n';
@@ -1560,7 +1286,7 @@ void Solver::maxCorrectors() {
     // all the time, so use f/2.
     // Therefore, we want (1+k)(1+f/2) < ratio.
 
-    double thresh = ratio / (1.0 + kMaxRefinementIter / 2.0) - 1;
+    double thresh = ratio / (1.0 + kMaxIterRefine / 2.0) - 1;
 
     info_.correctors = std::floor(thresh);
     info_.correctors = std::max(info_.correctors, (Int)1);

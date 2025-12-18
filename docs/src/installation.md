@@ -7,7 +7,7 @@ HiGHS uses CMake as build system, and requires at least version
 
 ## HiGHS with HiPO
 
-HiGHS does not have any external dependencies, however, the new interior point solver HiPO uses BLAS and Metis. At the moment HiPO is optional and can be enabled via CMake. To build HiPO, you need to have Metis and BLAS installed on your machine. Please follow the instructions below.
+HiGHS does not have any external dependencies, however, the new interior point solver HiPO uses BLAS. At the moment HiPO is optional and can be enabled via CMake. To build HiPO, you need to have BLAS installed on your machine. Please follow the instructions below.
 
 #### BLAS
 
@@ -29,33 +29,15 @@ Note, that `[threads]` is required for HiPO.
 
 To specify explicitly which BLAS vendor to look for, `BLA_VENDOR` coud be set in CMake, e.g. `-DBLA_VENDOR=Apple` or `-DBLA_VENDOR=OpenBLAS`. Alternatively, to specify which BLAS library to use, set `BLAS_LIBRARIES` to the full path of the library e.g. `-DBLAS_LIBRARIES=/path_to/libopenblas.so`.
 
-#### Metis
-There are some known issues with Metis so the recommented version is in [this fork](https://github.com/galabovaa/METIS/tree/521-ts), branch 521-ts. This is version 5.2.1 with several patches for more reliable build and execution. Clone the repository with
-```
-git clone https://github.com/galabovaa/METIS.git
-cd METIS
-git checkout 521-ts
-```
+#### External ordering heuristics
 
-Then build with
-```
-cmake -S. -B build
--DGKLIB_PATH=/path_to_METIS_repo/GKlib
--DCMAKE_INSTALL_PREFIX=path_to_installs_dir
-cmake --build build
-cmake --install build
-```
-
-On Windows, do not forget to specify configuration type
-```
-cmake --build build --config Release
-```
+HiPO also relies on a fill-reducing ordering heuristic. HiGHS includes the source code of Metis, AMD and RCM, three open-source ordering heuristics. Their source code is already part of the HiGHS library, so there is no need to link them. In particular, there is no need to have Metis installed separately, as in previous versions of HiPO. These source codes can be found in extern/metis, extern/amd, extern/rcm, together with the respective license files. Notice that the HiGHS source code is MIT licensed. However, if you build HiGHS with HiPO support, then libhighs and the HiGHS executables are licensed Apache 2.0, due to the presence of Metis and AMD. 
 
 ### HiPO
 
 To install HiPO, on Linux and MacOS, run
 ```
-cmake -S. -B build -DHIPO=ON -DMETIS_ROOT=path_to_installs_dir
+cmake -S. -B build -DHIPO=ON
 ```
 On Windows, you also need to specify the path to OpenBLAS. If it was installed with vcpkg as suggested above, add the path to `vcpkg.cmake` to the CMake flags, e.g.
 ```

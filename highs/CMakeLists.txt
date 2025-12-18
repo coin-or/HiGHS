@@ -8,8 +8,8 @@ set(sources ${highs_sources} ${cupdlp_sources} ${ipx_sources} ${basiclu_sources}
 set(headers ${highs_headers} ${cupdlp_headers} ${ipx_headers} ${basiclu_headers})
 
 if(HIPO)
-  set(sources ${sources} ${hipo_sources} ${factor_highs_sources} ${hipo_util_sources})
-  set(headers ${headers} ${hipo_headers} ${factor_highs_headers} ${hipo_util_headers})
+  set(sources ${sources} ${hipo_sources} ${factor_highs_sources} ${hipo_util_sources} ${hipo_orderings_sources})
+  set(headers ${headers} ${hipo_headers} ${factor_highs_headers} ${hipo_util_headers} ${hipo_orderings_headers})
 endif()
 
 # Configure the config windows version file
@@ -219,31 +219,22 @@ else()
           endif(BLAS_LIB)
       endif(APPLE)
     else()
-      target_link_libraries(highs PRIVATE BLAS::BLAS)
 
-      string(TOLOWER "${BLAS_LIBRARIES}" blas_lower)
-      if(blas_lower MATCHES "openblas")
+      if (WIN32 AND TARGET OpenBLAS::OpenBLAS)
           target_compile_definitions(highs PRIVATE HIPO_USES_OPENBLAS)
-      elseif(blas_lower MATCHES "accelerate")
-        target_compile_definitions(highs PRIVATE HIPO_USES_APPLE_BLAS)
-      endif()
-    endif()
-
-    if(metis_FOUND)
-      target_link_libraries(highs PRIVATE metis)
-    else()
-      target_include_directories(highs PRIVATE "${METIS_PATH}")
-      target_link_libraries(highs PRIVATE "${METIS_LIB}")
-    endif()
-
-    if (NOT (GKLIB_ROOT STREQUAL ""))
-      if(GKlib_FOUND)
-        target_link_libraries(highs PRIVATE GKlib::GKlib)
+          target_link_libraries(highs PRIVATE OpenBLAS::OpenBLAS)
       else()
-        target_include_directories(highs PRIVATE "${GKLIB_PATH}")
-        target_link_libraries(highs PRIVATE "${GKLIB_LIB}")
+          target_link_libraries(highs PRIVATE BLAS::BLAS)
+
+          string(TOLOWER "${BLAS_LIBRARIES}" blas_lower)
+          if(blas_lower MATCHES "openblas")
+              target_compile_definitions(highs PRIVATE HIPO_USES_OPENBLAS)
+          elseif(blas_lower MATCHES "accelerate")
+              target_compile_definitions(highs PRIVATE HIPO_USES_APPLE_BLAS)
+          endif()
       endif()
     endif()
+    
   endif()
 
   if(MSVC)

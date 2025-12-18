@@ -3,6 +3,7 @@
 
 #include <cmath>
 
+#include "CliqueStack.h"
 #include "Numeric.h"
 #include "Symbolic.h"
 #include "ipm/hipo/auxiliary/IntConfig.h"
@@ -51,8 +52,6 @@ class Factorise {
   double max_diag_{};
   double min_diag_{};
   double A_norm1_{};
-  std::vector<double> one_norm_cols_{};
-  std::vector<double> inf_norm_cols_{};
 
   // regularisation
   std::vector<double> total_reg_{};
@@ -66,6 +65,8 @@ class Factorise {
   const Log* log_;
   DataCollector& data_;
 
+  CliqueStack* stack_;
+
  public:
   void permute(const std::vector<Int>& iperm);
   void processSupernode(Int sn);
@@ -74,7 +75,7 @@ class Factorise {
   Factorise(const Symbolic& S, const std::vector<Int>& rowsA,
             const std::vector<Int>& ptrA, const std::vector<double>& valA,
             const Regul& regul, const Log* log, DataCollector& data,
-            std::vector<std::vector<double>>& sn_columns);
+            std::vector<std::vector<double>>& sn_columns, CliqueStack* stack);
 
   bool run(Numeric& num);
 };

@@ -2312,6 +2312,11 @@ std::string HEkk::simplexStrategyToString(
   if (simplex_strategy == kSimplexStrategyPrimal)
     return "primal simplex solver";
   return "Unknown";
+}  
+
+void HEkk::zeroBasicDuals() {
+  for (HighsInt iRow = 0; iRow < lp_.num_row_; iRow++)
+    info_.workDual_[basis_.basicIndex_[iRow]] = 0;
 }
 
 void HEkk::setNonbasicMove() {
@@ -3614,6 +3619,7 @@ HighsStatus HEkk::returnFromSolve(const HighsStatus return_status) {
       break;
     }
   }
+  this->zeroBasicDuals();
   assert(info_.num_primal_infeasibilities >= 0);
   assert(info_.num_dual_infeasibilities >= 0);
   if (info_.num_primal_infeasibilities == 0) {
