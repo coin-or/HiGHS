@@ -2312,7 +2312,7 @@ std::string HEkk::simplexStrategyToString(
   if (simplex_strategy == kSimplexStrategyPrimal)
     return "primal simplex solver";
   return "Unknown";
-}  
+}
 
 void HEkk::zeroBasicDuals() {
   for (HighsInt iRow = 0; iRow < lp_.num_row_; iRow++)
