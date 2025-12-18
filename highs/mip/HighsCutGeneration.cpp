@@ -549,6 +549,7 @@ bool HighsCutGeneration::cmirCutGenerationHeuristic(double minEfficacy,
       // Positive coefficient values later set to 0 so have no contribution
       updateViolationAndNorm(i, vals[i], continuouscontribution,
                              continuoussqrnorm);
+      // StrongCG cannot be computed when negative coefficients for cont exist
       strongcg = false;
     }
   }
@@ -704,11 +705,10 @@ bool HighsCutGeneration::cmirCutGenerationHeuristic(double minEfficacy,
     double f0 = scalrhs - downrhs;
     double oneoveroneminusf0 = 1.0 / (1.0 - f0);
     // Skip numerically troublesome cuts
-    double oneoverf0 = 1 / f0;
-    double k = fast_ceil(oneoverf0) - 1;
-    if (oneoverf0 - k < 1e-3 || oneoverf0 - k > 1 - 1e-3) {
+    if (fractionality(1 / f0) < 1e-3) {
       strongcg = false;
     } else {
+      double k = fast_ceil(1 / f0) - 1;
       // All coefficients of continuous variables are 0 in strong CG cut
       double sqrnorm = 0;
       double viol = -downrhs;
@@ -717,25 +717,79 @@ bool HighsCutGeneration::cmirCutGenerationHeuristic(double minEfficacy,
         double scalaj = vals[j] * scale;
         double downaj = fast_floor(scalaj + kHighsTiny);
         double fj = scalaj - downaj;
-        if (fj <= f0 + feastol) {
-          double aj = downaj;
-          updateViolationAndNorm(j, aj, viol, sqrnorm);
-        } else {
+        double aj = downaj;
+        if (fj >= f0 + 10 * feastol) {
           double pj = fast_ceil(k * (fj - f0) * oneoveroneminusf0 - 1e-4);
-          double aj = downaj + (pj / (k + 1));
-          updateViolationAndNorm(j, aj, viol, sqrnorm);
+          aj += pj / (k + 1);
         }
+        updateViolationAndNorm(j, aj, viol, sqrnorm);
       }
       if (sqrnorm <= kHighsTiny) {
         strongcg = false;
       } else {
         double efficacy = viol / sqrt(sqrnorm);
-        // Use the strong CG cut instead of the CMIR if efficacy is larger
+        // Use the strongCG cut instead of the CMIR if efficacy is larger
         if (efficacy < bestefficacy + epsilon) {
           strongcg = false;
         } else {
           bestefficacy = efficacy;
         }
+      }
+    }
+  }
+
+  if (strongcg) {
+    // try to flip complementation of integers to increase efficacy
+    double delta = bestdelta;
+    double scale = 1.0 / delta;
+    for (HighsInt i : integerinds) {
+      if (upper[i] == kHighsInf) continue;
+      if (solval[i] <= feastol) continue;
+
+      flipComplementation(i);
+
+      double scalrhs = double(rhs) * scale;
+      double downrhs = fast_floor(scalrhs);
+
+      double f0 = scalrhs - downrhs;
+      if (f0 < f0min || f0 > f0max) {
+        flipComplementation(i);
+        continue;
+      }
+
+      double oneoveroneminusf0 = 1.0 / (1.0 - f0);
+      if (oneoveroneminusf0 > maxCMirScale) {
+        flipComplementation(i);
+        continue;
+      }
+
+      if (fractionality(1 / f0) < 1e-3) {
+        flipComplementation(i);
+        continue;
+      }
+
+      double k = fast_ceil(1 / f0) - 1;
+
+      double sqrnorm = 0;
+      double viol = -downrhs;
+
+      for (HighsInt j : integerinds) {
+        double scalaj = vals[j] * scale;
+        double downaj = fast_floor(scalaj + kHighsTiny);
+        double fj = scalaj - downaj;
+        double aj = downaj;
+        if (fj - f0 >= 10 * feastol) {
+          double pj = fast_ceil(k * (fj - f0) * oneoveroneminusf0 - 1e-4);
+          aj += (pj / (k + 1));
+        }
+        updateViolationAndNorm(j, aj, viol, sqrnorm);
+      }
+
+      double efficacy = viol / sqrt(sqrnorm);
+      if (efficacy > bestefficacy) {
+        bestefficacy = efficacy;
+      } else {
+        flipComplementation(i);
       }
     }
   }
