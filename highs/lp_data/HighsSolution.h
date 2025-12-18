@@ -76,7 +76,7 @@ void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
                       const HighsSolution& solution, const HighsBasis& basis,
                       HighsInfo& highs_info,
                       HighsPrimalDualErrors& primal_dual_errors,
-                      const bool get_residuals);
+                      const bool get_residuals = false);
 
 // Inner getKktFailures
 void getKktFailures(const HighsOptions& options, const bool is_qp,

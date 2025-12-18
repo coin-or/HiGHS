@@ -54,8 +54,8 @@ void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
                       const HighsSolution& solution, const HighsBasis& basis,
                       HighsInfo& highs_info) {
   HighsPrimalDualErrors primal_dual_errors;
-  getLpKktFailures(options, lp, solution, basis, highs_info, primal_dual_errors,
-                   false);
+  getLpKktFailures(options, lp, solution, basis, highs_info,
+                   primal_dual_errors);
 }
 
 void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
