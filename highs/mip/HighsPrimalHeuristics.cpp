@@ -131,7 +131,7 @@ bool HighsPrimalHeuristics::solveSubMip(
   HighsSolution solution;
   solution.value_valid = false;
   solution.dual_valid = false;
-  if (!mipsolver.submip) {
+  if (!mipsolver.submip && !mipsolver.mipdata_->parallelLockActive()) {
     mipsolver.analysis_.mipTimerStart(kMipClockSubMipSolve);
     // Remember to accumulate time for sub-MIP solves!
     mipsolver.sub_solver_call_time_.run_time[kSubSolverSubMip] -=
@@ -154,7 +154,7 @@ bool HighsPrimalHeuristics::solveSubMip(
   // mipsolver.max_submip_level =
   //     std::max(submipsolver.max_submip_level + 1,
   //     mipsolver.max_submip_level);
-  if (!mipsolver.submip) {
+  if (!mipsolver.submip && !mipsolver.mipdata_->parallelLockActive()) {
     mipsolver.analysis_.mipTimerStop(kMipClockSubMipSolve);
     mipsolver.sub_solver_call_time_.num_call[kSubSolverSubMip]++;
     mipsolver.sub_solver_call_time_.run_time[kSubSolverSubMip] +=
