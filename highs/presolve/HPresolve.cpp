@@ -5042,6 +5042,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
               std::min(worstCaseLowerBound[col], domain.col_lower_[col]);
           worstCaseUpperBound[col] =
               std::max(worstCaseUpperBound[col], domain.col_upper_[col]);
+          // remove worst-case bounds if they are equal to the global bounds
           if (worstCaseLowerBound[col] <= col_lower[col] &&
               worstCaseUpperBound[col] >= col_upper[col])
             removeWorstCaseBounds(i, numWorstCaseBounds);
