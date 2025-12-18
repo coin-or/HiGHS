@@ -216,13 +216,13 @@ void HighsPathSeparator::separateLpSolution(HighsLpRelaxation& lpRelaxation,
             inArcRows.begin() + colInArcs[col].second,
             [&](const std::pair<HighsInt, double>& i,
                 const std::pair<HighsInt, double>& j) {
-              return rowScore[i.first] < rowScore[j.first];
+              return rowScore[i.first] > rowScore[j.first];
             });
     pdqsort(outArcRows.begin() + colOutArcs[col].first,
             outArcRows.begin() + colOutArcs[col].second,
             [&](const std::pair<HighsInt, double>& i,
                 const std::pair<HighsInt, double>& j) {
-              return rowScore[i.first] < rowScore[j.first];
+              return rowScore[i.first] > rowScore[j.first];
             });
   }
 
