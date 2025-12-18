@@ -426,6 +426,8 @@ class HPresolve {
 
   void removeFixedCol(HighsInt col);
 
+  void removeFixedCol(HighsInt col, double fixval);
+
   void removeRow(HighsInt row);
 
   Result removeDependentEquations(HighsPostsolveStack& postsolve_stack);

@@ -552,11 +552,20 @@ HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
     return HighsStatus::kError;
   }
 
+  // Reordering heuristic
+  if (options.hipo_ordering != kHipoMetisString &&
+      options.hipo_ordering != kHipoAmdString &&
+      options.hipo_ordering != kHipoRcmString &&
+      options.hipo_ordering != kHighsChooseString) {
+    highsLogUser(options.log_options, HighsLogType::kError,
+                 "Unknown value of option %s\n", kHipoOrderingString.c_str());
+    model_status = HighsModelStatus::kSolveError;
+    return HighsStatus::kError;
+  }
+  hipo_options.ordering = options.hipo_ordering;
+
   // block size option
   hipo_options.block_size = options.hipo_block_size;
-
-  // metis options
-  hipo_options.metis_no2hop = options.hipo_metis_no2hop;
 
   hipo.setOptions(hipo_options);
   hipo.setTimer(timer);
@@ -1521,9 +1530,9 @@ HighsStatus reportHipoStatus(const HighsOptions& options,
   else if (status == hipo::kStatusError) {
     highsLogUser(options.log_options, HighsLogType::kError,
                  "Hipo: Internal error\n");
-  } else if (status == hipo::kStatusOoM) {
+  } else if (status == hipo::kStatusOverflow) {
     highsLogUser(options.log_options, HighsLogType::kError,
-                 "Hipo: Out of memory\n");
+                 "Hipo: Integer overflow\n");
   } else if (status == hipo::kStatusErrorAnalyse) {
     highsLogUser(options.log_options, HighsLogType::kError,
                  "Hipo: Error in analyse phase\n");
