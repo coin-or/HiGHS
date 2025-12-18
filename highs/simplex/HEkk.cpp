@@ -3632,8 +3632,6 @@ HighsStatus HEkk::returnFromSolve(const HighsStatus return_status) {
   } else {
     return_dual_solution_status_ = kSolutionStatusInfeasible;
   }
-  // Basic duals are nonzero
-  //  assert(debugZeroBasicDuals());
   assert(debugNoShiftsOrPerturbations());
   computePrimalObjectiveValue();
   if (!options_->log_dev_level) {

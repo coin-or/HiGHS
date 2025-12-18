@@ -1151,7 +1151,9 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
       use_simplex = true;
     }
   }
-  if (use_simplex) callstatus = lpsolver.run();
+  if (use_simplex) {
+    callstatus = lpsolver.run();
+  }
   // Revert the value of lpsolver.options_.solver
   lpsolver.setOptionValue("solver", solver);
   if (!mipsolver.submip) {

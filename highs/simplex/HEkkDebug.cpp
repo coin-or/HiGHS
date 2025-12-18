@@ -1694,16 +1694,6 @@ HighsDebugStatus HEkk::debugSimplexDualInfeasible(const std::string message,
   return HighsDebugStatus::kOk;
 }
 
-bool HEkk::debugZeroBasicDuals() const {
-  const std::vector<double> dual = this->info_.workDual_;
-  const std::vector<HighsInt> basis = this->basis_.basicIndex_;
-  for (HighsInt iRow = 0; iRow < this->lp_.num_row_; iRow++)
-    if (dual[basis[iRow]]) {
-      return false;
-    }
-  return true;
-}
-
 bool HEkk::debugNoShiftsOrPerturbations() const {
   switch (model_status_) {
     case HighsModelStatus::kOptimal: {

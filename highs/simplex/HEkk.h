@@ -409,7 +409,6 @@ class HEkk {
   HighsDebugStatus debugSimplexDualInfeasible(const std::string message,
                                               const bool force_report = false);
   HighsDebugStatus debugComputeDual(const bool initialise = false) const;
-  bool debugZeroBasicDuals() const;
   bool debugNoShiftsOrPerturbations() const;
   friend class HEkkPrimal;
   friend class HEkkDual;
