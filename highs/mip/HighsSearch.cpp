@@ -412,7 +412,7 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters,
 
     auto analyzeSolution = [&](double objdelta,
                                const std::vector<double>& sol) {
-      HighsInt numChangedCols = localdom.getChangedCols().size();
+      size_t numChangedCols = localdom.getChangedCols().size();
       HighsInt domchgStackSize = localdom.getDomainChangeStack().size();
       const auto& domchgstack = localdom.getDomainChangeStack();
 
@@ -1517,7 +1517,7 @@ bool HighsSearch::backtrack(bool recoverBasis) {
         // repropagate the node, as it may have become infeasible due to
         // conflicts
         HighsInt oldNumDomchgs = localdom.getNumDomainChanges();
-        HighsInt oldNumChangedCols = localdom.getChangedCols().size();
+        size_t oldNumChangedCols = localdom.getChangedCols().size();
         localdom.propagate();
         if (!localdom.infeasible() &&
             oldNumDomchgs != localdom.getNumDomainChanges()) {
@@ -1564,7 +1564,7 @@ bool HighsSearch::backtrack(bool recoverBasis) {
     if (fallbackbranch)
       currnode.branching_point = currnode.branchingdecision.boundval;
 
-    HighsInt numChangedCols = localdom.getChangedCols().size();
+    size_t numChangedCols = localdom.getChangedCols().size();
     bool passStabilizerToChildNode =
         orbitsValidInChildNode(currnode.branchingdecision);
     localdom.changeBound(currnode.branchingdecision);
@@ -1694,7 +1694,7 @@ bool HighsSearch::backtrackPlunge(HighsNodeQueue& nodequeue) {
       currnode.branching_point = currnode.branchingdecision.boundval;
 
     HighsInt domchgPos = domchgstack.size();
-    HighsInt numChangedCols = localdom.getChangedCols().size();
+    size_t numChangedCols = localdom.getChangedCols().size();
     bool passStabilizerToChildNode =
         orbitsValidInChildNode(currnode.branchingdecision);
     localdom.changeBound(currnode.branchingdecision);
