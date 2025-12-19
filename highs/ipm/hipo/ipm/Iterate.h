@@ -196,7 +196,7 @@ struct Iterate {
   // ===================================================================================
   void residuals6x6(const NewtonDir& d);
 
-  void setReg(LinearSolver& LS, OptionNla opt);
+  void setReg(LinearSolver& LS, const std::string& nla);
 };
 
 }  // namespace hipo

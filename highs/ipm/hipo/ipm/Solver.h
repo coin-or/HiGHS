@@ -338,7 +338,7 @@ class Solver {
   bool statusIsFailed() const;
   bool statusNeedsRefinement() const;
   bool statusAllowsCrossover() const;
-  bool crossoverIsOn() const;
+  bool crossoverIsPossible() const;
 
   // ===================================================================================
   // Print to screen

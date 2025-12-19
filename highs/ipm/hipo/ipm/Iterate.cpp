@@ -300,7 +300,7 @@ void Iterate::extract(std::vector<double>& x_user, std::vector<double>& xl_user,
   zu_user = std::vector<double>(zu.begin(), zu.begin() + model.n_orig());
 
   // force unused entries to have correct value
-  for (int i = 0; i < model.n_orig(); ++i) {
+  for (Int i = 0; i < model.n_orig(); ++i) {
     if (!model.hasLb(i)) {
       xl_user[i] = kHighsInf;
       zl_user[i] = 0.0;
@@ -625,12 +625,12 @@ void Iterate::finalResiduals(Info& info) const {
   }
 }
 
-void Iterate::setReg(LinearSolver& LS, OptionNla opt) {
+void Iterate::setReg(LinearSolver& LS, const std::string& nla) {
   // extract regularisation
   LS.getReg(total_reg);
 
   // easy access to primal/dual regularisation
-  if (opt == kOptionNlaNormEq) {
+  if (nla == kHipoNormalEqString) {
     Rp = nullptr;
     Rd = total_reg.data();
   } else {
