@@ -591,10 +591,6 @@ restart:
               mipdata_->workers[search_indices[i]].search_ptr_->evaluateNode();
         });
       } else {
-        mipdata_->debugSolution.resetDomain(
-            mipdata_->workers[search_indices[i]].search_ptr_->getLocalDomain());
-        mipdata_->debugSolution.registerDomain(
-            mipdata_->workers[search_indices[i]].search_ptr_->getLocalDomain());
         search_results[i] =
             mipdata_->workers[search_indices[i]].search_ptr_->evaluateNode();
       }
@@ -937,6 +933,10 @@ restart:
               mipdata_->workers[i].search_ptr_->currentNodePruned()) {
             dive_times[i] = -1;
           } else {
+            mipdata_->debugSolution.resetDomain(
+                mipdata_->workers[i].search_ptr_->getLocalDomain());
+            mipdata_->debugSolution.registerDomain(
+                mipdata_->workers[i].search_ptr_->getLocalDomain());
             dive_results[i] = mipdata_->workers[i].search_ptr_->dive();
             dive_times[i] += analysis_.mipTimerRead(kMipClockNodeSearch);
           }
@@ -947,7 +947,7 @@ restart:
           dive_times[i] = -1;
         } else {
           mipdata_->debugSolution.resetDomain(
-                mipdata_->workers[i].search_ptr_->getLocalDomain());
+              mipdata_->workers[i].search_ptr_->getLocalDomain());
           mipdata_->debugSolution.resetDomain(
               mipdata_->workers[i].search_ptr_->getLocalDomain());
           dive_results[i] = mipdata_->workers[i].search_ptr_->dive();
@@ -1244,7 +1244,13 @@ restart:
       if (limit_or_infeas.first) limit_reached = true;
       if (limit_or_infeas.first || limit_or_infeas.second) break;
       // TODO MT: If everything was pruned then do a global sync!
-      if (search_indices.empty()) continue;
+      if (search_indices.empty()) {
+        if (mipdata_->hasMultipleWorkers()) {
+          resetWorkerDomains();
+          resetGlobalDomain();
+        }
+        continue;
+      }
 
       bool infeasible = separateAndStoreBasis(search_indices);
       if (infeasible) break;
