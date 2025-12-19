@@ -1295,70 +1295,40 @@ Int Analyse::run(Symbolic& S) {
 
   if (!ready_) return kRetGeneric;
 
-#if HIPO_TIMING_LEVEL >= 1
-  Clock clock_total;
-#endif
+  HIPO_CLOCK_CREATE;
 
-#if HIPO_TIMING_LEVEL >= 2
-  Clock clock_items;
-#endif
+  HIPO_CLOCK_START(2);
   if (getPermutation()) return kRetOrderingError;
-#if HIPO_TIMING_LEVEL >= 2
-  data_.sumTime(kTimeAnalyseOrdering, clock_items.stop());
-#endif
+  HIPO_CLOCK_STOP(2, data_, kTimeAnalyseMetis);
 
-#if HIPO_TIMING_LEVEL >= 2
-  clock_items.start();
-#endif
+  HIPO_CLOCK_START(2);
   permute(iperm_);
   eTree();
   postorder();
-#if HIPO_TIMING_LEVEL >= 2
-  data_.sumTime(kTimeAnalyseTree, clock_items.stop());
-#endif
+  HIPO_CLOCK_STOP(2, data_, kTimeAnalyseTree);
 
-#if HIPO_TIMING_LEVEL >= 2
-  clock_items.start();
-#endif
+  HIPO_CLOCK_START(2);
   colCount();
-#if HIPO_TIMING_LEVEL >= 2
-  data_.sumTime(kTimeAnalyseCount, clock_items.stop());
-#endif
+  HIPO_CLOCK_STOP(2, data_, kTimeAnalyseCount);
 
-#if HIPO_TIMING_LEVEL >= 2
-  clock_items.start();
-#endif
+  HIPO_CLOCK_START(2);
   fundamentalSupernodes();
   relaxSupernodes();
   afterRelaxSn();
-#if HIPO_TIMING_LEVEL >= 2
-  data_.sumTime(kTimeAnalyseSn, clock_items.stop());
-#endif
+  HIPO_CLOCK_STOP(2, data_, kTimeAnalyseSn);
 
-#if HIPO_TIMING_LEVEL >= 2
-  clock_items.start();
-#endif
+  HIPO_CLOCK_START(2);
   reorderChildren();
-#if HIPO_TIMING_LEVEL >= 2
-  data_.sumTime(kTimeAnalyseReorder, clock_items.stop());
-#endif
+  HIPO_CLOCK_STOP(2, data_, kTimeAnalyseReorder);
 
-#if HIPO_TIMING_LEVEL >= 2
-  clock_items.start();
-#endif
+  HIPO_CLOCK_START(2);
   snPattern();
-#if HIPO_TIMING_LEVEL >= 2
-  data_.sumTime(kTimeAnalysePattern, clock_items.stop());
-#endif
+  HIPO_CLOCK_STOP(2, data_, kTimeAnalysePattern);
 
-#if HIPO_TIMING_LEVEL >= 2
-  clock_items.start();
-#endif
+  HIPO_CLOCK_START(2);
   relativeIndCols();
   relativeIndClique();
-#if HIPO_TIMING_LEVEL >= 2
-  data_.sumTime(kTimeAnalyseRelInd, clock_items.stop());
-#endif
+  HIPO_CLOCK_STOP(2, data_, kTimeAnalyseRelInd);
 
   computeBlockStart();
   computeCriticalPath();
@@ -1411,11 +1381,7 @@ Int Analyse::run(Symbolic& S) {
   S.consecutive_sums_ = std::move(consecutive_sums_);
   S.clique_block_start_ = std::move(clique_block_start_);
 
-#if HIPO_TIMING_LEVEL >= 1
-  data_.sumTime(kTimeAnalyse, clock_total.stop());
-#else
-  (void)data_;  // to avoid an unused-private-field warning
-#endif
+  HIPO_CLOCK_STOP(1, data_, kTimeAnalyse);
 
   return kRetOk;
 }
