@@ -345,6 +345,8 @@ restart:
         &mipdata_->cutpools.back(), &mipdata_->conflictpools.back());
     mipdata_->lps.back().setMipWorker(mipdata_->workers.back());
     mipdata_->lp.notifyCutPoolsLpCopied(1);
+    mipdata_->debugSolution.registerDomain(
+        mipdata_->workers.back().search_ptr_->getLocalDomain());
   };
 
   auto resetGlobalDomain = [&](bool force = false) -> void {
@@ -697,10 +699,6 @@ restart:
                               flush[i], infeasible[i]);
         });
       } else {
-        mipdata_->debugSolution.resetDomain(
-            mipdata_->workers[search_indices[i]].search_ptr_->getLocalDomain());
-        mipdata_->debugSolution.resetDomain(
-            mipdata_->workers[search_indices[i]].search_ptr_->getLocalDomain());
         doHandlePrunedNodes(search_indices[i], mipdata_->parallelLockActive(),
                             flush[i], infeasible[i]);
       }
@@ -784,10 +782,6 @@ restart:
               mipdata_->workers[i].search_ptr_->getLocalDomain());
         });
       } else {
-        mipdata_->debugSolution.resetDomain(
-            mipdata_->workers[i].search_ptr_->getLocalDomain());
-        mipdata_->debugSolution.resetDomain(
-            mipdata_->workers[i].search_ptr_->getLocalDomain());
         mipdata_->workers[i].sepa_ptr_->separate(
             mipdata_->workers[i].search_ptr_->getLocalDomain());
       }
@@ -896,10 +890,6 @@ restart:
           !options_mip_->mip_search_simulate_concurrency) {
         tg.spawn([&, i]() { doRunHeuristics(mipdata_->workers[i]); });
       } else {
-        mipdata_->debugSolution.resetDomain(
-            mipdata_->workers[i].search_ptr_->getLocalDomain());
-        mipdata_->debugSolution.resetDomain(
-            mipdata_->workers[i].search_ptr_->getLocalDomain());
         doRunHeuristics(mipdata_->workers[i]);
       }
     }
@@ -933,10 +923,6 @@ restart:
               mipdata_->workers[i].search_ptr_->currentNodePruned()) {
             dive_times[i] = -1;
           } else {
-            mipdata_->debugSolution.resetDomain(
-                mipdata_->workers[i].search_ptr_->getLocalDomain());
-            mipdata_->debugSolution.registerDomain(
-                mipdata_->workers[i].search_ptr_->getLocalDomain());
             dive_results[i] = mipdata_->workers[i].search_ptr_->dive();
             dive_times[i] += analysis_.mipTimerRead(kMipClockNodeSearch);
           }
@@ -946,10 +932,6 @@ restart:
             mipdata_->workers[i].search_ptr_->currentNodePruned()) {
           dive_times[i] = -1;
         } else {
-          mipdata_->debugSolution.resetDomain(
-              mipdata_->workers[i].search_ptr_->getLocalDomain());
-          mipdata_->debugSolution.resetDomain(
-              mipdata_->workers[i].search_ptr_->getLocalDomain());
           dive_results[i] = mipdata_->workers[i].search_ptr_->dive();
           dive_times[i] += analysis_.mipTimerRead(kMipClockNodeSearch);
         }
