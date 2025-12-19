@@ -4927,6 +4927,8 @@ HPresolve::Result HPresolve::enumerateSolutions(
   std::vector<HighsInt> worstCaseBounds(model->num_col_);
   std::vector<double> worstCaseLowerBound(model->num_col_, kHighsInf);
   std::vector<double> worstCaseUpperBound(model->num_col_, -kHighsInf);
+  std::vector<double> col_lower(domain.col_lower_);
+  std::vector<double> col_upper(domain.col_upper_);
 
   // lambda for branching (just performs initial lower branch)
   auto doBranch = [&](HighsInt& numBranches) {
@@ -5004,7 +5006,15 @@ HPresolve::Result HPresolve::enumerateSolutions(
     return Result::kOk;
   };
 
-  auto handleSolution = [&](size_t& numWorstCaseBounds) {
+  auto removeWorstCaseBounds = [&](size_t pos, size_t& numWorstCaseBounds) {
+    worstCaseLowerBound[worstCaseBounds[pos]] = kHighsInf;
+    worstCaseUpperBound[worstCaseBounds[pos]] = -kHighsInf;
+    worstCaseBounds[pos] = worstCaseBounds[numWorstCaseBounds - 1];
+    worstCaseBounds[numWorstCaseBounds - 1] = 0;
+    numWorstCaseBounds--;
+  };
+
+  auto handleSolution = [&](size_t& numWorstCaseBounds, bool& noReductions) {
     // propagate
     domain.propagate();
     if (domain.infeasible()) return;
@@ -5025,18 +5035,19 @@ HPresolve::Result HPresolve::enumerateSolutions(
         if (!domain.isChangedCol(col)) {
           // no bound changes for this variable -> reset worst-case
           // bounds and remove variable
-          worstCaseLowerBound[col] = kHighsInf;
-          worstCaseUpperBound[col] = -kHighsInf;
-          worstCaseBounds[i] = worstCaseBounds[numWorstCaseBounds - 1];
-          worstCaseBounds[numWorstCaseBounds - 1] = 0;
-          numWorstCaseBounds--;
+          removeWorstCaseBounds(i, numWorstCaseBounds);
         } else {
           // update worst-case bounds
           worstCaseLowerBound[col] =
               std::min(worstCaseLowerBound[col], domain.col_lower_[col]);
           worstCaseUpperBound[col] =
               std::max(worstCaseUpperBound[col], domain.col_upper_[col]);
-          i++;
+          // remove worst-case bounds if they are equal to the global bounds
+          if (worstCaseLowerBound[col] <= col_lower[col] &&
+              worstCaseUpperBound[col] >= col_upper[col])
+            removeWorstCaseBounds(i, numWorstCaseBounds);
+          else
+            i++;
         }
       }
     }
@@ -5044,6 +5055,19 @@ HPresolve::Result HPresolve::enumerateSolutions(
     for (size_t i = 0; i < vars.size(); i++)
       solutions[i].push_back(domain.col_lower_[vars[i]] == 0.0 ? HighsInt{0}
                                                                : HighsInt{1});
+
+    // if no reductions are possible, stop enumerating solutions
+    noReductions = numWorstCaseBounds == 0;
+    if (noReductions) {
+      for (size_t i = 0; i < vars.size() - 1; i++) {
+        for (size_t ii = i + 1; ii < vars.size(); ii++) {
+          noReductions = noReductions && !identicalVars(i, ii) &&
+                         !complementaryVars(i, ii);
+          if (!noReductions) break;
+        }
+        if (!noReductions) break;
+      }
+    }
   };
 
   // loop over candidate rows
@@ -5083,11 +5107,15 @@ HPresolve::Result HPresolve::enumerateSolutions(
     // main loop
     HighsInt numBranches = -1;
     size_t numWorstCaseBounds = 0;
+    bool noReductions = false;
     while (true) {
       bool backtrack = domain.infeasible();
       if (!backtrack) {
         backtrack = solutionFound();
-        if (backtrack) handleSolution(numWorstCaseBounds);
+        if (backtrack) {
+          handleSolution(numWorstCaseBounds, noReductions);
+          if (noReductions) break;
+        }
       }
       // branch or backtrack
       if (!backtrack)
@@ -5096,11 +5124,14 @@ HPresolve::Result HPresolve::enumerateSolutions(
         break;
     }
 
-    // get number of solutions
-    HighsInt numSolutions = static_cast<HighsInt>(solutions[0].size());
+    // no reductions for this row?
+    if (noReductions) {
+      while (doBacktrack(numBranches));
+      continue;
+    }
 
     // no solutions -> infeasible
-    HPRESOLVE_CHECKED_CALL(handleInfeasibility(numSolutions == 0));
+    HPRESOLVE_CHECKED_CALL(handleInfeasibility(solutions[0].empty()));
 
     // analyse worst-case bounds
     for (size_t i = 0; i < numWorstCaseBounds; i++) {
@@ -5109,6 +5140,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
       assert(worstCaseUpperBound[col] <= domain.col_upper_[col]);
       if (worstCaseLowerBound[col] > domain.col_lower_[col]) {
         // tighten lower bound
+        col_lower[col] = worstCaseLowerBound[col];
         domain.changeBound(HighsBoundType::kLower, col,
                            worstCaseLowerBound[col],
                            HighsDomain::Reason::unspecified());
@@ -5116,6 +5148,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
       }
       if (worstCaseUpperBound[col] < domain.col_upper_[col]) {
         // tighten upper bound
+        col_upper[col] = worstCaseUpperBound[col];
         domain.changeBound(HighsBoundType::kUpper, col,
                            worstCaseUpperBound[col],
                            HighsDomain::Reason::unspecified());
@@ -5127,7 +5160,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
       worstCaseBounds[i] = 0;
     }
 
-    for (size_t i = 0; i < vars.size(); i++) {
+    for (size_t i = 0; i < vars.size() - 1; i++) {
       // get column index
       HighsInt col = vars[i];
       // skip already fixed columns
@@ -5145,12 +5178,14 @@ HPresolve::Result HPresolve::enumerateSolutions(
           clique[0] = HighsCliqueTable::CliqueVar(col, 0);
           clique[1] = HighsCliqueTable::CliqueVar(col2, 1);
           cliquetable.addClique(*mipsolver, clique.data(), 2, true);
+          HPRESOLVE_CHECKED_CALL(handleInfeasibility(domain.infeasible()));
         } else if (complementaryVars(i, ii)) {
           // add clique x_1 + x_2 = 1 to clique table
           std::array<HighsCliqueTable::CliqueVar, 2> clique;
           clique[0] = HighsCliqueTable::CliqueVar(col, 0);
           clique[1] = HighsCliqueTable::CliqueVar(col2, 0);
           cliquetable.addClique(*mipsolver, clique.data(), 2, true);
+          HPRESOLVE_CHECKED_CALL(handleInfeasibility(domain.infeasible()));
         }
       }
     }
