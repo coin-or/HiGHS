@@ -81,7 +81,7 @@ class Model {
                 const char* constraints) const;
   void computeNorms();
 
-  void scale(OptionScaling opt);
+  void scale(const std::string& scaling);
   void applyScaling();
   void CRscaling();
   void onePassNormScaling();
@@ -92,7 +92,7 @@ class Model {
   Int init(const Int num_var, const Int num_con, const double* obj,
            const double* rhs, const double* lower, const double* upper,
            const Int* A_ptr, const Int* A_rows, const double* A_vals,
-           const char* constraints, double offset, OptionScaling opt);
+           const char* constraints, double offset, const std::string& scaling);
 
   // Print information of model
   void print(const LogHighs& log) const;

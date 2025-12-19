@@ -34,7 +34,7 @@ struct Info {
   Int correctors;
 
   // Nla option used
-  OptionNla option_nla;
+  std::string option_nla;
 
   // Parallel option used
   OptionParallel option_par;

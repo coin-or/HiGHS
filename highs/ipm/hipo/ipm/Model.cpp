@@ -9,7 +9,8 @@ namespace hipo {
 Int Model::init(const Int num_var, const Int num_con, const double* obj,
                 const double* rhs, const double* lower, const double* upper,
                 const Int* A_ptr, const Int* A_rows, const double* A_vals,
-                const char* constraints, double offset, OptionScaling opt) {
+                const char* constraints, double offset,
+                const std::string& scaling) {
   // copy the input into the model
 
   if (checkData(num_var, num_con, obj, rhs, lower, upper, A_ptr, A_rows, A_vals,
@@ -45,7 +46,7 @@ Int Model::init(const Int num_var, const Int num_con, const double* obj,
   constraints_ = std::vector<char>(constraints, constraints + m_);
 
   preprocess();
-  scale(opt);
+  scale(scaling);
   reformulate();
   denseColumns();
   computeNorms();
@@ -317,7 +318,7 @@ void Model::print(const LogHighs& log) const {
   }
   if (std::isinf(bmin)) bmin = 0.0;
 
-  // compute max and min inerval for bounds
+  // compute max and min interval for bounds
   double boundmin = kHighsInf;
   double boundmax = 0.0;
   for (Int i = 0; i < n_; ++i) {
@@ -409,7 +410,7 @@ static double roundToPowerOf2(double d) {
   return std::ldexp(1.0, exp);
 }
 
-void Model::scale(OptionScaling opt) {
+void Model::scale(const std::string& scaling) {
   // Compute scaling:
   // A -> R * A * C
   // b -> R * b
@@ -422,9 +423,9 @@ void Model::scale(OptionScaling opt) {
   colscale_.resize(n_, 1.0);
   rowscale_.resize(m_, 1.0);
 
-  if (opt == kOptionCRscaling) {
+  if (scaling == kHipoCRscaling) {
     CRscaling();
-  } else if (opt == kOptionNormScaling) {
+  } else if (scaling == kHipoNormScaling) {
     const Int num_passes = 2;
     for (Int pass = 0; pass < num_passes; ++pass) {
       onePassNormScaling();

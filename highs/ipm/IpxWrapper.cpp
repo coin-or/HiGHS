@@ -502,14 +502,7 @@ HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
   hipo_options.max_iter =
       options.ipm_iteration_limit - highs_info.ipm_iteration_count;
 
-  if (options.run_crossover == kHighsOnString)
-    hipo_options.crossover = hipo::kOptionCrossoverOn;
-  else if (options.run_crossover == kHighsOffString)
-    hipo_options.crossover = hipo::kOptionCrossoverOff;
-  else {
-    assert(options.run_crossover == kHighsChooseString);
-    hipo_options.crossover = hipo::kOptionCrossoverChoose;
-  }
+  hipo_options.crossover = options.run_crossover;
 
   // Potentially control if ipx is used for refinement and if it is displayed
   // hipo_options.refine_with_ipx = true;
@@ -538,19 +531,16 @@ HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
     hipo_options.parallel = hipo::kOptionParallelChoose;
   }
 
-  // Parse hipo_system option
-  if (options.hipo_system == kHipoAugmentedString) {
-    hipo_options.nla = hipo::kOptionNlaAugmented;
-  } else if (options.hipo_system == kHipoNormalEqString) {
-    hipo_options.nla = hipo::kOptionNlaNormEq;
-  } else if (options.hipo_system == kHighsChooseString) {
-    hipo_options.nla = hipo::kOptionNlaChoose;
-  } else {
+  // Linear system
+  if (options.hipo_system != kHipoAugmentedString &&
+      options.hipo_system != kHipoNormalEqString &&
+      options.hipo_system != kHighsChooseString) {
     highsLogUser(options.log_options, HighsLogType::kError,
                  "Unknown value of option %s\n", kHipoSystemString.c_str());
     model_status = HighsModelStatus::kSolveError;
     return HighsStatus::kError;
   }
+  hipo_options.nla = options.hipo_system;
 
   // Reordering heuristic
   if (options.hipo_ordering != kHipoMetisString &&
@@ -564,16 +554,15 @@ HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
   }
   hipo_options.ordering = options.hipo_ordering;
 
-  if (options.hipo_scaling == kHipoCRscaling) {
-    hipo_options.scaling = hipo::kOptionCRscaling;
-  } else if (options.hipo_scaling == kHipoNormScaling) {
-    hipo_options.scaling = hipo::kOptionNormScaling;
-  } else {
+  // Scaling strategy
+  if (options.hipo_scaling != kHipoCRscaling &&
+      options.hipo_scaling != kHipoNormScaling) {
     highsLogUser(options.log_options, HighsLogType::kError,
                  "Unknown value of option %s\n", kHipoScalingString.c_str());
     model_status = HighsModelStatus::kSolveError;
     return HighsStatus::kError;
   }
+  hipo_options.scaling = options.hipo_scaling;
 
   // block size option
   hipo_options.block_size = options.hipo_block_size;

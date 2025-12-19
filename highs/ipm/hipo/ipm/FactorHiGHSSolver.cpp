@@ -391,7 +391,7 @@ Int FactorHiGHSSolver::setup() {
 Int FactorHiGHSSolver::chooseNla() {
   // Choose whether to use augmented system or normal equations.
 
-  assert(options_.nla == kOptionNlaChoose);
+  assert(options_.nla == kHighsChooseString);
 
   Symbolic symb_NE{};
   Symbolic symb_AS{};
@@ -436,10 +436,10 @@ Int FactorHiGHSSolver::chooseNla() {
 
   // Decision may be forced by failures
   if (failure_NE && !failure_AS) {
-    options_.nla = kOptionNlaAugmented;
+    options_.nla = kHipoAugmentedString;
     log_stream << textline("Newton system:") << "AS preferred (NE failed)\n";
   } else if (failure_AS && !failure_NE) {
-    options_.nla = kOptionNlaNormEq;
+    options_.nla = kHipoNormalEqString;
     log_stream << textline("Newton system:") << "NE preferred (AS failed)\n";
   } else if (failure_AS && failure_NE) {
     if (overflow_AS && overflow_NE)
@@ -467,10 +467,10 @@ Int FactorHiGHSSolver::chooseNla() {
 
     if (NE_much_more_expensive ||
         (sn_AS_larger_than_NE && AS_not_too_expensive)) {
-      options_.nla = kOptionNlaAugmented;
+      options_.nla = kHipoAugmentedString;
       log_stream << textline("Newton system:") << "AS preferred\n";
     } else {
-      options_.nla = kOptionNlaNormEq;
+      options_.nla = kHipoNormalEqString;
       log_stream << textline("Newton system:") << "NE preferred\n";
     }
   }
@@ -478,7 +478,7 @@ Int FactorHiGHSSolver::chooseNla() {
   log_.print(log_stream);
 
   if (status == kStatusOk) {
-    if (options_.nla == kOptionNlaAugmented) {
+    if (options_.nla == kHipoAugmentedString) {
       S_ = std::move(symb_AS);
       freeNEmemory();
     } else {
@@ -588,33 +588,30 @@ Int FactorHiGHSSolver::chooseOrdering(const std::vector<Int>& rows,
 Int FactorHiGHSSolver::setNla() {
   std::stringstream log_stream;
 
-  switch (options_.nla) {
-    case kOptionNlaAugmented: {
-      if (analyseAS(S_)) {
-        log_.printe("AS requested, failed analyse phase\n");
-        return kStatusErrorAnalyse;
-      }
-      log_stream << textline("Newton system:") << "AS requested\n";
-      break;
+  if (options_.nla == kHipoAugmentedString) {
+    Int status = analyseAS(S_);
+    if (status == kStatusOverflow) {
+      log_.printe("AS requested, integer overflow\n");
+      return kStatusOverflow;
+    } else if (status) {
+      log_.printe("AS requested, failed analyse phase\n");
+      return kStatusErrorAnalyse;
     }
+    log_stream << textline("Newton system:") << "AS requested\n";
 
-    case kOptionNlaNormEq: {
-      Int status = analyseNE(S_);
-      if (status == kStatusOverflow) {
-        log_.printe("NE requested, integer overflow\n");
-        return kStatusOverflow;
-      } else if (status) {
-        log_.printe("NE requested, failed analyse phase\n");
-        return kStatusErrorAnalyse;
-      }
-      log_stream << textline("Newton system:") << "NE requested\n";
-      break;
+  } else if (options_.nla == kHipoNormalEqString) {
+    Int status = analyseNE(S_);
+    if (status == kStatusOverflow) {
+      log_.printe("NE requested, integer overflow\n");
+      return kStatusOverflow;
+    } else if (status) {
+      log_.printe("NE requested, failed analyse phase\n");
+      return kStatusErrorAnalyse;
     }
+    log_stream << textline("Newton system:") << "NE requested\n";
 
-    case kOptionNlaChoose: {
-      if (Int status = chooseNla()) return status;
-      break;
-    }
+  } else {
+    if (Int status = chooseNla()) return status;
   }
 
   log_.print(log_stream);

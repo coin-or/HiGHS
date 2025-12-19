@@ -175,12 +175,12 @@ bool Solver::prepareIpx() {
   ipx_param.display = options_.display_ipx;
   ipx_param.dualize = 0;
 
-  if (options_.crossover == kOptionCrossoverOn)
+  if (options_.crossover == kHighsOnString)
     ipx_param.run_crossover = 1;
-  else if (options_.crossover == kOptionCrossoverOff)
+  else if (options_.crossover == kHighsOffString)
     ipx_param.run_crossover = 0;
   else {
-    assert(options_.crossover == kOptionCrossoverChoose);
+    assert(options_.crossover == kHighsChooseString);
     ipx_param.run_crossover = -1;
   }
 
@@ -220,7 +220,7 @@ void Solver::refineWithIpx() {
 
   if (statusNeedsRefinement() && options_.refine_with_ipx) {
     logH_.print("\nRestarting with IPX\n");
-  } else if (statusAllowsCrossover() && crossoverIsOn()) {
+  } else if (statusAllowsCrossover() && crossoverIsPossible()) {
     logH_.print("\nRunning crossover with IPX\n");
   } else {
     return;
@@ -290,7 +290,7 @@ bool Solver::solve2x2(NewtonDir& delta, const Residuals& rhs) {
   std::vector<double> res7 = it_->residual7(rhs);
 
   // NORMAL EQUATIONS
-  if (options_.nla == kOptionNlaNormEq) {
+  if (options_.nla == kHipoNormalEqString) {
     std::vector<double> res8 = it_->residual8(rhs, res7);
 
     // factorise normal equations, if not yet done
@@ -583,7 +583,7 @@ bool Solver::startingPoint() {
   const std::vector<double> temp_scaling(n_, 1.0);
   std::vector<double> temp_m(m_);
 
-  if (options_.nla == kOptionNlaNormEq) {
+  if (options_.nla == kHipoNormalEqString) {
     // use y to store b-A*x
     y = model_.b();
     model_.A().alphaProductPlusY(-1.0, x, y);
@@ -604,7 +604,7 @@ bool Solver::startingPoint() {
       return true;
     }
 
-  } else if (options_.nla == kOptionNlaAugmented) {
+  } else if (options_.nla == kHipoAugmentedString) {
     // obtain solution of A*A^T * dx = b-A*x by solving
     // [ -I  A^T] [...] = [ -x]
     // [  A   0 ] [ dx] = [ b ]
@@ -665,7 +665,7 @@ bool Solver::startingPoint() {
   // y starting point
   // *********************************************************************
 
-  if (options_.nla == kOptionNlaNormEq) {
+  if (options_.nla == kHipoNormalEqString) {
     // compute A*c
     std::fill(temp_m.begin(), temp_m.end(), 0.0);
     model_.A().alphaProductPlusY(1.0, model_.c(), temp_m);
@@ -676,7 +676,7 @@ bool Solver::startingPoint() {
       return true;
     }
 
-  } else if (options_.nla == kOptionNlaAugmented) {
+  } else if (options_.nla == kHipoAugmentedString) {
     // obtain solution of A*A^T * y = A*c by solving
     // [ -I  A^T] [...] = [ c ]
     // [  A   0 ] [ y ] = [ 0 ]
@@ -1058,8 +1058,7 @@ bool Solver::checkTermination() {
 
     info_.status = kStatusPDFeas;
 
-    if (options_.crossover == kOptionCrossoverOn ||
-        options_.crossover == kOptionCrossoverChoose) {
+    if (crossoverIsPossible()) {
       bool ready_for_crossover =
           it_->infeasAfterDropping() < options_.crossover_tol;
       if (ready_for_crossover) {
@@ -1310,9 +1309,9 @@ bool Solver::statusAllowsCrossover() const {
 bool Solver::statusNeedsRefinement() const {
   return info_.status == kStatusNoProgress || info_.status == kStatusImprecise;
 }
-bool Solver::crossoverIsOn() const {
-  return options_.crossover == kOptionCrossoverOn ||
-         options_.crossover == kOptionCrossoverChoose;
+bool Solver::crossoverIsPossible() const {
+  return options_.crossover == kHighsOnString ||
+         options_.crossover == kHighsChooseString;
 }
 bool Solver::solved() const { return statusIsSolved(); }
 bool Solver::stopped() const { return statusIsStopped(); }
