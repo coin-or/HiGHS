@@ -237,11 +237,12 @@ void HighsLpRelaxation::loadModel() {
   for (HighsInt i = 0; i != lpmodel.num_row_; ++i)
     lprows.push_back(LpRow::model(i));
   lpmodel.integrality_.clear();
+  HighsInt num_col = lpmodel.num_col_;
   lpsolver.clearSolver();
   lpsolver.clearModel();
   lpsolver.passModel(std::move(lpmodel));
-  colLbBuffer.resize(lpmodel.num_col_);
-  colUbBuffer.resize(lpmodel.num_col_);
+  colLbBuffer.resize(num_col);
+  colUbBuffer.resize(num_col);
 }
 
 void HighsLpRelaxation::resetToGlobalDomain() {
