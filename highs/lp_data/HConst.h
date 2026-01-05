@@ -18,7 +18,11 @@
 #include "util/HighsInt.h"
 
 const std::string kHighsCopyrightStatement =
-    "Copyright (c) 2025 HiGHS under MIT licence terms";
+#ifdef HIPO
+    "Copyright (c) 2026 under BSD 3-Clause license terms";
+#else
+    "Copyright (c) 2026 under MIT licence terms";
+#endif
 
 const size_t kHighsSize_tInf = (std::numeric_limits<size_t>::max)();
 const HighsInt kHighsIInf = (std::numeric_limits<HighsInt>::max)();
