@@ -140,8 +140,14 @@ jobs:
 
       - name: Install 32-bit deps
         run: |
+          sudo dpkg --add-architecture armhf
           sudo apt-get update
-          sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+          sudo apt-get install -y \
+            libc6:armhf \
+            libstdc++6:armhf
+
+        # sudo apt-get update
+        # sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
 
       - name: Configure CMake
         working-directory: ${{runner.workspace}}/build
@@ -179,8 +185,11 @@ jobs:
 
       - name: Install 32-bit deps
         run: |
+          sudo dpkg --add-architecture armhf
           sudo apt-get update
-          sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+          sudo apt-get install -y \
+            libc6:armhf \
+            libstdc++6:armhf
 
       - name: Configure CMake
         working-directory: ${{runner.workspace}}/build
