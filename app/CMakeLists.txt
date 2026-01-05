@@ -56,7 +56,7 @@ if(FAST_BUILD)
       )
     endif()
 
-    if(WIN32)
+    if(WIN32 AND HIPO AND BUILD_OPENBLAS AND BUILD_SHARED_LIBS)
       add_custom_command(TARGET highs-bin POST_BUILD
           COMMAND ${CMAKE_COMMAND} -E copy_if_different
           $<TARGET_FILE:openblas>
