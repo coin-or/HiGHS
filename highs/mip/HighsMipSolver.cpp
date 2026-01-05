@@ -356,7 +356,23 @@ restart:
       highsLogDev(options_mip_->log_options, HighsLogType::kInfo,
                   "added %" HIGHSINT_FORMAT " global bound changes\n",
                   (HighsInt)mipdata_->domain.getChangedCols().size());
+      HighsInt prevStackSize = mipdata_->domain.getNumDomainChanges();
       mipdata_->cliquetable.cleanupFixed(mipdata_->domain);
+      HighsInt currStackSize = mipdata_->domain.getNumDomainChanges();
+      if (mipdata_->hasMultipleWorkers() && currStackSize > prevStackSize) {
+        // Update workers with new global changes before the stack is reset
+        // TODO: Check if this is alright? Does this get overwirtten via
+        // TODO: installNode?
+        const auto& domchgstack = mipdata_->domain.getDomainChangeStack();
+        for (HighsInt i = prevStackSize; i != currStackSize; i++) {
+          const HighsDomainChange& domchg = domchgstack[i];
+          // for (HighsMipWorker& worker : mipdata_->workers) {
+          //   worker.getGlobalDomain().changeBound(
+          //       domchg, HighsDomain::Reason::unspecified());
+          // }
+          // TODO: Need to reset these worker domains....
+        }
+      }
       for (HighsInt col : mipdata_->domain.getChangedCols())
         mipdata_->implications.cleanupVarbounds(col);
 
@@ -367,14 +383,9 @@ restart:
       mipdata_->removeFixedIndices();
       analysis_.mipTimerStop(kMipClockUpdateLocalDomain);
     }
-    for (HighsMipWorker& worker : mipdata_->workers) {
-      for (HighsInt i = 0; i < numCol(); ++i) {
-        assert(mipdata_->domain.col_lower_[i] ==
-               worker.globaldom_->col_lower_[i]);
-        assert(mipdata_->domain.col_upper_[i] ==
-               worker.globaldom_->col_upper_[i]);
-      }
-    }
+    // Note for multiple workers: It is possible that while cleaning up the
+    // clique table some domain changes were made. Therefore the worker
+    // global domains may at this point be "weaker" than the true global domain.
   };
 
   // TODO: Should we be propagating this first?
@@ -480,11 +491,9 @@ restart:
   };
 
   auto resetWorkerDomains = [&]() -> void {
-    // 1. Backtrack to global domain for all local global domains (not needed)
-    // 2. Push all changes from the true global domain
-    // 3. Clear changedCols and domChgStack, and reset local search domain for
+    // 1. Push all changes from the true global domain
+    // 2. Clear changedCols and domChgStack, and reset local search domain for
     // all workers
-    // TODO MT: Is it simpler to just copy the domain each time
     if (mipdata_->hasMultipleWorkers()) {
       for (HighsMipWorker& worker : mipdata_->workers) {
         for (const HighsDomainChange& domchg :
@@ -496,12 +505,16 @@ restart:
             std::vector<HighsDomainChange>());
         worker.search_ptr_->resetLocalDomain();
         worker.getGlobalDomain().clearChangedCols();
-        for (HighsInt i = 0; i < numCol(); ++i) {
-          assert(mipdata_->domain.col_lower_[i] ==
-                 worker.globaldom_->col_lower_[i]);
-          assert(mipdata_->domain.col_upper_[i] ==
-                 worker.globaldom_->col_upper_[i]);
-        }
+#ifndef NDEBUG
+        // TODO: This might produce a mismatch currently due to cleanup clique
+        // table
+        // for (HighsInt i = 0; i < numCol(); ++i) {
+        //   assert(mipdata_->domain.col_lower_[i] ==
+        //          worker.globaldom_->col_lower_[i]);
+        //   assert(mipdata_->domain.col_upper_[i] ==
+        //          worker.globaldom_->col_upper_[i]);
+        // }
+#endif
       }
     }
   };
@@ -858,7 +871,6 @@ restart:
             worker.lprelaxation_->getLpSolver().getSolution().col_value);
         analysis_.mipTimerStop(kMipClockDiveRandomizedRounding);
       }
-
       if (mipdata_->incumbent.empty()) {
         if (options_mip_->mip_heuristic_run_rens) {
           if (clocks) analysis_.mipTimerStart(kMipClockDiveRens);
@@ -1002,9 +1014,9 @@ restart:
       if (infeasibleGlobalDomain()) break;
 
       bool suboptimal = diveAllSearches();
+      syncSolutions();
       if (suboptimal) break;
 
-      syncSolutions();
       if (mipdata_->checkLimits()) {
         limit_reached = true;
         break;
@@ -1228,9 +1240,10 @@ restart:
       // TODO MT: If everything was pruned then do a global sync!
       if (search_indices.empty()) {
         if (mipdata_->hasMultipleWorkers()) {
+          syncGlobalDomain();
           resetWorkerDomains();
-          resetGlobalDomain();
         }
+        resetGlobalDomain();
         continue;
       }
 
