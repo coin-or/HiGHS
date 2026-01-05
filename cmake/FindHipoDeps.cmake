@@ -44,6 +44,9 @@ if (BUILD_OPENBLAS)
                 # Disable all Level 3 BLAS (includes TRMM, TRSM, etc.)
                 -DNO_LEVEL3:BOOL=ON
                 -DCMAKE_ASM_FLAGS="-mfpu=vfpv3-d16"
+                 -DCMAKE_C_FLAGS="-march=armv7-a -mfpu=vfpv3-d16" 
+                -DCMAKE_ASM_FLAGS="-march=armv7-a -mfpu=vfpv3-d16" 
+                -DCMAKE_CXX_FLAGS="-march=armv7-a -mfpu=vfpv3-d16" 
             )
             # list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=GENERIC)
             # list(APPEND OPENBLAS_MINIMAL_FLAGS
