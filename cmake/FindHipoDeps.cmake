@@ -24,9 +24,14 @@ if (BUILD_OPENBLAS)
         if(CMAKE_SIZEOF_VOID_P EQUAL 4)
             message(STATUS "ARM architecture detected. 32bit.")
             # list(APPEND OPENBLAS_MINIMAL_FLAGS -DARMV7:BOOL=ON)
+             # Set environment variable to disable assembly
+            set(ENV{NOASM} "1")
+
             list(APPEND OPENBLAS_MINIMAL_FLAGS
-                -DTARGET=ARMV7
-                -DBINARY=32 
+                -DTARGET=GENERIC
+                -DBINARY=32
+                -DDYNAMIC_ARCH:BOOL=OFF
+                -DUSE_THREAD:BOOL=OFF
                 # Aggressively disable complex operations
                 -DNO_CGEMM:BOOL=ON
                 -DNO_ZGEMM:BOOL=ON
