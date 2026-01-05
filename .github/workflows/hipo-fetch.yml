@@ -199,6 +199,9 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         run: |
           ls
+          echo "------ bin "
+          ls bin
+          echo "------ .. "
           cd ..
           ls
           ./bin/highs $GITHUB_WORKSPACE/check/instances/afiro.mps
