@@ -31,7 +31,7 @@ if (BUILD_OPENBLAS)
             list(APPEND OPENBLAS_MINIMAL_FLAGS
                 -DTARGET=GENERIC
                 -DBINARY=32
-                # -DNOASM=1
+                -DNOASM=1
                 -DDYNAMIC_ARCH:BOOL=OFF
                 -DUSE_THREAD:BOOL=OFF
                 # Aggressively disable complex operations
