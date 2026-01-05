@@ -22,7 +22,7 @@ if (BUILD_OPENBLAS)
 
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|armv8|arm")
         if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-            message(ERROR "The HiGHS build with OpenBLAS does not yet support 32-bit ARM architectures. \
+            message(FATAL_ERROR "The HiGHS build with OpenBLAS does not yet support 32-bit ARM architectures. \
             You could try to compile OpenBLAS separately on your machine, see https://github.com/OpenMathLib/OpenBLAS. \
             Then link with HiGHS by passing the path to the OpenBLAS installation via BLAS_ROOT. \
             Please don't hesitate to get in touch with us with details about your related issues.")
