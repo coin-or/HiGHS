@@ -11,31 +11,31 @@ if (BUILD_OPENBLAS)
     # Define the size-minimizing flags as a list
     set(OPENBLAS_MINIMAL_FLAGS
         # Exclude components not used by HiGHS
-        -DONLY_BLAS=ON
-        -DNO_LAPACK=ON
-        -DNO_LAPACKE=ON
-        -DNO_COMPLEX=ON
-        -DNO_SINGLE=ON
+        -DONLY_BLAS:BOOL=ON
+        -DNO_LAPACK:BOOL=ON
+        -DNO_LAPACKE:BOOL=ON
+        -DNO_COMPLEX:BOOL=ON
+        -DNO_SINGLE:BOOL=ON
     )
 
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|armv8|arm")
         if(CMAKE_SIZEOF_VOID_P EQUAL 4)
             message(STATUS "ARM architecture detected. Applying -DTARGET=ARMV7.")
             list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=ARMV7)
-            list(APPEND OPENBLAS_MINIMAL_FLAGS -DNO_GETARCH=1 -DARMV7=1)
+            list(APPEND OPENBLAS_MINIMAL_FLAGS -DARMV7:BOOL=ON)
             list(APPEND OPENBLAS_MINIMAL_FLAGS
                     -DNO_COMPLEX:BOOL=ON
                     -DNO_DOUBLE_COMPLEX:BOOL=ON   # explicit
             )
             list(APPEND OPENBLAS_MINIMAL_FLAGS
+                -DNO_GETARCH:BOOL=ON
                 -DUSE_VFPV3:BOOL=ON
                 -DUSE_VFPV3_D32:BOOL=OFF   # crucial: only use d0–d15
-                -DNO_DOUBLE_COMPLEX:BOOL=ON
                 -DNO_TRMM:BOOL=ON
                 -DNO_TRSM:BOOL=ON
                 -DNO_L3:BOOL=ON               # skip complex Level-3 kernels
             )
-            set(SKIP_PARSE_GETARCH TRUE)
+            # set(SKIP_PARSE_GETARCH TRUE)
         else()
             message(STATUS "ARM architecture detected. Applying -DTARGET=ARMV8.")
             list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=ARMV8)
