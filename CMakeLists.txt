@@ -920,10 +920,6 @@ else()
   set(CPACK_PACKAGE_FILE_NAME "highs-${VERSION}-${PLATFORM}")
 endif()
 
-if(NOT CPack_CMake_INCLUDED)
-  include(CPack)
-endif()
-
 set(CPACK_PACKAGE_NAME "HiGHS")
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_PACKAGE_VERSION_MAJOR "${HIGHS_VERSION_MAJOR}")
@@ -938,3 +934,7 @@ quadratic programming (QP) models")
 set(CPACK_COMPONENTS_ALL cli libs)
 set(CPACK_COMPONENT_CLI_DISPLAY_NAME "HiGHS CLI (static)")
 set(CPACK_COMPONENT_LIBS_DISPLAY_NAME "HiGHS Libraries")
+
+if(NOT CPack_CMake_INCLUDED)
+  include(CPack)
+endif()
