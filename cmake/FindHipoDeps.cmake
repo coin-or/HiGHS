@@ -22,7 +22,15 @@ if (BUILD_OPENBLAS)
 
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|armv8|arm")
         if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+            message(ERROR "The HiGHS build with OpenBLAS does not yet support 32-bit ARM architectures. \
+            You could try to compile OpenBLAS separately on your machine, see https://github.com/OpenMathLib/OpenBLAS. \
+            Then link with HiGHS by passing the path to the OpenBLAS installation via BLAS_ROOT. \
+            Please don't hesitate to get in touch with us with details about your related issues.")
+
+            # Unreachable, revisit later. Could not get it to work on the CI, -DNOASM=1 is not being respected and openblas
+            # keeps trying to use 64bit registers which are not available. Works fine on 32bit amd and 64bit arm.
             message(STATUS "ARM architecture detected. 32bit.")
+
             # list(APPEND OPENBLAS_MINIMAL_FLAGS -DARMV7:BOOL=ON)
              # Set environment variable to disable assembly
             # set(ENV{NOASM} "1")
@@ -48,9 +56,9 @@ if (BUILD_OPENBLAS)
                 -DCMAKE_CXX_FLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp"
                 # -DARM_SOFTFP_ABI=1
                 # -DCMAKE_ASM_FLAGS="-mfpu=vfpv3-d16"
-                # -DCMAKE_C_FLAGS="-march=armv7-a -mfpu=vfpv3-d16" 
-                # -DCMAKE_ASM_FLAGS="-march=armv7-a -mfpu=vfpv3-d16" 
-                # -DCMAKE_CXX_FLAGS="-march=armv7-a -mfpu=vfpv3-d16" 
+                # -DCMAKE_C_FLAGS="-march=armv7-a -mfpu=vfpv3-d16"
+                # -DCMAKE_ASM_FLAGS="-march=armv7-a -mfpu=vfpv3-d16"
+                # -DCMAKE_CXX_FLAGS="-march=armv7-a -mfpu=vfpv3-d16"
             )
             # list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=GENERIC)
             # list(APPEND OPENBLAS_MINIMAL_FLAGS
