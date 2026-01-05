@@ -27,6 +27,10 @@ if (BUILD_OPENBLAS)
                     -DNO_COMPLEX:BOOL=ON
                     -DNO_DOUBLE_COMPLEX:BOOL=ON   # explicit
             )
+            list(APPEND OPENBLAS_MINIMAL_FLAGS
+                -DUSE_VFPV3:BOOL=ON
+                -DUSE_VFPV3_D32:BOOL=OFF   # crucial: only use d0–d15
+            )
             set(SKIP_PARSE_GETARCH TRUE)
         else()
             message(STATUS "ARM architecture detected. Applying -DTARGET=ARMV8.")

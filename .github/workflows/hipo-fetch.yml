@@ -219,6 +219,7 @@ jobs:
 
           echo "Running highs:"
           ./bin/highs --version
+          ./bin/highs $GITHUB_WORKSPACE/check/instances/afiro.mps
 
       - name: Test executable
         working-directory: ${{runner.workspace}}/build
