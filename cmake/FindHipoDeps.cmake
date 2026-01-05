@@ -26,7 +26,18 @@ if (BUILD_OPENBLAS)
             # list(APPEND OPENBLAS_MINIMAL_FLAGS -DARMV7:BOOL=ON)
             list(APPEND OPENBLAS_MINIMAL_FLAGS
                 -DTARGET=ARMV7
-                -DBINARY=32 )
+                -DBINARY=32 
+                # Aggressively disable complex operations
+                -DNO_CGEMM:BOOL=ON
+                -DNO_ZGEMM:BOOL=ON
+                -DNO_CTRMM:BOOL=ON
+                -DNO_ZTRMM:BOOL=ON
+                -DNO_CTRSM:BOOL=ON
+                -DNO_ZTRSM:BOOL=ON
+                
+                # Disable all Level 3 BLAS (includes TRMM, TRSM, etc.)
+                -DNO_LEVEL3:BOOL=ON
+            )
             # list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=GENERIC)
             # list(APPEND OPENBLAS_MINIMAL_FLAGS
             #     -DDYNAMIC_ARCH:BOOL=OFF
