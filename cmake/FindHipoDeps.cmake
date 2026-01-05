@@ -23,6 +23,10 @@ if (BUILD_OPENBLAS)
             message(STATUS "ARM architecture detected. Applying -DTARGET=ARMV7.")
             list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=ARMV7)
             list(APPEND OPENBLAS_MINIMAL_FLAGS -DNO_GETARCH=1 -DARMV7=1)
+            list(APPEND OPENBLAS_MINIMAL_FLAGS
+                    -DNO_COMPLEX:BOOL=ON
+                    -DNO_DOUBLE_COMPLEX:BOOL=ON   # explicit
+            )
             set(SKIP_PARSE_GETARCH TRUE)
         else()
             message(STATUS "ARM architecture detected. Applying -DTARGET=ARMV8.")
