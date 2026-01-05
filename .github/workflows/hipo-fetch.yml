@@ -201,10 +201,10 @@ jobs:
           ls
           echo "------ bin "
           ls bin
-          echo "------ .. "
-          cd ..
-          ls
-          ./bin/highs $GITHUB_WORKSPACE/check/instances/afiro.mps
+          cd bin
+          echo "------ highs "
+          ls highs
+          ./highs $GITHUB_WORKSPACE/check/instances/afiro.mps
 
       - name: Ctest
         working-directory: ${{runner.workspace}}/build
