@@ -23,7 +23,7 @@ if (BUILD_OPENBLAS)
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|armv8|arm")
         if(CMAKE_SIZEOF_VOID_P EQUAL 4)
             message(STATUS "ARM architecture detected. 32bit.")
-            list(APPEND OPENBLAS_MINIMAL_FLAGS -DARMV7:BOOL=ON)
+            # list(APPEND OPENBLAS_MINIMAL_FLAGS -DARMV7:BOOL=ON)
             list(APPEND OPENBLAS_MINIMAL_FLAGS
                 -DTARGET=ARMV7
                 -DBINARY=32 )

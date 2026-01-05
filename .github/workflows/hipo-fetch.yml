@@ -72,6 +72,12 @@ jobs:
         run: |
           cmake --build . -j2
 
+      - name: Check
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          cd _deps/openblas-build/lib/
+          ar t libopenblas.a | head -1 | xargs ar p libopenblas.a | file -
+
       - name: Test executable
         working-directory: ${{runner.workspace}}/build
         run: ./bin/highs --solver=hipo $GITHUB_WORKSPACE/check/instances/afiro.mps
@@ -158,6 +164,12 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         run: |
           cmake --build . --parallel
+
+      - name: Check
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          cd _deps/openblas-build/lib/
+          ar t libopenblas.a | head -1 | xargs ar p libopenblas.a | file -
 
       - name: Test executable
         working-directory: ${{runner.workspace}}/build
