@@ -25,10 +25,10 @@ if (BUILD_OPENBLAS)
             message(STATUS "ARM architecture detected. 32bit.")
             # list(APPEND OPENBLAS_MINIMAL_FLAGS -DARMV7:BOOL=ON)
              # Set environment variable to disable assembly
-            set(ENV{NOASM} "1")
+            # set(ENV{NOASM} "1")
 
             list(APPEND OPENBLAS_MINIMAL_FLAGS
-                -DTARGET=GENERIC
+                -DTARGET=ARMV7
                 -DBINARY=32
                 -DDYNAMIC_ARCH:BOOL=OFF
                 -DUSE_THREAD:BOOL=OFF
