@@ -23,25 +23,28 @@ if (BUILD_OPENBLAS)
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|armv8|arm")
         if(CMAKE_SIZEOF_VOID_P EQUAL 4)
             message(STATUS "ARM architecture detected. 32bit.")
-            # list(APPEND OPENBLAS_MINIMAL_FLAGS -DARMV7:BOOL=ON)
-            list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=GENERIC)
+            list(APPEND OPENBLAS_MINIMAL_FLAGS -DARMV7:BOOL=ON)
             list(APPEND OPENBLAS_MINIMAL_FLAGS
-                -DDYNAMIC_ARCH:BOOL=OFF
-                -DUSE_THREAD:BOOL=OFF        # Simplify build
-                -DNO_WARMUP:BOOL=ON          # Skip warmup routine
-                # -DNO_GETARCH:BOOL=ON
-                # -DUSE_VFPV3:BOOL=ON
-                # -DUSE_VFPV3_D32:BOOL=OFF   # crucial: only use d0–d15
-                # -DNO_TRMM:BOOL=ON
-                # -DNO_TRSM:BOOL=ON
-                -DNO_L3:BOOL=ON               # skip complex Level-3 kernels
-                # -DCMAKE_ASM_FLAGS="-mfpu=vfpv3-d16"
-                # -DUSE_GENERIC:BOOL=ON
-            )
-            # Explicitly disable assembly
+                -DTARGET=ARMV7
+                -DBINARY=32 )
+            # list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=GENERIC)
+            # list(APPEND OPENBLAS_MINIMAL_FLAGS
+            #     -DDYNAMIC_ARCH:BOOL=OFF
+            #     -DUSE_THREAD:BOOL=OFF        # Simplify build
+            #     -DNO_WARMUP:BOOL=ON          # Skip warmup routine
+            #     # -DNO_GETARCH:BOOL=ON
+            #     # -DUSE_VFPV3:BOOL=ON
+            #     # -DUSE_VFPV3_D32:BOOL=OFF   # crucial: only use d0–d15
+            #     # -DNO_TRMM:BOOL=ON
+            #     # -DNO_TRSM:BOOL=ON
+            #     -DNO_L3:BOOL=ON               # skip complex Level-3 kernels
+            #     # -DCMAKE_ASM_FLAGS="-mfpu=vfpv3-d16"
+            #     # -DUSE_GENERIC:BOOL=ON
+            # )
+            # # Explicitly disable assembly
 
-            set(CMAKE_ASM_COMPILER "")
-            set(NOASM 1)
+            # set(CMAKE_ASM_COMPILER "")
+            # set(NOASM 1)
 
             # set(SKIP_PARSE_GETARCH TRUE)
         else()
