@@ -103,10 +103,7 @@ if (BUILD_OPENBLAS)
             set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
         endif()
 
-<<<<<<< HEAD
 
-=======
->>>>>>> hipo-cpack
         # list(APPEND OPENBLAS_MINIMAL_FLAGS -DUSE_THREAD=OFF)
         list(APPEND OPENBLAS_MINIMAL_FLAGS -DINTERFACE64=0)
 
