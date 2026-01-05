@@ -193,10 +193,15 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         run: |
           cmake --build . --parallel
+          ls
 
       - name: Test executable
         working-directory: ${{runner.workspace}}/build
-        run: ./bin/highs $GITHUB_WORKSPACE/check/instances/afiro.mps
+        run: |
+          ls
+          cd ..
+          ls
+          ./bin/highs $GITHUB_WORKSPACE/check/instances/afiro.mps
 
       - name: Ctest
         working-directory: ${{runner.workspace}}/build
