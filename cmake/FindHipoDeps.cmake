@@ -46,7 +46,7 @@ if (BUILD_OPENBLAS)
                 -DCMAKE_C_FLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp"
                 -DCMAKE_ASM_FLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp"
                 -DCMAKE_CXX_FLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp"
-                -DARM_SOFTFP_ABI=1
+                # -DARM_SOFTFP_ABI=1
                 # -DCMAKE_ASM_FLAGS="-mfpu=vfpv3-d16"
                 # -DCMAKE_C_FLAGS="-march=armv7-a -mfpu=vfpv3-d16" 
                 # -DCMAKE_ASM_FLAGS="-march=armv7-a -mfpu=vfpv3-d16" 
