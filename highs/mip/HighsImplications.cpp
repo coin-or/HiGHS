@@ -300,9 +300,7 @@ bool HighsImplications::runProbing(HighsInt col, HighsInt& numReductions) {
   if (globaldomain.isBinary(col) && !implicationsCached(col, 1) &&
       !implicationsCached(col, 0) &&
       mipsolver.mipdata_->cliquetable.getSubstitution(col) == nullptr) {
-    bool infeasible;
-
-    infeasible = computeImplications(col, 1);
+    bool infeasible = computeImplications(col, 1);
     if (globaldomain.infeasible()) return true;
     if (infeasible) return true;
     if (mipsolver.mipdata_->cliquetable.getSubstitution(col) != nullptr)
@@ -715,8 +713,11 @@ void HighsImplications::cleanupVarbounds(HighsInt col) {
   double lb = mipsolver.mipdata_->domain.col_lower_[col];
 
   if (ub == lb) {
-    numVarBounds -= vlbs.size();
-    numVarBounds -= vubs.size();
+    HighsInt numVubs = 0;
+    vubs[col].for_each([&](HighsInt vubCol, VarBound& vub) { numVubs++; });
+    HighsInt numVlbs = 0;
+    vlbs[col].for_each([&](HighsInt vlbCol, VarBound& vlb) { numVlbs++; });
+    numVarBounds -= numVubs + numVlbs;
     vlbs[col].clear();
     vubs[col].clear();
     return;

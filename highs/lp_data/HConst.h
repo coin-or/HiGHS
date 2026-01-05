@@ -274,7 +274,8 @@ enum PresolveRuleType : int {
   kPresolveRuleParallelRowsAndCols,
   kPresolveRuleSparsify,
   kPresolveRuleProbing,
-  kPresolveRuleMax = kPresolveRuleProbing,
+  kPresolveRuleEnumeration,
+  kPresolveRuleMax = kPresolveRuleEnumeration,
   kPresolveRuleLastAllowOff = kPresolveRuleMax,
   kPresolveRuleCount
 };
@@ -303,8 +304,10 @@ enum IisStatus : int {
 
 enum SubSolverIndex : int {
   kSubSolverMip = 0,
-  kSubSolverSimplexBasis,
-  kSubSolverSimplexNoBasis,
+  kSubSolverDuSimplexBasis,
+  kSubSolverDuSimplexNoBasis,
+  kSubSolverPrSimplexBasis,
+  kSubSolverPrSimplexNoBasis,
   kSubSolverHipo,
   kSubSolverIpx,
   kSubSolverHipoAc,

@@ -363,7 +363,6 @@ std::tuple<HighsStatus, dense_array_t<double>> highs_getReducedRow(
 std::tuple<HighsStatus, dense_array_t<double>, HighsInt,
            dense_array_t<HighsInt>>
 highs_getReducedRowSparse(Highs* h, HighsInt row) {
-  HighsInt num_col = h->getNumCol();
   HighsInt num_row = h->getNumRow();
 
   HighsStatus status = HighsStatus::kOk;

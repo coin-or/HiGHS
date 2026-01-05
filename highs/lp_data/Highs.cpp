@@ -464,15 +464,17 @@ HighsStatus Highs::passModel(
     for (HighsInt iCol = 0; iCol < num_col; iCol++) {
       HighsInt integrality_status = integrality[iCol];
       const bool legal_integrality_status =
-          integrality_status == (HighsInt)HighsVarType::kContinuous ||
-          integrality_status == (HighsInt)HighsVarType::kInteger ||
-          integrality_status == (HighsInt)HighsVarType::kSemiContinuous ||
-          integrality_status == (HighsInt)HighsVarType::kSemiInteger;
+          integrality_status == HighsInt(HighsVarType::kContinuous) ||
+          integrality_status == HighsInt(HighsVarType::kInteger) ||
+          integrality_status == HighsInt(HighsVarType::kSemiContinuous) ||
+          integrality_status == HighsInt(HighsVarType::kSemiInteger) ||
+          integrality_status == HighsInt(HighsVarType::kImplicitInteger);
       if (!legal_integrality_status) {
-        highsLogDev(
-            options_.log_options, HighsLogType::kError,
-            "Model has illegal integer value of %d for integrality[%d]\n",
-            (int)integrality_status, iCol);
+        highsLogUser(options_.log_options, HighsLogType::kError,
+                     "Model has illegal integer value of %d (type %s) for "
+                     "integrality[%d]\n",
+                     int(integrality_status),
+                     highsVarTypeToString(integrality_status).c_str(), iCol);
         return HighsStatus::kError;
       }
       lp.integrality_[iCol] = (HighsVarType)integrality_status;
@@ -3509,7 +3511,7 @@ HighsStatus Highs::writeSolution(const std::string& filename,
         interpretCallStatus(options_.log_options, this->getRangingInterface(),
                             return_status, "getRangingInterface");
     if (return_status == HighsStatus::kError)
-      returnFromWriteSolution(file, return_status);
+      return returnFromWriteSolution(file, return_status);
     fprintf(file, "\n# Ranging\n");
     writeRangingFile(file, model_.lp_, info_.objective_function_value, basis_,
                      solution_, ranging_, style);

@@ -1333,7 +1333,7 @@ double HighsDomain::adjustedUb(HighsInt col, HighsCDouble boundVal,
                                bool& accept) const {
   double bound;
 
-  if (mipsolver->variableType(col) != HighsVarType::kContinuous) {
+  if (mipsolver->isColIntegral(col)) {
     bound = static_cast<double>(floor(boundVal + mipsolver->mipdata_->feastol));
     accept = bound < col_upper_[col] &&
              col_upper_[col] - bound >
@@ -1365,7 +1365,7 @@ double HighsDomain::adjustedLb(HighsInt col, HighsCDouble boundVal,
                                bool& accept) const {
   double bound;
 
-  if (mipsolver->variableType(col) != HighsVarType::kContinuous) {
+  if (mipsolver->isColIntegral(col)) {
     bound = static_cast<double>(ceil(boundVal - mipsolver->mipdata_->feastol));
     accept = bound > col_lower_[col] &&
              bound - col_lower_[col] >
@@ -1548,10 +1548,7 @@ void HighsDomain::updateActivityLbChange(HighsInt col, double oldbound,
       if (recordRedundantRows_ &&
           mip->row_lower_[mip->a_matrix_.index_[i]] != -kHighsInf &&
           mip->row_upper_[mip->a_matrix_.index_[i]] == kHighsInf)
-        updateRedundantRows(mip->a_matrix_.index_[i], HighsInt{1},
-                            activitymininf_[mip->a_matrix_.index_[i]],
-                            activitymin_[mip->a_matrix_.index_[i]],
-                            mip->row_lower_[mip->a_matrix_.index_[i]]);
+        updateRedundantRows(mip->a_matrix_.index_[i]);
 
       if (deltamin <= 0) {
         updateThresholdLbChange(col, newbound, mip->a_matrix_.value_[i],
@@ -1600,10 +1597,7 @@ void HighsDomain::updateActivityLbChange(HighsInt col, double oldbound,
       if (recordRedundantRows_ &&
           mip->row_lower_[mip->a_matrix_.index_[i]] == -kHighsInf &&
           mip->row_upper_[mip->a_matrix_.index_[i]] != kHighsInf)
-        updateRedundantRows(mip->a_matrix_.index_[i], HighsInt{-1},
-                            activitymaxinf_[mip->a_matrix_.index_[i]],
-                            activitymax_[mip->a_matrix_.index_[i]],
-                            mip->row_upper_[mip->a_matrix_.index_[i]]);
+        updateRedundantRows(mip->a_matrix_.index_[i]);
 
       if (deltamax >= 0) {
         updateThresholdLbChange(col, newbound, mip->a_matrix_.value_[i],
@@ -1703,10 +1697,7 @@ void HighsDomain::updateActivityUbChange(HighsInt col, double oldbound,
       if (recordRedundantRows_ &&
           mip->row_lower_[mip->a_matrix_.index_[i]] == -kHighsInf &&
           mip->row_upper_[mip->a_matrix_.index_[i]] != kHighsInf)
-        updateRedundantRows(mip->a_matrix_.index_[i], HighsInt{-1},
-                            activitymaxinf_[mip->a_matrix_.index_[i]],
-                            activitymax_[mip->a_matrix_.index_[i]],
-                            mip->row_upper_[mip->a_matrix_.index_[i]]);
+        updateRedundantRows(mip->a_matrix_.index_[i]);
 
       if (deltamax >= 0) {
         updateThresholdUbChange(col, newbound, mip->a_matrix_.value_[i],
@@ -1758,10 +1749,7 @@ void HighsDomain::updateActivityUbChange(HighsInt col, double oldbound,
       if (recordRedundantRows_ &&
           mip->row_lower_[mip->a_matrix_.index_[i]] != -kHighsInf &&
           mip->row_upper_[mip->a_matrix_.index_[i]] == kHighsInf)
-        updateRedundantRows(mip->a_matrix_.index_[i], HighsInt{1},
-                            activitymininf_[mip->a_matrix_.index_[i]],
-                            activitymin_[mip->a_matrix_.index_[i]],
-                            mip->row_lower_[mip->a_matrix_.index_[i]]);
+        updateRedundantRows(mip->a_matrix_.index_[i]);
 
       if (deltamin <= 0) {
         updateThresholdUbChange(col, newbound, mip->a_matrix_.value_[i],
@@ -1845,11 +1833,8 @@ void HighsDomain::recomputeCapacityThreshold(HighsInt row) {
   }
 }
 
-void HighsDomain::updateRedundantRows(HighsInt row, HighsInt direction,
-                                      HighsInt numinf, HighsCDouble activity,
-                                      double bound) {
-  if (numinf != 0 || direction * activity <=
-                         direction * bound + mipsolver->mipdata_->feastol) {
+void HighsDomain::updateRedundantRows(HighsInt row) {
+  if (!isRedundantRow(row)) {
     // row that was found to be redundant should not be non-redundant
     assert(redundantRows_.find(row) == nullptr);
     return;
@@ -1868,6 +1853,12 @@ double HighsDomain::getRedundantRowValue(HighsInt row) const {
     return static_cast<double>(activitymax_[row] -
                                mipsolver->model_->row_upper_[row]);
   }
+}
+
+bool HighsDomain::isRedundantRow(HighsInt row) const {
+  return (
+      getMinActivity(row) >= mipsolver->model_->row_lower_[row] - feastol() &&
+      getMaxActivity(row) <= mipsolver->model_->row_upper_[row] + feastol());
 }
 
 void HighsDomain::markPropagateCut(Reason reason) {
@@ -1957,7 +1948,7 @@ double HighsDomain::doChangeBound(const HighsDomainChange& boundchg) {
       if (!infeasible_)
         updateActivityLbChange(boundchg.column, oldbound, boundchg.boundval);
 
-      if (!changedcolsflags_[boundchg.column]) {
+      if (!isChangedCol(boundchg.column)) {
         changedcolsflags_[boundchg.column] = 1;
         changedcols_.push_back(boundchg.column);
       }
@@ -1969,7 +1960,7 @@ double HighsDomain::doChangeBound(const HighsDomainChange& boundchg) {
       if (!infeasible_)
         updateActivityUbChange(boundchg.column, oldbound, boundchg.boundval);
 
-      if (!changedcolsflags_[boundchg.column]) {
+      if (!isChangedCol(boundchg.column)) {
         changedcolsflags_[boundchg.column] = 1;
         changedcols_.push_back(boundchg.column);
       }
@@ -2624,8 +2615,7 @@ void HighsDomain::tightenCoefficients(HighsInt* inds, double* vals,
     HighsCDouble upper = rhs;
     HighsInt tightened = 0;
     for (HighsInt i = 0; i != len; ++i) {
-      if (mipsolver->variableType(inds[i]) == HighsVarType::kContinuous)
-        continue;
+      if (mipsolver->isColContinuous(inds[i])) continue;
       if (vals[i] > maxabscoef) {
         HighsCDouble delta = vals[i] - maxabscoef;
         upper -= delta * col_upper_[inds[i]];
@@ -2677,13 +2667,13 @@ HighsDomainChange HighsDomain::flip(const HighsDomainChange& domchg) const {
   if (domchg.boundtype == HighsBoundType::kLower) {
     HighsDomainChange flipped{domchg.boundval - mipsolver->mipdata_->feastol,
                               domchg.column, HighsBoundType::kUpper};
-    if (mipsolver->variableType(domchg.column) != HighsVarType::kContinuous)
+    if (mipsolver->isColIntegral(domchg.column))
       flipped.boundval = std::floor(flipped.boundval);
     return flipped;
   } else {
     HighsDomainChange flipped{domchg.boundval + mipsolver->mipdata_->feastol,
                               domchg.column, HighsBoundType::kLower};
-    if (mipsolver->variableType(domchg.column) != HighsVarType::kContinuous)
+    if (mipsolver->isColIntegral(domchg.column))
       flipped.boundval = std::ceil(flipped.boundval);
     return flipped;
   }
