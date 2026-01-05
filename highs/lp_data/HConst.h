@@ -19,7 +19,7 @@
 
 const std::string kHighsCopyrightStatement =
 #ifdef HIPO
-    "Copyright (c) 2026 under BSD 3-Clause license terms";
+    "Copyright (c) 2026 under Apache 2.0 license terms";
 #else
     "Copyright (c) 2026 under MIT licence terms";
 #endif
