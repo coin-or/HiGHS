@@ -11,7 +11,7 @@ if (BUILD_OPENBLAS)
     # Define the size-minimizing flags as a list
     set(OPENBLAS_MINIMAL_FLAGS
         # Exclude components not used by HiGHS
-        -DONLY_BLAS:BOOL=ON
+        -DONLY_CBLAS:BOOL=ON
         -DNO_LAPACK:BOOL=ON
         -DNO_LAPACKE:BOOL=ON
         -DNO_COMPLEX:BOOL=ON
