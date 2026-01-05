@@ -30,6 +30,10 @@ if (BUILD_OPENBLAS)
             list(APPEND OPENBLAS_MINIMAL_FLAGS
                 -DUSE_VFPV3:BOOL=ON
                 -DUSE_VFPV3_D32:BOOL=OFF   # crucial: only use d0–d15
+                -DNO_DOUBLE_COMPLEX:BOOL=ON
+                -DNO_TRMM:BOOL=ON
+                -DNO_TRSM:BOOL=ON
+                -DNO_L3:BOOL=ON               # skip complex Level-3 kernels
             )
             set(SKIP_PARSE_GETARCH TRUE)
         else()

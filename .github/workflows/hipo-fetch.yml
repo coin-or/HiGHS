@@ -224,15 +224,7 @@ jobs:
       - name: Test executable
         working-directory: ${{runner.workspace}}/build
         run: |
-          ls
-          echo "------ bin "
-          ls bin
-          cd bin
-          echo "------ highs "
-          ls -l highs
-          file highs
-          ldd highs
-          ./highs $GITHUB_WORKSPACE/check/instances/afiro.mps
+          ./bin/highs $GITHUB_WORKSPACE/check/instances/afiro.mps
 
       - name: Ctest
         working-directory: ${{runner.workspace}}/build
