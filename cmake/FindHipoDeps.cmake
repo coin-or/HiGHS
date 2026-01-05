@@ -32,6 +32,8 @@ if (BUILD_OPENBLAS)
                 -DNO_TRSM:BOOL=ON
                 -DNO_L3:BOOL=ON               # skip complex Level-3 kernels
                 -DCMAKE_ASM_FLAGS="-mfpu=vfpv3-d16"
+                -DDYNAMIC_ARCH:BOOL=OFF       # Disable dynamic architecture detection
+                -DUSE_GENERIC:BOOL=ON
             )
             # set(SKIP_PARSE_GETARCH TRUE)
         else()
