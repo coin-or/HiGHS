@@ -43,9 +43,10 @@ if (BUILD_OPENBLAS)
                 -DNO_ZTRSM:BOOL=ON
                 # Disable all Level 3 BLAS (includes TRMM, TRSM, etc.)
                 -DNO_LEVEL3:BOOL=ON
-                -DCMAKE_C_FLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=hard"
-                -DCMAKE_ASM_FLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=hard"
-                -DCMAKE_CXX_FLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=hard"
+                -DCMAKE_C_FLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp"
+                -DCMAKE_ASM_FLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp"
+                -DCMAKE_CXX_FLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp"
+                -DARM_SOFTFP_ABI=1
                 # -DCMAKE_ASM_FLAGS="-mfpu=vfpv3-d16"
                 # -DCMAKE_C_FLAGS="-march=armv7-a -mfpu=vfpv3-d16" 
                 # -DCMAKE_ASM_FLAGS="-march=armv7-a -mfpu=vfpv3-d16" 
