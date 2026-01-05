@@ -91,9 +91,7 @@ class FHsolver {
               const std::string& ordering = "metis");
 
   // Perform factorise phase of matrix given by rows, ptr, vals, and store
-  // numerical factorisation in object N. Matrix is moved into the object, so
-  // rows, ptr, vals are invalid afterwards.
-  // See ReturnValues.h for errors.
+  // numerical factorisation in object N. See ReturnValues.h for errors.
   Int factorise(const Symbolic& S, const std::vector<Int>& rows,
                 const std::vector<Int>& ptr, const std::vector<double>& vals);
 

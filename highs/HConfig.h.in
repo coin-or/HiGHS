@@ -13,7 +13,7 @@
 #cmakedefine HIGHS_HAVE_BUILTIN_CLZ
 #cmakedefine HIGHS_HAVE_BITSCAN_REVERSE
 #cmakedefine BLAS_LIBRARIES "@BLAS_LIBRARIES@"
-#cmakedefine OPENBLAS_WIN_32
+#cmakedefine OPENBLAS_32
 
 
 #define HIGHS_GITHASH "@GITHASH@"

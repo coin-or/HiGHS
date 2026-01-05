@@ -16,7 +16,7 @@
 #include <iostream>
 #include <vector>
 
-const bool dev_run = true;
+const bool dev_run = false;
 
 TEST_CASE("test-hipo-afiro", "[highs_hipo]") {
   // Test that hipo runs and finds correct solution for afiro

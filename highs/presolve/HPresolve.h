@@ -320,7 +320,8 @@ class HPresolve {
 
   void scaleMIP(HighsPostsolveStack& postsolve_stack);
 
-  Result applyConflictGraphSubstitutions(HighsPostsolveStack& postsolve_stack);
+  Result applyConflictGraphSubstitutions(HighsPostsolveStack& postsolve_stack,
+                                         HighsInt& numDelCol);
 
   Result fastPresolveLoop(HighsPostsolveStack& postsolve_stack);
 
@@ -364,6 +365,13 @@ class HPresolve {
 
   void addToMatrix(const HighsInt row, const HighsInt col, const double val);
 
+  Result prepareProbing(HighsPostsolveStack& postsolve_stack, bool& firstCall);
+
+  Result finaliseProbing(HighsPostsolveStack& postsolve_stack, bool firstCall,
+                         HighsInt& numVarsFixed, HighsInt& numBndsTightened,
+                         HighsInt& numVarsSubstituted,
+                         HighsInt& liftedNonZeros);
+
   Result runProbing(HighsPostsolveStack& postsolve_stack);
 
   Result liftingForProbing(HighsPostsolveStack& postsolve_stack);
@@ -396,6 +404,8 @@ class HPresolve {
 
   Result singletonColStuffing(HighsPostsolveStack& postsolve_stack,
                               HighsInt col);
+
+  Result enumerateSolutions(HighsPostsolveStack& postsolve_stack);
 
   double computeImpliedLowerBound(HighsInt col, HighsInt boundCol = -1,
                                   double boundColValue = kHighsInf,

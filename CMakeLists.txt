@@ -150,7 +150,7 @@ option(HIPO "Build HIPO" OFF)
 message(STATUS "Build HIPO: ${HIPO}")
 option(BUILD_OPENBLAS "Build OpenBLAS" OFF)
 message(STATUS "Build OpenBLAS: ${BUILD_OPENBLAS}")
-option(OPENBLAS_WIN_32 "Build 32bit OpenBLAS on Windows" OFF)
+option(OPENBLAS_32 "Build 32-bit OpenBLAS" OFF)
 
 if (HIPO AND CSHARP)
   message(ERROR "HIPO is only available in C++. Not yet supported in C#.")
@@ -380,6 +380,11 @@ if (BUILD_CXX)
       message(STATUS "IPO / LTO is not supported at the moment when PDLP is using GPU: LTO disabled.")
   endif()
 
+  if (LINUX AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+      set(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE)
+      message(STATUS "IPO / LTO is not supported for 32-bit linux.")
+  endif()
+
 endif()
 
 
@@ -490,7 +495,7 @@ endif()
 
 # set(CMAKE_C_FLAGS "-Wno-deprecated-declarations")
 if (UNIX)
-  set(CMAKE_C_FLAGS "-Wno-implicit-function-declaration")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-implicit-function-declaration")
 endif()
 
 

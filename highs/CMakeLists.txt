@@ -433,6 +433,10 @@ if(Threads_FOUND)
 endif()
 
 if(FAST_BUILD)
+  if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+      set(THREADS_PREFER_PTHREAD_FLAG ON)
+  endif()
+
   target_link_libraries(highs PRIVATE Threads::Threads)
 else()
   target_link_libraries(libhighs Threads::Threads)

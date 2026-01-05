@@ -11,30 +11,92 @@ if (BUILD_OPENBLAS)
     # Define the size-minimizing flags as a list
     set(OPENBLAS_MINIMAL_FLAGS
         # Exclude components not used by HiGHS
-        -DNO_LAPACK=ON
-        -DNO_LAPACKE=ON
-        -DNO_COMPLEX=ON
-        -DNO_SINGLE=ON
-        -DONLY_BLAS=ON
+        -DONLY_CBLAS:BOOL=ON
+        -DNO_LAPACK:BOOL=ON
+        -DNO_LAPACKE:BOOL=ON
+        -DNO_COMPLEX:BOOL=ON
+        -DNO_COMPLEX16:BOOL=ON
+        -DNO_DOUBLE_COMPLEX:BOOL=ON
+        -DNO_SINGLE:BOOL=ON
     )
 
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|armv8|arm")
         if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-            message(STATUS "ARM architecture detected. Applying -DTARGET=ARMV7.")
-            list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=ARMV7)
+            message(FATAL_ERROR "The HiGHS build with OpenBLAS does not yet support 32-bit ARM architectures. \
+            You could try to compile OpenBLAS separately on your machine, see https://github.com/OpenMathLib/OpenBLAS. \
+            Then link with HiGHS by passing the path to the OpenBLAS installation via BLAS_ROOT. \
+            Please don't hesitate to get in touch with us with details about your related issues.")
+
+            # Unreachable, revisit later. Could not get it to work on the CI, -DNOASM=1 is not being respected and openblas
+            # keeps trying to use 64bit registers which are not available. Works fine on 32bit amd and 64bit arm.
+            message(STATUS "ARM architecture detected. 32bit.")
+
+            # list(APPEND OPENBLAS_MINIMAL_FLAGS -DARMV7:BOOL=ON)
+             # Set environment variable to disable assembly
+            # set(ENV{NOASM} "1")
+            # set(NOASM 1)
+
+            list(APPEND OPENBLAS_MINIMAL_FLAGS
+                -DTARGET=GENERIC
+                -DBINARY=32
+                -DNOASM=1
+                -DDYNAMIC_ARCH:BOOL=OFF
+                -DUSE_THREAD:BOOL=OFF
+                # Aggressively disable complex operations
+                -DNO_CGEMM:BOOL=ON
+                -DNO_ZGEMM:BOOL=ON
+                -DNO_CTRMM:BOOL=ON
+                -DNO_ZTRMM:BOOL=ON
+                -DNO_CTRSM:BOOL=ON
+                -DNO_ZTRSM:BOOL=ON
+                # Disable all Level 3 BLAS (includes TRMM, TRSM, etc.)
+                -DNO_LEVEL3:BOOL=ON
+                -DCMAKE_C_FLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp"
+                -DCMAKE_ASM_FLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp"
+                -DCMAKE_CXX_FLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp"
+                # -DARM_SOFTFP_ABI=1
+                # -DCMAKE_ASM_FLAGS="-mfpu=vfpv3-d16"
+                # -DCMAKE_C_FLAGS="-march=armv7-a -mfpu=vfpv3-d16"
+                # -DCMAKE_ASM_FLAGS="-march=armv7-a -mfpu=vfpv3-d16"
+                # -DCMAKE_CXX_FLAGS="-march=armv7-a -mfpu=vfpv3-d16"
+            )
+            # list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=GENERIC)
+            # list(APPEND OPENBLAS_MINIMAL_FLAGS
+            #     -DDYNAMIC_ARCH:BOOL=OFF
+            #     -DUSE_THREAD:BOOL=OFF        # Simplify build
+            #     -DNO_WARMUP:BOOL=ON          # Skip warmup routine
+            #     # -DNO_GETARCH:BOOL=ON
+            #     # -DUSE_VFPV3:BOOL=ON
+            #     # -DUSE_VFPV3_D32:BOOL=OFF   # crucial: only use d0–d15
+            #     # -DNO_TRMM:BOOL=ON
+            #     # -DNO_TRSM:BOOL=ON
+            #     -DNO_L3:BOOL=ON               # skip complex Level-3 kernels
+            #     # -DCMAKE_ASM_FLAGS="-mfpu=vfpv3-d16"
+            #     # -DUSE_GENERIC:BOOL=ON
+            # )
+            # # Explicitly disable assembly
+
+            # set(CMAKE_ASM_COMPILER "")
+            # set(NOASM 1)
+
+            # set(SKIP_PARSE_GETARCH TRUE)
         else()
             message(STATUS "ARM architecture detected. Applying -DTARGET=ARMV8.")
             list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=ARMV8)
+            # list(APPEND OPENBLAS_MINIMAL_FLAGS -DONLY_BLAS=ON -DNO_LAPACK=ON -DNO_LAPACKE=ON)
         endif()
+    # else()
+        # list(APPEND OPENBLAS_MINIMAL_FLAGS -DONLY_BLAS=ON -DNO_LAPACK=ON -DNO_LAPACKE=ON)
     endif()
 
     # CMAKE_SIZEOF_VOID_P is 4 for 32-bit builds, 8 for 64-bit builds.
-    if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
         message(STATUS "32-bit target detected. Applying 32-bit configuration flags for OpenBLAS.")
+        set(OPENBLAS_32 ON)
 
-        set(OPENBLAS_WIN_32 ON)
-
-        list(APPEND OPENBLAS_MINIMAL_FLAGS -DCMAKE_GENERATOR_PLATFORM=Win32)
+        if (WIN32)
+            list(APPEND OPENBLAS_MINIMAL_FLAGS -DCMAKE_GENERATOR_PLATFORM=Win32)
+        endif()
 
         # Crucial for static linking: Force OpenBLAS to use the static runtime
         if (NOT BUILD_SHARED_LIBS)
