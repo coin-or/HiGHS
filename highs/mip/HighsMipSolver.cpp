@@ -71,6 +71,26 @@ HighsMipSolver::HighsMipSolver(HighsCallback& callback,
 
 HighsMipSolver::~HighsMipSolver() = default;
 
+template <class F>
+void HighsMipSolver::applyTask(F&& f, highs::parallel::TaskGroup& tg,
+                               bool parallel_lock,
+                               const std::vector<HighsInt>& indices) {
+  setParallelLock(parallel_lock);
+  bool spawn_tasks = mipdata_->parallelLockActive() && indices.size() > 1 &&
+                     !options_mip_->mip_search_simulate_concurrency;
+  for (HighsInt i : indices) {
+    if (spawn_tasks) {
+      tg.spawn([&f, i] { f(i); });
+    } else {
+      f(i);
+    }
+  }
+  if (spawn_tasks) {
+    tg.taskWait();
+  }
+  setParallelLock(false);
+}
+
 void HighsMipSolver::run() {
   const bool debug_logging = false;  // true;
   modelstatus_ = HighsModelStatus::kNotset;
@@ -235,27 +255,27 @@ restart:
     return;
   }
 
-  printf(
-      "MIPSOLVER mipdata lp deque member  with address %p, %d "
-      "columns, and %d rows\n",
-      (void*)&mipdata_->lps.at(0),
-      int(mipdata_->lps.at(0).getLpSolver().getNumCol()),
-      int(mipdata_->lps.at(0).getLpSolver().getNumRow()));
-
-  printf("Passed to search atm:  \n");
-
-  printf(
-      "MIPSOLVER mipdata lp ref with address %p, %d "
-      "columns, and %d rows\n",
-      (void*)&mipdata_->lp, int(mipdata_->lp.getLpSolver().getNumCol()),
-      int(mipdata_->lp.getLpSolver().getNumRow()));
-
-  printf(
-      "master_worker lprelaxation_ member  with address %p, %d "
-      "columns, and %d rows\n",
-      master_worker.lprelaxation_,
-      int(master_worker.lprelaxation_->getLpSolver().getNumCol()),
-      int(mipdata_->lps.at(0).getLpSolver().getNumRow()));
+  // printf(
+  //     "MIPSOLVER mipdata lp deque member  with address %p, %d "
+  //     "columns, and %d rows\n",
+  //     (void*)&mipdata_->lps.at(0),
+  //     int(mipdata_->lps.at(0).getLpSolver().getNumCol()),
+  //     int(mipdata_->lps.at(0).getLpSolver().getNumRow()));
+  //
+  // printf("Passed to search atm:  \n");
+  //
+  // printf(
+  //     "MIPSOLVER mipdata lp ref with address %p, %d "
+  //     "columns, and %d rows\n",
+  //     (void*)&mipdata_->lp, int(mipdata_->lp.getLpSolver().getNumCol()),
+  //     int(mipdata_->lp.getLpSolver().getNumRow()));
+  //
+  // printf(
+  //     "master_worker lprelaxation_ member  with address %p, %d "
+  //     "columns, and %d rows\n",
+  //     master_worker.lprelaxation_,
+  //     int(master_worker.lprelaxation_->getLpSolver().getNumCol()),
+  //     int(mipdata_->lps.at(0).getLpSolver().getNumRow()));
 
   std::shared_ptr<const HighsBasis> basis;
 
@@ -308,6 +328,25 @@ restart:
     }
   };
 
+  auto createNewWorker = [&](HighsInt i) {
+    mipdata_->domains.emplace_back(mipdata_->domain);
+    mipdata_->lps.emplace_back(mipdata_->lp);
+    mipdata_->cutpools.emplace_back(numCol(), options_mip_->mip_pool_age_limit,
+                                    options_mip_->mip_pool_soft_limit, i + 1);
+    mipdata_->conflictpools.emplace_back(5 * options_mip_->mip_pool_age_limit,
+                                         options_mip_->mip_pool_soft_limit);
+    mipdata_->domains.back().addCutpool(mipdata_->cutpools.back());
+    assert(mipdata_->domains.back().getDomainChangeStack().empty());
+    mipdata_->domains.back().addConflictPool(mipdata_->conflictpools.back());
+    mipdata_->workers.emplace_back(
+        *this, &mipdata_->lps.back(), &mipdata_->domains.back(),
+        &mipdata_->cutpools.back(), &mipdata_->conflictpools.back());
+    mipdata_->lps.back().setMipWorker(mipdata_->workers.back());
+    mipdata_->lp.notifyCutPoolsLpCopied(1);
+    mipdata_->debugSolution.registerDomain(
+        mipdata_->workers.back().search_ptr_->getLocalDomain());
+  };
+
   auto constructAdditionalWorkerData = [&](HighsMipWorker& worker) {
     // A use case: Change pointer in master worker to local copies of global
     // info
@@ -328,118 +367,6 @@ restart:
     worker.lprelaxation_->setMipWorker(worker);
     worker.resetSearch();
     worker.resetSepa();
-  };
-
-  auto createNewWorker = [&](HighsInt i) {
-    mipdata_->domains.emplace_back(mipdata_->domain);
-    mipdata_->lps.emplace_back(mipdata_->lp);
-    mipdata_->cutpools.emplace_back(numCol(), options_mip_->mip_pool_age_limit,
-                                    options_mip_->mip_pool_soft_limit, i + 1);
-    mipdata_->conflictpools.emplace_back(5 * options_mip_->mip_pool_age_limit,
-                                         options_mip_->mip_pool_soft_limit);
-    mipdata_->domains.back().addCutpool(mipdata_->cutpools.back());
-    assert(mipdata_->domains.back().getDomainChangeStack().empty());
-    mipdata_->domains.back().addConflictPool(mipdata_->conflictpools.back());
-    mipdata_->workers.emplace_back(
-        *this, &mipdata_->lps.back(), &mipdata_->domains.back(),
-        &mipdata_->cutpools.back(), &mipdata_->conflictpools.back());
-    mipdata_->lps.back().setMipWorker(mipdata_->workers.back());
-    mipdata_->lp.notifyCutPoolsLpCopied(1);
-    mipdata_->debugSolution.registerDomain(
-        mipdata_->workers.back().search_ptr_->getLocalDomain());
-  };
-
-  auto resetGlobalDomain = [&](bool force = false) -> void {
-    // if global propagation found bound changes, we update the domain
-    if (!mipdata_->domain.getChangedCols().empty() || force) {
-      analysis_.mipTimerStart(kMipClockUpdateLocalDomain);
-      highsLogDev(options_mip_->log_options, HighsLogType::kInfo,
-                  "added %" HIGHSINT_FORMAT " global bound changes\n",
-                  (HighsInt)mipdata_->domain.getChangedCols().size());
-      HighsInt prevStackSize = mipdata_->domain.getNumDomainChanges();
-      mipdata_->cliquetable.cleanupFixed(mipdata_->domain);
-      HighsInt currStackSize = mipdata_->domain.getNumDomainChanges();
-      if (mipdata_->hasMultipleWorkers() && currStackSize > prevStackSize) {
-        // Update workers with new global changes before the stack is reset
-        // TODO: Check if this is alright? Does this get overwirtten via
-        // TODO: installNode?
-        const auto& domchgstack = mipdata_->domain.getDomainChangeStack();
-        for (HighsInt i = prevStackSize; i != currStackSize; i++) {
-          const HighsDomainChange& domchg = domchgstack[i];
-          // for (HighsMipWorker& worker : mipdata_->workers) {
-          //   worker.getGlobalDomain().changeBound(
-          //       domchg, HighsDomain::Reason::unspecified());
-          // }
-          // TODO: Need to reset these worker domains....
-        }
-      }
-      for (HighsInt col : mipdata_->domain.getChangedCols())
-        mipdata_->implications.cleanupVarbounds(col);
-
-      mipdata_->domain.setDomainChangeStack(std::vector<HighsDomainChange>());
-      if (!mipdata_->hasMultipleWorkers())
-        master_worker.search_ptr_->resetLocalDomain();
-      mipdata_->domain.clearChangedCols();
-      mipdata_->removeFixedIndices();
-      analysis_.mipTimerStop(kMipClockUpdateLocalDomain);
-    }
-    // Note for multiple workers: It is possible that while cleaning up the
-    // clique table some domain changes were made. Therefore the worker
-    // global domains may at this point be "weaker" than the true global domain.
-  };
-
-  // TODO: Should we be propagating this first?
-  destroyOldWorkers();
-  if (num_workers > 1) resetGlobalDomain(true);
-  if (num_workers > 1) constructAdditionalWorkerData(master_worker);
-  master_worker.upper_bound = mipdata_->upper_bound;
-  master_worker.upper_limit = mipdata_->upper_limit;
-  master_worker.optimality_limit = mipdata_->optimality_limit;
-  assert(master_worker.solutions_.empty());
-  master_worker.solutions_.clear();
-  for (HighsInt i = 1; i != num_workers; ++i) {
-    createNewWorker(i);
-  }
-
-  HighsSearch& search = *master_worker.search_ptr_;
-  mipdata_->debugSolution.registerDomain(search.getLocalDomain());
-
-  analysis_.mipTimerStart(kMipClockSearch);
-  search.installNode(mipdata_->nodequeue.popBestBoundNode());
-  int64_t numStallNodes = 0;
-  int64_t lastLbLeave = 0;
-  int64_t numQueueLeaves = 0;
-  HighsInt numHugeTreeEstim = 0;
-  int64_t numNodesLastCheck = mipdata_->num_nodes;
-  int64_t nextCheck = mipdata_->num_nodes;
-  double treeweightLastCheck = 0.0;
-  double upperLimLastCheck = mipdata_->upper_limit;
-  double lowerBoundLastCheck = mipdata_->lower_bound;
-
-  // Lambda for combining limit_reached across searches
-  auto limitReached = [&]() -> bool {
-    bool limit_reached = false;
-    for (HighsInt iSearch = 0; iSearch < mip_search_concurrency; iSearch++)
-      limit_reached = limit_reached ||
-                      mipdata_->workers[iSearch].search_ptr_->limit_reached_;
-    return limit_reached;
-  };
-
-  // Lambda checking whether to break out of search
-  auto breakSearch = [&]() -> bool {
-    bool break_search = false;
-    for (HighsInt iSearch = 0; iSearch < mip_search_concurrency; iSearch++)
-      break_search =
-          break_search || mipdata_->workers[iSearch].search_ptr_->break_search_;
-    return break_search;
-  };
-
-  auto setParallelLock = [&](bool lock) -> void {
-    if (!mipdata_->hasMultipleWorkers()) return;
-    mipdata_->parallel_lock = lock;
-    for (HighsConflictPool& conflictpool : mipdata_->conflictpools) {
-      conflictpool.setAgeLock(lock);
-    }
   };
 
   auto syncSolutions = [&]() -> void {
@@ -519,6 +446,73 @@ restart:
     }
   };
 
+  auto resetGlobalDomain = [&](bool force = false) -> void {
+    // if global propagation found bound changes, we update the domain
+    if (!mipdata_->domain.getChangedCols().empty() || force) {
+      analysis_.mipTimerStart(kMipClockUpdateLocalDomain);
+      highsLogDev(options_mip_->log_options, HighsLogType::kInfo,
+                  "added %" HIGHSINT_FORMAT " global bound changes\n",
+                  (HighsInt)mipdata_->domain.getChangedCols().size());
+      HighsInt prevStackSize = mipdata_->domain.getNumDomainChanges();
+      mipdata_->cliquetable.cleanupFixed(mipdata_->domain);
+      HighsInt currStackSize = mipdata_->domain.getNumDomainChanges();
+      if (mipdata_->hasMultipleWorkers() && currStackSize > prevStackSize) {
+        // Update workers with new global changes before the stack is reset
+        // TODO: Check if this is alright? Does this get overwirtten via
+        // TODO: installNode?
+        const auto& domchgstack = mipdata_->domain.getDomainChangeStack();
+        for (HighsInt i = prevStackSize; i != currStackSize; i++) {
+          const HighsDomainChange& domchg = domchgstack[i];
+          // for (HighsMipWorker& worker : mipdata_->workers) {
+          //   worker.getGlobalDomain().changeBound(
+          //       domchg, HighsDomain::Reason::unspecified());
+          // }
+          // TODO: Need to reset these worker domains....
+        }
+      }
+      for (HighsInt col : mipdata_->domain.getChangedCols())
+        mipdata_->implications.cleanupVarbounds(col);
+
+      mipdata_->domain.setDomainChangeStack(std::vector<HighsDomainChange>());
+      if (!mipdata_->hasMultipleWorkers())
+        master_worker.search_ptr_->resetLocalDomain();
+      mipdata_->domain.clearChangedCols();
+      mipdata_->removeFixedIndices();
+      analysis_.mipTimerStop(kMipClockUpdateLocalDomain);
+    }
+    // Note for multiple workers: It is possible that while cleaning up the
+    // clique table some domain changes were made. Therefore the worker
+    // global domains may at this point be "weaker" than the true global domain.
+  };
+
+  // TODO: Should we be propagating this first?
+  destroyOldWorkers();
+  if (num_workers > 1) resetGlobalDomain(true);
+  if (num_workers > 1) constructAdditionalWorkerData(master_worker);
+  master_worker.upper_bound = mipdata_->upper_bound;
+  master_worker.upper_limit = mipdata_->upper_limit;
+  master_worker.optimality_limit = mipdata_->optimality_limit;
+  assert(master_worker.solutions_.empty());
+  master_worker.solutions_.clear();
+  for (HighsInt i = 1; i != num_workers; ++i) {
+    createNewWorker(i);
+  }
+
+  HighsSearch& search = *master_worker.search_ptr_;
+  mipdata_->debugSolution.registerDomain(search.getLocalDomain());
+
+  analysis_.mipTimerStart(kMipClockSearch);
+  search.installNode(mipdata_->nodequeue.popBestBoundNode());
+  int64_t numStallNodes = 0;
+  int64_t lastLbLeave = 0;
+  int64_t numQueueLeaves = 0;
+  HighsInt numHugeTreeEstim = 0;
+  int64_t numNodesLastCheck = mipdata_->num_nodes;
+  int64_t nextCheck = mipdata_->num_nodes;
+  double treeweightLastCheck = 0.0;
+  double upperLimLastCheck = mipdata_->upper_limit;
+  double lowerBoundLastCheck = mipdata_->lower_bound;
+
   auto nodesRemaining = [&]() -> bool {
     for (HighsMipWorker& worker : mipdata_->workers) {
       if (worker.search_ptr_->hasNode()) return true;
@@ -594,144 +588,108 @@ restart:
   };
 
   auto evaluateNodes = [&](std::vector<HighsInt>& search_indices) -> void {
-    std::vector<HighsSearch::NodeResult> search_results(search_indices.size());
+    std::vector<HighsSearch::NodeResult> search_results(
+        mipdata_->workers.size());
+    auto doEvaluateNode = [&](HighsInt i) {
+      search_results[i] = mipdata_->workers[i].search_ptr_->evaluateNode();
+    };
     analysis_.mipTimerStart(kMipClockEvaluateNode1);
-    setParallelLock(true);
-    for (HighsInt i = 0; i != static_cast<HighsInt>(search_indices.size());
-         i++) {
-      if (mipdata_->parallelLockActive() && search_indices.size() > 1 &&
-          !options_mip_->mip_search_simulate_concurrency) {
-        tg.spawn([&, i]() {
-          search_results[i] =
-              mipdata_->workers[search_indices[i]].search_ptr_->evaluateNode();
-        });
-      } else {
-        search_results[i] =
-            mipdata_->workers[search_indices[i]].search_ptr_->evaluateNode();
-      }
-    }
-    if (mipdata_->parallelLockActive() && search_indices.size() > 1 &&
-        !options_mip_->mip_search_simulate_concurrency)
-      tg.taskWait();
-    setParallelLock(false);
+    applyTask(doEvaluateNode, tg, true, search_indices);
     analysis_.mipTimerStop(kMipClockEvaluateNode1);
-    for (HighsInt i = 0; i != static_cast<HighsInt>(search_indices.size());
-         i++) {
-      if (search_results[i] == HighsSearch::NodeResult::kSubOptimal) {
+    for (size_t i = 0; i != search_indices.size(); i++) {
+      HighsInt worker_id = search_indices[i];
+      if (search_results[worker_id] == HighsSearch::NodeResult::kSubOptimal) {
         analysis_.mipTimerStart(kMipClockCurrentNodeToQueue);
-        mipdata_->workers[search_indices[i]].search_ptr_->currentNodeToQueue(
-            mipdata_->nodequeue);
+        mipdata_->workers[search_indices[worker_id]]
+            .search_ptr_->currentNodeToQueue(mipdata_->nodequeue);
         analysis_.mipTimerStop(kMipClockCurrentNodeToQueue);
       }
     }
   };
 
-  auto doHandlePrunedNodes = [&](HighsInt index, bool thread_safe, bool& flush,
-                                 bool& infeasible) {
-    HighsDomain& globaldom = mipdata_->workers[index].getGlobalDomain();
-    mipdata_->workers[index].search_ptr_->backtrack();
-    if (!thread_safe) {
-      ++mipdata_->num_leaves;
-      ++mipdata_->num_nodes;
-      mipdata_->workers[index].search_ptr_->flushStatistics();
-    } else {
-      flush = true;
-    }
-
-    globaldom.propagate();
-    if (!thread_safe) {
-      mipdata_->pruned_treeweight += mipdata_->nodequeue.pruneInfeasibleNodes(
-          mipdata_->domain, mipdata_->feastol);
-    }
-
-    if (globaldom.infeasible()) {
-      infeasible = true;
-      if (!thread_safe) {
-        mipdata_->nodequeue.clear();
-        mipdata_->pruned_treeweight = 1.0;
-
-        double prev_lower_bound = mipdata_->lower_bound;
-
-        mipdata_->lower_bound = std::min(kHighsInf, mipdata_->upper_bound);
-
-        bool bound_change = mipdata_->lower_bound != prev_lower_bound;
-        if (!submip && bound_change)
-          mipdata_->updatePrimalDualIntegral(
-              prev_lower_bound, mipdata_->lower_bound, mipdata_->upper_bound,
-              mipdata_->upper_bound);
-      }
-      return;
-    }
-
-    if (!thread_safe && mipdata_->checkLimits()) {
-      return;
-    }
-
-    double prev_lower_bound = mipdata_->lower_bound;
-
-    if (!thread_safe) {
-      mipdata_->lower_bound = std::min(mipdata_->upper_bound,
-                                       mipdata_->nodequeue.getBestLowerBound());
-    }
-
-    bool bound_change = mipdata_->lower_bound != prev_lower_bound;
-    if (!submip && bound_change)
-      mipdata_->updatePrimalDualIntegral(
-          prev_lower_bound, mipdata_->lower_bound, mipdata_->upper_bound,
-          mipdata_->upper_bound);
-
-    if (!thread_safe) {
-      assert(index == 0);
-      resetGlobalDomain();
-    }
-
-    analysis_.mipTimerStop(kMipClockNodePrunedLoop);
-  };
-
   auto handlePrunedNodes =
       [&](std::vector<HighsInt>& search_indices) -> std::pair<bool, bool> {
-    analysis_.mipTimerStart(kMipClockNodePrunedLoop);
     // If flush then change statistics for all searches where this was the case
     // If infeasible then global domain is infeasible and stop the solve
     // If limit_reached then return something appropriate
     // In multi-thread case now check limits again after everything has been
     // flushed
-    std::deque<bool> infeasible(search_indices.size(), false);
-    std::deque<bool> flush(search_indices.size(), false);
-    std::vector<bool> prune(search_indices.size(), false);
-    setParallelLock(true);
-    for (HighsInt i = 0; i < static_cast<HighsInt>(search_indices.size());
-         i++) {
-      if (!mipdata_->workers[search_indices[i]]
-               .search_ptr_->currentNodePruned())
-        continue;
-      if (mipdata_->parallelLockActive() && search_indices.size() > 1 &&
-          !options_mip_->mip_search_simulate_concurrency) {
-        tg.spawn([&, i]() {
-          doHandlePrunedNodes(search_indices[i], mipdata_->parallelLockActive(),
-                              flush[i], infeasible[i]);
-        });
+    HighsInt n = num_workers;
+    std::deque<bool> infeasible(n, false);
+    std::deque<bool> flush(n, false);
+    std::vector<bool> prune(n, false);
+    bool multiple_workers = n > 1;
+    auto doHandlePrunedNodes = [&](HighsInt i) {
+      if (!mipdata_->workers[i].search_ptr_->currentNodePruned()) return;
+      HighsDomain& globaldom = mipdata_->workers[i].getGlobalDomain();
+      mipdata_->workers[i].search_ptr_->backtrack();
+      if (!multiple_workers) {
+        ++mipdata_->num_leaves;
+        ++mipdata_->num_nodes;
+        mipdata_->workers[i].search_ptr_->flushStatistics();
       } else {
-        doHandlePrunedNodes(search_indices[i], mipdata_->parallelLockActive(),
-                            flush[i], infeasible[i]);
+        flush[i] = true;
       }
-      // This search object is "finished" and needs a new node
-      prune[i] = true;
-    }
-    if (mipdata_->parallelLockActive() && search_indices.size() > 1) {
-      tg.taskWait();
-      for (HighsInt i = 0; i < static_cast<HighsInt>(search_indices.size()) &&
-                           i < static_cast<HighsInt>(flush.size());
-           i++) {
-        if (flush[i]) {
-          ++mipdata_->num_leaves;
-          ++mipdata_->num_nodes;
-          mipdata_->workers[search_indices[i]].search_ptr_->flushStatistics();
-        }
-      }
-    }
-    setParallelLock(false);
 
+      globaldom.propagate();
+      if (!multiple_workers) {
+        mipdata_->pruned_treeweight += mipdata_->nodequeue.pruneInfeasibleNodes(
+            mipdata_->domain, mipdata_->feastol);
+      }
+
+      if (globaldom.infeasible()) {
+        infeasible[i] = true;
+        if (!multiple_workers) {
+          mipdata_->nodequeue.clear();
+          mipdata_->pruned_treeweight = 1.0;
+
+          double prev_lower_bound = mipdata_->lower_bound;
+
+          mipdata_->lower_bound = std::min(kHighsInf, mipdata_->upper_bound);
+
+          bool bound_change = mipdata_->lower_bound != prev_lower_bound;
+          if (!submip && bound_change)
+            mipdata_->updatePrimalDualIntegral(
+                prev_lower_bound, mipdata_->lower_bound, mipdata_->upper_bound,
+                mipdata_->upper_bound);
+        }
+        return;
+      }
+
+      if (!multiple_workers && mipdata_->checkLimits()) {
+        return;
+      }
+
+      double prev_lower_bound = mipdata_->lower_bound;
+
+      if (!multiple_workers) {
+        mipdata_->lower_bound = std::min(
+            mipdata_->upper_bound, mipdata_->nodequeue.getBestLowerBound());
+      }
+
+      bool bound_change = mipdata_->lower_bound != prev_lower_bound;
+      if (!submip && !multiple_workers && bound_change)
+        mipdata_->updatePrimalDualIntegral(
+            prev_lower_bound, mipdata_->lower_bound, mipdata_->upper_bound,
+            mipdata_->upper_bound);
+
+      if (!multiple_workers) {
+        assert(i == 0);
+        resetGlobalDomain();
+      }
+      prune[i] = true;
+    };
+    analysis_.mipTimerStart(kMipClockNodePrunedLoop);
+    applyTask(doHandlePrunedNodes, tg, true, search_indices);
+    analysis_.mipTimerStop(kMipClockNodePrunedLoop);
+    // Flush pruned nodes statistics that haven't yet been flushed
+    for (HighsInt i = 0; i != n; ++i) {
+      if (flush[i]) {
+        ++mipdata_->num_leaves;
+        ++mipdata_->num_nodes;
+        mipdata_->workers[search_indices[i]].search_ptr_->flushStatistics();
+      }
+    }
     // Remove search indices that need a new node
     HighsInt num_search_indices = static_cast<HighsInt>(search_indices.size());
     for (HighsInt i = num_search_indices - 1; i >= 0; i--) {
@@ -785,25 +743,13 @@ restart:
   auto separateAndStoreBasis =
       [&](std::vector<HighsInt>& search_indices) -> bool {
     // the node is still not fathomed, so perform separation
+    auto doSeparateAndStoreBasis = [&](HighsInt i) {
+      mipdata_->workers[i].sepa_ptr_->separate(
+          mipdata_->workers[i].search_ptr_->getLocalDomain());
+    };
     analysis_.mipTimerStart(kMipClockNodeSearchSeparation);
-    setParallelLock(true);
-    for (HighsInt i : search_indices) {
-      if (mipdata_->parallelLockActive() &&
-          !options_mip_->mip_search_simulate_concurrency) {
-        tg.spawn([&, i]() {
-          mipdata_->workers[i].sepa_ptr_->separate(
-              mipdata_->workers[i].search_ptr_->getLocalDomain());
-        });
-      } else {
-        mipdata_->workers[i].sepa_ptr_->separate(
-            mipdata_->workers[i].search_ptr_->getLocalDomain());
-      }
-    }
+    applyTask(doSeparateAndStoreBasis, tg, true, search_indices);
     analysis_.mipTimerStop(kMipClockNodeSearchSeparation);
-    if (mipdata_->parallelLockActive() &&
-        !options_mip_->mip_search_simulate_concurrency)
-      tg.taskWait();
-    setParallelLock(false);
 
     for (HighsInt i : search_indices) {
       if (mipdata_->workers[i].getGlobalDomain().infeasible()) {
@@ -847,66 +793,57 @@ restart:
     return false;
   };
 
-  auto doRunHeuristics = [&](HighsMipWorker& worker) -> void {
-    bool clocks = !mipdata_->parallelLockActive();
-    if (clocks) analysis_.mipTimerStart(kMipClockDiveEvaluateNode);
-    const HighsSearch::NodeResult evaluate_node_result =
-        worker.search_ptr_->evaluateNode();
-    if (clocks) analysis_.mipTimerStop(kMipClockDiveEvaluateNode);
-
-    if (evaluate_node_result == HighsSearch::NodeResult::kSubOptimal) return;
-
-    if (worker.search_ptr_->currentNodePruned()) {
-      if (clocks) {
-        ++mipdata_->num_leaves;
-        search.flushStatistics();
-      }
-    } else {
-      if (clocks) analysis_.mipTimerStart(kMipClockDivePrimalHeuristics);
-      // TODO MT: Make trivial heuristics work locally
-      if (mipdata_->incumbent.empty() && clocks) {
-        analysis_.mipTimerStart(kMipClockDiveRandomizedRounding);
-        mipdata_->heuristics.randomizedRounding(
-            worker,
-            worker.lprelaxation_->getLpSolver().getSolution().col_value);
-        analysis_.mipTimerStop(kMipClockDiveRandomizedRounding);
-      }
-      if (mipdata_->incumbent.empty()) {
-        if (options_mip_->mip_heuristic_run_rens) {
-          if (clocks) analysis_.mipTimerStart(kMipClockDiveRens);
-          mipdata_->heuristics.RENS(
-              worker,
-              worker.lprelaxation_->getLpSolver().getSolution().col_value);
-          if (clocks) analysis_.mipTimerStop(kMipClockDiveRens);
-        }
-      } else {
-        if (options_mip_->mip_heuristic_run_rins) {
-          if (clocks) analysis_.mipTimerStart(kMipClockDiveRins);
-          mipdata_->heuristics.RINS(
-              worker,
-              worker.lprelaxation_->getLpSolver().getSolution().col_value);
-          if (clocks) analysis_.mipTimerStop(kMipClockDiveRins);
-        }
-      }
-
-      if (clocks) mipdata_->heuristics.flushStatistics(master_worker);
-      if (clocks) analysis_.mipTimerStop(kMipClockDivePrimalHeuristics);
-    }
-  };
-
   auto runHeuristics = [&]() -> void {
-    setParallelLock(true);
-    std::vector<HighsInt> search_indices = getSearchIndicesWithNodes();
-    for (HighsInt i : search_indices) {
-      if (mipdata_->parallelLockActive() &&
-          !options_mip_->mip_search_simulate_concurrency) {
-        tg.spawn([&, i]() { doRunHeuristics(mipdata_->workers[i]); });
+    auto doRunHeuristics = [&](HighsInt i) -> void {
+      HighsMipWorker& worker = mipdata_->workers[i];
+      bool clocks = !mipdata_->parallelLockActive();
+      if (clocks) analysis_.mipTimerStart(kMipClockDiveEvaluateNode);
+      const HighsSearch::NodeResult evaluate_node_result =
+          worker.search_ptr_->evaluateNode();
+      if (clocks) analysis_.mipTimerStop(kMipClockDiveEvaluateNode);
+
+      if (evaluate_node_result == HighsSearch::NodeResult::kSubOptimal) return;
+
+      if (worker.search_ptr_->currentNodePruned()) {
+        if (clocks) {
+          ++mipdata_->num_leaves;
+          search.flushStatistics();
+        }
       } else {
-        doRunHeuristics(mipdata_->workers[i]);
+        if (clocks) analysis_.mipTimerStart(kMipClockDivePrimalHeuristics);
+        // TODO MT: Make trivial heuristics work locally
+        if (mipdata_->incumbent.empty() && clocks) {
+          analysis_.mipTimerStart(kMipClockDiveRandomizedRounding);
+          mipdata_->heuristics.randomizedRounding(
+              worker,
+              worker.lprelaxation_->getLpSolver().getSolution().col_value);
+          analysis_.mipTimerStop(kMipClockDiveRandomizedRounding);
+        }
+        if (mipdata_->incumbent.empty()) {
+          if (options_mip_->mip_heuristic_run_rens) {
+            if (clocks) analysis_.mipTimerStart(kMipClockDiveRens);
+            mipdata_->heuristics.RENS(
+                worker,
+                worker.lprelaxation_->getLpSolver().getSolution().col_value);
+            if (clocks) analysis_.mipTimerStop(kMipClockDiveRens);
+          }
+        } else {
+          if (options_mip_->mip_heuristic_run_rins) {
+            if (clocks) analysis_.mipTimerStart(kMipClockDiveRins);
+            mipdata_->heuristics.RINS(
+                worker,
+                worker.lprelaxation_->getLpSolver().getSolution().col_value);
+            if (clocks) analysis_.mipTimerStop(kMipClockDiveRins);
+          }
+        }
+
+        if (clocks) mipdata_->heuristics.flushStatistics(master_worker);
+        if (clocks) analysis_.mipTimerStop(kMipClockDivePrimalHeuristics);
       }
-    }
+    };
+    std::vector<HighsInt> search_indices = getSearchIndicesWithNodes();
+    applyTask(doRunHeuristics, tg, true, search_indices);
     if (mipdata_->parallelLockActive()) {
-      if (!options_mip_->mip_search_simulate_concurrency) tg.taskWait();
       for (const HighsInt i : search_indices) {
         if (mipdata_->workers[i].search_ptr_->currentNodePruned()) {
           ++mipdata_->num_leaves;
@@ -916,7 +853,6 @@ restart:
         }
       }
     }
-    setParallelLock(false);
   };
 
   auto diveAllSearches = [&]() -> bool {
@@ -1615,4 +1551,12 @@ void HighsMipSolver::initialiseTerminator(const HighsMipSolver& mip_solver) {
   this->initialiseTerminator(mip_solver.mipdata_->terminatorConcurrency(),
                              mip_solver.mipdata_->terminatorMyInstance(),
                              mip_solver.terminator_.record);
+}
+
+void HighsMipSolver::setParallelLock(bool lock) const {
+  if (!mipdata_->hasMultipleWorkers()) return;
+  mipdata_->parallel_lock = lock;
+  for (HighsConflictPool& conflictpool : mipdata_->conflictpools) {
+    conflictpool.setAgeLock(lock);
+  }
 }
