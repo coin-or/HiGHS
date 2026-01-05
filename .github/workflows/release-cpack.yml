@@ -62,9 +62,6 @@ jobs:
           cd build
           cpack -C Release
 
-        # -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
-        # Win32
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
