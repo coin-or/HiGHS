@@ -56,6 +56,14 @@ if(FAST_BUILD)
       )
     endif()
 
+    if(WIN32)
+      add_custom_command(TARGET highs-bin POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          $<TARGET_FILE:openblas>
+          $<TARGET_FILE_DIR:highs-bin>
+      )
+    endif()
+
     # install the binary
     install(TARGETS highs-bin
       EXPORT highs-target
@@ -90,7 +98,6 @@ else()
   )
 
   set_target_properties(highs PROPERTIES UNITY_BUILD OFF)
-
   # install the binary
   install(TARGETS highs EXPORT highs-targets
     RUNTIME)
