@@ -4921,9 +4921,9 @@ HPresolve::Result HPresolve::enumerateSolutions(
     size_t numDomainChanges;
     size_t numChangedCols;
   };
-  std::vector<std::vector<HighsInt>> solutions;
-  std::vector<HighsInt> vars;
-  std::vector<branch> branches;
+  std::vector<std::vector<HighsInt>> solutions(model->num_col_);
+  std::vector<HighsInt> vars(model->num_col_);
+  std::vector<branch> branches(model->num_col_);
   std::vector<HighsInt> worstCaseBounds(model->num_col_);
   std::vector<double> worstCaseLowerBound(model->num_col_, kHighsInf);
   std::vector<double> worstCaseUpperBound(model->num_col_, -kHighsInf);
@@ -4931,12 +4931,12 @@ HPresolve::Result HPresolve::enumerateSolutions(
   std::vector<double> col_upper(domain.col_upper_);
 
   // lambda for branching (just performs initial lower branch)
-  auto doBranch = [&](HighsInt& numBranches) {
+  auto doBranch = [&](size_t numVars, HighsInt& numBranches) {
     // find variable for branching
     HighsInt branchvar = -1;
-    for (HighsInt j : vars) {
-      if (!domain.isFixed(j)) {
-        branchvar = j;
+    for (size_t i = 0; i < numVars; i++) {
+      if (!domain.isFixed(vars[i])) {
+        branchvar = vars[i];
         break;
       }
     }
@@ -4974,9 +4974,9 @@ HPresolve::Result HPresolve::enumerateSolutions(
   };
 
   // lambda for checking if a solution was found
-  auto solutionFound = [&]() {
-    for (HighsInt j : vars)
-      if (!domain.isFixed(j)) return false;
+  auto solutionFound = [&](size_t numVars) {
+    for (size_t i = 0; i < numVars; i++)
+      if (!domain.isFixed(vars[i])) return false;
     return true;
   };
 
@@ -5014,7 +5014,8 @@ HPresolve::Result HPresolve::enumerateSolutions(
     numWorstCaseBounds--;
   };
 
-  auto handleSolution = [&](size_t& numWorstCaseBounds, bool& noReductions) {
+  auto handleSolution = [&](size_t numVars, size_t& numWorstCaseBounds,
+                            bool& noReductions) {
     // propagate
     domain.propagate();
     if (domain.infeasible()) return;
@@ -5052,15 +5053,15 @@ HPresolve::Result HPresolve::enumerateSolutions(
       }
     }
     // store solution
-    for (size_t i = 0; i < vars.size(); i++)
+    for (size_t i = 0; i < numVars; i++)
       solutions[i].push_back(domain.col_lower_[vars[i]] == 0.0 ? HighsInt{0}
                                                                : HighsInt{1});
 
     // if no reductions are possible, stop enumerating solutions
     noReductions = numWorstCaseBounds == 0;
     if (noReductions) {
-      for (size_t i = 0; i < vars.size() - 1; i++) {
-        for (size_t ii = i + 1; ii < vars.size(); ii++) {
+      for (size_t i = 0; i < numVars - 1; i++) {
+        for (size_t ii = i + 1; ii < numVars; ii++) {
           noReductions = noReductions && !identicalVars(i, ii) &&
                          !complementaryVars(i, ii);
           if (!noReductions) break;
@@ -5068,6 +5069,11 @@ HPresolve::Result HPresolve::enumerateSolutions(
         if (!noReductions) break;
       }
     }
+  };
+
+  // lambda for clearing solutions
+  auto clearSolutions = [&](size_t numVars) {
+    for (size_t i = 0; i < numVars; i++) solutions[i].clear();
   };
 
   // loop over candidate rows
@@ -5082,8 +5088,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
     // check if maximum is reached
     if (numRowsChecked > maxNumRowsChecked) break;
     // check row
-    vars.clear();
-    vars.reserve(rowsize[row]);
+    size_t numVars = 0;
     for (HighsInt j = mipsolver->mipdata_->ARstart_[row];
          j < mipsolver->mipdata_->ARstart_[row + 1]; j++) {
       // get index
@@ -5091,18 +5096,12 @@ HPresolve::Result HPresolve::enumerateSolutions(
       // skip fixed variables
       if (domain.isFixed(col)) continue;
       // store index of binary variable
-      vars.push_back(col);
+      vars[numVars++] = col;
     }
-    if (vars.empty()) continue;
+    if (numVars == 0) continue;
 
     // clear changed cols
     domain.clearChangedCols();
-
-    // vectors for storing variable status and solutions
-    branches.clear();
-    solutions.clear();
-    branches.resize(vars.size());
-    solutions.resize(vars.size());
 
     // main loop
     HighsInt numBranches = -1;
@@ -5111,15 +5110,15 @@ HPresolve::Result HPresolve::enumerateSolutions(
     while (true) {
       bool backtrack = domain.infeasible();
       if (!backtrack) {
-        backtrack = solutionFound();
+        backtrack = solutionFound(numVars);
         if (backtrack) {
-          handleSolution(numWorstCaseBounds, noReductions);
+          handleSolution(numVars, numWorstCaseBounds, noReductions);
           if (noReductions) break;
         }
       }
       // branch or backtrack
       if (!backtrack)
-        doBranch(numBranches);
+        doBranch(numVars, numBranches);
       else if (!doBacktrack(numBranches))
         break;
     }
@@ -5127,6 +5126,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
     // no reductions for this row?
     if (noReductions) {
       while (doBacktrack(numBranches));
+      clearSolutions(numVars);
       continue;
     }
 
@@ -5160,12 +5160,12 @@ HPresolve::Result HPresolve::enumerateSolutions(
       worstCaseBounds[i] = 0;
     }
 
-    for (size_t i = 0; i < vars.size() - 1; i++) {
+    for (size_t i = 0; i < numVars - 1; i++) {
       // get column index
       HighsInt col = vars[i];
       // skip already fixed columns
       if (domain.isFixed(col)) continue;
-      for (size_t ii = i + 1; ii < vars.size(); ii++) {
+      for (size_t ii = i + 1; ii < numVars; ii++) {
         // get column index
         HighsInt col2 = vars[ii];
         // skip already fixed columns
@@ -5189,6 +5189,9 @@ HPresolve::Result HPresolve::enumerateSolutions(
         }
       }
     }
+
+    // clear solutions
+    clearSolutions(numVars);
   }
 
   // finalise probing
