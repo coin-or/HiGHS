@@ -203,7 +203,9 @@ jobs:
           ls bin
           cd bin
           echo "------ highs "
-          ls highs
+          ls -l highs
+          file highs
+          ldd highs
           ./highs $GITHUB_WORKSPACE/check/instances/afiro.mps
 
       - name: Ctest
