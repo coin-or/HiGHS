@@ -495,7 +495,7 @@ endif()
 
 # set(CMAKE_C_FLAGS "-Wno-deprecated-declarations")
 if (UNIX)
-  set(CMAKE_C_FLAGS "-Wno-implicit-function-declaration")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-implicit-function-declaration")
 endif()
 
 
