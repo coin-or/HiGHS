@@ -4880,6 +4880,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
   // maximum size of a row and maximum number of rows that will be checked
   const size_t maxRowSize = 8;
   const HighsInt maxNumRowsChecked = 400;
+  const size_t maxNumSolutions = 1 << maxRowSize;
 
   // check rows
   struct candidaterow {
@@ -4921,7 +4922,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
     size_t numDomainChanges;
     size_t numChangedCols;
   };
-  std::vector<std::vector<HighsInt>> solutions(maxRowSize);
+  std::vector<std::array<HighsInt, maxNumSolutions>> solutions(maxRowSize);
   std::vector<HighsInt> vars(maxRowSize);
   std::vector<branch> branches(maxRowSize);
   std::vector<HighsInt> worstCaseBounds(model->num_col_);
@@ -4982,8 +4983,8 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
   // lambda for checking whether the values of two binary variables are
   // identical in all feasible solutions
-  auto identicalVars = [&](size_t index1, size_t index2) {
-    for (size_t sol = 0; sol < solutions[index1].size(); sol++) {
+  auto identicalVars = [&](size_t numSolutions, size_t index1, size_t index2) {
+    for (size_t sol = 0; sol < numSolutions; sol++) {
       if (solutions[index1][sol] != solutions[index2][sol]) return false;
     }
     return true;
@@ -4991,8 +4992,9 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
   // lambda for checking whether the values of two binary variables are
   // complementary in all feasible solutions
-  auto complementaryVars = [&](size_t index1, size_t index2) {
-    for (size_t sol = 0; sol < solutions[index1].size(); sol++) {
+  auto complementaryVars = [&](size_t numSolutions, size_t index1,
+                               size_t index2) {
+    for (size_t sol = 0; sol < numSolutions; sol++) {
       if (solutions[index1][sol] != 1 - solutions[index2][sol]) return false;
     }
     return true;
@@ -5014,13 +5016,13 @@ HPresolve::Result HPresolve::enumerateSolutions(
     numWorstCaseBounds--;
   };
 
-  auto handleSolution = [&](size_t numVars, size_t& numWorstCaseBounds,
-                            bool& noReductions) {
+  auto handleSolution = [&](size_t numVars, size_t& numSolutions,
+                            size_t& numWorstCaseBounds, bool& noReductions) {
     // propagate
     domain.propagate();
     if (domain.infeasible()) return;
     // handling of worst-case bounds
-    if (solutions[0].empty()) {
+    if (numSolutions == 0) {
       // initialize
       for (HighsInt col : domain.getChangedCols()) {
         worstCaseBounds[numWorstCaseBounds++] = col;
@@ -5054,26 +5056,22 @@ HPresolve::Result HPresolve::enumerateSolutions(
     }
     // store solution
     for (size_t i = 0; i < numVars; i++)
-      solutions[i].push_back(domain.col_lower_[vars[i]] == 0.0 ? HighsInt{0}
-                                                               : HighsInt{1});
+      solutions[i][numSolutions] =
+          (domain.col_lower_[vars[i]] == 0.0 ? HighsInt{0} : HighsInt{1});
+    numSolutions++;
 
     // if no reductions are possible, stop enumerating solutions
     noReductions = numWorstCaseBounds == 0;
     if (noReductions) {
       for (size_t i = 0; i < numVars - 1; i++) {
         for (size_t ii = i + 1; ii < numVars; ii++) {
-          noReductions = noReductions && !identicalVars(i, ii) &&
-                         !complementaryVars(i, ii);
+          noReductions = noReductions && !identicalVars(numSolutions, i, ii) &&
+                         !complementaryVars(numSolutions, i, ii);
           if (!noReductions) break;
         }
         if (!noReductions) break;
       }
     }
-  };
-
-  // lambda for clearing solutions
-  auto clearSolutions = [&](size_t numVars) {
-    for (size_t i = 0; i < numVars; i++) solutions[i].clear();
   };
 
   // loop over candidate rows
@@ -5106,13 +5104,15 @@ HPresolve::Result HPresolve::enumerateSolutions(
     // main loop
     HighsInt numBranches = -1;
     size_t numWorstCaseBounds = 0;
+    size_t numSolutions = 0;
     bool noReductions = false;
     while (true) {
       bool backtrack = domain.infeasible();
       if (!backtrack) {
         backtrack = solutionFound(numVars);
         if (backtrack) {
-          handleSolution(numVars, numWorstCaseBounds, noReductions);
+          handleSolution(numVars, numSolutions, numWorstCaseBounds,
+                         noReductions);
           if (noReductions) break;
         }
       }
@@ -5126,12 +5126,11 @@ HPresolve::Result HPresolve::enumerateSolutions(
     // no reductions for this row?
     if (noReductions) {
       while (doBacktrack(numBranches));
-      clearSolutions(numVars);
       continue;
     }
 
     // no solutions -> infeasible
-    HPRESOLVE_CHECKED_CALL(handleInfeasibility(solutions[0].empty()));
+    HPRESOLVE_CHECKED_CALL(handleInfeasibility(numSolutions == 0));
 
     // analyse worst-case bounds
     for (size_t i = 0; i < numWorstCaseBounds; i++) {
@@ -5172,14 +5171,14 @@ HPresolve::Result HPresolve::enumerateSolutions(
         if (domain.isFixed(col2)) continue;
         // check if two binary variables take identical or complementary
         // values in all feasible solutions
-        if (identicalVars(i, ii)) {
+        if (identicalVars(numSolutions, i, ii)) {
           // add clique x_1 + (1 - x_2) = 1 to clique table
           std::array<HighsCliqueTable::CliqueVar, 2> clique;
           clique[0] = HighsCliqueTable::CliqueVar(col, 0);
           clique[1] = HighsCliqueTable::CliqueVar(col2, 1);
           cliquetable.addClique(*mipsolver, clique.data(), 2, true);
           HPRESOLVE_CHECKED_CALL(handleInfeasibility(domain.infeasible()));
-        } else if (complementaryVars(i, ii)) {
+        } else if (complementaryVars(numSolutions, i, ii)) {
           // add clique x_1 + x_2 = 1 to clique table
           std::array<HighsCliqueTable::CliqueVar, 2> clique;
           clique[0] = HighsCliqueTable::CliqueVar(col, 0);
@@ -5189,9 +5188,6 @@ HPresolve::Result HPresolve::enumerateSolutions(
         }
       }
     }
-
-    // clear solutions
-    clearSolutions(numVars);
   }
 
   // finalise probing
