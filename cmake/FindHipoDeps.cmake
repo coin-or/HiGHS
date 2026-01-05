@@ -15,6 +15,7 @@ if (BUILD_OPENBLAS)
         -DNO_LAPACK:BOOL=ON
         -DNO_LAPACKE:BOOL=ON
         -DNO_COMPLEX:BOOL=ON
+        -DNO_DOUBLE_COMPLEX:BOOL=ON   # explicit
         -DNO_SINGLE:BOOL=ON
     )
 
@@ -24,16 +25,13 @@ if (BUILD_OPENBLAS)
             list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=ARMV7)
             list(APPEND OPENBLAS_MINIMAL_FLAGS -DARMV7:BOOL=ON)
             list(APPEND OPENBLAS_MINIMAL_FLAGS
-                    -DNO_COMPLEX:BOOL=ON
-                    -DNO_DOUBLE_COMPLEX:BOOL=ON   # explicit
-            )
-            list(APPEND OPENBLAS_MINIMAL_FLAGS
                 -DNO_GETARCH:BOOL=ON
                 -DUSE_VFPV3:BOOL=ON
                 -DUSE_VFPV3_D32:BOOL=OFF   # crucial: only use d0–d15
                 -DNO_TRMM:BOOL=ON
                 -DNO_TRSM:BOOL=ON
                 -DNO_L3:BOOL=ON               # skip complex Level-3 kernels
+                -DCMAKE_ASM_FLAGS="-mfpu=vfpv3-d16"
             )
             # set(SKIP_PARSE_GETARCH TRUE)
         else()
