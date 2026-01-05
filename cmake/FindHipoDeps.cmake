@@ -11,9 +11,9 @@ if (BUILD_OPENBLAS)
     # Define the size-minimizing flags as a list
     set(OPENBLAS_MINIMAL_FLAGS
         # Exclude components not used by HiGHS
-        # -DONLY_BLAS=ON
-        # -DNO_LAPACK=ON
-        # -DNO_LAPACKE=ON
+        -DONLY_BLAS=ON
+        -DNO_LAPACK=ON
+        -DNO_LAPACKE=ON
         -DNO_COMPLEX=ON
         -DNO_SINGLE=ON
     )
@@ -27,10 +27,10 @@ if (BUILD_OPENBLAS)
         else()
             message(STATUS "ARM architecture detected. Applying -DTARGET=ARMV8.")
             list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=ARMV8)
-            list(APPEND OPENBLAS_MINIMAL_FLAGS -DONLY_BLAS=ON -DNO_LAPACK=ON -DNO_LAPACKE=ON)
+            # list(APPEND OPENBLAS_MINIMAL_FLAGS -DONLY_BLAS=ON -DNO_LAPACK=ON -DNO_LAPACKE=ON)
         endif()
-    else()
-        list(APPEND OPENBLAS_MINIMAL_FLAGS -DONLY_BLAS=ON -DNO_LAPACK=ON -DNO_LAPACKE=ON)
+    # else()
+        # list(APPEND OPENBLAS_MINIMAL_FLAGS -DONLY_BLAS=ON -DNO_LAPACK=ON -DNO_LAPACKE=ON)
     endif()
 
     # CMAKE_SIZEOF_VOID_P is 4 for 32-bit builds, 8 for 64-bit builds.

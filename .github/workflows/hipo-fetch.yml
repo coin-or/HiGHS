@@ -203,6 +203,23 @@ jobs:
           cmake --build . --parallel
           ls
 
+      - name: Debug armhf execution
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          set -x
+          uname -m
+          ls -l bin/highs/highs
+          file bin/highs/highs
+
+          echo "Checking interpreter:"
+          readelf -l bin/highs/highs | grep interpreter || true
+
+          echo "Checking loader existence:"
+          ls -l /lib/ld-linux-armhf.so.3 || true
+
+          echo "Running highs:"
+          ./bin/highs/highs --version
+
       - name: Test executable
         working-directory: ${{runner.workspace}}/build
         run: |
