@@ -4921,9 +4921,9 @@ HPresolve::Result HPresolve::enumerateSolutions(
     size_t numDomainChanges;
     size_t numChangedCols;
   };
-  std::vector<std::vector<HighsInt>> solutions(model->num_col_);
-  std::vector<HighsInt> vars(model->num_col_);
-  std::vector<branch> branches(model->num_col_);
+  std::vector<std::vector<HighsInt>> solutions(maxRowSize);
+  std::vector<HighsInt> vars(maxRowSize);
+  std::vector<branch> branches(maxRowSize);
   std::vector<HighsInt> worstCaseBounds(model->num_col_);
   std::vector<double> worstCaseLowerBound(model->num_col_, kHighsInf);
   std::vector<double> worstCaseUpperBound(model->num_col_, -kHighsInf);
