@@ -681,7 +681,6 @@ restart:
     };
     analysis_.mipTimerStart(kMipClockNodePrunedLoop);
     applyTask(doHandlePrunedNodes, tg, true, search_indices);
-    analysis_.mipTimerStop(kMipClockNodePrunedLoop);
     // Flush pruned nodes statistics that haven't yet been flushed
     for (HighsInt i = 0; i != n; ++i) {
       if (flush[i]) {
@@ -925,7 +924,7 @@ restart:
 
     // atm heuristics in the dive break lseu debug64
     // bool considerHeuristics = true;
-    bool considerHeuristics = false;
+    bool considerHeuristics = true;
 
     analysis_.mipTimerStart(kMipClockDive);
     while (true) {

@@ -349,7 +349,6 @@ void HighsPrimalHeuristics::rootReducedCost(HighsMipWorker& worker) {
   double fixingRate = neighbourhood.getFixingRate();
   if (fixingRate < 0.3) return;
 
-  // mipsolver.analysis_.mipTimerStart(kMipClockSolveSubMipRootReducedCost);
   solveSubMip(worker, *mipsolver.model_, mipsolver.mipdata_->firstrootbasis,
               fixingRate, localdom.col_lower_, localdom.col_upper_,
               500,  // std::max(50, int(0.05 *

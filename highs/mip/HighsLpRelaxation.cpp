@@ -591,7 +591,7 @@ void HighsLpRelaxation::removeCuts(HighsInt ndelcuts,
     basis.debug_origin_name = "HighsLpRelaxation::removeCuts";
     lpsolver.setBasis(basis);
     lpsolver.run();
-    if (!mipsolver.submip) {
+    if (!mipsolver.submip && !mipsolver.mipdata_->parallelLockActive()) {
       const HighsSubSolverCallTime& sub_solver_call_time =
           lpsolver.getSubSolverCallTime();
       mipsolver.analysis_.addSubSolverCallTime(sub_solver_call_time);
@@ -1211,7 +1211,7 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
   }
   // Revert the value of lpsolver.options_.solver
   lpsolver.setOptionValue("solver", solver);
-  if (!mipsolver.submip) {
+  if (!mipsolver.submip && !mipsolver.mipdata_->parallelLockActive()) {
     const HighsSubSolverCallTime& sub_solver_call_time =
         lpsolver.getSubSolverCallTime();
     mipsolver.analysis_.addSubSolverCallTime(sub_solver_call_time);
