@@ -35,8 +35,6 @@ test = ["pytest", "numpy"]
 [tool.scikit-build]
 cmake.args = [
   "-DPYTHON_BUILD_SETUP=ON",
-  "-DHIPO=ON",
-  "-DBUILD_OPENBLAS=ON"
 ]
 
 # To build locally, specify
