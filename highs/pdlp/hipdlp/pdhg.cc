@@ -15,13 +15,19 @@
 #include <random>
 #include <tuple>
 
+#ifdef CUPDLP_GPU
+#include <cublas_v2.h>
+#include <cuda_runtime.h>
+#include <cusparse.h>
+#endif
+
 #include "defs.hpp"
 #include "linalg.hpp"
 #include "lp_data/HConst.h"
-#include "pdlp/cupdlp/cupdlp.h"  // For pdlpLogging
-#include "restart.hpp"
-#include "pdlp_gpu_debug.hpp"
 #include "pdhg_kernels.h"
+#include "pdlp/cupdlp/cupdlp.h"  // For pdlpLogging
+#include "pdlp_gpu_debug.hpp"
+#include "restart.hpp"
 
 #define PDHG_CHECK_INTERVAL 40
 static constexpr double kDivergentMovement = 1e10;
@@ -518,9 +524,12 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
   y_current_ = y;
 #ifdef CUPDLP_GPU
   launchKernelUpdateX(0.0);
-  CUDA_CHECK(cudaMemcpy(d_x_current_, d_x_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
-  CUDA_CHECK(cudaMemcpy(d_x_sum_, d_x_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
-  CUDA_CHECK(cudaMemcpy(d_x_avg_, d_x_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
+  CUDA_CHECK(cudaMemcpy(d_x_current_, d_x_next_, a_num_cols_ * sizeof(double),
+                        cudaMemcpyDeviceToDevice));
+  CUDA_CHECK(cudaMemcpy(d_x_sum_, d_x_current_, a_num_cols_ * sizeof(double),
+                        cudaMemcpyDeviceToDevice));
+  CUDA_CHECK(cudaMemcpy(d_x_avg_, d_x_current_, a_num_cols_ * sizeof(double),
+                        cudaMemcpyDeviceToDevice));
   linalgGpuAx(d_x_current_, d_ax_current_);
 #endif
   linalg::project_bounds(lp_, x_current_);
@@ -567,12 +576,16 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
     if (bool_checking) {
 #ifdef CUPDLP_GPU
       // **VERIFICATION**: Before checking, copy GPU state to host
-/*
-      CUDA_CHECK(cudaMemcpy(x_current_.data(), d_x_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
-      CUDA_CHECK(cudaMemcpy(y_current_.data(), d_y_current_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
-      CUDA_CHECK(cudaMemcpy(Ax_cache_.data(), d_ax_current_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
-      CUDA_CHECK(cudaMemcpy(ATy_cache_.data(), d_aty_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
-*/
+      /*
+            CUDA_CHECK(cudaMemcpy(x_current_.data(), d_x_current_, a_num_cols_ *
+         sizeof(double), cudaMemcpyDeviceToHost));
+            CUDA_CHECK(cudaMemcpy(y_current_.data(), d_y_current_, a_num_rows_ *
+         sizeof(double), cudaMemcpyDeviceToHost));
+            CUDA_CHECK(cudaMemcpy(Ax_cache_.data(), d_ax_current_, a_num_rows_ *
+         sizeof(double), cudaMemcpyDeviceToHost));
+            CUDA_CHECK(cudaMemcpy(ATy_cache_.data(), d_aty_current_, a_num_cols_
+         * sizeof(double), cudaMemcpyDeviceToHost));
+      */
       computeAverageIterateGpu();
 #endif
       hipdlpTimerStart(kHipdlpClockAverageIterate);
@@ -589,16 +602,12 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
 #ifdef CUPDLP_GPU
       //=== GPU Convergence Check ===//
       bool current_converged_gpu = checkConvergenceGpu(
-        iter, d_x_current_, d_y_current_,
-        d_ax_current_, d_aty_current_,
-        params_.tolerance, current_results, "[L-GPU]"
-      );
+          iter, d_x_current_, d_y_current_, d_ax_current_, d_aty_current_,
+          params_.tolerance, current_results, "[L-GPU]");
 
-      bool average_converged_gpu = checkConvergenceGpu(
-        iter, d_x_avg_, d_y_avg_,
-        d_ax_avg_, d_aty_avg_,
-        params_.tolerance, average_results, "[A-GPU]"
-      );
+      bool average_converged_gpu =
+          checkConvergenceGpu(iter, d_x_avg_, d_y_avg_, d_ax_avg_, d_aty_avg_,
+                              params_.tolerance, average_results, "[A-GPU]");
 #else
       // === CPU Convergence Check ===//
       hipdlpTimerStart(kHipdlpClockConvergenceCheck);
@@ -621,25 +630,39 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
       // Check for convergence
 #ifdef CUPDLP_GPU
       if (current_converged_gpu) {
-        logger_.info("Current GPU solution converged in " + std::to_string(iter) +
-                     " iterations.");
+        logger_.info("Current GPU solution converged in " +
+                     std::to_string(iter) + " iterations.");
         final_iter_count_ = iter;
-        CUDA_CHECK(cudaMemcpy(x.data(), d_x_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(y.data(), d_y_current_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(dSlackPos_.data(), d_dSlackPos_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(dSlackNeg_.data(), d_dSlackNeg_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(x.data(), d_x_current_,
+                              a_num_cols_ * sizeof(double),
+                              cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(y.data(), d_y_current_,
+                              a_num_rows_ * sizeof(double),
+                              cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(dSlackPos_.data(), d_dSlackPos_,
+                              a_num_cols_ * sizeof(double),
+                              cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(dSlackNeg_.data(), d_dSlackNeg_,
+                              a_num_cols_ * sizeof(double),
+                              cudaMemcpyDeviceToHost));
         results_ = current_results;
         return solveReturn(TerminationStatus::OPTIMAL);
       }
 
       if (average_converged_gpu) {
-        logger_.info("Average GPU solution converged in " + std::to_string(iter) +
-                     " iterations.");
+        logger_.info("Average GPU solution converged in " +
+                     std::to_string(iter) + " iterations.");
         final_iter_count_ = iter;
-        CUDA_CHECK(cudaMemcpy(x.data(), d_x_avg_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(y.data(), d_y_avg_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(dSlackPosAvg_.data(), d_dSlackPosAvg_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(dSlackNegAvg_.data(), d_dSlackNegAvg_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(x.data(), d_x_avg_, a_num_cols_ * sizeof(double),
+                              cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(y.data(), d_y_avg_, a_num_rows_ * sizeof(double),
+                              cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(dSlackPosAvg_.data(), d_dSlackPosAvg_,
+                              a_num_cols_ * sizeof(double),
+                              cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(dSlackNegAvg_.data(), d_dSlackNegAvg_,
+                              a_num_cols_ * sizeof(double),
+                              cudaMemcpyDeviceToHost));
         results_ = average_results;
         return solveReturn(TerminationStatus::OPTIMAL);
       }
@@ -680,11 +703,15 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
               average_results.duality_gap;
 
 #ifdef CUPDLP_GPU
-          CUDA_CHECK(cudaMemcpy(d_x_current_, d_x_avg_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
-          CUDA_CHECK(cudaMemcpy(d_y_current_, d_y_avg_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToDevice));
+          CUDA_CHECK(cudaMemcpy(d_x_current_, d_x_avg_,
+                                a_num_cols_ * sizeof(double),
+                                cudaMemcpyDeviceToDevice));
+          CUDA_CHECK(cudaMemcpy(d_y_current_, d_y_avg_,
+                                a_num_rows_ * sizeof(double),
+                                cudaMemcpyDeviceToDevice));
           linalgGpuAx(d_x_current_, d_ax_current_);
           linalgGpuATy(d_y_current_, d_aty_current_);
-#else 
+#else
           x_current_ = x_avg_;
           y_current_ = y_avg_;
 
@@ -715,12 +742,16 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         restart_scheme_.passParams(&working_params);
 
 #ifdef CUPDLP_GPU
-        CUDA_CHECK(cudaMemcpy(d_x_at_last_restart_, d_x_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
-        CUDA_CHECK(cudaMemcpy(d_y_at_last_restart_, d_y_current_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToDevice));
+        CUDA_CHECK(cudaMemcpy(d_x_at_last_restart_, d_x_current_,
+                              a_num_cols_ * sizeof(double),
+                              cudaMemcpyDeviceToDevice));
+        CUDA_CHECK(cudaMemcpy(d_y_at_last_restart_, d_y_current_,
+                              a_num_rows_ * sizeof(double),
+                              cudaMemcpyDeviceToDevice));
         CUDA_CHECK(cudaMemset(d_x_sum_, 0, a_num_cols_ * sizeof(double)));
         CUDA_CHECK(cudaMemset(d_y_sum_, 0, a_num_rows_ * sizeof(double)));
         sum_weights_gpu_ = 0.0;
-#else 
+#else
         x_at_last_restart_ = x_current_;  // Current becomes the new last
         y_at_last_restart_ = y_current_;
 
@@ -732,7 +763,7 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         restart_scheme_.last_restart_iter_ = iter;
 
 // Recompute Ax and ATy for the restarted iterates
-#ifdef CUPDLP_GPU 
+#ifdef CUPDLP_GPU
         launchKernelUpdateX(stepsize_.primal_step);
         linalgGpuAx(d_x_next_, d_ax_next_);
         launchKernelUpdateY(stepsize_.dual_step);
@@ -742,11 +773,19 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         std::vector<double> y_next_gpu(a_num_rows_);
         std::vector<double> ax_next_gpu(a_num_rows_);
         std::vector<double> aty_next_gpu(a_num_cols_);
-        CUDA_CHECK(cudaMemcpy(x_next_gpu.data(), d_x_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(y_next_gpu.data(), d_y_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(ax_next_gpu.data(), d_ax_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(aty_next_gpu.data(), d_aty_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
-#else 
+        CUDA_CHECK(cudaMemcpy(x_next_gpu.data(), d_x_next_,
+                              a_num_cols_ * sizeof(double),
+                              cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(y_next_gpu.data(), d_y_next_,
+                              a_num_rows_ * sizeof(double),
+                              cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(ax_next_gpu.data(), d_ax_next_,
+                              a_num_rows_ * sizeof(double),
+                              cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(aty_next_gpu.data(), d_aty_next_,
+                              a_num_cols_ * sizeof(double),
+                              cudaMemcpyDeviceToHost));
+#else
         hipdlpTimerStart(kHipdlpClockMatrixMultiply);
         linalg::Ax(lp, x_current_, Ax_cache_);
         hipdlpTimerStop(kHipdlpClockMatrixMultiply);
@@ -765,11 +804,17 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
     // Store current iterates before update (for next iteration's x_current_,
     // y_current_)
 #ifdef CUPDLP_GPU
-    CUDA_CHECK(cudaMemcpy(d_x_next_, d_x_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
-    CUDA_CHECK(cudaMemcpy(d_y_next_, d_y_current_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_x_next_, d_x_current_, a_num_cols_ * sizeof(double),
+                          cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_y_next_, d_y_current_, a_num_rows_ * sizeof(double),
+                          cudaMemcpyDeviceToDevice));
     // Copy Ax and ATy cache to host
-    CUDA_CHECK(cudaMemcpy(Ax_cache_.data(), d_ax_current_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaMemcpy(ATy_cache_.data(), d_aty_current_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(Ax_cache_.data(), d_ax_current_,
+                          a_num_rows_ * sizeof(double),
+                          cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(ATy_cache_.data(), d_aty_current_,
+                          a_num_cols_ * sizeof(double),
+                          cudaMemcpyDeviceToHost));
     debug_pdlp_data_.ax_norm = linalg::vector_norm(Ax_cache_);
     debug_pdlp_data_.aty_norm = linalg::vector_norm(ATy_cache_);
 #else
@@ -823,16 +868,22 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
 #ifdef CUPDLP_GPU
     // Update average iterates on GPU
     updateAverageIteratesGpu(inner_iter);
-#endif  
+#endif
 
     // --- 7. Prepare for next iteration ---
     x_current_ = x_next_;
     y_current_ = y_next_;
 #ifdef CUPDLP_GPU
-    CUDA_CHECK(cudaMemcpy(d_x_current_, d_x_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
-    CUDA_CHECK(cudaMemcpy(d_y_current_, d_y_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToDevice));
-    CUDA_CHECK(cudaMemcpy(d_ax_current_, d_ax_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToDevice));
-    CUDA_CHECK(cudaMemcpy(d_aty_current_, d_aty_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_x_current_, d_x_next_, a_num_cols_ * sizeof(double),
+                          cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_y_current_, d_y_next_, a_num_rows_ * sizeof(double),
+                          cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_ax_current_, d_ax_next_,
+                          a_num_rows_ * sizeof(double),
+                          cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_aty_current_, d_aty_next_,
+                          a_num_cols_ * sizeof(double),
+                          cudaMemcpyDeviceToDevice));
 #endif
   }
 
@@ -1334,6 +1385,23 @@ void PDLPSolver::setup(const HighsOptions& options, HighsTimer& timer) {
   logger_.passHighsLogOptions(options.log_options);
   logger_.print_header();
 
+#ifdef CUPDLP_GPU
+  int n_devices = 0;
+  cudaGetDeviceCount(&n_devices);
+  if (n_devices != 1)
+    highsLogUser(
+        options.log_options, HighsLogType::kInfo,
+        "Number of CUDA-enabled devices is %d: device 0 will be used\n",
+        n_devices);
+  cudaDeviceProp prop;
+  cudaGetDeviceProperties(&prop, 0);
+  highsLogUser(options.log_options, HighsLogType::kInfo, "Cuda device: %s\n",
+               prop.name);
+  highsLogUser(options.log_options, HighsLogType::kInfo,
+               "Global memory available on device (GB): %f\n",
+               (float(prop.totalGlobalMem)) / 1e9);
+#endif
+
   hipdlp_clocks_.timer_pointer_ = &timer;
   hipdlp_timer_.initialiseHipdlpClocks(hipdlp_clocks_);
 
@@ -1566,10 +1634,10 @@ void PDLPSolver::updateIteratesFixed() {
 
 #ifdef CUPDLP_GPU
   // Add this check before the memcpy
-if (d_x_next_ == nullptr) {
+  if (d_x_next_ == nullptr) {
     std::cerr << "Error1: d_x_next_ is null!" << std::endl;
     return;
-}
+  }
   launchKernelUpdateX(stepsize_.primal_step);
   CUDA_CHECK(cudaDeviceSynchronize());
   linalgGpuAx(d_x_next_, d_ax_next_);
@@ -1580,24 +1648,30 @@ if (d_x_next_ == nullptr) {
   CUDA_CHECK(cudaDeviceSynchronize());
 
   // Add this check before the memcpy
-if (d_x_next_ == nullptr) {
+  if (d_x_next_ == nullptr) {
     std::cerr << "Error2: d_x_next_ is null!" << std::endl;
     return;
-}
+  }
 
   std::vector<double> x_next_gpu(a_num_cols_);
   std::vector<double> y_next_gpu(a_num_rows_);
   std::vector<double> ax_next_gpu(a_num_rows_);
   std::vector<double> aty_next_gpu(a_num_cols_);
-  CUDA_CHECK(cudaMemcpy(x_next_gpu.data(), d_x_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
-  CUDA_CHECK(cudaMemcpy(y_next_gpu.data(), d_y_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
-  CUDA_CHECK(cudaMemcpy(ax_next_gpu.data(), d_ax_next_, a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
-  CUDA_CHECK(cudaMemcpy(aty_next_gpu.data(), d_aty_next_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(x_next_gpu.data(), d_x_next_,
+                        a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(y_next_gpu.data(), d_y_next_,
+                        a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(ax_next_gpu.data(), d_ax_next_,
+                        a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(aty_next_gpu.data(), d_aty_next_,
+                        a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
 
   bool x_match = vecDiff(x_next_gpu, x_next_, 1e-10, "UpdateIteratesFixed x");
   bool y_match = vecDiff(y_next_gpu, y_next_, 1e-10, "UpdateIteratesFixed y");
-  bool ax_match = vecDiff(ax_next_gpu, Ax_next_, 1e-10, "UpdateIteratesFixed Ax");
-  bool aty_match = vecDiff(aty_next_gpu, ATy_next_, 1e-10, "UpdateIteratesFixed ATy");
+  bool ax_match =
+      vecDiff(ax_next_gpu, Ax_next_, 1e-10, "UpdateIteratesFixed Ax");
+  bool aty_match =
+      vecDiff(aty_next_gpu, ATy_next_, 1e-10, "UpdateIteratesFixed ATy");
 #endif
 }
 
@@ -1639,23 +1713,23 @@ void PDLPSolver::updateIteratesAdaptive() {
     double dual_step_update = dStepSizeUpdate * std::sqrt(stepsize_.beta);
 
 #ifdef CUPDLP_GPU
-    launchKernelUpdateX_wrapper(
-        d_x_next_,          // Output (Trial)
-        d_x_current_,       // Input (Base)
-        d_aty_current_,     // Input (Base ATy)
-        d_col_cost_, d_col_lower_, d_col_upper_,
-        primal_step_update, a_num_cols_);
+    launchKernelUpdateX_wrapper(d_x_next_,       // Output (Trial)
+                                d_x_current_,    // Input (Base)
+                                d_aty_current_,  // Input (Base ATy)
+                                d_col_cost_, d_col_lower_, d_col_upper_,
+                                primal_step_update, a_num_cols_);
     linalgGpuAx(d_x_next_, d_ax_next_);
-    launchKernelUpdateY_wrapper(
-        d_y_next_,          // Output (Trial)
-        d_y_current_,       // Input (Base)
-        d_ax_current_,      // Input (Base Ax)
-        d_ax_next_,         // Input (Trial Ax)
-        d_row_lower_, d_is_equality_row_,
-        dual_step_update, a_num_rows_);
-    linalgGpuATy(d_y_next_, d_aty_next_);   
-    double movement = computeMovementGpu(d_x_next_, d_x_current_, d_y_next_, d_y_current_);
-    double nonlinearity = computeNonlinearityGpu(d_x_next_, d_x_current_, d_aty_next_, d_aty_current_);
+    launchKernelUpdateY_wrapper(d_y_next_,      // Output (Trial)
+                                d_y_current_,   // Input (Base)
+                                d_ax_current_,  // Input (Base Ax)
+                                d_ax_next_,     // Input (Trial Ax)
+                                d_row_lower_, d_is_equality_row_,
+                                dual_step_update, a_num_rows_);
+    linalgGpuATy(d_y_next_, d_aty_next_);
+    double movement =
+        computeMovementGpu(d_x_next_, d_x_current_, d_y_next_, d_y_current_);
+    double nonlinearity = computeNonlinearityGpu(d_x_next_, d_x_current_,
+                                                 d_aty_next_, d_aty_current_);
 #else
     // Primal update
     hipdlpTimerStart(kHipdlpClockProjectX);
@@ -1832,11 +1906,11 @@ void PDLPSolver::closeDebugLog() {
 //  SECTION 5: GPU Part
 // =============================================================================
 #ifdef CUPDLP_GPU
-void PDLPSolver::setupGpu(){
-  //1. Initialize cuSPARSE
+void PDLPSolver::setupGpu() {
+  // 1. Initialize cuSPARSE
   CUSPARSE_CHECK(cusparseCreate(&cusparse_handle_));
   CUBLAS_CHECK(cublasCreate(&cublas_handle_));
-  //2. Get matrix data from lp_ (CSC)
+  // 2. Get matrix data from lp_ (CSC)
   a_num_rows_ = lp_.num_row_;
   a_num_cols_ = lp_.num_col_;
   a_nnz_ = lp_.a_matrix_.numNz();
@@ -1848,43 +1922,53 @@ void PDLPSolver::setupGpu(){
   const std::vector<int>& h_a_col_ind = lp_csr.index_;
   const std::vector<double>& h_a_val = lp_csr.value_;
 
-  //3. Allocate and copy A's CSR data to GPU
-  CUDA_CHECK(cudaMalloc((void**)&d_a_row_ptr_, (a_num_rows_ + 1) * sizeof(int)));
+  // 3. Allocate and copy A's CSR data to GPU
+  CUDA_CHECK(
+      cudaMalloc((void**)&d_a_row_ptr_, (a_num_rows_ + 1) * sizeof(int)));
   CUDA_CHECK(cudaMalloc((void**)&d_a_col_ind_, a_nnz_ * sizeof(int)));
   CUDA_CHECK(cudaMalloc((void**)&d_a_val_, a_nnz_ * sizeof(double)));
-  CUDA_CHECK(cudaMemcpy(d_a_row_ptr_, h_a_row_ptr.data(), (a_num_rows_ + 1) * sizeof(int), cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemcpy(d_a_col_ind_, h_a_col_ind.data(), a_nnz_ * sizeof(int), cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemcpy(d_a_val_, h_a_val.data(), a_nnz_ * sizeof(double), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_a_row_ptr_, h_a_row_ptr.data(),
+                        (a_num_rows_ + 1) * sizeof(int),
+                        cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_a_col_ind_, h_a_col_ind.data(), a_nnz_ * sizeof(int),
+                        cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_a_val_, h_a_val.data(), a_nnz_ * sizeof(double),
+                        cudaMemcpyHostToDevice));
 
-  CUSPARSE_CHECK(cusparseCreateCsr(&mat_a_csr_, a_num_rows_, a_num_cols_, a_nnz_,
-                                    d_a_row_ptr_, d_a_col_ind_, d_a_val_,
-                                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
-                                    CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F));
+  CUSPARSE_CHECK(cusparseCreateCsr(&mat_a_csr_, a_num_rows_, a_num_cols_,
+                                   a_nnz_, d_a_row_ptr_, d_a_col_ind_, d_a_val_,
+                                   CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
+                                   CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F));
 
-  //4. Create matrix AT in CSR format = A in CSC
+  // 4. Create matrix AT in CSR format = A in CSC
   const std::vector<int>& h_at_row_ptr = lp_.a_matrix_.start_;
   const std::vector<int>& h_at_col_ind = lp_.a_matrix_.index_;
   const std::vector<double>& h_at_val = lp_.a_matrix_.value_;
 
-  CUDA_CHECK(cudaMalloc((void**)&d_at_row_ptr_, (a_num_cols_ + 1) * sizeof(int)));  // Fixed!
+  CUDA_CHECK(cudaMalloc((void**)&d_at_row_ptr_,
+                        (a_num_cols_ + 1) * sizeof(int)));  // Fixed!
   CUDA_CHECK(cudaMalloc((void**)&d_at_col_ind_, a_nnz_ * sizeof(int)));
   CUDA_CHECK(cudaMalloc((void**)&d_at_val_, a_nnz_ * sizeof(double)));
 
-  CUDA_CHECK(cudaMemcpy(d_at_row_ptr_, h_at_row_ptr.data(), (a_num_cols_ + 1) * sizeof(int), cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemcpy(d_at_col_ind_, h_at_col_ind.data(), a_nnz_ * sizeof(int), cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemcpy(d_at_val_, h_at_val.data(), a_nnz_ * sizeof(double), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_at_row_ptr_, h_at_row_ptr.data(),
+                        (a_num_cols_ + 1) * sizeof(int),
+                        cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_at_col_ind_, h_at_col_ind.data(),
+                        a_nnz_ * sizeof(int), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_at_val_, h_at_val.data(), a_nnz_ * sizeof(double),
+                        cudaMemcpyHostToDevice));
 
   // Create AT descriptor with swapped dimensions
-  CUSPARSE_CHECK(cusparseCreateCsr(&mat_a_T_csr_, a_num_cols_, a_num_rows_, a_nnz_,  // Dimensions swapped!
-                                    d_at_row_ptr_, d_at_col_ind_, d_at_val_,
-                                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
-                                    CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F));
-  
+  CUSPARSE_CHECK(cusparseCreateCsr(
+      &mat_a_T_csr_, a_num_cols_, a_num_rows_, a_nnz_,  // Dimensions swapped!
+      d_at_row_ptr_, d_at_col_ind_, d_at_val_, CUSPARSE_INDEX_32I,
+      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F));
+
   CUDA_CHECK(cudaMalloc(&d_col_cost_, a_num_cols_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_col_lower_, a_num_cols_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_col_upper_, a_num_cols_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_row_lower_, a_num_rows_ * sizeof(double)));
-  CUDA_CHECK(cudaMalloc(&d_is_equality_row_, a_num_rows_ * sizeof(bool)));                                  
+  CUDA_CHECK(cudaMalloc(&d_is_equality_row_, a_num_rows_ * sizeof(bool)));
   CUDA_CHECK(cudaMalloc(&d_x_current_, a_num_cols_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_y_current_, a_num_rows_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_x_avg_, a_num_cols_ * sizeof(double)));
@@ -1893,12 +1977,14 @@ void PDLPSolver::setupGpu(){
   CUDA_CHECK(cudaMalloc(&d_y_next_, a_num_rows_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_x_at_last_restart_, a_num_cols_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_y_at_last_restart_, a_num_rows_ * sizeof(double)));
-  CUDA_CHECK(cudaMalloc(&d_x_temp_diff_norm_result_, a_num_cols_ * sizeof(double)));
-  CUDA_CHECK(cudaMalloc(&d_y_temp_diff_norm_result_, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(
+      cudaMalloc(&d_x_temp_diff_norm_result_, a_num_cols_ * sizeof(double)));
+  CUDA_CHECK(
+      cudaMalloc(&d_y_temp_diff_norm_result_, a_num_rows_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_ax_current_, a_num_rows_ * sizeof(double)));
-  CUDA_CHECK(cudaMalloc(&d_aty_current_, a_num_cols_ * sizeof(double)));  
+  CUDA_CHECK(cudaMalloc(&d_aty_current_, a_num_cols_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_ax_next_, a_num_rows_ * sizeof(double)));
-  CUDA_CHECK(cudaMalloc(&d_aty_next_, a_num_cols_ * sizeof(double))); 
+  CUDA_CHECK(cudaMalloc(&d_aty_next_, a_num_cols_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_ax_avg_, a_num_rows_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_aty_avg_, a_num_cols_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_x_sum_, a_num_cols_ * sizeof(double)));
@@ -1911,46 +1997,53 @@ void PDLPSolver::setupGpu(){
   CUDA_CHECK(cudaMalloc(&d_col_scale_, a_num_cols_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_row_scale_, a_num_rows_ * sizeof(double)));
 
-
-  CUDA_CHECK(cudaMemcpy(d_col_cost_, lp_.col_cost_.data(), a_num_cols_ * sizeof(double), cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemcpy(d_col_lower_, lp_.col_lower_.data(), a_num_cols_ * sizeof(double), cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemcpy(d_col_upper_, lp_.col_upper_.data(), a_num_cols_ * sizeof(double), cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemcpy(d_row_lower_, lp_.row_lower_.data(), a_num_rows_ * sizeof(double), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_col_cost_, lp_.col_cost_.data(),
+                        a_num_cols_ * sizeof(double), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_col_lower_, lp_.col_lower_.data(),
+                        a_num_cols_ * sizeof(double), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_col_upper_, lp_.col_upper_.data(),
+                        a_num_cols_ * sizeof(double), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_row_lower_, lp_.row_lower_.data(),
+                        a_num_rows_ * sizeof(double), cudaMemcpyHostToDevice));
   std::vector<uint8_t> temp_equality(a_num_rows_);
   for (size_t i = 0; i < a_num_rows_; ++i) {
-      temp_equality[i] = is_equality_row_[i] ? 1 : 0;
+    temp_equality[i] = is_equality_row_[i] ? 1 : 0;
   }
 
   // Copy to device
-  CUDA_CHECK(cudaMemcpy(d_is_equality_row_, temp_equality.data(), 
+  CUDA_CHECK(cudaMemcpy(d_is_equality_row_, temp_equality.data(),
                         a_num_rows_ * sizeof(uint8_t), cudaMemcpyHostToDevice));
-  
-  //6. Preallocate buffer for cuSPARSE SpMV
-  //Buffer for Ax 
+
+  // 6. Preallocate buffer for cuSPARSE SpMV
+  // Buffer for Ax
   double alpha = 1.0;
   double beta = 0.0;
   cusparseDnVecDescr_t vec_x, vec_ax;
-  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_x, a_num_cols_, d_x_current_, CUDA_R_64F));
-  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_ax, a_num_rows_, d_ax_current_, CUDA_R_64F));
+  CUSPARSE_CHECK(
+      cusparseCreateDnVec(&vec_x, a_num_cols_, d_x_current_, CUDA_R_64F));
+  CUSPARSE_CHECK(
+      cusparseCreateDnVec(&vec_ax, a_num_rows_, d_ax_current_, CUDA_R_64F));
 
   CUSPARSE_CHECK(cusparseSpMV_bufferSize(
-      cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
-      &alpha, mat_a_csr_, vec_x, &beta, vec_ax, CUDA_R_64F,
-      CUSPARSE_SPMV_CSR_ALG2, &spmv_buffer_size_ax_));
+      cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, mat_a_csr_,
+      vec_x, &beta, vec_ax, CUDA_R_64F, CUSPARSE_SPMV_CSR_ALG2,
+      &spmv_buffer_size_ax_));
   CUDA_CHECK(cudaMalloc(&d_spmv_buffer_ax_, spmv_buffer_size_ax_));
 
   CUSPARSE_CHECK(cusparseDestroyDnVec(vec_x));
   CUSPARSE_CHECK(cusparseDestroyDnVec(vec_ax));
 
-  //Buffer for ATy
+  // Buffer for ATy
   cusparseDnVecDescr_t vec_y, vec_aty;
-  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_y, a_num_rows_, d_y_current_, CUDA_R_64F));
-  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_aty, a_num_cols_, d_aty_current_, CUDA_R_64F));
+  CUSPARSE_CHECK(
+      cusparseCreateDnVec(&vec_y, a_num_rows_, d_y_current_, CUDA_R_64F));
+  CUSPARSE_CHECK(
+      cusparseCreateDnVec(&vec_aty, a_num_cols_, d_aty_current_, CUDA_R_64F));
   CUSPARSE_CHECK(cusparseSpMV_bufferSize(
-      cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
-      &alpha, mat_a_T_csr_, vec_y, &beta, vec_aty, CUDA_R_64F,
-      CUSPARSE_SPMV_CSR_ALG2, &spmv_buffer_size_aty_));
-  CUDA_CHECK(cudaMalloc(&d_spmv_buffer_aty_, spmv_buffer_size_aty_)); 
+      cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, mat_a_T_csr_,
+      vec_y, &beta, vec_aty, CUDA_R_64F, CUSPARSE_SPMV_CSR_ALG2,
+      &spmv_buffer_size_aty_));
+  CUDA_CHECK(cudaMalloc(&d_spmv_buffer_aty_, spmv_buffer_size_aty_));
   CUSPARSE_CHECK(cusparseDestroyDnVec(vec_y));
   CUSPARSE_CHECK(cusparseDestroyDnVec(vec_aty));
 
@@ -1969,24 +2062,32 @@ void PDLPSolver::setupGpu(){
   CUDA_CHECK(cudaMemset(d_aty_current_, 0, a_num_cols_ * sizeof(double)));
   sum_weights_gpu_ = 0.0;
 
-  if(scaling_.IsScaled()){
-    CUDA_CHECK(cudaMemcpy(d_col_scale_, scaling_.GetColScaling().data(), a_num_cols_ * sizeof(double), cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(d_row_scale_, scaling_.GetRowScaling().data(), a_num_rows_ * sizeof(double), cudaMemcpyHostToDevice));
+  if (scaling_.IsScaled()) {
+    CUDA_CHECK(cudaMemcpy(d_col_scale_, scaling_.GetColScaling().data(),
+                          a_num_cols_ * sizeof(double),
+                          cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_row_scale_, scaling_.GetRowScaling().data(),
+                          a_num_rows_ * sizeof(double),
+                          cudaMemcpyHostToDevice));
   } else {
-    cudaFree(d_col_scale_); d_col_scale_ = nullptr;
-    cudaFree(d_row_scale_); d_row_scale_ = nullptr;
+    cudaFree(d_col_scale_);
+    d_col_scale_ = nullptr;
+    cudaFree(d_row_scale_);
+    d_row_scale_ = nullptr;
   }
 
   size_t max_size = std::max(a_num_cols_, a_num_rows_);
   CUDA_CHECK(cudaMalloc(&d_buffer_, max_size * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_buffer2_, max_size * sizeof(double)));
 
-  highsLogUser(params_.log_options_, HighsLogType::kInfo, "GPU setup complete. Matrix A (CSR) and A^T (CSR) transferred to device.\n");
+  highsLogUser(params_.log_options_, HighsLogType::kInfo,
+               "GPU setup complete. Matrix A (CSR) and A^T (CSR) transferred "
+               "to device.\n");
 }
 
-void PDLPSolver::cleanupGpu(){
+void PDLPSolver::cleanupGpu() {
   if (cusparse_handle_) CUSPARSE_CHECK(cusparseDestroy(cusparse_handle_));
-  if (cublas_handle_) CUBLAS_CHECK(cublasDestroy(cublas_handle_)); 
+  if (cublas_handle_) CUBLAS_CHECK(cublasDestroy(cublas_handle_));
   if (mat_a_csr_) CUSPARSE_CHECK(cusparseDestroySpMat(mat_a_csr_));
   if (mat_a_T_csr_) CUSPARSE_CHECK(cusparseDestroySpMat(mat_a_T_csr_));
   CUDA_CHECK(cudaFree(d_a_row_ptr_));
@@ -2023,108 +2124,101 @@ void PDLPSolver::cleanupGpu(){
   CUDA_CHECK(cudaFree(d_dSlackNeg_));
   CUDA_CHECK(cudaFree(d_dSlackPosAvg_));
   CUDA_CHECK(cudaFree(d_dSlackNegAvg_));
-  if(d_col_scale_) CUDA_CHECK(cudaFree(d_col_scale_));
-  if(d_row_scale_) CUDA_CHECK(cudaFree(d_row_scale_));
+  if (d_col_scale_) CUDA_CHECK(cudaFree(d_col_scale_));
+  if (d_row_scale_) CUDA_CHECK(cudaFree(d_row_scale_));
   CUDA_CHECK(cudaFree(d_buffer_));
   CUDA_CHECK(cudaFree(d_buffer2_));
 }
 
-void PDLPSolver::linalgGpuAx(const double* d_x_in, double* d_ax_out){
+void PDLPSolver::linalgGpuAx(const double* d_x_in, double* d_ax_out) {
   // Ax = 1.0 * A * x + 0.0 * ax
   double alpha = 1.0;
   double beta = 0.0;
   cusparseDnVecDescr_t vec_x, vec_ax;
-  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_x, a_num_cols_, (void*)d_x_in, CUDA_R_64F));
-  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_ax, a_num_rows_, d_ax_out, CUDA_R_64F));
-  if(spmv_buffer_size_ax_ == 0){
+  CUSPARSE_CHECK(
+      cusparseCreateDnVec(&vec_x, a_num_cols_, (void*)d_x_in, CUDA_R_64F));
+  CUSPARSE_CHECK(
+      cusparseCreateDnVec(&vec_ax, a_num_rows_, d_ax_out, CUDA_R_64F));
+  if (spmv_buffer_size_ax_ == 0) {
     CUSPARSE_CHECK(cusparseSpMV_bufferSize(
-        cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
-        &alpha, mat_a_csr_, vec_x, &beta, vec_ax, CUDA_R_64F,
-        CUSPARSE_SPMV_CSR_ALG2, &spmv_buffer_size_ax_));
+        cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, mat_a_csr_,
+        vec_x, &beta, vec_ax, CUDA_R_64F, CUSPARSE_SPMV_CSR_ALG2,
+        &spmv_buffer_size_ax_));
     CUDA_CHECK(cudaMalloc(&d_spmv_buffer_ax_, spmv_buffer_size_ax_));
   }
 
-  CUSPARSE_CHECK(cusparseSpMV(
-      cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
-      &alpha, mat_a_csr_, vec_x, &beta, vec_ax, CUDA_R_64F,
-      CUSPARSE_SPMV_CSR_ALG2, d_spmv_buffer_ax_));
+  CUSPARSE_CHECK(cusparseSpMV(cusparse_handle_,
+                              CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha,
+                              mat_a_csr_, vec_x, &beta, vec_ax, CUDA_R_64F,
+                              CUSPARSE_SPMV_CSR_ALG2, d_spmv_buffer_ax_));
   CUSPARSE_CHECK(cusparseDestroyDnVec(vec_x));
   CUSPARSE_CHECK(cusparseDestroyDnVec(vec_ax));
 }
 
-void PDLPSolver::linalgGpuATy(const double* d_y_in, double* d_aty_out){
+void PDLPSolver::linalgGpuATy(const double* d_y_in, double* d_aty_out) {
   // ATy = 1.0 * A^T * y + 0.0 * aty
   double alpha = 1.0;
   double beta = 0.0;
   cusparseDnVecDescr_t vec_y, vec_aty;
-  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_y, a_num_rows_, (void*)d_y_in, CUDA_R_64F));
-  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_aty, a_num_cols_, d_aty_out, CUDA_R_64F));
-  if(spmv_buffer_size_aty_ == 0){
+  CUSPARSE_CHECK(
+      cusparseCreateDnVec(&vec_y, a_num_rows_, (void*)d_y_in, CUDA_R_64F));
+  CUSPARSE_CHECK(
+      cusparseCreateDnVec(&vec_aty, a_num_cols_, d_aty_out, CUDA_R_64F));
+  if (spmv_buffer_size_aty_ == 0) {
     CUSPARSE_CHECK(cusparseSpMV_bufferSize(
-        cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
-        &alpha, mat_a_T_csr_, vec_y, &beta, vec_aty, CUDA_R_64F,
-        CUSPARSE_SPMV_CSR_ALG2, &spmv_buffer_size_aty_));
+        cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha,
+        mat_a_T_csr_, vec_y, &beta, vec_aty, CUDA_R_64F, CUSPARSE_SPMV_CSR_ALG2,
+        &spmv_buffer_size_aty_));
     CUDA_CHECK(cudaMalloc(&d_spmv_buffer_aty_, spmv_buffer_size_aty_));
   }
-  CUSPARSE_CHECK(cusparseSpMV(
-      cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE,
-      &alpha, mat_a_T_csr_, vec_y, &beta, vec_aty, CUDA_R_64F,
-      CUSPARSE_SPMV_CSR_ALG2, d_spmv_buffer_aty_));
+  CUSPARSE_CHECK(cusparseSpMV(cusparse_handle_,
+                              CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha,
+                              mat_a_T_csr_, vec_y, &beta, vec_aty, CUDA_R_64F,
+                              CUSPARSE_SPMV_CSR_ALG2, d_spmv_buffer_aty_));
   CUSPARSE_CHECK(cusparseDestroyDnVec(vec_y));
   CUSPARSE_CHECK(cusparseDestroyDnVec(vec_aty));
 }
 
 void PDLPSolver::launchKernelUpdateX(double primal_step) {
-    launchKernelUpdateX_wrapper(
-        d_x_next_, d_x_current_, d_aty_current_,
-        d_col_cost_, d_col_lower_, d_col_upper_,
-        primal_step, a_num_cols_);
-    CUDA_CHECK(cudaGetLastError());
-}
-
-void PDLPSolver::launchKernelUpdateY(double dual_step) {
-    launchKernelUpdateY_wrapper(
-        d_y_next_, d_y_current_,
-        d_ax_current_, d_ax_next_, 
-        d_row_lower_, d_is_equality_row_,
-        dual_step, a_num_rows_);
-    CUDA_CHECK(cudaGetLastError());
-}
-
-void PDLPSolver::launchKernelUpdateAverages(double weight) {
-  launchKernelUpdateAverages_wrapper(
-      d_x_sum_, d_y_sum_,
-      d_x_next_, d_y_next_,
-      weight, a_num_cols_, a_num_rows_);
+  launchKernelUpdateX_wrapper(d_x_next_, d_x_current_, d_aty_current_,
+                              d_col_cost_, d_col_lower_, d_col_upper_,
+                              primal_step, a_num_cols_);
   CUDA_CHECK(cudaGetLastError());
 }
 
-void PDLPSolver::launchKernelScaleVector(double* d_out, const double* d_in, double scale, int n) {
-    launchKernelScaleVector_wrapper(d_out, d_in, scale, n);
-    CUDA_CHECK(cudaGetLastError());
+void PDLPSolver::launchKernelUpdateY(double dual_step) {
+  launchKernelUpdateY_wrapper(d_y_next_, d_y_current_, d_ax_current_,
+                              d_ax_next_, d_row_lower_, d_is_equality_row_,
+                              dual_step, a_num_rows_);
+  CUDA_CHECK(cudaGetLastError());
 }
 
-bool PDLPSolver::checkConvergenceGpu(
-    const int iter,
-    const double* d_x, const double* d_y,
-    const double* d_ax, const double* d_aty,
-    double epsilon, SolverResults& results, const char* type
-){
+void PDLPSolver::launchKernelUpdateAverages(double weight) {
+  launchKernelUpdateAverages_wrapper(d_x_sum_, d_y_sum_, d_x_next_, d_y_next_,
+                                     weight, a_num_cols_, a_num_rows_);
+  CUDA_CHECK(cudaGetLastError());
+}
+
+void PDLPSolver::launchKernelScaleVector(double* d_out, const double* d_in,
+                                         double scale, int n) {
+  launchKernelScaleVector_wrapper(d_out, d_in, scale, n);
+  CUDA_CHECK(cudaGetLastError());
+}
+
+bool PDLPSolver::checkConvergenceGpu(const int iter, const double* d_x,
+                                     const double* d_y, const double* d_ax,
+                                     const double* d_aty, double epsilon,
+                                     SolverResults& results, const char* type) {
   launchCheckConvergenceKernels_wrapper(
-        d_convergence_results_,
-        d_dSlackPos_, d_dSlackNeg_,
-        d_x, d_y, d_ax, d_aty,
-        d_col_cost_, d_row_lower_,
-        d_col_lower_, d_col_upper_,
-        d_is_equality_row_,
-        d_col_scale_, d_row_scale_,
-        lp_.num_col_, lp_.num_row_
-  );
+      d_convergence_results_, d_dSlackPos_, d_dSlackNeg_, d_x, d_y, d_ax, d_aty,
+      d_col_cost_, d_row_lower_, d_col_lower_, d_col_upper_, d_is_equality_row_,
+      d_col_scale_, d_row_scale_, lp_.num_col_, lp_.num_row_);
 
   // copy 4 doubles back to CPU
-  
+
   double h_results[4];
-  CUDA_CHECK(cudaMemcpy(h_results, d_convergence_results_, 4 * sizeof(double), cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(h_results, d_convergence_results_, 4 * sizeof(double),
+                        cudaMemcpyDeviceToHost));
 
   double primal_feas_sq = h_results[0];
   double dual_feas_sq = h_results[1];
@@ -2132,57 +2226,61 @@ bool PDLPSolver::checkConvergenceGpu(
   double dual_obj = h_results[3] + lp_.offset_;
 
   results.primal_feasibility = std::sqrt(primal_feas_sq);
-  results.dual_feasibility   = std::sqrt(dual_feas_sq);
+  results.dual_feasibility = std::sqrt(dual_feas_sq);
   results.primal_obj = primal_obj;
-  results.dual_obj   = dual_obj;
+  results.dual_obj = dual_obj;
 
   double duality_gap = primal_obj - dual_obj;
   results.duality_gap = std::abs(duality_gap);
-  results.relative_obj_gap = std::abs(duality_gap) / (1.0 + std::abs(primal_obj) + std::abs(dual_obj));
+  results.relative_obj_gap =
+      std::abs(duality_gap) / (1.0 + std::abs(primal_obj) + std::abs(dual_obj));
 
   debugPdlpFeasOptLog(debug_pdlp_log_file_, iter, primal_obj, dual_obj,
                       results.relative_obj_gap,
                       results.primal_feasibility / (1.0 + unscaled_rhs_norm_),
-                      results.dual_feasibility / (1.0 + unscaled_c_norm_), type);
+                      results.dual_feasibility / (1.0 + unscaled_c_norm_),
+                      type);
 
-  bool primal_feasible = results.primal_feasibility < epsilon * (1.0 + unscaled_rhs_norm_);
-  bool dual_feasible   = results.dual_feasibility   < epsilon * (1.0 + unscaled_c_norm_);
-  bool gap_small       = results.relative_obj_gap   < epsilon;
+  bool primal_feasible =
+      results.primal_feasibility < epsilon * (1.0 + unscaled_rhs_norm_);
+  bool dual_feasible =
+      results.dual_feasibility < epsilon * (1.0 + unscaled_c_norm_);
+  bool gap_small = results.relative_obj_gap < epsilon;
 
   return primal_feasible && dual_feasible && gap_small;
 }
 
 void PDLPSolver::computeStepSizeRatioGpu(PrimalDualParams& working_params) {
-    // 1. Compute ||x_last - x_current||^2 using cuBLAS
-    double primal_diff_norm = computeDiffNormCuBLAS(
-        d_x_at_last_restart_, d_x_current_, a_num_cols_);
-    
-    // 2. Compute ||y_last - y_current||^2 using cuBLAS
-    double dual_diff_norm = computeDiffNormCuBLAS(
-        d_y_at_last_restart_, d_y_current_, a_num_rows_);
+  // 1. Compute ||x_last - x_current||^2 using cuBLAS
+  double primal_diff_norm =
+      computeDiffNormCuBLAS(d_x_at_last_restart_, d_x_current_, a_num_cols_);
 
-    double dMeanStepSize = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
+  // 2. Compute ||y_last - y_current||^2 using cuBLAS
+  double dual_diff_norm =
+      computeDiffNormCuBLAS(d_y_at_last_restart_, d_y_current_, a_num_rows_);
 
-    // 3. Update beta (same CPU logic)
-    if (std::min(primal_diff_norm, dual_diff_norm) > 1e-10) {
-        double beta_update_ratio = dual_diff_norm / primal_diff_norm;
-        double old_beta = stepsize_.beta;
-        double dLogBetaUpdate =
-            0.5 * std::log(beta_update_ratio) + 0.5 * std::log(std::sqrt(old_beta));
-        stepsize_.beta = std::exp(2.0 * dLogBetaUpdate);
-    }
+  double dMeanStepSize = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
 
-    // Update step sizes
-    stepsize_.primal_step = dMeanStepSize / std::sqrt(stepsize_.beta);
-    stepsize_.dual_step = stepsize_.primal_step * stepsize_.beta;
-    working_params.eta = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
-    working_params.omega = std::sqrt(stepsize_.beta);
-    restart_scheme_.UpdateBeta(stepsize_.beta);
+  // 3. Update beta (same CPU logic)
+  if (std::min(primal_diff_norm, dual_diff_norm) > 1e-10) {
+    double beta_update_ratio = dual_diff_norm / primal_diff_norm;
+    double old_beta = stepsize_.beta;
+    double dLogBetaUpdate =
+        0.5 * std::log(beta_update_ratio) + 0.5 * std::log(std::sqrt(old_beta));
+    stepsize_.beta = std::exp(2.0 * dLogBetaUpdate);
+  }
+
+  // Update step sizes
+  stepsize_.primal_step = dMeanStepSize / std::sqrt(stepsize_.beta);
+  stepsize_.dual_step = stepsize_.primal_step * stepsize_.beta;
+  working_params.eta = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
+  working_params.omega = std::sqrt(stepsize_.beta);
+  restart_scheme_.UpdateBeta(stepsize_.beta);
 }
 
 void PDLPSolver::updateAverageIteratesGpu(int inner_iter) {
   double dMeanStepSize = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
-  
+
   launchKernelUpdateAverages(dMeanStepSize);
 
   sum_weights_gpu_ += dMeanStepSize;
@@ -2193,7 +2291,7 @@ void PDLPSolver::computeAverageIterateGpu() {
 
   // x_avg = x_sum * scale
   launchKernelScaleVector(d_x_avg_, d_x_sum_, dScale, a_num_cols_);
-  
+
   // y_avg = y_sum * scale
   launchKernelScaleVector(d_y_avg_, d_y_sum_, dScale, a_num_rows_);
 
@@ -2201,71 +2299,72 @@ void PDLPSolver::computeAverageIterateGpu() {
   linalgGpuAx(d_x_avg_, d_ax_avg_);
   linalgGpuATy(d_y_avg_, d_aty_avg_);
   // copy x_avg to host
-  CUDA_CHECK(cudaMemcpy(x_avg_.data(), d_x_avg_, a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(x_avg_.data(), d_x_avg_, a_num_cols_ * sizeof(double),
+                        cudaMemcpyDeviceToHost));
   debug_pdlp_data_.x_average_norm = linalg::vector_norm_squared(x_avg_);
-  
-  //debug_pdlp_data_.ax_average_norm = computeDiffNormCuBLAS;
+
+  // debug_pdlp_data_.ax_average_norm = computeDiffNormCuBLAS;
 }
 
-double PDLPSolver::computeMovementGpu(
-    const double* d_x_new, const double* d_x_old,
-    const double* d_y_new, const double* d_y_old) 
-{
-    // 1. Compute ||x_new - x_old|| using cuBLAS
-    double primal_diff_norm = computeDiffNormCuBLAS(d_x_new, d_x_old, a_num_cols_);
-    
-    // 2. Compute ||y_new - y_old|| using cuBLAS
-    double dual_diff_norm = computeDiffNormCuBLAS(d_y_new, d_y_old, a_num_rows_);
-    
-    // 3. Combine on CPU
-    double primal_weight = std::sqrt(stepsize_.beta);
-    double primal_diff_sq = primal_diff_norm * primal_diff_norm;
-    double dual_diff_sq = dual_diff_norm * dual_diff_norm;
-    
-    return (0.5 * primal_weight * primal_diff_sq) +
-           (0.5 / primal_weight * dual_diff_sq);
+double PDLPSolver::computeMovementGpu(const double* d_x_new,
+                                      const double* d_x_old,
+                                      const double* d_y_new,
+                                      const double* d_y_old) {
+  // 1. Compute ||x_new - x_old|| using cuBLAS
+  double primal_diff_norm =
+      computeDiffNormCuBLAS(d_x_new, d_x_old, a_num_cols_);
+
+  // 2. Compute ||y_new - y_old|| using cuBLAS
+  double dual_diff_norm = computeDiffNormCuBLAS(d_y_new, d_y_old, a_num_rows_);
+
+  // 3. Combine on CPU
+  double primal_weight = std::sqrt(stepsize_.beta);
+  double primal_diff_sq = primal_diff_norm * primal_diff_norm;
+  double dual_diff_sq = dual_diff_norm * dual_diff_norm;
+
+  return (0.5 * primal_weight * primal_diff_sq) +
+         (0.5 / primal_weight * dual_diff_sq);
 }
 
-double PDLPSolver::computeNonlinearityGpu(
-    const double* d_x_new, const double* d_x_old,
-    const double* d_aty_new, const double* d_aty_old) 
-{
-    // 1. Compute delta_x = x_new - x_old
-    CUDA_CHECK(cudaMemcpy(d_buffer_, d_x_new, a_num_cols_ * sizeof(double), 
-                         cudaMemcpyDeviceToDevice));
-    double alpha = -1.0;
-    CUBLAS_CHECK(cublasDaxpy(cublas_handle_, a_num_cols_, &alpha, 
-                            d_x_old, 1, d_buffer_, 1));
-    
-    // 2. Compute delta_aty = aty_new - aty_old
-    CUDA_CHECK(cudaMemcpy(d_buffer2_, d_aty_new, a_num_cols_ * sizeof(double), 
-                         cudaMemcpyDeviceToDevice));
-    CUBLAS_CHECK(cublasDaxpy(cublas_handle_, a_num_cols_, &alpha, 
-                            d_aty_old, 1, d_buffer2_, 1));
-    
-    // 3. Compute dot product: delta_x' * delta_aty
-    double result;
-    CUBLAS_CHECK(cublasDdot(cublas_handle_, a_num_cols_, 
-                           d_buffer_, 1, d_buffer2_, 1, &result));
-    
-    return result;
+double PDLPSolver::computeNonlinearityGpu(const double* d_x_new,
+                                          const double* d_x_old,
+                                          const double* d_aty_new,
+                                          const double* d_aty_old) {
+  // 1. Compute delta_x = x_new - x_old
+  CUDA_CHECK(cudaMemcpy(d_buffer_, d_x_new, a_num_cols_ * sizeof(double),
+                        cudaMemcpyDeviceToDevice));
+  double alpha = -1.0;
+  CUBLAS_CHECK(cublasDaxpy(cublas_handle_, a_num_cols_, &alpha, d_x_old, 1,
+                           d_buffer_, 1));
+
+  // 2. Compute delta_aty = aty_new - aty_old
+  CUDA_CHECK(cudaMemcpy(d_buffer2_, d_aty_new, a_num_cols_ * sizeof(double),
+                        cudaMemcpyDeviceToDevice));
+  CUBLAS_CHECK(cublasDaxpy(cublas_handle_, a_num_cols_, &alpha, d_aty_old, 1,
+                           d_buffer2_, 1));
+
+  // 3. Compute dot product: delta_x' * delta_aty
+  double result;
+  CUBLAS_CHECK(cublasDdot(cublas_handle_, a_num_cols_, d_buffer_, 1, d_buffer2_,
+                          1, &result));
+
+  return result;
 }
 
-double PDLPSolver::computeDiffNormCuBLAS(
-    const double* d_a, const double* d_b, int n) 
-{
-    // 1. Copy a to buffer: buffer = a
-    CUDA_CHECK(cudaMemcpy(d_buffer_, d_a, n * sizeof(double), 
-                         cudaMemcpyDeviceToDevice));
-    
-    // 2. buffer = buffer - b  (using cuBLAS axpy)
-    double alpha = -1.0;
-    CUBLAS_CHECK(cublasDaxpy(cublas_handle_, n, &alpha, d_b, 1, d_buffer_, 1));
-    
-    // 3. result = ||buffer||_2  (using cuBLAS nrm2)
-    double norm;
-    CUBLAS_CHECK(cublasDnrm2(cublas_handle_, n, d_buffer_, 1, &norm));
-    
-    return norm;
+double PDLPSolver::computeDiffNormCuBLAS(const double* d_a, const double* d_b,
+                                         int n) {
+  // 1. Copy a to buffer: buffer = a
+  CUDA_CHECK(
+      cudaMemcpy(d_buffer_, d_a, n * sizeof(double), cudaMemcpyDeviceToDevice));
+
+  // 2. buffer = buffer - b  (using cuBLAS axpy)
+  double alpha = -1.0;
+  CUBLAS_CHECK(cublasDaxpy(cublas_handle_, n, &alpha, d_b, 1, d_buffer_, 1));
+
+  // 3. result = ||buffer||_2  (using cuBLAS nrm2)
+  double norm;
+  CUBLAS_CHECK(cublasDnrm2(cublas_handle_, n, d_buffer_, 1, &norm));
+
+  return norm;
 }
 #endif

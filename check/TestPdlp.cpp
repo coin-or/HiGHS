@@ -341,8 +341,8 @@ TEST_CASE("pdlp-restart-add-row", "[pdlp]") {
 }
 
 TEST_CASE("hi-pdlp", "[pdlp]") {
-  std::string model =
-      "25fv47";  //"adlittle";//"afiro";// shell// stair //25fv47 //fit2p //avgas
+  std::string model = "25fv47";  //"adlittle";//"afiro";// shell// stair
+                                 ////25fv47 //fit2p //avgas
   std::string model_file =
       std::string(HIGHS_DIR) + "/check/instances/" + model + ".mps";
   Highs h;
@@ -352,10 +352,10 @@ TEST_CASE("hi-pdlp", "[pdlp]") {
   h.setOptionValue("kkt_tolerance", kkt_tolerance);
   h.setOptionValue("presolve", "off");
 
-  HighsInt pdlp_features_off = 0 
-       //+kPdlpScalingOff 
-       //+kPdlpRestartOff 
-       //+kPdlpAdaptiveStepSizeOff
+  HighsInt pdlp_features_off = 0
+      //+kPdlpScalingOff
+      //+kPdlpRestartOff
+      //+kPdlpAdaptiveStepSizeOff
       ;
   h.setOptionValue("pdlp_features_off", pdlp_features_off);
 
@@ -366,8 +366,8 @@ TEST_CASE("hi-pdlp", "[pdlp]") {
   h.setOptionValue("pdlp_scaling_mode", pdlp_scaling);
   h.setOptionValue("pdlp_step_size_strategy", 1);
   h.setOptionValue("pdlp_restart_strategy", 2);
-  //h.setOptionValue("pdlp_iteration_limit", 10);
-  //  h.setOptionValue("log_dev_level", kHighsLogDevLevelVerbose);
+  // h.setOptionValue("pdlp_iteration_limit", 10);
+  //   h.setOptionValue("log_dev_level", kHighsLogDevLevelVerbose);
   auto start_hipdlp = std::chrono::high_resolution_clock::now();
   HighsStatus run_status = h.run();
   auto end_hipdlp = std::chrono::high_resolution_clock::now();
@@ -408,7 +408,7 @@ TEST_CASE("hi-pdlp", "[pdlp]") {
     std::cout << "Objective: " << h.getInfo().objective_function_value
               << std::endl;
   }
-  //assert(hipdlp_iteration_count == h.getInfo().pdlp_iteration_count);
+  // assert(hipdlp_iteration_count == h.getInfo().pdlp_iteration_count);
   h.resetGlobalScheduler(true);
 }
 

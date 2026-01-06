@@ -11,6 +11,9 @@
 #ifndef PDHG_HPP
 #define PDHG_HPP
 
+#include <cuda_runtime.h>
+#include <cusparse.h>
+
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -18,10 +21,8 @@
 #include <string>
 #include <tuple>
 #include <vector>
-#include <cuda_runtime.h>
-#include <cusparse.h>
 
-//#include "Highs.h"
+// #include "Highs.h"
 #include "linalg.hpp"
 #include "logger.hpp"
 #include "pdlp/HiPdlpTimer.h"
@@ -175,35 +176,37 @@ class PDLPSolver {
   void cleanupGpu();
   void linalgGpuAx(const double* d_x_in, double* d_ax_out);
   void linalgGpuATy(const double* d_y_in, double* d_aty_out);
-  
-  // --- Helpers for error checking ---
-  #define CUDA_CHECK(call) \
-    do { \
-      cudaError_t err = (call); \
-      if (err != cudaSuccess) { \
-        fprintf(stderr, "CUDA Error at %s:%d: %s\n", __FILE__, __LINE__, cudaGetErrorString(err)); \
-        exit(EXIT_FAILURE); \
-      } \
-    } while (0)
 
-  #define CUSPARSE_CHECK(call) \
-    do { \
-      cusparseStatus_t status = (call); \
-      if (status != CUSPARSE_STATUS_SUCCESS) { \
-        fprintf(stderr, "cuSPARSE Error at %s:%d: %s\n", __FILE__, __LINE__, cusparseGetErrorString(status)); \
-        exit(EXIT_FAILURE); \
-      } \
-    } while (0)        
-    
-  #define CUBLAS_CHECK(call)                                              \
-  do {                                                                    \
-      cublasStatus_t status = call;                                       \
-      if (status != CUBLAS_STATUS_SUCCESS) {                              \
-          fprintf(stderr, "cuBLAS Error at %s:%d: %d\n",                  \
-                  __FILE__, __LINE__, status);                            \
-          exit(EXIT_FAILURE);                                             \
-      }                                                                   \
-  } while(0)
+// --- Helpers for error checking ---
+#define CUDA_CHECK(call)                                               \
+  do {                                                                 \
+    cudaError_t err = (call);                                          \
+    if (err != cudaSuccess) {                                          \
+      fprintf(stderr, "CUDA Error at %s:%d: %s\n", __FILE__, __LINE__, \
+              cudaGetErrorString(err));                                \
+      exit(EXIT_FAILURE);                                              \
+    }                                                                  \
+  } while (0)
+
+#define CUSPARSE_CHECK(call)                                               \
+  do {                                                                     \
+    cusparseStatus_t status = (call);                                      \
+    if (status != CUSPARSE_STATUS_SUCCESS) {                               \
+      fprintf(stderr, "cuSPARSE Error at %s:%d: %s\n", __FILE__, __LINE__, \
+              cusparseGetErrorString(status));                             \
+      exit(EXIT_FAILURE);                                                  \
+    }                                                                      \
+  } while (0)
+
+#define CUBLAS_CHECK(call)                                               \
+  do {                                                                   \
+    cublasStatus_t status = call;                                        \
+    if (status != CUBLAS_STATUS_SUCCESS) {                               \
+      fprintf(stderr, "cuBLAS Error at %s:%d: %d\n", __FILE__, __LINE__, \
+              status);                                                   \
+      exit(EXIT_FAILURE);                                                \
+    }                                                                    \
+  } while (0)
   // --- GPU Members ---
   cusparseHandle_t cusparse_handle_ = nullptr;
   cublasHandle_t cublas_handle_ = nullptr;
@@ -238,9 +241,10 @@ class PDLPSolver {
   double* d_x_at_last_restart_ = nullptr;
   double* d_y_at_last_restart_ = nullptr;
   double* d_x_temp_diff_norm_result_ = nullptr;
-  double* d_y_temp_diff_norm_result_ = nullptr; // Temporary buffer for reduction result
-  double* d_ax_current_ = nullptr;  // Replaces host-side Ax_cache_
-  double* d_aty_current_ = nullptr; // Replaces host-side ATy_cache_
+  double* d_y_temp_diff_norm_result_ =
+      nullptr;                       // Temporary buffer for reduction result
+  double* d_ax_current_ = nullptr;   // Replaces host-side Ax_cache_
+  double* d_aty_current_ = nullptr;  // Replaces host-side ATy_cache_
   double* d_ax_next_ = nullptr;
   double* d_aty_next_ = nullptr;
   double* d_ax_avg_ = nullptr;
@@ -248,41 +252,43 @@ class PDLPSolver {
   double* d_x_sum_ = nullptr;
   double* d_y_sum_ = nullptr;
 
-  //States
+  // States
   double sum_weights_gpu_ = 0.0;
-  double* d_convergence_results_ = nullptr; //size 4
+  double* d_convergence_results_ = nullptr;  // size 4
   double* d_dSlackPos_ = nullptr;
   double* d_dSlackNeg_ = nullptr;
   double* d_dSlackPosAvg_ = nullptr;
   double* d_dSlackNegAvg_ = nullptr;
   double* d_col_scale_ = nullptr;
   double* d_row_scale_ = nullptr;
-  bool checkConvergenceGpu(const int iter, 
-      const double* d_x, const double* d_y,
-      const double* d_ax, const double* d_aty,
-      double epsilon, SolverResults& results, const char* type);
+  bool checkConvergenceGpu(const int iter, const double* d_x, const double* d_y,
+                           const double* d_ax, const double* d_aty,
+                           double epsilon, SolverResults& results,
+                           const char* type);
 
   // Temporary buffer for SpMV
   void* d_spmv_buffer_ax_ = nullptr;
   size_t spmv_buffer_size_ax_ = 0;
   void* d_spmv_buffer_aty_ = nullptr;
   size_t spmv_buffer_size_aty_ = 0;
-  double* d_buffer_; //for cublas
-  double* d_buffer2_; 
+  double* d_buffer_;  // for cublas
+  double* d_buffer2_;
 
   void launchKernelUpdateX(double primal_step);
   void launchKernelUpdateY(double dual_step);
   void launchKernelUpdateAverages(double weight);
-  void launchKernelScaleVector(double* d_out, const double* d_in, double scale, int n);
+  void launchKernelScaleVector(double* d_out, const double* d_in, double scale,
+                               int n);
   void computeStepSizeRatioGpu(PrimalDualParams& working_params);
   void updateAverageIteratesGpu(int inner_iter);
   void computeAverageIterateGpu();
   double computeMovementGpu(const double* d_x_new, const double* d_x_old,
                             const double* d_y_new, const double* d_y_old);
-                            
+
   double computeNonlinearityGpu(const double* d_x_new, const double* d_x_old,
-                                const double* d_aty_new, const double* d_aty_old);
-  double computeDiffNormCuBLAS(const double* d_a, const double* d_b, int n);                              
+                                const double* d_aty_new,
+                                const double* d_aty_old);
+  double computeDiffNormCuBLAS(const double* d_a, const double* d_b, int n);
 #endif
 };
 
