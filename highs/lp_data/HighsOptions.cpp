@@ -922,6 +922,12 @@ void reportOptions(FILE* file, const HighsLogOptions& log_options,
   HighsInt num_options = option_records.size();
   for (HighsInt index = 0; index < num_options; index++) {
     HighsOptionType type = option_records[index]->type;
+    if (option_records[index]->name == kLogFileString) {
+      auto option = ((OptionRecordString*)option_records[index])[0];
+      printf("Found Log File option with value %s\n", option.value->c_str());
+      if (*option.value == kHighsRunLogFile) continue;
+    }
+	
     // Only report non-advanced options
     if (option_records[index]->advanced) {
       // Possibly skip the advanced options when creating Md file
