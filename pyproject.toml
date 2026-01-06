@@ -3,12 +3,12 @@
 "Bug Tracker" = "https://github.com/ERGO-Code/HiGHS/issues"
 
 [build-system]
-requires = ["scikit-build-core>=0.3.3", "pybind11", "numpy"]
+requires = ["scikit-build-core", "pybind11", "numpy"]
 build-backend = "scikit_build_core.build"
 
 [project]
 name = "highspy"
-version = "1.12.0.dev3"
+version = "1.12.0.dev4"
 description = "A thin set of pybind11 wrappers to HiGHS"
 authors = [{ name = "HiGHS developers", email = "highsopt@gmail.com" }]
 readme = "README.md"
@@ -33,9 +33,10 @@ classifiers = [
 test = ["pytest", "numpy"]
 
 [tool.scikit-build]
-cmake.args = [
-  "-DPYTHON_BUILD_SETUP=ON",
-]
+
+# cmake.args = [
+#   "-DPYTHON_BUILD_SETUP=ON",
+# ]
 
 # To build locally, specify
 # "-DHIPO=ON"
@@ -58,6 +59,7 @@ sdist.include = [
   "highs/highspy/__init__.pyi",
   "highs/highspy/_core/*.pyi",
   "tests/test_highspy.py",
+  "check/test_highspy_hipo.py",
   "Version.txt",
   "LICENSE",
   "README.md",
@@ -74,8 +76,8 @@ sdist.exclude = [
   ".github",
   "app",
   "build",
-  "check",
-  "docs",
+  "check/*",
+  "!check/test_highspy_hipo.py",  # Re-include this specific file",
   "subprojects",
   ".coin-or",
   "build_webdemo.sh",
@@ -199,6 +201,8 @@ sdist.exclude = [
 # # The build directory. Defaults to a temporary directory, but can be set.
 # # build-dir = ""
 
+[tool.scikit-build.cmake.define]
+PYTHON_BUILD_SETUP = "ON"
 
 [tool.pytest.ini_options]
 minversion = "6.0"

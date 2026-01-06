@@ -22,7 +22,7 @@ jobs:
       - name: Test Python Interface
         run: |
           python3 -m pip install .
-          pytest -v -k "not test_hipo"
+          pytest -v
 
       - name: Test Python Examples
         run: |
@@ -44,22 +44,24 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      - name: Edit pyproject
-        run: |
-          ls
-          sed -i '' '/cmake\.args = \[/,/\]/{
-            s|"-DPYTHON_BUILD_SETUP=ON"|"-DPYTHON_BUILD_SETUP=ON",\
-            "-DHIPO=ON"|
-          }' pyproject.toml
-          cat pyproject.toml
+      # - name: Edit pyproject
+      #   run: |
+      #     ls
+      #     sed -i '' '/cmake\.args = \[/,/\]/{
+      #       s|"-DPYTHON_BUILD_SETUP=ON"|"-DPYTHON_BUILD_SETUP=ON",\
+      #       "-DHIPO=ON"|
+      #     }' pyproject.toml
+      #     cat pyproject.toml
 
-      - name: Install build dependencies
-        run: python3 -m pip install numpy wheel pytest
+      # - name: Install build dependencies
+      #   run: python3 -m pip install numpy wheel pytest
 
       - name: Test Python Interface
         run: |
           python3 -m pip install .
+             --config-settings=cmake.define.HIPO=ON
           pytest
+          pytest check/test_highspy_hipo.py
 
       - name: Test Python Examples
         run: |
