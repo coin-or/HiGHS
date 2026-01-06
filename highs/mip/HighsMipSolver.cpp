@@ -743,15 +743,15 @@ restart:
   auto separateAndStoreBasis =
       [&](std::vector<HighsInt>& search_indices) -> bool {
     // the node is still not fathomed, so perform separation
-    auto doSeparateAndStoreBasis = [&](HighsInt i) {
+    auto doSeparate = [&](HighsInt i) {
       mipdata_->workers[i].sepa_ptr_->separate(
           mipdata_->workers[i].search_ptr_->getLocalDomain());
     };
     analysis_.mipTimerStart(kMipClockNodeSearchSeparation);
-    applyTask(doSeparateAndStoreBasis, tg, true, search_indices);
+    applyTask(doSeparate, tg, true, search_indices);
     analysis_.mipTimerStop(kMipClockNodeSearchSeparation);
 
-    for (HighsInt i : search_indices) {
+    for (const HighsInt i : search_indices) {
       if (mipdata_->workers[i].getGlobalDomain().infeasible()) {
         mipdata_->workers[i].search_ptr_->cutoffNode();
         analysis_.mipTimerStart(kMipClockOpenNodesToQueue1);
@@ -772,6 +772,9 @@ restart:
               mipdata_->upper_bound);
         return true;
       }
+    }
+
+    auto doStoreBasis = [&](HighsInt i) {
       // after separation we store the new basis and proceed with the outer loop
       // to perform a dive from this node
       if (mipdata_->workers[i].lprelaxation_->getStatus() !=
@@ -789,7 +792,9 @@ restart:
         basis = std::make_shared<const HighsBasis>(std::move(b));
         mipdata_->workers[i].lprelaxation_->setStoredBasis(basis);
       }
-    }
+    };
+
+    applyTask(doStoreBasis, tg, false, search_indices);
     return false;
   };
 
@@ -843,7 +848,7 @@ restart:
     };
     std::vector<HighsInt> search_indices = getSearchIndicesWithNodes();
     applyTask(doRunHeuristics, tg, true, search_indices);
-    if (mipdata_->parallelLockActive()) {
+    if (mipdata_->hasMultipleWorkers()) {
       for (const HighsInt i : search_indices) {
         if (mipdata_->workers[i].search_ptr_->currentNodePruned()) {
           ++mipdata_->num_leaves;
@@ -855,51 +860,36 @@ restart:
     }
   };
 
-  auto diveAllSearches = [&]() -> bool {
+  auto diveSearches = [&]() -> bool {
     std::vector<double> dive_times(mipdata_->workers.size(),
                                    -analysis_.mipTimerRead(kMipClockTheDive));
     analysis_.mipTimerStart(kMipClockTheDive);
     std::vector<HighsSearch::NodeResult> dive_results(
         mipdata_->workers.size(), HighsSearch::NodeResult::kBranched);
-    setParallelLock(true);
-    for (HighsInt i = 0; i != static_cast<HighsInt>(mipdata_->workers.size());
-         ++i) {
-      if (mipdata_->hasMultipleWorkers() &&
-          !options_mip_->mip_search_simulate_concurrency) {
-        tg.spawn([&, i]() {
-          if (!mipdata_->workers[i].search_ptr_->hasNode() ||
-              mipdata_->workers[i].search_ptr_->currentNodePruned()) {
-            dive_times[i] = -1;
-          } else {
-            dive_results[i] = mipdata_->workers[i].search_ptr_->dive();
-            dive_times[i] += analysis_.mipTimerRead(kMipClockNodeSearch);
-          }
-        });
-      } else {
-        if (!mipdata_->workers[i].search_ptr_->hasNode() ||
-            mipdata_->workers[i].search_ptr_->currentNodePruned()) {
-          dive_times[i] = -1;
-        } else {
-          dive_results[i] = mipdata_->workers[i].search_ptr_->dive();
-          dive_times[i] += analysis_.mipTimerRead(kMipClockNodeSearch);
-        }
+    std::vector<HighsInt> dive_indices;
+    for (HighsInt i = 0; i != num_workers; i++) {
+      HighsMipWorker& worker = mipdata_->workers[i];
+      if (worker.search_ptr_->hasNode() &&
+          !worker.search_ptr_->currentNodePruned()) {
+        dive_indices.emplace_back(i);
       }
     }
-    if (mipdata_->hasMultipleWorkers() &&
-        !options_mip_->mip_search_simulate_concurrency)
-      tg.taskWait();
+    auto doDiveSearch = [&](HighsInt i) {
+      HighsMipWorker& worker = mipdata_->workers[i];
+      if (!worker.search_ptr_->hasNode() ||
+          worker.search_ptr_->currentNodePruned())
+        return;
+      dive_results[i] = worker.search_ptr_->dive();
+    };
+    applyTask(doDiveSearch, tg, true, dive_indices);
     analysis_.mipTimerStop(kMipClockTheDive);
-    setParallelLock(false);
     bool suboptimal = false;
-    for (int i = 0; i < static_cast<HighsInt>(mipdata_->workers.size()); i++) {
-      if (dive_times[i] != -1) {
-        analysis_.dive_time.push_back(dive_times[i]);
-        if (dive_results[i] == HighsSearch::NodeResult::kSubOptimal) {
-          suboptimal = true;
-        } else {
-          ++mipdata_->num_leaves;
-          mipdata_->workers[i].search_ptr_->flushStatistics();
-        }
+    for (const HighsInt i : dive_indices) {
+      if (dive_results[i] == HighsSearch::NodeResult::kSubOptimal) {
+        suboptimal = true;
+      } else {
+        ++mipdata_->num_leaves;
+        mipdata_->workers[i].search_ptr_->flushStatistics();
       }
     }
     return suboptimal;
@@ -949,7 +939,7 @@ restart:
       syncSolutions();
       if (infeasibleGlobalDomain()) break;
 
-      bool suboptimal = diveAllSearches();
+      bool suboptimal = diveSearches();
       syncSolutions();
       if (suboptimal) break;
 
