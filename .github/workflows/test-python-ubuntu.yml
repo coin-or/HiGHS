@@ -16,8 +16,8 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      - name: Install build dependencies
-        run: python3 -m pip install numpy wheel pytest
+      - name: Install test dependencies
+        run: python3 -m pip install pytest
 
       - name: Test Python Interface
         run: |
@@ -53,8 +53,8 @@ jobs:
       #     }' pyproject.toml
       #     cat pyproject.toml
 
-      # - name: Install build dependencies
-      #   run: python3 -m pip install numpy wheel pytest
+      - name: Install test dependencies
+        run: python3 -m pip install pytest
 
       - name: Test Python Interface
         run: |
