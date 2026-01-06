@@ -923,11 +923,15 @@ void reportOptions(FILE* file, const HighsLogOptions& log_options,
   for (HighsInt index = 0; index < num_options; index++) {
     HighsOptionType type = option_records[index]->type;
     if (option_records[index]->name == kLogFileString) {
-      auto option = ((OptionRecordString*)option_records[index])[0];
-      printf("Found Log File option with value %s\n", option.value->c_str());
-      if (*option.value == kHighsRunLogFile) continue;
+      // Default HiGHS log file name is "" so that deviations from it
+      // trigger opening the log file. However, it's unnecessary to
+      // report the deviation to kLogFileString, which is the default
+      // non-empty log file name in HighsRun.cpp
+      if (*((OptionRecordString*)option_records[index])[0].value ==
+          kHighsRunLogFile)
+        continue;
     }
-	
+
     // Only report non-advanced options
     if (option_records[index]->advanced) {
       // Possibly skip the advanced options when creating Md file

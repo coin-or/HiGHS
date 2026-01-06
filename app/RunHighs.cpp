@@ -17,8 +17,11 @@ static bool written_cli_copyright_line = false;
 
 void cliCopyrightLine(const HighsLogOptions& log_options) {
   if (written_cli_copyright_line) return;
-  highsLogUser(log_options, HighsLogType::kInfo, "Command line parsed using CLI11 %s: Copyright (c) 2017-2025 University of Cincinnati\n", CLI11_VERSION);
-  written_cli_copyright_line = true;	       
+  highsLogUser(log_options, HighsLogType::kInfo,
+               "Command line parsed using CLI11 %s: Copyright (c) 2017-2025 "
+               "University of Cincinnati\n",
+               CLI11_VERSION);
+  written_cli_copyright_line = true;
 }
 
 int runHighsReturn(Highs& highs, const int status) {

@@ -14,8 +14,8 @@
 
 #include <cassert>
 
-#include "extern/CLI11.hpp"
 #include "HConfig.h"
+#include "extern/CLI11.hpp"
 #include "io/HighsIO.h"
 #include "io/LoadOptions.h"
 #include "util/stringutil.h"
