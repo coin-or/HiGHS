@@ -1,4 +1,4 @@
-name: build-python-package
+name: build-python-package-hipo
 
 on: [push, pull_request]
 

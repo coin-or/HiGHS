@@ -1,4 +1,4 @@
-name: build-python-sdist
+name: build-python-sdist-hipo
 
 on: [push, pull_request]
 
