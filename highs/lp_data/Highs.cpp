@@ -374,6 +374,9 @@ HighsStatus Highs::passModel(HighsModel model) {
   // Ensure that any non-zero Hessian of dimension less than the
   // number of columns in the model is completed
   if (hessian.dim_) completeHessian(this->model_.lp_.num_col_, hessian);
+  //  if (model_.lp_.num_row_>0 && model_.lp_.num_col_>0)
+  //    writeLpMatrixPicToFile(options_, "LpMatrix", model_.lp_);
+
   // Clear solver status, solution, basis and info associated with any
   // previous model; clear any HiGHS model object; create a HiGHS
   // model object for this LP
@@ -1038,9 +1041,6 @@ HighsStatus Highs::optimizeModel() {
   HighsInt min_highs_debug_level = kHighsDebugLevelMin;
   // kHighsDebugLevelCostly;
   // kHighsDebugLevelMax;
-  //
-  //  if (model_.lp_.num_row_>0 && model_.lp_.num_col_>0)
-  //    writeLpMatrixPicToFile(options_, "LpMatrix", model_.lp_);
   if (options_.highs_debug_level < min_highs_debug_level)
     options_.highs_debug_level = min_highs_debug_level;
 
