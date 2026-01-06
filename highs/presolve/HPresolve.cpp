@@ -5126,8 +5126,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
     // no reductions for this row?
     if (noReductions) {
-      while (doBacktrack(numBranches))
-        ;
+      while (doBacktrack(numBranches));
       continue;
     }
 
