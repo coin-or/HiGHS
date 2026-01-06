@@ -278,33 +278,20 @@ restart:
   //     int(mipdata_->lps.at(0).getLpSolver().getNumRow()));
 
   std::shared_ptr<const HighsBasis> basis;
-
   double prev_lower_bound = mipdata_->lower_bound;
-
   mipdata_->lower_bound = mipdata_->nodequeue.getBestLowerBound();
-
   bool bound_change = mipdata_->lower_bound != prev_lower_bound;
   if (!submip && bound_change)
     mipdata_->updatePrimalDualIntegral(prev_lower_bound, mipdata_->lower_bound,
                                        mipdata_->upper_bound,
                                        mipdata_->upper_bound);
-
   mipdata_->printDisplayLine();
-  int64_t num_nodes = mipdata_->nodequeue.numNodes();
-  if (num_nodes > 1) {
-    // Should be exactly one node on the queue?
-    if (debug_logging)
-      printf(
-          "HighsMipSolver::run() popping node from nodequeue with %d > 1 "
-          "nodes\n",
-          HighsInt(num_nodes));
-    assert(num_nodes == 1);
-  }
 
   // Initialize worker relaxations and mipworkers
   const HighsInt mip_search_concurrency = options_mip_->mip_search_concurrency;
   const HighsInt num_workers =
-      highs::parallel::num_threads() == 1 || mip_search_concurrency <= 1
+      highs::parallel::num_threads() == 1 || mip_search_concurrency <= 1 ||
+              submip
           ? 1
           : mip_search_concurrency * highs::parallel::num_threads();
   highs::parallel::TaskGroup tg;
@@ -487,8 +474,14 @@ restart:
 
   // TODO: Should we be propagating this first?
   destroyOldWorkers();
-  if (num_workers > 1) resetGlobalDomain(true);
-  if (num_workers > 1) constructAdditionalWorkerData(master_worker);
+  // TODO: Is this reset actually needed? Is copying over all
+  // the current domain changes actually going to cause an error?
+  if (num_workers > 1) {
+    resetGlobalDomain(true);
+    constructAdditionalWorkerData(master_worker);
+  } else {
+    master_worker.search_ptr_->resetLocalDomain();
+  }
   master_worker.upper_bound = mipdata_->upper_bound;
   master_worker.upper_limit = mipdata_->upper_limit;
   master_worker.optimality_limit = mipdata_->optimality_limit;
@@ -607,8 +600,7 @@ restart:
     }
   };
 
-  auto handlePrunedNodes =
-      [&](std::vector<HighsInt>& search_indices) -> std::pair<bool, bool> {
+  auto handlePrunedNodes = [&](std::vector<HighsInt>& search_indices) -> bool {
     // If flush then change statistics for all searches where this was the case
     // If infeasible then global domain is infeasible and stop the solve
     // If limit_reached then return something appropriate
@@ -673,10 +665,6 @@ restart:
             prev_lower_bound, mipdata_->lower_bound, mipdata_->upper_bound,
             mipdata_->upper_bound);
 
-      if (!multiple_workers) {
-        assert(i == 0);
-        resetGlobalDomain();
-      }
       prune[i] = true;
     };
     analysis_.mipTimerStart(kMipClockNodePrunedLoop);
@@ -714,7 +702,7 @@ restart:
               prev_lower_bound, mipdata_->lower_bound, mipdata_->upper_bound,
               mipdata_->upper_bound);
         analysis_.mipTimerStop(kMipClockNodePrunedLoop);
-        return std::make_pair(false, true);
+        return true;
       }
     }
 
@@ -731,12 +719,11 @@ restart:
             mipdata_->upper_bound);
     }
 
-    if (mipdata_->checkLimits()) {
-      analysis_.mipTimerStop(kMipClockNodePrunedLoop);
-      return std::make_pair(true, false);
-    }
     analysis_.mipTimerStop(kMipClockNodePrunedLoop);
-    return std::make_pair(false, false);
+    if (mipdata_->checkLimits()) {
+      return true;
+    }
+    return false;
   };
 
   auto separateAndStoreBasis =
@@ -901,8 +888,9 @@ restart:
           solution_objective_, kExternalMipSolutionQueryOriginBeforeDive);
 
     analysis_.mipTimerStart(kMipClockPerformAging1);
-    for (HighsConflictPool& conflictpool : mipdata_->conflictpools) {
-      conflictpool.performAging();
+    // TODO: Is there a need to age local pools? They're essentially deleted.
+    for (HighsConflictPool& conflict_pool : mipdata_->conflictpools) {
+      conflict_pool.performAging();
     }
     analysis_.mipTimerStop(kMipClockPerformAging1);
     // set iteration limit for each lp solve during the dive to 10 times the
@@ -956,22 +944,22 @@ restart:
             search.backtrackPlunge(mipdata_->nodequeue);
         analysis_.mipTimerStop(kMipClockBacktrackPlunge);
         if (!backtrack_plunge) break;
-      }
+        assert(search.hasNode());
 
-      if (!mipdata_->hasMultipleWorkers()) assert(search.hasNode());
+        analysis_.mipTimerStart(kMipClockPerformAging2);
+        for (HighsConflictPool& conflictpool : mipdata_->conflictpools) {
+          if (conflictpool.getNumConflicts() >
+              options_mip_->mip_pool_soft_limit) {
+            conflictpool.performAging();
+          }
+        }
+        analysis_.mipTimerStop(kMipClockPerformAging2);
 
-      analysis_.mipTimerStart(kMipClockPerformAging2);
-      for (HighsConflictPool& conflictpool : mipdata_->conflictpools) {
-        if (conflictpool.getNumConflicts() >
-            options_mip_->mip_pool_soft_limit) {
-          conflictpool.performAging();
+        for (HighsMipWorker& worker : mipdata_->workers) {
+          worker.search_ptr_->flushStatistics();
         }
       }
-      analysis_.mipTimerStop(kMipClockPerformAging2);
 
-      for (HighsMipWorker& worker : mipdata_->workers) {
-        worker.search_ptr_->flushStatistics();
-      }
       mipdata_->printDisplayLine();
       if (mipdata_->hasMultipleWorkers()) break;
       // printf("continue plunging due to good estimate\n");
@@ -990,6 +978,7 @@ restart:
       worker.search_ptr_->flushStatistics();
     }
 
+    // TODO: Is this sync needed?
     syncSolutions();
 
     if (limit_reached) {
@@ -1013,8 +1002,8 @@ restart:
     // propagate the global domain
     analysis_.mipTimerStart(kMipClockDomainPropgate);
     // sync global domain changes from parallel dives
-    syncGlobalDomain();
     syncPools();
+    syncGlobalDomain();
     mipdata_->domain.propagate();
     analysis_.mipTimerStop(kMipClockDomainPropgate);
 
@@ -1057,7 +1046,8 @@ restart:
     if (mipdata_->hasMultipleWorkers()) resetWorkerDomains();
     // flush all changes made to the global domain
     resetGlobalDomain();
-    if (!mipdata_->hasMultipleWorkers()) search.resetLocalDomain();
+    // TODO: Does this line need to be here? Isn't it already reset above?
+    // if (!mipdata_->hasMultipleWorkers()) search.resetLocalDomain();
 
     if (!submip && mipdata_->num_nodes >= nextCheck) {
       auto nTreeRestarts = mipdata_->numRestarts - mipdata_->numRestartsRoot;
@@ -1157,11 +1147,10 @@ restart:
       // new global information before we perform separation rounds for the node
       evaluateNodes(search_indices);
 
-      // if the node was pruned we remove it from the search and install the
-      // next node from the queue
-      std::pair<bool, bool> limit_or_infeas = handlePrunedNodes(search_indices);
-      if (limit_or_infeas.first) limit_reached = true;
-      if (limit_or_infeas.first || limit_or_infeas.second) break;
+      // if the node was pruned we remove it from the search
+      // TODO MT: I'm overloading limit_reached with an infeasible status here.
+      limit_reached = handlePrunedNodes(search_indices);
+      if (limit_reached) break;
       // TODO MT: If everything was pruned then do a global sync!
       if (search_indices.empty()) {
         if (mipdata_->hasMultipleWorkers()) {
