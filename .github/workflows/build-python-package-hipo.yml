@@ -15,19 +15,22 @@ jobs:
 
       - name: Build sdist
         run: |
-          python3 -m pip install build 
+          python3 -m pip install build
           python3 -m build --sdist
 
       - name: Install sdist
         run: |
           ls dist
-          python3 -m pip install dist/*.tar.gz
+          python3 -m pip install dist/*.tar.gz \
+            --config-settings=cmake.define.HIPO=ON \
+            --config-settings=cmake.define.BUILD_OPENBLAS=ON
 
       - name: Test highspy
         run: |
           python3 -m pip install pytest
           python3 -m pytest $GITHUB_WORKSPACE
-          
+          python3 -m pytest $GITHUB_WORKSPACE/check/test_highspy_hipo.py
+
   build_sdist_mac:
     runs-on: macos-latest
     steps:
@@ -47,6 +50,7 @@ jobs:
         run: |
           python3 -m pip install pytest --break-system-packages
           python3 -m pytest $GITHUB_WORKSPACE
+          python3 -m pytest $GITHUB_WORKSPACE/check/test_highspy_hipo.py
 
   build_sdist_win:
     runs-on: windows-2022
