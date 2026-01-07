@@ -166,6 +166,8 @@ class HighsDomain {
 
     CutpoolPropagation(const CutpoolPropagation& other);
 
+    CutpoolPropagation& operator=(const CutpoolPropagation& other);
+
     ~CutpoolPropagation();
 
     void recomputeCapacityThreshold(HighsInt cut);
@@ -202,6 +204,8 @@ class HighsDomain {
                             HighsConflictPool& cutpool);
 
     ConflictPoolPropagation(const ConflictPoolPropagation& other);
+
+    ConflictPoolPropagation& operator=(const ConflictPoolPropagation& other);
 
     ~ConflictPoolPropagation();
 

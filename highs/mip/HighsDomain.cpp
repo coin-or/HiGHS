@@ -146,6 +146,23 @@ HighsDomain::ConflictPoolPropagation::ConflictPoolPropagation(
   conflictpool_->addPropagationDomain(this);
 }
 
+HighsDomain::ConflictPoolPropagation&
+HighsDomain::ConflictPoolPropagation::operator=(
+    const ConflictPoolPropagation& other) {
+  if (this == &other) return *this;
+  if (conflictpool_) conflictpool_->removePropagationDomain(this);
+  conflictpoolindex = other.conflictpoolindex;
+  domain = other.domain;
+  conflictpool_ = other.conflictpool_;
+  colLowerWatched_ = other.colLowerWatched_;
+  colUpperWatched_ = other.colUpperWatched_;
+  conflictFlag_ = other.conflictFlag_;
+  propagateConflictInds_ = other.propagateConflictInds_;
+  watchedLiterals_ = other.watchedLiterals_;
+  if (conflictpool_) conflictpool_->addPropagationDomain(this);
+  return *this;
+}
+
 HighsDomain::ConflictPoolPropagation::~ConflictPoolPropagation() {
   conflictpool_->removePropagationDomain(this);
 }
@@ -373,6 +390,22 @@ HighsDomain::CutpoolPropagation::CutpoolPropagation(
       propagatecutinds_(other.propagatecutinds_),
       capacityThreshold_(other.capacityThreshold_) {
   cutpool->addPropagationDomain(this);
+}
+
+HighsDomain::CutpoolPropagation& HighsDomain::CutpoolPropagation::operator=(
+    const CutpoolPropagation& other) {
+  if (this == &other) return *this;
+  if (cutpool) cutpool->removePropagationDomain(this);
+  cutpoolindex = other.cutpoolindex;
+  domain = other.domain;
+  cutpool = other.cutpool;
+  activitycuts_ = other.activitycuts_;
+  activitycutsinf_ = other.activitycutsinf_;
+  propagatecutflags_ = other.propagatecutflags_;
+  propagatecutinds_ = other.propagatecutinds_;
+  capacityThreshold_ = other.capacityThreshold_;
+  if (cutpool) cutpool->addPropagationDomain(this);
+  return *this;
 }
 
 HighsDomain::CutpoolPropagation::~CutpoolPropagation() {

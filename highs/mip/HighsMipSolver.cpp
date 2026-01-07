@@ -847,8 +847,6 @@ restart:
   };
 
   auto diveSearches = [&]() -> bool {
-    std::vector<double> dive_times(mipdata_->workers.size(),
-                                   -analysis_.mipTimerRead(kMipClockTheDive));
     analysis_.mipTimerStart(kMipClockTheDive);
     std::vector<HighsSearch::NodeResult> dive_results(
         mipdata_->workers.size(), HighsSearch::NodeResult::kBranched);
