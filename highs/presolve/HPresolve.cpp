@@ -4458,7 +4458,8 @@ HPresolve::Result HPresolve::detectDominatedCol(
                                         col, -model->col_cost_[col])
                                   : -impliedDualRowBounds.getSumLowerOrig(
                                         col, -model->col_cost_[col]);
-      if (boundOnColDual <= options->dual_feasibility_tolerance / dynamism) {
+      if (std::abs(boundOnColDual) <=
+          options->dual_feasibility_tolerance / dynamism) {
         // 1. column's lower bound is infinite (i.e. column dual has upper bound
         // of zero) and column dual's lower bound is zero as well
         // (direction = 1) or
