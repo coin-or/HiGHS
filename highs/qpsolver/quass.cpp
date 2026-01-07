@@ -170,8 +170,7 @@ static QpSolverStatus reduce(Runtime& rt, Basis& basis,
     }
   }
   constrainttodrop = basis.getinactive()[maxabsd];
-  const bool force_degeneracy_fail = true;
-  if (force_degeneracy_fail || fabs(buffer_d.value[maxabsd]) < rt.settings.d_zero_threshold) {
+  if (fabs(buffer_d.value[maxabsd]) < rt.settings.d_zero_threshold) {
     log_d = log10(fabs(buffer_d.value[maxabsd]));
     return QpSolverStatus::DEGENERATE;
   }
@@ -456,9 +455,13 @@ void Quass::solve(const QpVector& x0, const QpVector& ra, Basis& b0,
         status = reduce(runtime, basis, stepres.limitingconstraint, buffer_d,
                         maxabsd, constrainttodrop, log_d);
         if (status != QpSolverStatus::OK) {
-	  // Possibly perform degneracy failure logging
-	  if (status == QpSolverStatus::DEGENERATE) 
-	    runtime.settings.degeneracy_fail_log.fire(maxabsd);
+	  // Possibly perform degeneracy failure logging
+	  if (status == QpSolverStatus::DEGENERATE) {
+	    // Ensure that log_d has been set
+	    assert(log_d >= 0);
+	    std::pair<HighsInt, double> degeneracy_fail_data = std::make_pair(maxabsd, log_d);
+	    runtime.settings.degeneracy_fail_log.fire(degeneracy_fail_data);
+	  }
           runtime.status = QpModelStatus::kUndetermined;
           return;
         }
