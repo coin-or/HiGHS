@@ -2918,7 +2918,7 @@ HighsStatus Highs::lpKktCheck(const HighsLp& lp, const std::string& message) {
       info.dual_solution_status = kSolutionStatusFeasible;
     }
     // Overrule feasibility if large relative tolerance failures have
-    // ocurred - pretty inconceivable since absolute residuals should
+    // occurred - pretty inconceivable since absolute residuals should
     // be small with a basis
     if (max_primal_tolerance_relative_violation >
         max_allowed_tolerance_relative_violation)
