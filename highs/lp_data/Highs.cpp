@@ -974,7 +974,7 @@ HighsStatus Highs::run() {
   // and user_bound_scale
   assessExcessiveObjectiveBoundScaling(this->options_.log_options, this->model_,
                                        user_scale_data);
-  // Used when deveoping unit tests in TestUserScale.cpp
+  // Used when developing unit tests in TestUserScale.cpp
   //  this->writeModel("");
   HighsStatus status;
   if (!this->multi_linear_objective_.size()) {
@@ -1027,7 +1027,7 @@ HighsStatus Highs::run() {
       highsLogUser(
           this->options_.log_options, HighsLogType::kWarning,
           "User scaled problem solved to optimality, but unscaled solution "
-          "does not satisfy feasibilty and optimality tolerances\n");
+          "does not satisfy feasibility and optimality tolerances\n");
       status = HighsStatus::kWarning;
     }
   }
@@ -1419,7 +1419,7 @@ HighsStatus Highs::optimizeModel() {
       }
     } else {
       // One of unconstrained_lp, has_basis and without_presolve must
-      // be true, and the first two anren't
+      // be true, and the first two aren't
       assert(without_presolve);
       lp_solve_ss << "Solving LP without presolve or useful basis";
     }
