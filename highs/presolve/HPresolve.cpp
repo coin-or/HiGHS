@@ -4231,15 +4231,7 @@ HPresolve::Result HPresolve::rowPresolve(HighsPostsolveStack& postsolve_stack,
 
     // store row and compute dynamism
     storeRow(row);
-    double minAbsCoef = kHighsInf;
-    double maxAbsCoef = -kHighsInf;
-    for (const HighsSliceNonzero& nonzero : getStoredRow()) {
-      double absCoef = std::abs(nonzero.value());
-      minAbsCoef = std::min(minAbsCoef, absCoef);
-      maxAbsCoef = std::max(maxAbsCoef, absCoef);
-    }
-    HighsCDouble dynamism = static_cast<HighsCDouble>(maxAbsCoef) /
-                            static_cast<HighsCDouble>(minAbsCoef);
+    HighsCDouble dynamism = computeDynamism(getStoredRow());
 
     // >= inequality
     HPRESOLVE_CHECKED_CALL(
@@ -4410,6 +4402,9 @@ HPresolve::Result HPresolve::detectDominatedCol(
   double colDualLower =
       -impliedDualRowBounds.getSumUpper(col, -model->col_cost_[col]);
 
+  // compute dynamism
+  HighsCDouble dynamism = computeDynamism(getColumnVector(col));
+
   const bool logging_on = analysis_.logging_on_;
 
   auto dominatedCol = [&](HighsInt col, double dualBound, double bound,
@@ -4436,7 +4431,8 @@ HPresolve::Result HPresolve::detectDominatedCol(
   };
 
   auto weaklyDominatedCol = [&](HighsInt col, double dualBound, double bound,
-                                double otherBound, HighsInt direction) {
+                                double otherBound, const HighsCDouble& dynamism,
+                                HighsInt direction) {
     // column is weakly dominated if the bounds on the column dual satisfy:
     // 1. lower bound >= -dual feasibility tolerance (direction =  1) or
     // 2. upper bound <=  dual feasibility tolerance (direction = -1).
@@ -4462,7 +4458,7 @@ HPresolve::Result HPresolve::detectDominatedCol(
                                         col, -model->col_cost_[col])
                                   : -impliedDualRowBounds.getSumLowerOrig(
                                         col, -model->col_cost_[col]);
-      if (boundOnColDual == 0.0) {
+      if (boundOnColDual <= options->dual_feasibility_tolerance / dynamism) {
         // 1. column's lower bound is infinite (i.e. column dual has upper bound
         // of zero) and column dual's lower bound is zero as well
         // (direction = 1) or
@@ -4508,12 +4504,12 @@ HPresolve::Result HPresolve::detectDominatedCol(
   // check for weakly dominated column
   HPRESOLVE_CHECKED_CALL(
       weaklyDominatedCol(col, colDualLower, model->col_lower_[col],
-                         model->col_upper_[col], HighsInt{1}));
+                         model->col_upper_[col], dynamism, HighsInt{1}));
   if (colDeleted[col]) return Result::kOk;
 
   HPRESOLVE_CHECKED_CALL(
       weaklyDominatedCol(col, colDualUpper, model->col_upper_[col],
-                         model->col_lower_[col], HighsInt{-1}));
+                         model->col_lower_[col], dynamism, HighsInt{-1}));
   return Result::kOk;
 }
 
@@ -5819,6 +5815,20 @@ void HPresolve::computeColBounds(HighsInt col, HighsInt boundCol,
     updateBounds(triplet, model->row_upper_[triplet.row], HighsInt{1});
     updateBounds(triplet, model->row_lower_[triplet.row], HighsInt{-1});
   }
+}
+
+template <typename storageFormat>
+HighsCDouble HPresolve::computeDynamism(
+    const HighsMatrixSlice<storageFormat>& vector) {
+  double minAbsCoef = kHighsInf;
+  double maxAbsCoef = -kHighsInf;
+  for (const auto& nonzero : vector) {
+    double absCoef = std::abs(nonzero.value());
+    minAbsCoef = std::min(minAbsCoef, absCoef);
+    maxAbsCoef = std::max(maxAbsCoef, absCoef);
+  }
+  return static_cast<HighsCDouble>(maxAbsCoef) /
+         static_cast<HighsCDouble>(minAbsCoef);
 }
 
 HighsModelStatus HPresolve::run(HighsPostsolveStack& postsolve_stack) {
