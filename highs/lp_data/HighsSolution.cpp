@@ -305,14 +305,14 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
             max_primal_infeasibility = primal_infeasibility;
           sum_primal_infeasibility += primal_infeasibility;
           // Determine the denominator for the relative primal
-          // infeasiblilty
+          // infeasibility
           double relative_bound_measure = highs_norm_bounds;
           if (at_status == kHighsSolutionNo) {
             // Primal value is infeasible, but not close to a bound:
-            // unusual, but possible if absolute primal infeasiblities
+            // unusual, but possible if absolute primal infeasibilities
             // are not small. Bound has not been included in
             // highs_norm_bounds, but should be used for local
-            // relative infeasiblility
+            // relative infeasibility
             if (mid_status == kHighsSolutionNo ||
                 mid_status == kHighsSolutionLo) {
               // Bound interval is short, or variable is below the
@@ -345,14 +345,14 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
             sum_dual_infeasibility += dual_infeasibility;
 
             // Determine the denominator for the relative dual
-            // infeasiblilty
+            // infeasibility
             double relative_cost_measure = highs_norm_costs;
             if (is_col && cost && dual * dual >= dual_feasibility_tolerance) {
               // Dual value is infeasible, but not close to zero:
-              // unusual, but possible if absolute dual infeasiblities
+              // unusual, but possible if absolute dual infeasibilities
               // are not small. Hence the cost has not been included in
               // highs_norm_costs, but should be used for local relative
-              // infeasiblility.
+              // infeasibility.
               //
               // updateRelativeMeasure(cost, relative_cost_measure);
               relative_cost_measure =
@@ -589,12 +589,12 @@ void getVariableKktFailures(const double primal_feasibility_tolerance,
       const double middle = (lower + upper) * 0.5;
       if (value < middle) {
         // Below the mid-point, so use lower bound optimality condition:
-        // feasiblity is dual >= -tolerance
+        // feasibility is dual >= -tolerance
         mid_status = kHighsSolutionLo;
         dual_infeasibility = std::max(-dual, 0.);
       } else {
         // Below the mid-point, so use upper bound optimality condition:
-        // feasiblity is dual <= tolerance
+        // feasibility is dual <= tolerance
         mid_status = kHighsSolutionUp;
         dual_infeasibility = std::max(dual, 0.);
       }
@@ -654,7 +654,7 @@ void getPrimalDualGlpsolErrors(const HighsOptions& options, const HighsLp& lp,
   HighsInt& max_dual_infeasibility_index = primal_dual_errors.glpsol_max_dual_infeasibility.absolute_index;
   // clang-format on
 
-  // Relative dual infeasiblities are same as absolute
+  // Relative dual infeasibilities are same as absolute
 
   primal_dual_errors.glpsol_max_primal_infeasibility.invalidate();
   primal_dual_errors.glpsol_max_dual_infeasibility.invalidate();
@@ -817,7 +817,7 @@ void getPrimalDualGlpsolErrors(const HighsOptions& options, const HighsLp& lp,
     }
   }
 
-  // Relative dual infeasiblities are same as absolute
+  // Relative dual infeasibilities are same as absolute
   primal_dual_errors.glpsol_max_dual_infeasibility.relative_value =
       primal_dual_errors.glpsol_max_dual_infeasibility.absolute_value;
 

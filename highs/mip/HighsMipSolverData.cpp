@@ -1147,7 +1147,7 @@ try_again:
     // tmpSolver.setOptionValue("simplex_scale_strategy", 0);
     // tmpSolver.setOptionValue("presolve", kHighsOffString);
     tmpSolver.setOptionValue("time_limit", time_available);
-    // Set primal feasiblity tolerance for LP solves according to
+    // Set primal feasibility tolerance for LP solves according to
     // mip_feasibility_tolerance. Interestingly, dual feasibility
     // tolerance not set to smaller tolerance as in
     // HighsLpRelaxationconstructor.
