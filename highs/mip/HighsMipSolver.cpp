@@ -255,28 +255,6 @@ restart:
     return;
   }
 
-  // printf(
-  //     "MIPSOLVER mipdata lp deque member  with address %p, %d "
-  //     "columns, and %d rows\n",
-  //     (void*)&mipdata_->lps.at(0),
-  //     int(mipdata_->lps.at(0).getLpSolver().getNumCol()),
-  //     int(mipdata_->lps.at(0).getLpSolver().getNumRow()));
-  //
-  // printf("Passed to search atm:  \n");
-  //
-  // printf(
-  //     "MIPSOLVER mipdata lp ref with address %p, %d "
-  //     "columns, and %d rows\n",
-  //     (void*)&mipdata_->lp, int(mipdata_->lp.getLpSolver().getNumCol()),
-  //     int(mipdata_->lp.getLpSolver().getNumRow()));
-  //
-  // printf(
-  //     "master_worker lprelaxation_ member  with address %p, %d "
-  //     "columns, and %d rows\n",
-  //     master_worker.lprelaxation_,
-  //     int(master_worker.lprelaxation_->getLpSolver().getNumCol()),
-  //     int(mipdata_->lps.at(0).getLpSolver().getNumRow()));
-
   std::shared_ptr<const HighsBasis> basis;
   double prev_lower_bound = mipdata_->lower_bound;
   mipdata_->lower_bound = mipdata_->nodequeue.getBestLowerBound();
@@ -340,6 +318,7 @@ restart:
     assert(mipdata_->cutpools.size() == 1 &&
            mipdata_->conflictpools.size() == 1);
     assert(&worker == &mipdata_->workers.at(0));
+    worker.pseudocost_ = HighsPseudocost(*this);
     mipdata_->cutpools.emplace_back(numCol(), options_mip_->mip_pool_age_limit,
                                     options_mip_->mip_pool_soft_limit, 1);
     worker.cutpool_ = &mipdata_->cutpools.back();
@@ -405,9 +384,9 @@ restart:
   };
 
   auto resetWorkerDomains = [&]() -> void {
-    // 1. Push all changes from the true global domain
-    // 2. Clear changedCols and domChgStack, and reset local search domain for
-    // all workers
+    // Push all changes from the true global domain to each worker's global
+    // domain and then clear worker's changedCols / domChgStack, and reset
+    // their local search domain
     if (mipdata_->hasMultipleWorkers()) {
       for (HighsMipWorker& worker : mipdata_->workers) {
         for (const HighsDomainChange& domchg :
@@ -447,6 +426,8 @@ restart:
         // Update workers with new global changes before the stack is reset
         // TODO: Check if this is alright? Does this get overwirtten via
         // TODO: installNode?
+        // TODO: If it does, should I just call a more general
+        // TODO: resetWorkerDomains?
         const auto& domchgstack = mipdata_->domain.getDomainChangeStack();
         for (HighsInt i = prevStackSize; i != currStackSize; i++) {
           const HighsDomainChange& domchg = domchgstack[i];
@@ -470,6 +451,29 @@ restart:
     // Note for multiple workers: It is possible that while cleaning up the
     // clique table some domain changes were made. Therefore the worker
     // global domains may at this point be "weaker" than the true global domain.
+  };
+
+  auto syncGlobalPseudoCost = [&]() -> void {
+    std::vector<HighsInt> nsamplesup = mipdata_->pseudocost.getNSamplesUp();
+    std::vector<HighsInt> nsamplesdown = mipdata_->pseudocost.getNSamplesDown();
+    std::vector<HighsInt> ninferencesup =
+        mipdata_->pseudocost.getNInferencesUp();
+    std::vector<HighsInt> ninferencesdown =
+        mipdata_->pseudocost.getNInferencesDown();
+    std::vector<HighsInt> ncutoffsup = mipdata_->pseudocost.getNCutoffsUp();
+    std::vector<HighsInt> ncutoffsdown = mipdata_->pseudocost.getNCutoffsDown();
+    for (HighsMipWorker& worker : mipdata_->workers) {
+      mipdata_->pseudocost.flushPseudoCost(
+          worker.pseudocost_, nsamplesup, nsamplesdown, ninferencesup,
+          ninferencesdown, ncutoffsup, ncutoffsdown);
+    }
+  };
+
+  auto resetWorkerPseudoCosts = [&](std::vector<HighsInt>& indices) {
+    auto doResetWorkerPseudoCost = [&](HighsInt i) -> void {
+      mipdata_->pseudocost.syncPseudoCost(mipdata_->workers[i].pseudocost_);
+    };
+    applyTask(doResetWorkerPseudoCost, tg, false, indices);
   };
 
   // TODO: Should we be propagating this first?
@@ -1133,9 +1137,16 @@ restart:
     analysis_.mipTimerStart(kMipClockNodeSearch);
 
     while (!mipdata_->nodequeue.empty()) {
+
+      // update global pseudo-cost with worker information
+      syncGlobalPseudoCost();
+
       // printf("popping node from nodequeue (length = %" HIGHSINT_FORMAT ")\n",
       // (HighsInt)nodequeue.size());
       std::vector<HighsInt> search_indices = getSearchIndicesWithNoNodes();
+
+      // only update worker's pseudo-costs that have been assigned a node
+      resetWorkerPseudoCosts(search_indices);
 
       installNodes(search_indices, limit_reached);
       if (limit_reached) break;
