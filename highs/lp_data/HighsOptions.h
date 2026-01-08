@@ -725,11 +725,11 @@ class HighsOptions : public HighsOptionsStruct {
         advanced, &presolve, kHighsChooseString);
     records.push_back(record_string);
 
-    record_string =
-        new OptionRecordString(kSolverString,
-                               "LP solver option: \"choose\", \"simplex\", "
-                               "\"ipm\", \"ipx\", \"hipo\", \"pdlp\", \"cupdlp\" or \"hipdlp\"",
-                               advanced, &solver, kHighsChooseString);
+    record_string = new OptionRecordString(
+        kSolverString,
+        "LP solver option: \"choose\", \"simplex\", "
+        "\"ipm\", \"ipx\", \"hipo\", \"pdlp\", \"cupdlp\" or \"hipdlp\"",
+        advanced, &solver, kHighsChooseString);
     records.push_back(record_string);
 
     record_string = new OptionRecordString(
