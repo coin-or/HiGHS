@@ -81,6 +81,8 @@ struct HighsMipSolverData {
   HighsCutPool& cutpool;
   std::deque<HighsConflictPool> conflictpools;
   HighsConflictPool& conflictPool;
+  std::deque<HighsPseudocost> pseudocosts;
+  HighsPseudocost& pseudocost;
   bool parallel_lock;
   // std::deque<HighsPrimalHeuristics> heuristics_deque;
 
@@ -88,7 +90,6 @@ struct HighsMipSolverData {
   // HighsPrimalHeuristics heuristics;
   HighsPrimalHeuristics heuristics;
 
-  HighsPseudocost pseudocost;
   HighsCliqueTable cliquetable;
   HighsImplications implications;
   HighsRedcostFixing redcostfixing;

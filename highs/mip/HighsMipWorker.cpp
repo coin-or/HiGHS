@@ -13,19 +13,20 @@
 HighsMipWorker::HighsMipWorker(const HighsMipSolver& mipsolver__,
                                HighsLpRelaxation* lprelax_, HighsDomain* domain,
                                HighsCutPool* cutpool,
-                               HighsConflictPool* conflictpool)
+                               HighsConflictPool* conflictpool,
+                               HighsPseudocost* pseudocost)
     : mipsolver_(mipsolver__),
       mipdata_(*mipsolver_.mipdata_.get()),
-      pseudocost_(mipsolver__),
       lprelaxation_(lprelax_),
       globaldom_(domain),
       cutpool_(cutpool),
-      conflictpool_(conflictpool) {
+      conflictpool_(conflictpool),
+      pseudocost_(pseudocost) {
   upper_bound = mipdata_.upper_bound;
   upper_limit = mipdata_.upper_limit;
   optimality_limit = mipdata_.optimality_limit;
   search_ptr_ =
-      std::unique_ptr<HighsSearch>(new HighsSearch(*this, pseudocost_));
+      std::unique_ptr<HighsSearch>(new HighsSearch(*this, getPseudocost()));
   sepa_ptr_ = std::unique_ptr<HighsSeparation>(new HighsSeparation(*this));
 
   // add local cutpool
@@ -41,7 +42,7 @@ const HighsMipSolver& HighsMipWorker::getMipSolver() { return mipsolver_; }
 void HighsMipWorker::resetSearch() {
   search_ptr_.reset();
   search_ptr_ =
-      std::unique_ptr<HighsSearch>(new HighsSearch(*this, pseudocost_));
+      std::unique_ptr<HighsSearch>(new HighsSearch(*this, getPseudocost()));
   search_ptr_->setLpRelaxation(lprelaxation_);
 }
 
@@ -59,7 +60,8 @@ bool HighsMipWorker::addIncumbent(const std::vector<double>& sol, double solobj,
         transformNewIntegerFeasibleSolution(sol);
     if (transformed_solobj.first && transformed_solobj.second < upper_bound) {
       upper_bound = transformed_solobj.second;
-      double new_upper_limit = mipdata_.computeNewUpperLimit(upper_bound, 0.0, 0.0);
+      double new_upper_limit =
+          mipdata_.computeNewUpperLimit(upper_bound, 0.0, 0.0);
       if (new_upper_limit < upper_limit) {
         upper_limit = new_upper_limit;
         optimality_limit = mipdata_.computeNewUpperLimit(

@@ -144,7 +144,7 @@ bool HighsPrimalHeuristics::solveSubMip(
   // the sub-MIP
   submipsolver.initialiseTerminator(mipsolver);
   submipsolver.rootbasis = &basis;
-  HighsPseudocostInitialization pscostinit(mipsolver.mipdata_->pseudocost, 1);
+  HighsPseudocostInitialization pscostinit(worker.getPseudocost(), 1);
   submipsolver.pscostinit = &pscostinit;
   submipsolver.clqtableinit = &mipsolver.mipdata_->cliquetable;
   submipsolver.implicinit = &mipsolver.mipdata_->implications;
@@ -319,7 +319,8 @@ void HighsPrimalHeuristics::rootReducedCost(HighsMipWorker& worker) {
       localdom.propagate();
       if (localdom.infeasible()) {
         localdom.conflictAnalysis(*worker.conflictpool_,
-                                  worker.getGlobalDomain());
+                                  worker.getGlobalDomain(),
+                                  worker.getPseudocost());
 
         double prev_lower_bound = mipsolver.mipdata_->lower_bound;
 
@@ -379,7 +380,7 @@ void HighsPrimalHeuristics::RENS(HighsMipWorker& worker,
   // return if domain is infeasible
   if (worker.getGlobalDomain().infeasible()) return;
 
-  HighsPseudocost pscost(mipsolver.mipdata_->pseudocost);
+  HighsPseudocost pscost(worker.getPseudocost());
 
   // HighsSearch heur(mipsolver, pscost);
 
@@ -475,7 +476,8 @@ retry:
         localdom.propagate();
         if (localdom.infeasible()) {
           localdom.conflictAnalysis(*worker.conflictpool_,
-                                    worker.getGlobalDomain());
+                                    worker.getGlobalDomain(),
+                                    worker.getPseudocost());
           break;
         }
       }
@@ -485,7 +487,8 @@ retry:
         localdom.propagate();
         if (localdom.infeasible()) {
           localdom.conflictAnalysis(*worker.conflictpool_,
-                                    worker.getGlobalDomain());
+                                    worker.getGlobalDomain(),
+                                    worker.getPseudocost());
           break;
         }
       }
@@ -537,7 +540,8 @@ retry:
           localdom.propagate();
           if (localdom.infeasible()) {
             localdom.conflictAnalysis(*worker.conflictpool_,
-                                      worker.getGlobalDomain());
+                                      worker.getGlobalDomain(),
+                                      worker.getPseudocost());
             break;
           }
 
@@ -550,7 +554,8 @@ retry:
           localdom.propagate();
           if (localdom.infeasible()) {
             localdom.conflictAnalysis(*worker.conflictpool_,
-                                      worker.getGlobalDomain());
+                                      worker.getGlobalDomain(),
+                                      worker.getPseudocost());
             break;
           }
 
@@ -639,7 +644,7 @@ void HighsPrimalHeuristics::RINS(HighsMipWorker& worker,
                                }),
                 intcols.end());
 
-  HighsPseudocost pscost(mipsolver.mipdata_->pseudocost);
+  HighsPseudocost pscost(worker.getPseudocost());
 
   // HighsSearch heur(mipsolver, pscost);
 
@@ -763,7 +768,8 @@ retry:
             localdom.propagate();
             if (localdom.infeasible()) {
               localdom.conflictAnalysis(*worker.conflictpool_,
-                                        worker.getGlobalDomain());
+                                        worker.getGlobalDomain(),
+                                        worker.getPseudocost());
               break;
             }
 
@@ -775,7 +781,8 @@ retry:
             localdom.propagate();
             if (localdom.infeasible()) {
               localdom.conflictAnalysis(*worker.conflictpool_,
-                                        worker.getGlobalDomain());
+                                        worker.getGlobalDomain(),
+                                        worker.getPseudocost());
               break;
             }
 
@@ -832,7 +839,8 @@ retry:
         heur.branchUpwards(fracint->first, fixval, fracint->second);
         if (localdom.infeasible()) {
           localdom.conflictAnalysis(*worker.conflictpool_,
-                                    worker.getGlobalDomain());
+                                    worker.getGlobalDomain(),
+                                    worker.getPseudocost());
           break;
         }
 
@@ -844,7 +852,8 @@ retry:
         heur.branchDownwards(fracint->first, fixval, fracint->second);
         if (localdom.infeasible()) {
           localdom.conflictAnalysis(*worker.conflictpool_,
-                                    worker.getGlobalDomain());
+                                    worker.getGlobalDomain(),
+                                    worker.getPseudocost());
           break;
         }
 
@@ -945,14 +954,14 @@ bool HighsPrimalHeuristics::tryRoundedPoint(HighsMipWorker& worker,
 
     localdom.fixCol(col, intval, HighsDomain::Reason::branching());
     if (localdom.infeasible()) {
-      localdom.conflictAnalysis(*worker.conflictpool_,
-                                worker.getGlobalDomain());
+      localdom.conflictAnalysis(*worker.conflictpool_, worker.getGlobalDomain(),
+                                worker.getPseudocost());
       return false;
     }
     localdom.propagate();
     if (localdom.infeasible()) {
-      localdom.conflictAnalysis(*worker.conflictpool_,
-                                worker.getGlobalDomain());
+      localdom.conflictAnalysis(*worker.conflictpool_, worker.getGlobalDomain(),
+                                worker.getPseudocost());
       return false;
     }
   }
@@ -1094,14 +1103,14 @@ void HighsPrimalHeuristics::randomizedRounding(
 
     localdom.fixCol(i, intval, HighsDomain::Reason::branching());
     if (localdom.infeasible()) {
-      localdom.conflictAnalysis(*worker.conflictpool_,
-                                worker.getGlobalDomain());
+      localdom.conflictAnalysis(*worker.conflictpool_, worker.getGlobalDomain(),
+                                worker.getPseudocost());
       return;
     }
     localdom.propagate();
     if (localdom.infeasible()) {
-      localdom.conflictAnalysis(*worker.conflictpool_,
-                                worker.getGlobalDomain());
+      localdom.conflictAnalysis(*worker.conflictpool_, worker.getGlobalDomain(),
+                                worker.getPseudocost());
       return;
     }
   }
@@ -1586,13 +1595,15 @@ void HighsPrimalHeuristics::feasibilityPump(HighsMipWorker& worker) {
         localdom.fixCol(i, intval, HighsDomain::Reason::branching());
         if (localdom.infeasible()) {
           localdom.conflictAnalysis(*worker.conflictpool_,
-                                    worker.getGlobalDomain());
+                                    worker.getGlobalDomain(),
+                                    worker.getPseudocost());
           continue;
         }
         localdom.propagate();
         if (localdom.infeasible()) {
           localdom.conflictAnalysis(*worker.conflictpool_,
-                                    worker.getGlobalDomain());
+                                    worker.getGlobalDomain(),
+                                    worker.getPseudocost());
           continue;
         }
       }

@@ -175,7 +175,8 @@ void HighsMipSolver::run() {
     return;
   }
   mipdata_->workers.emplace_back(*this, &mipdata_->lp, &mipdata_->domain,
-                                 &mipdata_->cutpool, &mipdata_->conflictPool);
+                                 &mipdata_->cutpool, &mipdata_->conflictPool,
+                                 &mipdata_->pseudocost);
 
   HighsMipWorker& master_worker = mipdata_->workers.at(0);
 
@@ -288,6 +289,9 @@ restart:
     while (mipdata_->lps.size() > 1) {
       mipdata_->lps.pop_back();
     }
+    while (mipdata_->pseudocosts.size() > 1) {
+      mipdata_->pseudocosts.pop_back();
+    }
     while (mipdata_->workers.size() > 1) {
       mipdata_->workers.pop_back();
     }
@@ -303,9 +307,11 @@ restart:
     mipdata_->domains.back().addCutpool(mipdata_->cutpools.back());
     assert(mipdata_->domains.back().getDomainChangeStack().empty());
     mipdata_->domains.back().addConflictPool(mipdata_->conflictpools.back());
+    mipdata_->pseudocosts.emplace_back(*this);
     mipdata_->workers.emplace_back(
         *this, &mipdata_->lps.back(), &mipdata_->domains.back(),
-        &mipdata_->cutpools.back(), &mipdata_->conflictpools.back());
+        &mipdata_->cutpools.back(), &mipdata_->conflictpools.back(),
+        &mipdata_->pseudocosts.back());
     mipdata_->lps.back().setMipWorker(mipdata_->workers.back());
     mipdata_->lp.notifyCutPoolsLpCopied(1);
     mipdata_->debugSolution.registerDomain(
@@ -318,7 +324,6 @@ restart:
     assert(mipdata_->cutpools.size() == 1 &&
            mipdata_->conflictpools.size() == 1);
     assert(&worker == &mipdata_->workers.at(0));
-    worker.pseudocost_ = HighsPseudocost(*this);
     mipdata_->cutpools.emplace_back(numCol(), options_mip_->mip_pool_age_limit,
                                     options_mip_->mip_pool_soft_limit, 1);
     worker.cutpool_ = &mipdata_->cutpools.back();
@@ -330,6 +335,8 @@ restart:
     worker.globaldom_->addCutpool(*worker.cutpool_);
     assert(worker.globaldom_->getDomainChangeStack().empty());
     worker.globaldom_->addConflictPool(*worker.conflictpool_);
+    mipdata_->pseudocosts.emplace_back(*this);
+    worker.pseudocost_ = &mipdata_->pseudocosts.back();
     worker.lprelaxation_->setMipWorker(worker);
     worker.resetSearch();
     worker.resetSepa();
@@ -464,14 +471,14 @@ restart:
     std::vector<HighsInt> ncutoffsdown = mipdata_->pseudocost.getNCutoffsDown();
     for (HighsMipWorker& worker : mipdata_->workers) {
       mipdata_->pseudocost.flushPseudoCost(
-          worker.pseudocost_, nsamplesup, nsamplesdown, ninferencesup,
+          worker.getPseudocost(), nsamplesup, nsamplesdown, ninferencesup,
           ninferencesdown, ncutoffsup, ncutoffsdown);
     }
   };
 
   auto resetWorkerPseudoCosts = [&](std::vector<HighsInt>& indices) {
     auto doResetWorkerPseudoCost = [&](HighsInt i) -> void {
-      mipdata_->pseudocost.syncPseudoCost(mipdata_->workers[i].pseudocost_);
+      mipdata_->pseudocost.syncPseudoCost(mipdata_->workers[i].getPseudocost());
     };
     applyTask(doResetWorkerPseudoCost, tg, false, indices);
   };
@@ -1137,7 +1144,6 @@ restart:
     analysis_.mipTimerStart(kMipClockNodeSearch);
 
     while (!mipdata_->nodequeue.empty()) {
-
       // update global pseudo-cost with worker information
       syncGlobalPseudoCost();
 

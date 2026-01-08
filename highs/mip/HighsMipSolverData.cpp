@@ -33,10 +33,11 @@ HighsMipSolverData::HighsMipSolverData(HighsMipSolver& mipsolver)
           1, HighsConflictPool(5 * mipsolver.options_mip_->mip_pool_age_limit,
                                mipsolver.options_mip_->mip_pool_soft_limit)),
       conflictPool(conflictpools.at(0)),
+      pseudocosts(1, mipsolver),
+      pseudocost(pseudocosts.at(0)),
       parallel_lock(false),
       // workers({HighsMipWorker(mipsolver, lp)}),
       heuristics(mipsolver),
-      pseudocost(),
       cliquetable(mipsolver.numCol()),
       implications(mipsolver),
       // heuristics_ptr(new HighsPrimalHeuristics(mipsolver)),
@@ -923,7 +924,6 @@ void HighsMipSolverData::runSetup() {
     addIncumbent(std::vector<double>(), 0, kSolutionSourceEmptyMip);
 
   redcostfixing = HighsRedcostFixing();
-  pseudocost = HighsPseudocost(mipsolver);
   nodequeue.setNumCol(mipsolver.numCol());
   nodequeue.setOptimalityLimit(optimality_limit);
 
@@ -1502,6 +1502,7 @@ void HighsMipSolverData::performRestart() {
     mipsolver.mipdata_->workers[0].cutpool_ = &cutpool;
     mipsolver.mipdata_->workers[0].conflictpool_ = &conflictPool;
     mipsolver.mipdata_->workers[0].globaldom_ = &domain;
+    mipsolver.mipdata_->workers[0].pseudocost_ = &pseudocost;
     // mipsolver.mipdata_->workers[0].lprelaxation_ = &lp;
   }
 
@@ -2597,6 +2598,7 @@ restart:
     }
 
     // add the root node to the nodequeue to initialize the search
+    // TODO MT: Does the pseudo-cost of master_worker need to be used?
     nodequeue.emplaceNode(std::vector<HighsDomainChange>(),
                           std::vector<HighsInt>(), lower_bound,
                           lp.computeBestEstimate(pseudocost), 1);
@@ -2717,7 +2719,8 @@ void HighsMipSolverData::setupDomainPropagation() {
                        model.a_matrix_.index_, model.a_matrix_.value_, ARstart_,
                        ARindex_, ARvalue_);
 
-  pseudocost = HighsPseudocost(mipsolver);
+  pseudocosts[0] = HighsPseudocost(mipsolver);
+  pseudocost = pseudocosts.at(0);
 
   // compute the maximal absolute coefficients to filter propagation
   maxAbsRowCoef.resize(mipsolver.model_->num_row_);

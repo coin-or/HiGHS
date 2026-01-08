@@ -14,6 +14,7 @@
 #include <set>
 #include <vector>
 
+#include "HighsPseudocost.h"
 #include "mip/HighsDomainChange.h"
 #include "mip/HighsMipSolver.h"
 #include "util/HighsCDouble.h"
@@ -73,10 +74,10 @@ class HighsDomain {
 
     ConflictSet(HighsDomain& localdom, const HighsDomain& globaldom);
 
-    void conflictAnalysis(HighsConflictPool& conflictPool);
+    void conflictAnalysis(HighsConflictPool& conflictPool, HighsPseudocost& pseudocost);
     void conflictAnalysis(const HighsInt* proofinds, const double* proofvals,
                           HighsInt prooflen, double proofrhs,
-                          HighsConflictPool& conflictPool);
+                          HighsConflictPool& conflictPool, HighsPseudocost& pseudocost);
 
    private:
     std::set<LocalDomChg> reasonSideFrontier;
@@ -593,12 +594,14 @@ class HighsDomain {
   double getColUpperPos(HighsInt col, HighsInt stackpos, HighsInt& pos) const;
 
   void conflictAnalysis(HighsConflictPool& conflictPool,
-                        HighsDomain& globaldom);
+                        HighsDomain& globaldom,
+                        HighsPseudocost& pseudocost);
 
   void conflictAnalysis(const HighsInt* proofinds, const double* proofvals,
                         HighsInt prooflen, double proofrhs,
                         HighsConflictPool& conflictPool,
-                        HighsDomain& globaldom);
+                        HighsDomain& globaldom,
+                        HighsPseudocost& pseudocost);
 
   void conflictAnalyzeReconvergence(const HighsDomainChange& domchg,
                                     const HighsInt* proofinds,

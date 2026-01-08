@@ -25,11 +25,11 @@ class HighsMipWorker {
   const HighsMipSolver& mipsolver_;
   const HighsMipSolverData& mipdata_;
 
-  HighsPseudocost pseudocost_;
   HighsLpRelaxation* lprelaxation_;
   HighsDomain* globaldom_;
   HighsCutPool* cutpool_;
   HighsConflictPool* conflictpool_;
+  HighsPseudocost* pseudocost_;
 
   std::unique_ptr<HighsSearch> search_ptr_;
   std::unique_ptr<HighsSeparation> sepa_ptr_;
@@ -49,7 +49,7 @@ class HighsMipWorker {
   // HighsMipWorker(const HighsMipSolver& mipsolver__);
   HighsMipWorker(const HighsMipSolver& mipsolver__, HighsLpRelaxation* lprelax_,
                  HighsDomain* domain, HighsCutPool* cutpool,
-                 HighsConflictPool* conflictpool);
+                 HighsConflictPool* conflictpool, HighsPseudocost* pseudocost);
 
   ~HighsMipWorker() {
     // search_ptr_.release();
@@ -64,6 +64,8 @@ class HighsMipWorker {
   void resetSepa();
 
   HighsDomain& getGlobalDomain() const { return *globaldom_; };
+
+  HighsPseudocost& getPseudocost() const { return *pseudocost_; };
 
   // bool addIncumbent(const std::vector<double>& sol, double solobj,
   //                   const int solution_source,
