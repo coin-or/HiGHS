@@ -4453,10 +4453,11 @@ HPresolve::Result HPresolve::detectDominatedCol(
       return checkLimits(postsolve_stack);
     } else if (analysis_.allow_rule_[kPresolveRuleForcingCol]) {
       // check for forcing column (see Andersen and Andersen, Presolving in
-      // linear programming. Math. Program. 71, 221-245, 1995). column's lower
-      // bound is infinite (direction = 1) or column's upper bound is infinite
-      // (direction = -1). now get lower bound (direction = 1) or upper bound
-      // (direction = -1) on column dual using original bounds on row duals.
+      // linear programming. Math. Program. 71, 221-245, 1995).
+      // the column's lower bound is infinite (direction = 1) or its upper
+      // bound is infinite (direction = -1).
+      // now get lower bound (direction = 1) or upper bound (direction = -1) on
+      // column dual using the original bounds on the row duals.
       double boundOnColDual = direction > 0
                                   ? -impliedDualRowBounds.getSumUpperOrig(
                                         col, -model->col_cost_[col])
