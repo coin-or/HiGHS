@@ -289,9 +289,10 @@ restart:
     while (mipdata_->lps.size() > 1) {
       mipdata_->lps.pop_back();
     }
-    while (mipdata_->pseudocosts.size() > 1) {
+    while (!mipdata_->pseudocosts.empty()) {
       mipdata_->pseudocosts.pop_back();
     }
+    // Global pseudo-cost not stored in pseudo-costs!
     while (mipdata_->workers.size() > 1) {
       mipdata_->workers.pop_back();
     }

@@ -33,8 +33,7 @@ HighsMipSolverData::HighsMipSolverData(HighsMipSolver& mipsolver)
           1, HighsConflictPool(5 * mipsolver.options_mip_->mip_pool_age_limit,
                                mipsolver.options_mip_->mip_pool_soft_limit)),
       conflictPool(conflictpools.at(0)),
-      pseudocosts(1, mipsolver),
-      pseudocost(pseudocosts.at(0)),
+      pseudocost(),
       parallel_lock(false),
       // workers({HighsMipWorker(mipsolver, lp)}),
       heuristics(mipsolver),
@@ -924,6 +923,7 @@ void HighsMipSolverData::runSetup() {
     addIncumbent(std::vector<double>(), 0, kSolutionSourceEmptyMip);
 
   redcostfixing = HighsRedcostFixing();
+  pseudocost = HighsPseudocost(mipsolver);
   nodequeue.setNumCol(mipsolver.numCol());
   nodequeue.setOptimalityLimit(optimality_limit);
 
@@ -2719,8 +2719,7 @@ void HighsMipSolverData::setupDomainPropagation() {
                        model.a_matrix_.index_, model.a_matrix_.value_, ARstart_,
                        ARindex_, ARvalue_);
 
-  pseudocosts[0] = HighsPseudocost(mipsolver);
-  pseudocost = pseudocosts.at(0);
+  pseudocost = HighsPseudocost(mipsolver);
 
   // compute the maximal absolute coefficients to filter propagation
   maxAbsRowCoef.resize(mipsolver.model_->num_row_);
