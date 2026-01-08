@@ -4452,7 +4452,11 @@ HPresolve::Result HPresolve::detectDominatedCol(
         HPRESOLVE_CHECKED_CALL(removeRowSingletons(postsolve_stack));
       return checkLimits(postsolve_stack);
     } else if (analysis_.allow_rule_[kPresolveRuleForcingCol]) {
-      // get bound on column dual using original bounds on row duals
+      // check for forcing column (see Andersen and Andersen, Presolving in
+      // linear programming. Math. Program. 71, 221-245, 1995). column's lower
+      // bound is infinite (direction = 1) or column's upper bound is infinite
+      // (direction = -1). now get lower bound (direction = 1) or upper bound
+      // (direction = -1) on column dual using original bounds on row duals.
       double boundOnColDual = direction > 0
                                   ? -impliedDualRowBounds.getSumUpperOrig(
                                         col, -model->col_cost_[col])
@@ -4460,14 +4464,14 @@ HPresolve::Result HPresolve::detectDominatedCol(
                                         col, -model->col_cost_[col]);
       if (std::abs(boundOnColDual) <=
           options->dual_feasibility_tolerance / dynamism) {
-        // 1. column's lower bound is infinite (i.e. column dual has upper bound
-        // of zero) and column dual's lower bound is zero as well
+        // 1. column dual's upper bound is zero (since the column's lower bound
+        // is infinite) and column dual's lower bound is zero as well
         // (direction = 1) or
-        // 2. column's upper bound is infinite (i.e. column dual has lower bound
-        // of zero) and column dual's upper bound is zero as well
+        // 2. column dual's lower bound is zero (since the column's upper bound
+        // is infinite) and column dual's upper bound is zero as well
         // (direction = -1).
-        // thus, the column dual is zero, and we can remove the column and
-        // all its rows
+        // thus, the column dual is zero, and we can remove the column
+        // and all its rows
         if (logging_on) analysis_.startPresolveRuleLog(kPresolveRuleForcingCol);
         postsolve_stack.forcingColumn(
             col, getColumnVector(col), model->col_cost_[col], otherBound,
