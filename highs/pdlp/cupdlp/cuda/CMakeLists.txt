@@ -5,8 +5,14 @@ add_library(cudalin SHARED
        ${CUPDLP_INCLUDE_DIR}/cuda/cupdlp_cuda_kernels.cuh
        ${CUPDLP_INCLUDE_DIR}/cuda/cupdlp_cudalinalg.cuh
        ${CUPDLP_INCLUDE_DIR}/cuda/cupdlp_cudalinalg.cu
+       ../../hipdlp/pdhg.cu  
 )
 set_target_properties(cudalin PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+
+# HI-PDLP branch has
+# set_target_properties(cudalin PROPERTIES 
+# CUDA_SEPARABLE_COMPILATION ON
+# CUDA_ARCHITECTURES "60;70;75;80;86" )
 
 # set_target_properties(cudalin PROPERTIES CUDA_ARCHITECTURES native)
 
@@ -34,3 +40,8 @@ target_link_libraries(testcudalin PRIVATE cudalin ${CUDA_LIBRARY})
 set_target_properties(testcublas PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(testcublas PRIVATE cudalin ${CUDA_LIBRARY})
 
+# HI-PDLP branch has
+target_include_directories(cudalin PUBLIC 
+    "$<BUILD_INTERFACE:${CMAKE_CUDA_PATH}/include>"
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../hipdlp>"  # Add this for pdhg_kernels.hpp
+)
