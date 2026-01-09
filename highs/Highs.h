@@ -212,9 +212,9 @@ class Highs {
   HighsStatus presolve();
 
   /**
-   * @brief Run the solver, accounting for any multiple objective
+   * @brief Run the solver
    */
-  HighsStatus run();
+  HighsStatus run() { return runFromExe(); }
 
   /**
    * @brief Postsolve the incumbent model using a solution
@@ -1561,6 +1561,9 @@ class Highs {
   bool written_log_header_ = false;
 
   void reportModelStats() const;
+  HighsStatus runFromExe();
+  HighsStatus runUserScaling();
+  HighsStatus optimizeHighs();
   HighsStatus optimizeModel();
 
   void exactResizeModel() {

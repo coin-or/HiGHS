@@ -927,7 +927,7 @@ HighsStatus Highs::presolve() {
   return returnFromHighs(return_status);
 }
 
-HighsStatus Highs::run() {
+HighsStatus Highs::runFromExe() {
   this->sub_solver_call_time_.initialise();
   const bool options_had_highs_files = this->optionsHasHighsFiles();
   if (options_had_highs_files) {
