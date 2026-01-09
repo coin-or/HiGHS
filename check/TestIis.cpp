@@ -739,7 +739,6 @@ TEST_CASE("feasible-lp-iis", "[iis]") {
   h.resetGlobalScheduler(true);
 }
 
-/*
   TEST_CASE("write-iis_model-file", "[iis]") {
   // Reproduces #2635, and adds code coverage for writing IIS model
   // and solution at runtime
@@ -767,8 +766,10 @@ TEST_CASE("feasible-lp-iis", "[iis]") {
   h.setOptionValue("write_iis_model_file", test_mps);
   h.setOptionValue("solution_file", test_sol);
   h.run();
+  h.readModel(test_mps);
+  h.run();
+  REQUIRE(h.getModelStatus() == HighsModelStatus::kInfeasible);
   //  std::remove(test_mps.c_str());
   //  std::remove(test_sol.c_str());
   h.resetGlobalScheduler(true);
 }
-*/
