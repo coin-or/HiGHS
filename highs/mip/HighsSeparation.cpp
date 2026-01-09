@@ -106,11 +106,11 @@ HighsInt HighsSeparation::separationRound(HighsDomain& propdomain,
   // lp->getMipSolver().analysis_.mipTimerStart(cliqueClock);
   mipdata.cliquetable.separateCliques(
       lp->getMipSolver(), sol.col_value, *mipworker_.cutpool_, mipdata.feastol,
-      mipdata.parallelLockActive() ? mipdata.cliquetable.getRandgen()
-                                   : mipworker_.randgen,
+      mipdata.parallelLockActive() ? mipworker_.randgen
+                                   : mipdata.cliquetable.getRandgen(),
       mipdata.parallelLockActive()
-          ? mipdata.cliquetable.getNumNeighbourhoodQueries()
-          : mipworker_.numNeighbourhoodQueries);
+          ? mipworker_.numNeighbourhoodQueries
+          : mipdata.cliquetable.getNumNeighbourhoodQueries());
   // lp->getMipSolver().analysis_.mipTimerStop(cliqueClock);
 
   numboundchgs = propagateAndResolve();
