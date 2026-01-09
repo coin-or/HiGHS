@@ -13,7 +13,7 @@
 
 #include "model/HighsModel.h"
 
-const bool kIisDevReport = false;
+const bool kIisDevReport = true;
 
 enum IisBoundStatus : int {
   kIisBoundStatusDropped = -1,

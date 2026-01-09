@@ -1884,6 +1884,9 @@ HighsStatus Highs::getIisInterfaceReturn(const HighsStatus return_status) {
 }
 
 HighsStatus Highs::getIisInterface() {
+  // CF #2635 NB Call optimizeModel() not run() when solving LPs,
+  // otherwise infinite loop can be created if write_iis_model_file is
+  // set
   const HighsLp& lp = model_.lp_;
   if (this->model_status_ == HighsModelStatus::kOptimal ||
       this->model_status_ == HighsModelStatus::kUnbounded) {
@@ -1939,7 +1942,7 @@ HighsStatus Highs::getIisInterface() {
     HighsIisInfo iis_info;
     iis_info.simplex_time = -this->getRunTime();
     iis_info.simplex_iterations = -info_.simplex_iteration_count;
-    HighsStatus run_status = this->run();
+    HighsStatus run_status = this->optimizeModel();
     options_.presolve = presolve;
     if (run_status != HighsStatus::kOk) return run_status;
     iis_info.simplex_time += this->getRunTime();
@@ -2435,7 +2438,7 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
     HighsIisInfo iis_info;
     iis_info.simplex_time = -this->getRunTime();
     iis_info.simplex_iterations = -info_.simplex_iteration_count;
-    run_status = this->run();
+    run_status = this->optimizeModel();
     assert(run_status == HighsStatus::kOk);
     if (run_status != HighsStatus::kOk) return run_status;
     iis_info.simplex_time += this->getRunTime();
