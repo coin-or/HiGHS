@@ -1685,7 +1685,8 @@ void HighsDomain::updateActivityLbChange(HighsInt col, double oldbound,
     // cutpoolpropagation[j], j > i, and reverse the activity
     // changes made by cutpoolpropagation[j] j < i.
     HighsInt infeascutpool = -1;
-    for (HighsInt i = 0; i != cutpoolpropagation.size(); ++i) {
+    HighsInt ncutpoolprop = static_cast<HighsInt>(cutpoolpropagation.size());
+    for (HighsInt i = 0; i != ncutpoolprop; ++i) {
       if (!infeasible_) {
         cutpoolpropagation[i].updateActivityLbChange(col, oldbound, newbound,
                                                      true, true, infeasible_);
@@ -1863,7 +1864,8 @@ void HighsDomain::updateActivityUbChange(HighsInt col, double oldbound,
     // cutpoolpropagation[j], j > i, and reverse the activity
     // changes made by cutpoolpropagation[j] j < i.
     HighsInt infeascutpool = -1;
-    for (HighsInt i = 0; i != cutpoolpropagation.size(); ++i) {
+    HighsInt ncutpoolprop = static_cast<HighsInt>(cutpoolpropagation.size());
+    for (HighsInt i = 0; i != ncutpoolprop; ++i) {
       if (!infeasible_) {
         cutpoolpropagation[i].updateActivityUbChange(col, oldbound, newbound,
                                                      true, true, infeasible_);
