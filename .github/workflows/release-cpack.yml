@@ -23,7 +23,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-${{ matrix.arch }}
+          name: linux-x64-apache
           path: build/*.tar.gz
 
       - name: Release
@@ -52,7 +52,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-${{ matrix.arch }}
+          name: linux-arm64-apache
           path: build/*.tar.gz
 
       - name: Release
@@ -81,7 +81,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-${{ matrix.arch }}
+          name: windows-x64-apache
           path: build/*.zip
 
       - name: Release
@@ -111,7 +111,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-${{ matrix.arch }}
+          name: windows-win32-apache
           path: build/*.zip
 
   build-windows-arm:
@@ -132,7 +132,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-${{ matrix.arch }}
+          name: windows-arm64-apache
           path: build/*.zip
 
       - name: Release
@@ -157,7 +157,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: macos-universal
+          name: macos-universal-apache
           path: build/*.tar.gz
 
       - name: Release
@@ -184,7 +184,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-${{ matrix.arch }}
+          name: linux-x64-mit
           path: build/*.tar.gz
 
       - name: Release
@@ -212,7 +212,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-${{ matrix.arch }}
+          name: linux-arm64-mit
           path: build/*.tar.gz
 
       - name: Release
@@ -241,7 +241,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-${{ matrix.arch }}
+          name: windows-x64-mit
           path: build/*.zip
 
       - name: Release
@@ -269,7 +269,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-${{ matrix.arch }}
+          name: windows-x64-shared-mit
           path: build/*.zip
 
       - name: Release
@@ -279,7 +279,6 @@ jobs:
         with:
           files: |
             build/*.zip
-          name: windows-x64-shared
 
   build-windows-32-mit:
     runs-on: windows-latest
@@ -300,7 +299,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-${{ matrix.arch }}
+          name: windows-win32-mit
           path: build/*.zip
 
   build-windows-arm-mit:
@@ -321,7 +320,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-${{ matrix.arch }}
+          name: windows-arm64-mit
           path: build/*.zip
 
       - name: Release
@@ -346,7 +345,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: macos-universal
+          name: macos-universal-mit
           path: build/*.tar.gz
 
       - name: Release
