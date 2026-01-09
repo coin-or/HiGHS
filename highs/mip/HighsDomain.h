@@ -74,10 +74,12 @@ class HighsDomain {
 
     ConflictSet(HighsDomain& localdom, const HighsDomain& globaldom);
 
-    void conflictAnalysis(HighsConflictPool& conflictPool, HighsPseudocost& pseudocost);
+    void conflictAnalysis(HighsConflictPool& conflictPool,
+                          HighsPseudocost& pseudocost);
     void conflictAnalysis(const HighsInt* proofinds, const double* proofvals,
                           HighsInt prooflen, double proofrhs,
-                          HighsConflictPool& conflictPool, HighsPseudocost& pseudocost);
+                          HighsConflictPool& conflictPool,
+                          HighsPseudocost& pseudocost);
 
    private:
     std::set<LocalDomChg> reasonSideFrontier;
@@ -179,9 +181,13 @@ class HighsDomain {
 
     void markPropagateCut(HighsInt cut);
 
-    void updateActivityLbChange(HighsInt col, double oldbound, double newbound);
+    void updateActivityLbChange(HighsInt col, double oldbound, double newbound,
+                                bool threshold, bool activity,
+                                bool infeasdomain);
 
-    void updateActivityUbChange(HighsInt col, double oldbound, double newbound);
+    void updateActivityUbChange(HighsInt col, double oldbound, double newbound,
+                                bool threshold, bool activity,
+                                bool infeasdomain);
   };
 
   struct ConflictPoolPropagation {
@@ -593,14 +599,12 @@ class HighsDomain {
 
   double getColUpperPos(HighsInt col, HighsInt stackpos, HighsInt& pos) const;
 
-  void conflictAnalysis(HighsConflictPool& conflictPool,
-                        HighsDomain& globaldom,
+  void conflictAnalysis(HighsConflictPool& conflictPool, HighsDomain& globaldom,
                         HighsPseudocost& pseudocost);
 
   void conflictAnalysis(const HighsInt* proofinds, const double* proofvals,
                         HighsInt prooflen, double proofrhs,
-                        HighsConflictPool& conflictPool,
-                        HighsDomain& globaldom,
+                        HighsConflictPool& conflictPool, HighsDomain& globaldom,
                         HighsPseudocost& pseudocost);
 
   void conflictAnalyzeReconvergence(const HighsDomainChange& domchg,

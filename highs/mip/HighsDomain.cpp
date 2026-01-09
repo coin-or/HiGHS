@@ -494,12 +494,12 @@ void HighsDomain::CutpoolPropagation::markPropagateCut(HighsInt cut) {
   }
 }
 
-void HighsDomain::CutpoolPropagation::updateActivityLbChange(HighsInt col,
-                                                             double oldbound,
-                                                             double newbound) {
-  assert(!domain->infeasible_);
+void HighsDomain::CutpoolPropagation::updateActivityLbChange(
+    HighsInt col, double oldbound, double newbound, bool threshold,
+    bool activity, bool infeasdomain) {
+  if (!infeasdomain) assert(!domain->infeasible_);
 
-  if (newbound < oldbound) {
+  if (newbound < oldbound && threshold) {
     cutpool->getMatrix().forEachNegativeColumnEntry(
         col, [&](HighsInt row, double val) {
           domain->updateThresholdLbChange(col, newbound, val,
@@ -508,38 +508,42 @@ void HighsDomain::CutpoolPropagation::updateActivityLbChange(HighsInt col,
         });
   }
 
-  cutpool->getMatrix().forEachPositiveColumnEntry(
-      col, [&](HighsInt row, double val) {
-        assert(val > 0);
-        HighsCDouble deltamin = computeDelta(val, oldbound, newbound,
-                                             -kHighsInf, activitycutsinf_[row]);
-        activitycuts_[row] += deltamin;
+  if (!activity) return;
 
-        if (deltamin <= 0) {
-          domain->updateThresholdLbChange(col, newbound, val,
-                                          capacityThreshold_[row]);
+  if (!infeasdomain) {
+    cutpool->getMatrix().forEachPositiveColumnEntry(
+        col, [&](HighsInt row, double val) {
+          assert(val > 0);
+          HighsCDouble deltamin = computeDelta(
+              val, oldbound, newbound, -kHighsInf, activitycutsinf_[row]);
+          activitycuts_[row] += deltamin;
+
+          if (deltamin <= 0) {
+            domain->updateThresholdLbChange(col, newbound, val,
+                                            capacityThreshold_[row]);
+            return true;
+          }
+
+          if (activitycutsinf_[row] == 0 &&
+              activitycuts_[row] - cutpool->getRhs()[row] >
+                  domain->mipsolver->mipdata_->feastol) {
+            // todo, now that multiple cutpools are possible the index needs to
+            // be encoded differently
+            domain->mipsolver->mipdata_->debugSolution.nodePruned(*domain);
+            domain->infeasible_ = true;
+            domain->infeasible_pos = domain->domchgstack_.size();
+            domain->infeasible_reason = Reason::cut(cutpoolindex, row);
+            return false;
+          }
+
+          markPropagateCut(row);
+
           return true;
-        }
-
-        if (activitycutsinf_[row] == 0 &&
-            activitycuts_[row] - cutpool->getRhs()[row] >
-                domain->mipsolver->mipdata_->feastol) {
-          // todo, now that multiple cutpools are possible the index needs to be
-          // encoded differently
-          domain->mipsolver->mipdata_->debugSolution.nodePruned(*domain);
-          domain->infeasible_ = true;
-          domain->infeasible_pos = domain->domchgstack_.size();
-          domain->infeasible_reason = Reason::cut(cutpoolindex, row);
-          return false;
-        }
-
-        markPropagateCut(row);
-
-        return true;
-      });
+        });
+  }
 
   if (domain->infeasible_) {
-    assert(domain->infeasible_reason.type == cutpoolindex);
+    // assert(domain->infeasible_reason.type == cutpoolindex);
     assert(domain->infeasible_reason.index >= 0);
     std::swap(oldbound, newbound);
     cutpool->getMatrix().forEachPositiveColumnEntry(
@@ -555,12 +559,12 @@ void HighsDomain::CutpoolPropagation::updateActivityLbChange(HighsInt col,
   }
 }
 
-void HighsDomain::CutpoolPropagation::updateActivityUbChange(HighsInt col,
-                                                             double oldbound,
-                                                             double newbound) {
-  assert(!domain->infeasible_);
+void HighsDomain::CutpoolPropagation::updateActivityUbChange(
+    HighsInt col, double oldbound, double newbound, bool threshold,
+    bool activity, bool infeasdomain) {
+  if (!infeasdomain) assert(!domain->infeasible_);
 
-  if (newbound > oldbound) {
+  if (newbound > oldbound && threshold) {
     cutpool->getMatrix().forEachPositiveColumnEntry(
         col, [&](HighsInt row, double val) {
           domain->updateThresholdUbChange(col, newbound, val,
@@ -569,39 +573,43 @@ void HighsDomain::CutpoolPropagation::updateActivityUbChange(HighsInt col,
         });
   }
 
-  cutpool->getMatrix().forEachNegativeColumnEntry(
-      col, [&](HighsInt row, double val) {
-        assert(val < 0);
-        HighsCDouble deltamin = computeDelta(val, oldbound, newbound, kHighsInf,
-                                             activitycutsinf_[row]);
+  if (!activity) return;
 
-        //  std::cout << activitycuts_.size() << std::endl;
+  if (!infeasdomain) {
+    cutpool->getMatrix().forEachNegativeColumnEntry(
+        col, [&](HighsInt row, double val) {
+          assert(val < 0);
+          HighsCDouble deltamin = computeDelta(
+              val, oldbound, newbound, kHighsInf, activitycutsinf_[row]);
 
-        activitycuts_[row] += deltamin;
+          //  std::cout << activitycuts_.size() << std::endl;
 
-        if (deltamin <= 0) {
-          domain->updateThresholdUbChange(col, newbound, val,
-                                          capacityThreshold_[row]);
+          activitycuts_[row] += deltamin;
+
+          if (deltamin <= 0) {
+            domain->updateThresholdUbChange(col, newbound, val,
+                                            capacityThreshold_[row]);
+            return true;
+          }
+
+          if (activitycutsinf_[row] == 0 &&
+              activitycuts_[row] - cutpool->getRhs()[row] >
+                  domain->mipsolver->mipdata_->feastol) {
+            domain->mipsolver->mipdata_->debugSolution.nodePruned(*domain);
+            domain->infeasible_ = true;
+            domain->infeasible_pos = domain->domchgstack_.size();
+            domain->infeasible_reason = Reason::cut(cutpoolindex, row);
+            return false;
+          }
+
+          markPropagateCut(row);
+
           return true;
-        }
-
-        if (activitycutsinf_[row] == 0 &&
-            activitycuts_[row] - cutpool->getRhs()[row] >
-                domain->mipsolver->mipdata_->feastol) {
-          domain->mipsolver->mipdata_->debugSolution.nodePruned(*domain);
-          domain->infeasible_ = true;
-          domain->infeasible_pos = domain->domchgstack_.size();
-          domain->infeasible_reason = Reason::cut(cutpoolindex, row);
-          return false;
-        }
-
-        markPropagateCut(row);
-
-        return true;
-      });
+        });
+  }
 
   if (domain->infeasible_) {
-    assert(domain->infeasible_reason.type == cutpoolindex);
+    // assert(domain->infeasible_reason.type == cutpoolindex);
     assert(domain->infeasible_reason.index >= 0);
     std::swap(oldbound, newbound);
     cutpool->getMatrix().forEachNegativeColumnEntry(
@@ -1672,10 +1680,25 @@ void HighsDomain::updateActivityLbChange(HighsInt col, double oldbound,
            infeasible_reason.type == Reason::kModelRowUpper);
     assert(infeasible_reason.index == mip->a_matrix_.index_[end - 1]);
   } else {
-    for (CutpoolPropagation& cutpoolprop : cutpoolpropagation)
+    // Explanation: If cutpoolpropagation[i] returns infeasible,
+    // we still need to update the domain threshold values using
+    // cutpoolpropagation[j], j > i, and reverse the activity
+    // changes made by cutpoolpropagation[j] j < i.
+    HighsInt infeascutpool = -1;
+    for (HighsInt i = 0; i != cutpoolpropagation.size(); ++i) {
       if (!infeasible_) {
-        cutpoolprop.updateActivityLbChange(col, oldbound, newbound);
+        cutpoolpropagation[i].updateActivityLbChange(col, oldbound, newbound,
+                                                     true, true, infeasible_);
+        if (infeasible_) infeascutpool = i;
+      } else {
+        cutpoolpropagation[i].updateActivityLbChange(col, oldbound, newbound,
+                                                     true, false, infeasible_);
       }
+    }
+    for (HighsInt i = 0; i < infeascutpool; ++i) {
+      cutpoolpropagation[i].updateActivityLbChange(col, oldbound, newbound,
+                                                   false, true, infeasible_);
+    }
   }
 
   if (infeasible_) {
@@ -1835,10 +1858,25 @@ void HighsDomain::updateActivityUbChange(HighsInt col, double oldbound,
            infeasible_reason.type == Reason::kModelRowUpper);
     assert(infeasible_reason.index == mip->a_matrix_.index_[end - 1]);
   } else {
-    for (CutpoolPropagation& cutpoolprop : cutpoolpropagation)
+    // Explanation: If cutpoolpropagation[i] returns infeasible,
+    // we still need to update the domain threshold values using
+    // cutpoolpropagation[j], j > i, and reverse the activity
+    // changes made by cutpoolpropagation[j] j < i.
+    HighsInt infeascutpool = -1;
+    for (HighsInt i = 0; i != cutpoolpropagation.size(); ++i) {
       if (!infeasible_) {
-        cutpoolprop.updateActivityUbChange(col, oldbound, newbound);
+        cutpoolpropagation[i].updateActivityUbChange(col, oldbound, newbound,
+                                                     true, true, infeasible_);
+        if (infeasible_) infeascutpool = i;
+      } else {
+        cutpoolpropagation[i].updateActivityUbChange(col, oldbound, newbound,
+                                                     true, false, infeasible_);
       }
+    }
+    for (HighsInt i = 0; i < infeascutpool; ++i) {
+      cutpoolpropagation[i].updateActivityUbChange(col, oldbound, newbound,
+                                                   false, true, infeasible_);
+    }
   }
 
   if (infeasible_) {
@@ -2093,15 +2131,12 @@ void HighsDomain::changeBound(HighsDomainChange boundchg, Reason reason) {
   domchgstack_.push_back(boundchg);
   domchgreason_.push_back(reason);
 
-  if (binary && !infeasible_ && isFixed(boundchg.column))
-    if (!mipsolver->mipdata_->parallelLockActive()) {
-      // TODO MT: Parallel lock should not be needed here... Tests fail though.
-      // TODO MT: This code doesn't change the clique table?????
-      // TODO MT: Does the reason get used in conflict analysis and
-      // TODO MT: results in some future change somewhere else???
-      mipsolver->mipdata_->cliquetable.addImplications(
-          *this, boundchg.column, col_lower_[boundchg.column] > 0.5);
-    }
+  if (binary && !infeasible_ && isFixed(boundchg.column)) {
+    // TODO MT: Parallel lock should not be needed here...
+    // TODO MT: This code doesn't change the clique table?????
+    mipsolver->mipdata_->cliquetable.addImplications(
+        *this, boundchg.column, col_lower_[boundchg.column] > 0.5);
+  }
 }
 
 void HighsDomain::setDomainChangeStack(
