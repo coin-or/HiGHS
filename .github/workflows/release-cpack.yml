@@ -279,6 +279,7 @@ jobs:
         with:
           files: |
             build/*.zip
+          name: windows-x64-shared
 
   build-windows-32-mit:
     runs-on: windows-latest
