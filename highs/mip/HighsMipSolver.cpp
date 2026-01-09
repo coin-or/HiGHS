@@ -750,6 +750,10 @@ restart:
     analysis_.mipTimerStop(kMipClockNodeSearchSeparation);
 
     for (const HighsInt i : search_indices) {
+      // Sync numNeighbourhoodQueries
+      mipdata_->cliquetable.getNumNeighbourhoodQueries() +=
+          mipdata_->workers[i].numNeighbourhoodQueries;
+      mipdata_->workers[i].numNeighbourhoodQueries = 0;
       if (mipdata_->workers[i].getGlobalDomain().infeasible()) {
         mipdata_->workers[i].search_ptr_->cutoffNode();
         analysis_.mipTimerStart(kMipClockOpenNodesToQueue1);
@@ -1167,7 +1171,6 @@ restart:
       // TODO MT: I'm overloading limit_reached with an infeasible status here.
       limit_reached = handlePrunedNodes(search_indices);
       if (limit_reached) break;
-      // TODO MT: If everything was pruned then do a global sync!
       if (search_indices.empty()) {
         if (mipdata_->hasMultipleWorkers()) {
           syncGlobalDomain();

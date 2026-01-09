@@ -46,13 +46,13 @@ class HighsMipWorker {
 
   HighsRandom randgen;
 
-  // HighsMipWorker(const HighsMipSolver& mipsolver__);
+  int64_t numNeighbourhoodQueries;
+
   HighsMipWorker(const HighsMipSolver& mipsolver__, HighsLpRelaxation* lprelax_,
                  HighsDomain* domain, HighsCutPool* cutpool,
                  HighsConflictPool* conflictpool, HighsPseudocost* pseudocost);
 
   ~HighsMipWorker() {
-    // search_ptr_.release();
     search_ptr_.reset();
     sepa_ptr_.reset();
   }
@@ -67,9 +67,6 @@ class HighsMipWorker {
 
   HighsPseudocost& getPseudocost() const { return *pseudocost_; };
 
-  // bool addIncumbent(const std::vector<double>& sol, double solobj,
-  //                   const int solution_source,
-  //                   const bool print_display_line = true);
 
   bool addIncumbent(const std::vector<double>& sol, double solobj,
                     int solution_source);

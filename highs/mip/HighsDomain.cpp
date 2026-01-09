@@ -2094,12 +2094,11 @@ void HighsDomain::changeBound(HighsDomainChange boundchg, Reason reason) {
   domchgreason_.push_back(reason);
 
   if (binary && !infeasible_ && isFixed(boundchg.column))
-    // tried to only modify cliquetable before the dive
-    // but when I try the condition below breaks lseu and I don't know why yet
-    // MT: This code should be alright. It only uses the clique table.
-    // (It doesn't modify anything but the domain?)
-    if (mipsolver->mipdata_->workers.size() <= 1) {
-      // TODO: Parallel lock should not be needed here..... Tests fail though.
+    if (!mipsolver->mipdata_->parallelLockActive()) {
+      // TODO MT: Parallel lock should not be needed here... Tests fail though.
+      // TODO MT: This code doesn't change the clique table?????
+      // TODO MT: Does the reason get used in conflict analysis and
+      // TODO MT: results in some future change somewhere else???
       mipsolver->mipdata_->cliquetable.addImplications(
           *this, boundchg.column, col_lower_[boundchg.column] > 0.5);
     }

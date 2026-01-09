@@ -103,12 +103,15 @@ HighsInt HighsSeparation::separationRound(HighsDomain& propdomain,
 
   // TODO: This can be enabled if randgen and cliquesubsumption are disabled for
   // parallel case
-  if (&propdomain == &mipdata.domain) {
-    lp->getMipSolver().analysis_.mipTimerStart(cliqueClock);
-    mipdata.cliquetable.separateCliques(lp->getMipSolver(), sol.col_value,
-                                        *mipworker_.cutpool_, mipdata.feastol);
-    lp->getMipSolver().analysis_.mipTimerStop(cliqueClock);
-  }
+  // lp->getMipSolver().analysis_.mipTimerStart(cliqueClock);
+  mipdata.cliquetable.separateCliques(
+      lp->getMipSolver(), sol.col_value, *mipworker_.cutpool_, mipdata.feastol,
+      mipdata.parallelLockActive() ? mipdata.cliquetable.getRandgen()
+                                   : mipworker_.randgen,
+      mipdata.parallelLockActive()
+          ? mipdata.cliquetable.getNumNeighbourhoodQueries()
+          : mipworker_.numNeighbourhoodQueries);
+  // lp->getMipSolver().analysis_.mipTimerStop(cliqueClock);
 
   numboundchgs = propagateAndResolve();
   if (numboundchgs == -1)

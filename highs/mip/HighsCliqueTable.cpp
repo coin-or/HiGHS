@@ -1695,7 +1695,9 @@ void HighsCliqueTable::vertexInfeasible(HighsDomain& globaldom, HighsInt col,
 
 void HighsCliqueTable::separateCliques(const HighsMipSolver& mipsolver,
                                        const std::vector<double>& sol,
-                                       HighsCutPool& cutpool, double feastol) {
+                                       HighsCutPool& cutpool, double feastol,
+                                       HighsRandom& randgen,
+                                       int64_t& localNumNeighbourhoodQueries) {
   BronKerboschData data(sol);
   data.feastol = feastol;
   data.maxNeighbourhoodQueries = 1000000 +
@@ -1790,9 +1792,9 @@ void HighsCliqueTable::separateCliques(const HighsMipSolver& mipsolver,
                    false, false);
   }
 
-  numNeighbourhoodQueries += data.numNeighbourhoodQueries;
+  localNumNeighbourhoodQueries += data.numNeighbourhoodQueries;
 
-  if (runcliquesubsumption) {
+  if (runcliquesubsumption && &randgen == &this->randgen) {
     if (cliquehits.size() < cliques.size()) cliquehits.resize(cliques.size());
 
     for (std::vector<CliqueVar>& clique : data.cliques) {
