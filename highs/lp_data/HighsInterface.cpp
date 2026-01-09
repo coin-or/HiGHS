@@ -2159,14 +2159,14 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
   // elastic variables given by the local/global penalties
   //
   // col_of_ecol lists the column indices corresponding to the entries in
-  // bound_of_col_of_ecol so that the results can be interpreted
+  // bound_of_col_of_ecol_is_lower so that the results can be interpreted
   //
   // row_of_ecol lists the row indices corresponding to the entries in
-  // bound_of_row_of_ecol so that the results can be interpreted
+  // bound_of_row_of_ecol_is_lower so that the results can be interpreted
   std::vector<HighsInt> col_of_ecol;
   std::vector<HighsInt> row_of_ecol;
-  std::vector<double> bound_of_row_of_ecol;
-  std::vector<double> bound_of_col_of_ecol;
+  std::vector<bool> bound_of_row_of_ecol_is_lower;
+  std::vector<bool> bound_of_col_of_ecol_is_lower;
   std::vector<double> erow_lower;
   std::vector<double> erow_upper;
   std::vector<HighsInt> erow_start;
@@ -2277,7 +2277,7 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
                               lp.col_names_[iCol] + "_lower");
         // Save the original lower bound on this column and free its
         // lower bound
-        bound_of_col_of_ecol.push_back(lower);
+        bound_of_col_of_ecol_is_lower.push_back(true);
         col_lower[iCol] = -kHighsInf;
         erow_index.push_back(evar_ix);
         erow_value.push_back(1);
@@ -2292,7 +2292,7 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
                               lp.col_names_[iCol] + "_upper");
         // Save the original upper bound on this column and free its
         // upper bound
-        bound_of_col_of_ecol.push_back(upper);
+        bound_of_col_of_ecol_is_lower.push_back(false);
         col_upper[iCol] = kHighsInf;
         erow_index.push_back(evar_ix);
         erow_value.push_back(-1);
@@ -2377,7 +2377,7 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
         if (has_row_names)
           ecol_name.push_back("row_" + std::to_string(iRow) + "_" +
                               lp.row_names_[iRow] + "_lower");
-        bound_of_row_of_ecol.push_back(lower);
+        bound_of_row_of_ecol_is_lower.push_back(true);
         // Define the sub-matrix column
         ecol_index.push_back(iRow);
         ecol_value.push_back(1);
@@ -2391,7 +2391,7 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
         if (has_row_names)
           ecol_name.push_back("row_" + std::to_string(iRow) + "_" +
                               lp.row_names_[iRow] + "_upper");
-        bound_of_row_of_ecol.push_back(upper);
+        bound_of_row_of_ecol_is_lower.push_back(false);
         // Define the sub-matrix column
         ecol_index.push_back(iRow);
         ecol_value.push_back(-1);
@@ -2487,11 +2487,12 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
             this->options_.primal_feasibility_tolerance) {
           if (kIisDevReport)
             printf(
-                "E-col %2d (column %2d) corresponds to column %2d with bound "
-                "%g "
-                "and has solution value %g\n",
+                "E-col %2d (column %2d) corresponds to column %2d with %s bound "
+                "%11.4g "
+                "and has solution value %11.4g\n",
                 int(eCol), int(col_ecol_offset + eCol), int(iCol),
-                bound_of_col_of_ecol[eCol],
+                bound_of_col_of_ecol_is_lower[eCol] ? "lower" : "upper",
+                bound_of_col_of_ecol_is_lower[eCol] ? lp.col_lower_[iCol] : lp.col_upper_[iCol],
                 solution.col_value[col_ecol_offset + eCol]);
           this->changeColBounds(col_ecol_offset + eCol, 0, 0);
           num_fixed++;
@@ -2505,11 +2506,12 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
             this->options_.primal_feasibility_tolerance) {
           if (kIisDevReport)
             printf(
-                "E-row %2d (column %2d) corresponds to    row %2d with bound "
-                "%g "
-                "and has solution value %g\n",
+                "E-row %2d (column %2d) corresponds to    row %2d with %s bound "
+                "%11.4g "
+                "and has solution value %11.4g\n",
                 int(eCol), int(row_ecol_offset + eCol), int(iRow),
-                bound_of_row_of_ecol[eCol],
+                bound_of_row_of_ecol_is_lower[eCol] ? "lower" : "upper",
+                bound_of_row_of_ecol_is_lower[eCol] ? lp.row_lower_[iRow] : lp.row_upper_[iRow],
                 solution.col_value[row_ecol_offset + eCol]);
           this->changeColBounds(row_ecol_offset + eCol, 0, 0);
           num_fixed++;
@@ -2541,11 +2543,12 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
       if (lp.col_upper_[col_ecol_offset + eCol] == 0) {
         num_enforced_col_ecol++;
         printf(
-            "Col e-col %2d (column %2d) corresponds to column %2d with bound "
-            "%g "
+            "Col e-col %2d (column %2d) corresponds to column %2d with %s bound "
+            "%11.4g "
             "and is enforced\n",
             int(eCol), int(col_ecol_offset + eCol), int(iCol),
-            bound_of_col_of_ecol[eCol]);
+	    bound_of_col_of_ecol_is_lower[eCol] ? "lower" : "upper",
+	    bound_of_col_of_ecol_is_lower[eCol] ? lp.col_lower_[iCol] : lp.col_upper_[iCol]);
       }
     }
   }
@@ -2562,10 +2565,11 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
         */
         if (kIisDevReport)
           printf(
-              "Row e-col %2d (column %2d) corresponds to    row %2d with bound "
-              "%g and is enforced\n",
+              "Row e-col %2d (column %2d) corresponds to    row %2d with %s bound "
+              "%11.4g and is enforced\n",
               int(eCol), int(row_ecol_offset + eCol), int(iRow),
-              bound_of_row_of_ecol[eCol]);
+	      bound_of_row_of_ecol_is_lower[eCol] ? "lower" : "upper",
+	      bound_of_row_of_ecol_is_lower[eCol] ? lp.row_lower_[iRow] : lp.row_upper_[iRow]);
       }
     }
   }
@@ -2656,12 +2660,7 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
       HighsInt iX = in_row_index[iRow];
       // Should only have one bound assigned
       assert(iis.row_bound_[iX] == -1);
-      if (bound_of_row_of_ecol[eCol] == lp.row_lower_[iRow]) {
-        iis.row_bound_[iX] = kIisBoundStatusLower;
-      } else {
-        assert(bound_of_row_of_ecol[eCol] == lp.row_upper_[iRow]);
-        iis.row_bound_[iX] = kIisBoundStatusUpper;
-      }
+      iis.row_bound_[iX] = bound_of_row_of_ecol_is_lower[eCol] ? kIisBoundStatusLower : kIisBoundStatusUpper;
     }
   }
   assert(iis.row_bound_.size() == iis.row_index_.size());
