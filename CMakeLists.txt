@@ -915,9 +915,17 @@ endif()
 
 # Set CPack filename
 if(BUILD_STATIC_EXE)
-  set(CPACK_PACKAGE_FILE_NAME "highs-${VERSION}-${PLATFORM}-static")
+  if (HIPO)
+    set(CPACK_PACKAGE_FILE_NAME "highs-${VERSION}-${PLATFORM}-static-apache")
+  else
+    set(CPACK_PACKAGE_FILE_NAME "highs-${VERSION}-${PLATFORM}-static-mit")
+  endif()
 else()
-  set(CPACK_PACKAGE_FILE_NAME "highs-${VERSION}-${PLATFORM}")
+  if (HIPO)
+    set(CPACK_PACKAGE_FILE_NAME "highs-${VERSION}-${PLATFORM}-apache")
+  else
+    set(CPACK_PACKAGE_FILE_NAME "highs-${VERSION}-${PLATFORM}-mit")
+  endif()
 endif()
 
 set(CPACK_PACKAGE_NAME "HiGHS")

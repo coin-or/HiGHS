@@ -150,6 +150,194 @@ jobs:
       - name: Build Universal Binary
         run: |
           cmake -B build -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
+              -DHIPO=ON -DBUILD_STATIC_EXE=ON
+          cmake --build build --parallel
+          cd build && cpack
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-universal
+          path: build/*.tar.gz
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            build/*.tar.gz
+
+  build-linux-mit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [x64]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build
+        run: |
+          cmake -B build -DBUILD_STATIC_EXE=ON
+          cmake --build build -j2
+          cd build && cpack
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: build/*.tar.gz
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            build/*.tar.gz
+
+  build-linux-arm-mit:
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      matrix:
+        arch: [arm64]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build
+        run: |
+          cmake -B build -DBUILD_STATIC_EXE=ON
+          cmake --build build -j2
+          cd build && cpack
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: build/*.tar.gz
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            build/*.tar.gz
+
+  build-windows-mit:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [x64]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build
+        run: |
+          cmake -B build -G "Visual Studio 17 2022" -A ${{ matrix.arch }} `
+              -DBUILD_STATIC_EXE=ON
+          cmake --build build --config Release --parallel
+          cd build
+          cpack -C Release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.arch }}
+          path: build/*.zip
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            build/*.zip
+
+  build-windows-mit-shared:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [x64]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build
+        run: |
+          cmake -B build -G "Visual Studio 17 2022" -A ${{ matrix.arch }}
+          cmake --build build --config Release --parallel
+          cd build
+          cpack -C Release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.arch }}
+          path: build/*.zip
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            build/*.zip
+
+  build-windows-32-mit:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [Win32]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build
+        run: |
+          cmake -B build -G "Visual Studio 17 2022" -A ${{ matrix.arch }} `
+              -DBUILD_STATIC_EXE=ON
+          cmake --build build --config Release --parallel
+          cd build
+          cpack -C Release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.arch }}
+          path: build/*.zip
+
+  build-windows-arm-mit:
+    runs-on: windows-11-arm
+    strategy:
+      matrix:
+        arch: [ARM64]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build
+        run: |
+          cmake -B build -G "Visual Studio 17 2022" -A ${{ matrix.arch }} `
+              -DBUILD_STATIC_EXE=ON
+          cmake --build build --config Release --parallel
+          cd build
+          cpack -C Release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.arch }}
+          path: build/*.zip
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            build/*.zip
+
+  build-macos-mit:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Universal Binary
+        run: |
+          cmake -B build -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
               -DBUILD_STATIC_EXE=ON
           cmake --build build --parallel
           cd build && cpack
