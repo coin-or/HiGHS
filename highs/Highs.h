@@ -1292,7 +1292,7 @@ class Highs {
 
   // Start of advanced methods for HiGHS MIP solver
 
-  HighsStatus optimizeMipLp() { return run() };
+  HighsStatus optimizeLp();
 
   const HighsSimplexStats& getSimplexStats() const {
     return ekk_instance_.getSimplexStats();

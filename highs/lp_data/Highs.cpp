@@ -2748,6 +2748,13 @@ HighsStatus Highs::setBasis() {
   return HighsStatus::kOk;
 }
 
+HighsStatus Highs::optimizeLp() {
+  // Solve what's in the HighsLp instance Highs::model_.lp_
+  assert(!model_.isQp());
+  assert(!model_.lp_.hasSemiVariables());
+  return run();   
+}
+
 HighsStatus Highs::putIterate() {
   // Check that there is a simplex iterate to put
   if (!ekk_instance_.status_.has_invert) {
