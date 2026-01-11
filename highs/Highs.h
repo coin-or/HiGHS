@@ -1563,7 +1563,7 @@ class Highs {
 
   void reportModelStats() const;
   HighsStatus runFromExe();
-  HighsStatus runUserScaling();
+  HighsStatus runFromUserScaling();
   HighsStatus optimizeHighs();
   HighsStatus optimizeModel();
 
@@ -1794,9 +1794,6 @@ class Highs {
   bool tryPdlpCleanup(HighsInt& pdlp_cleanup_iteration_limit,
                       const HighsInfo& presolved_lp_info) const;
 
-  bool optionsHasHighsFiles() const;
-  void saveHighsFiles();
-  void getHighsFiles();
 };
 
 // Start of deprecated methods not in the Highs class

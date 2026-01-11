@@ -87,7 +87,7 @@ This "outer" layer should contain just the "HiGHS files" actions that were
 previously in `app/RunHighs.cpp`, so only available to users who could
 run the executable. 
 
-### `Highs::runUserScaling()`
+### `Highs::runFromUserScaling()`
 
 The next layer should handle user scaling
 
