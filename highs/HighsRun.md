@@ -73,7 +73,7 @@ With the plan to allow indicator constraints and SOS as generalised
 disjunctive forms that will be reformulated, the handling of "mods"
 needs to be refactored!
 
-## The trigger
+## Refactoring
 
 The inelegance of `Highs::run()` (and `Highs::optimizeModel()`) was
 exposed by
