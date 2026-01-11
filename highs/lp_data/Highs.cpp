@@ -938,24 +938,30 @@ HighsStatus Highs::runFromExe() {
     if (this->options_.write_model_file != "")
       status = this->writeModel(this->options_.write_model_file);
     if (status != HighsStatus::kOk) return status;
-    // Save all the Highs files names from options_ to Highs::files_
-    // so that any relating to files written after run() are saved,
-    // and all can be reset to the user's values
-    this->saveHighsFiles();
+    if (kCacheHighsFiles) {
+      // Save all the Highs files names from options_ to Highs::files_
+      // so that any relating to files written after run() are saved,
+      // and all can be reset to the user's values
+      this->saveHighsFiles();
+    }
   }
-  // No subsequent calls to run() can have HiGHS files in options_, so
-  // options_had_highs_files is false in any future calls to
-  // Highs::run(), so solution and basis files are only written when
-  // returning to this call
-  assert(!this->optionsHasHighsFiles());
+  if (kCacheHighsFiles) {
+    // No subsequent calls to run() can have HiGHS files in options_, so
+    // options_had_highs_files is false in any future calls to
+    // Highs::run(), so solution and basis files are only written when
+    // returning to this call
+    assert(!this->optionsHasHighsFiles());
+  }
 
   HighsStatus status = runUserScaling();
 
   if (options_had_highs_files) {
-    // This call to Highs::run() had HiGHS files in options, so
+    if (kCacheHighsFiles) {
+    // This call to Highs::runFromExe() had HiGHS files in options, so
     // recover HiGHS files to options_
-    this->getHighsFiles();
-    this->files_.clear();
+      this->getHighsFiles();
+      this->files_.clear();
+    }
     if (this->options_.write_iis_model_file != "")
       status = this->writeIisModel(this->options_.write_iis_model_file);
     if (this->options_.solution_file != "")
@@ -970,7 +976,7 @@ HighsStatus Highs::runFromExe() {
 HighsStatus Highs::runUserScaling() {
   // Possibly apply user-defined scaling to the incumbent model and
   // solution
-  assert(!this->optionsHasHighsFiles());
+  if (kCacheHighsFiles) assert(!this->optionsHasHighsFiles());
 
   this->reportModelStats();
 
