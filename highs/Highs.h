@@ -1290,8 +1290,18 @@ class Highs {
    */
   static void resetGlobalScheduler(bool blocking = false);
 
-  // Start of advanced methods for HiGHS MIP solver
+  // Start of advanced methods: only for internal use!
 
+  // Nested methods below Highs::run(), which just returns
+  // Highs::runFromExe()
+  //
+  // See highs/HighsRun.md
+  HighsStatus runFromExe();
+  HighsStatus runFromUserScaling();
+  HighsStatus optimizeHighs();
+  HighsStatus optimizeModel();
+  HighsStatus calledOptimizeModel();
+  // Used in MIP solver as minimal LP solve
   HighsStatus optimizeLp();
 
   const HighsSimplexStats& getSimplexStats() const {
@@ -1562,11 +1572,6 @@ class Highs {
   bool written_log_header_ = false;
 
   void reportModelStats() const;
-  HighsStatus runFromExe();
-  HighsStatus runFromUserScaling();
-  HighsStatus optimizeHighs();
-  HighsStatus optimizeModel();
-  HighsStatus calledOptimizeModel();
 
   void exactResizeModel() {
     this->model_.lp_.exactResize();
