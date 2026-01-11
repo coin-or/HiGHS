@@ -212,9 +212,9 @@ class Highs {
   HighsStatus presolve();
 
   /**
-   * @brief Run the solver, accounting for any multiple objective
+   * @brief Run the solver
    */
-  HighsStatus run();
+  HighsStatus run() { return runFromExe(); }
 
   /**
    * @brief Postsolve the incumbent model using a solution
@@ -1292,6 +1292,8 @@ class Highs {
 
   // Start of advanced methods for HiGHS MIP solver
 
+  HighsStatus optimizeLp();
+
   const HighsSimplexStats& getSimplexStats() const {
     return ekk_instance_.getSimplexStats();
   }
@@ -1532,7 +1534,6 @@ class Highs {
   HighsRanging ranging_;
   HighsIis iis_;
   std::vector<HighsObjectiveSolution> saved_objective_and_solution_;
-  HighsFiles files_;
 
   HighsPresolveStatus model_presolve_status_ =
       HighsPresolveStatus::kNotPresolved;
@@ -1561,7 +1562,11 @@ class Highs {
   bool written_log_header_ = false;
 
   void reportModelStats() const;
+  HighsStatus runFromExe();
+  HighsStatus runFromUserScaling();
+  HighsStatus optimizeHighs();
   HighsStatus optimizeModel();
+  HighsStatus calledOptimizeModel();
 
   void exactResizeModel() {
     this->model_.lp_.exactResize();
@@ -1789,10 +1794,6 @@ class Highs {
 
   bool tryPdlpCleanup(HighsInt& pdlp_cleanup_iteration_limit,
                       const HighsInfo& presolved_lp_info) const;
-
-  bool optionsHasHighsFiles() const;
-  void saveHighsFiles();
-  void getHighsFiles();
 };
 
 // Start of deprecated methods not in the Highs class

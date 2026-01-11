@@ -1844,21 +1844,18 @@ void HighsDomain::updateRedundantRows(HighsInt row) {
 }
 
 double HighsDomain::getRedundantRowValue(HighsInt row) const {
-  if (mipsolver->model_->row_lower_[row] != -kHighsInf) {
-    assert(mipsolver->model_->row_upper_[row] == kHighsInf);
-    return static_cast<double>(activitymin_[row] -
-                               mipsolver->model_->row_lower_[row]);
+  if (mipsolver->rowLower(row) != -kHighsInf) {
+    assert(mipsolver->rowUpper(row) == kHighsInf);
+    return static_cast<double>(activitymin_[row] - mipsolver->rowLower(row));
   } else {
-    assert(mipsolver->model_->row_upper_[row] != kHighsInf);
-    return static_cast<double>(activitymax_[row] -
-                               mipsolver->model_->row_upper_[row]);
+    assert(mipsolver->rowUpper(row) != kHighsInf);
+    return static_cast<double>(activitymax_[row] - mipsolver->rowUpper(row));
   }
 }
 
 bool HighsDomain::isRedundantRow(HighsInt row) const {
-  return (
-      getMinActivity(row) >= mipsolver->model_->row_lower_[row] - feastol() &&
-      getMaxActivity(row) <= mipsolver->model_->row_upper_[row] + feastol());
+  return (getMinActivity(row) >= mipsolver->rowLower(row) - feastol() &&
+          getMaxActivity(row) <= mipsolver->rowUpper(row) + feastol());
 }
 
 void HighsDomain::markPropagateCut(Reason reason) {
@@ -2771,8 +2768,7 @@ bool HighsDomain::ConflictSet::explainBoundChangeGeq(
   // decrease M by updating it with the stronger local bounds until
   // M <= b - b0 holds.
   double b0 = domchg.domchg.boundval;
-  if (localdom.mipsolver->variableType(domchg.domchg.column) !=
-      HighsVarType::kContinuous) {
+  if (!localdom.mipsolver->isColContinuous(domchg.domchg.column)) {
     // in case of an integral variable the bound was rounded and can be
     // relaxed by 1-feastol. We use 1 - 10 * feastol for numerical safety.
     if (domchg.domchg.boundtype == HighsBoundType::kLower)
@@ -2881,8 +2877,7 @@ bool HighsDomain::ConflictSet::explainBoundChangeLeq(
   // increase M by updating it with the stronger local bounds until
   // M >= b - b0 holds.
   double b0 = domchg.domchg.boundval;
-  if (localdom.mipsolver->variableType(domchg.domchg.column) !=
-      HighsVarType::kContinuous) {
+  if (!localdom.mipsolver->isColContinuous(domchg.domchg.column)) {
     // in case of an integral variable the bound was rounded and can be
     // relaxed by 1-feastol. We use 1 - 10 * feastol for numerical safety
     if (domchg.domchg.boundtype == HighsBoundType::kLower)
@@ -2949,8 +2944,7 @@ bool HighsDomain::ConflictSet::resolveLinearGeq(HighsCDouble M, double Mupper,
           double glb = reasonDomchg.baseBound;
           double relaxLb =
               double(((Mupper - (M - reasonDomchg.delta)) / vals[i]) + glb);
-          if (localdom.mipsolver->variableType(col) !=
-              HighsVarType::kContinuous)
+          if (!localdom.mipsolver->isColContinuous(col))
             relaxLb = std::ceil(relaxLb);
 
           if (relaxLb - lb >= -localdom.feastol()) continue;
@@ -2981,8 +2975,7 @@ bool HighsDomain::ConflictSet::resolveLinearGeq(HighsCDouble M, double Mupper,
           double gub = reasonDomchg.baseBound;
           double relaxUb =
               double(((Mupper - (M - reasonDomchg.delta)) / vals[i]) + gub);
-          if (localdom.mipsolver->variableType(col) !=
-              HighsVarType::kContinuous)
+          if (!localdom.mipsolver->isColContinuous(col))
             relaxUb = std::floor(relaxUb);
 
           if (relaxUb - ub <= localdom.feastol()) continue;
@@ -3063,8 +3056,7 @@ bool HighsDomain::ConflictSet::resolveLinearLeq(HighsCDouble M, double Mlower,
           double glb = reasonDomchg.baseBound;
           double relaxLb =
               double(((Mlower - (M - reasonDomchg.delta)) / vals[i]) + glb);
-          if (localdom.mipsolver->variableType(col) !=
-              HighsVarType::kContinuous)
+          if (!localdom.mipsolver->isColContinuous(col))
             relaxLb = std::ceil(relaxLb);
 
           if (relaxLb - lb >= -localdom.feastol()) continue;
@@ -3095,8 +3087,7 @@ bool HighsDomain::ConflictSet::resolveLinearLeq(HighsCDouble M, double Mlower,
           double gub = reasonDomchg.baseBound;
           double relaxUb =
               double(((Mlower - (M - reasonDomchg.delta)) / vals[i]) + gub);
-          if (localdom.mipsolver->variableType(col) !=
-              HighsVarType::kContinuous)
+          if (!localdom.mipsolver->isColContinuous(col))
             relaxUb = std::floor(relaxUb);
 
           if (relaxUb - ub <= localdom.feastol()) continue;

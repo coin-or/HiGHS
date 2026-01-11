@@ -345,6 +345,9 @@ class HPresolve {
                         double* worstCaseLowerBound = nullptr,
                         double* worstCaseUpperBound = nullptr);
 
+  template <typename storageFormat>
+  HighsCDouble computeDynamism(const HighsMatrixSlice<storageFormat>& vector);
+
  public:
   // for LP presolve
   bool okSetInput(HighsLp& model_, const HighsOptions& options_,

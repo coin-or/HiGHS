@@ -3191,10 +3191,14 @@ void Highs::restoreInfCost(HighsStatus& return_status) {
 }
 
 HighsStatus Highs::userScaleModel(HighsUserScaleData& data) {
+  // Consider applying user objective and bound scaling to the model
+  // by first identifying whether it causes any errors due to creating
+  // extreme data values...
   userScaleLp(this->model_.lp_, data, false);
   userScaleHessian(this->model_.hessian_, data, false);
   HighsStatus return_status = userScaleStatus(this->options_.log_options, data);
   if (return_status == HighsStatus::kError) return HighsStatus::kError;
+  // ... and, if not, actually apply the scaling
   userScaleLp(this->model_.lp_, data);
   userScaleHessian(this->model_.hessian_, data);
   return return_status;
