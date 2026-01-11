@@ -928,7 +928,7 @@ HighsStatus Highs::presolve() {
 }
 
 HighsStatus Highs::runFromExe() {
-  this->sub_solver_call_time_.initialise();
+  //  this->sub_solver_call_time_.initialise();
   const bool options_had_highs_files = this->optionsHasHighsFiles();
   if (options_had_highs_files) {
     HighsStatus status = HighsStatus::kOk;
@@ -950,6 +950,7 @@ HighsStatus Highs::runFromExe() {
   // returning to this call
   assert(!this->optionsHasHighsFiles());
 
+  /*
   if (!options_.use_warm_start) this->clearSolver();
   this->reportModelStats();
 
@@ -976,22 +977,11 @@ HighsStatus Highs::runFromExe() {
                                        user_scale_data);
   // Used when developing unit tests in TestUserScale.cpp
   //  this->writeModel("");
-  HighsStatus status;
+  */
+  HighsStatus status = runUserScaling();
+  /*
   if (!this->multi_linear_objective_.size()) {
     status = this->optimizeModel();
-    if (options_had_highs_files) {
-      // This call to Highs::run() had HiGHS files in options, so
-      // recover HiGHS files to options_
-      this->getHighsFiles();
-      this->files_.clear();
-      if (this->options_.write_iis_model_file != "")
-        status = this->writeIisModel(this->options_.write_iis_model_file);
-      if (this->options_.solution_file != "")
-        status = this->writeSolution(this->options_.solution_file,
-                                     this->options_.write_solution_style);
-      if (this->options_.write_basis_file != "")
-        status = this->writeBasis(this->options_.write_basis_file);
-    }
   } else {
     status = this->multiobjectiveSolve();
   }
@@ -1033,10 +1023,27 @@ HighsStatus Highs::runFromExe() {
   }
   if (this->options_.log_dev_level > 0) this->reportSubSolverCallTime();
   return status;
+  */
+  if (options_had_highs_files) {
+    // This call to Highs::run() had HiGHS files in options, so
+    // recover HiGHS files to options_
+    this->getHighsFiles();
+    this->files_.clear();
+    if (this->options_.write_iis_model_file != "")
+      status = this->writeIisModel(this->options_.write_iis_model_file);
+    if (this->options_.solution_file != "")
+      status = this->writeSolution(this->options_.solution_file,
+				   this->options_.write_solution_style);
+    if (this->options_.write_basis_file != "")
+      status = this->writeBasis(this->options_.write_basis_file);
+  }
+  return status;
 }
 
 HighsStatus Highs::runUserScaling() {
   assert(!this->optionsHasHighsFiles());
+
+  this->reportModelStats();
 
   // Possibly apply user-defined scaling to the incumbent model and solution
   HighsUserScaleData user_scale_data;
@@ -1104,6 +1111,7 @@ HighsStatus Highs::runUserScaling() {
 }
 
 HighsStatus Highs::optimizeHighs() {
+  if (!options_.use_warm_start) this->clearSolver();
   this->sub_solver_call_time_.initialise();
   HighsStatus status = this->multi_linear_objective_.size() ? this->multiobjectiveSolve() : this->optimizeModel();
   if (this->options_.log_dev_level > 0) this->reportSubSolverCallTime();
