@@ -1033,23 +1033,29 @@ HighsStatus Highs::runFromUserScaling() {
 }
 
 HighsStatus Highs::optimizeHighs() {
-  if (!options_.use_warm_start) this->clearSolver();
-  this->sub_solver_call_time_.initialise();
-  HighsStatus status = this->multi_linear_objective_.size()
-                           ? this->multiobjectiveSolve()
-                           : this->optimizeModel();
-  if (this->options_.log_dev_level > 0) this->reportSubSolverCallTime();
-  return status;
+  // Level 2 of Highs::run()
+  //
+  // Move the "mods" to here
+  return this->multi_linear_objective_.size() ? this->multiobjectiveSolve()
+                                              : this->optimizeModel();
 }
 
 HighsStatus Highs::optimizeModel() {
-  return this->calledOptimizeModel();
+  // Level 3a of Highs::run()
+  //
+  if (!options_.use_warm_start) this->clearSolver();
+  this->sub_solver_call_time_.initialise();
+  HighsStatus status = this->calledOptimizeModel();
+  if (this->options_.log_dev_level > 0) this->reportSubSolverCallTime();
+  return status;
 }
 
 // Checks the options calls presolve and postsolve if needed.
 //
 // LP solvers are called with callSolveLp(..)
 HighsStatus Highs::calledOptimizeModel() {
+  // Level 3b of Highs::run()
+  //
   HighsInt min_highs_debug_level = kHighsDebugLevelMin;
   // kHighsDebugLevelCostly;
   // kHighsDebugLevelMax;
@@ -2682,7 +2688,7 @@ HighsStatus Highs::optimizeLp() {
   assert(!model_.isQp());
   assert(!model_.lp_.hasSemiVariables());
   assert(!this->multi_linear_objective_.size());
-  return optimizeHighs();
+  return optimizeModel();
 }
 
 HighsStatus Highs::putIterate() {

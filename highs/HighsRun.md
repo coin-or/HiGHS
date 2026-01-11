@@ -3,7 +3,10 @@
 `Highs::run()` has evolved a great deal since it was first created to
 "solve" the LP in the `HighsLp` instance `Highs::lp_`. As well as
 solving more problem classes, and using more solvers, features have
-been added inelegantly.
+been added inelegantly. The simplicity of having a single
+`Highs::run()` method, with different features obscured within it will
+be replaced by multiple, nested, "solve" methods which are explicit in
+their features and very much simpler.
 
 The only refactoring came when the multiple objective code was added:
 `Highs::optimizeModel()` inherited the content of `Highs::run()` so
@@ -125,6 +128,23 @@ The next layer should just optimize what's in the `HighsModel` (without semi-var
   actions to be performed, it can call `Highs::optimizeModel()`. To
   emphasise that just an LP is being solved, `Highs::optimizeLp()` has
   been created. This is currently a call to `Highs::optimizeModel()`
+
+## ToDo
+
+- Move the code to write out the presolved model from `app/RunHighs.cpp` to `Highs::runFromExe()`
+
+- Move the "mods" to `Highs::optimizeHighs()`
+
+- For problems with multiple objectives
+
+  - Apply user scaling to the multiple objectives 
+
+  - Assess the multiple objectives for extreme values
+
+  - Accumulate subsystem solve times
+
+- In IIS calculations, accumulate subsystem solve times
+
 
 
 
