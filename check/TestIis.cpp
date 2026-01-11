@@ -5,7 +5,7 @@
 #include "Highs.h"
 #include "catch.hpp"
 
-const bool dev_run = false;  // true;  //
+const bool dev_run = false;  // true;//
 const bool write_model = false;
 
 const double inf = kHighsInf;
@@ -760,16 +760,39 @@ TEST_CASE("write-iis_model-file", "[iis]") {
   lp.col_names_ = {"x0", "x1", "x2", "x3", "x4"};
   lp.row_names_ = {"x3-.5x4=0", "x2-x4-x0=0", "x3+x4-x1=0", "x0+x1>=20"};
   Highs h;
-  h.passModel(lp);
+  h.setOptionValue("output_flag", dev_run);
   h.setOptionValue("log_file", "highs.log");
-  h.setOptionValue("iis_strategy", 1);
   h.setOptionValue("write_iis_model_file", test_mps);
   h.setOptionValue("solution_file", test_sol);
-  h.run();
-  h.readModel(test_mps);
-  h.run();
-  REQUIRE(h.getModelStatus() == HighsModelStatus::kInfeasible);
-  //  std::remove(test_mps.c_str());
-  //  std::remove(test_sol.c_str());
+  const HighsInt to_k = 2;
+  for (HighsInt k = 0; k <= to_k; k++) {
+    if (k == 0) {
+      h.setOptionValue("iis_strategy", kIisStrategyLight);
+    } else if (k == 1) {
+      h.setOptionValue("iis_strategy", kIisStrategyFromLp);
+    } else {
+      assert(k == 2);
+      h.setOptionValue("iis_strategy",
+                       kIisStrategyFromLp + kIisStrategyIrreducible);
+    }
+    if (dev_run)
+      printf(
+          "\nPass %d with iis_strategy = %d\n============================\n\n",
+          int(k), int(h.getOptions().iis_strategy));
+    h.passModel(lp);
+    h.run();
+    h.readModel(test_mps);
+    if (k == 0) {
+      REQUIRE(h.getLp().num_col_ == 0);
+      REQUIRE(h.getLp().num_row_ == 0);
+    } else {
+      // Use h.optimizeModel(); to avoid unnecessary MPS and solution
+      // file
+      h.optimizeModel();
+      REQUIRE(h.getModelStatus() == HighsModelStatus::kInfeasible);
+    }
+  }
+  std::remove(test_mps.c_str());
+  std::remove(test_sol.c_str());
   h.resetGlobalScheduler(true);
 }

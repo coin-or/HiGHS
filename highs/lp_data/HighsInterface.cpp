@@ -1928,9 +1928,10 @@ HighsStatus Highs::getIisInterface() {
   // light strategy
   if (options_.iis_strategy == kIisStrategyLight)
     return this->getIisInterfaceReturn(HighsStatus::kOk);
-  const bool ray_option =
+  bool ray_option =
       // kIisStrategyFromRay & options.iis_strategy;
       false;
+  const bool lp_option = kIisStrategyFromLp & options_.iis_strategy;
   if (this->model_status_ == HighsModelStatus::kInfeasible && ray_option &&
       !ekk_instance_.status_.has_invert) {
     // Model is known to be infeasible, and a dual ray option is
@@ -1962,10 +1963,11 @@ HighsStatus Highs::getIisInterface() {
   }
   const bool has_dual_ray = ekk_instance_.dual_ray_record_.index != kNoRayIndex;
   if (ray_option && !has_dual_ray)
-    highsLogUser(
-        options_.log_options, HighsLogType::kWarning,
-        "No known dual ray from which to compute IIS: using whole model\n");
-  if (ray_option && has_dual_ray) {
+    highsLogUser(options_.log_options, HighsLogType::kWarning,
+                 "No known dual ray from which to compute IIS\n");
+  ray_option = ray_option && has_dual_ray;
+  if (ray_option) {
+    assert(has_dual_ray);
     // Compute the dual ray to identify an infeasible subset of rows
     assert(ekk_instance_.status_.has_invert);
     assert(!lp.is_moved_);
@@ -1979,7 +1981,7 @@ HighsStatus Highs::getIisInterface() {
                         true);
     for (HighsInt iRow = 0; iRow < lp.num_row_; iRow++)
       if (dual_ray_value[iRow]) this->iis_.row_index_.push_back(iRow);
-  } else {
+  } else if (lp_option) {
     // Full LP option chosen or no dual ray to use
     //
     // Working on the whole model so clear all solver data
@@ -1995,6 +1997,9 @@ HighsStatus Highs::getIisInterface() {
     assert(check_lp_before.a_matrix_.equivalent(check_lp_after.a_matrix_));
     if (return_status != HighsStatus::kOk) return return_status;
   }
+  // Don't continue if not using the ray or elasticity LP strategies
+  if (!ray_option && !lp_option)
+    return this->getIisInterfaceReturn(HighsStatus::kOk);
   // Due to the actions of Highs::elasticityFilter have to clear all
   // solver data, retaining a copy of Highs::iis_ to restore it
   HighsIis iis = this->iis_;
