@@ -963,17 +963,33 @@ HighsStatus Highs::runFromUserScaling() {
   // solution, and call Highs::optimizeHighs()
   this->reportModelStats();
 
-  const bool user_scaling =
-      options_.user_objective_scale || options_.user_bound_scale;
-
   // User objective and bound scaling data are accumulated in the
   // HighsUserScaleData struct, in particular, there is a local copy
   // of the user objective and bound scaling options values, and
   // records of resulting extreme data values that prevent the user
   // objective and bound scaling from being applied.
   HighsUserScaleData user_scale_data;
-  initialiseUserScaleData(this->options_, user_scale_data);
-  if (user_scaling) {
+  const bool kCallInitialiseUserScaleData = false;
+  if (kCallInitialiseUserScaleData) {
+    initialiseUserScaleData(this->options_, user_scale_data);
+  } else {
+    //    user_scale_data.applied = false;
+    //    user_scale_data.user_objective_scale = options_.user_objective_scale;
+    //    user_scale_data.user_bound_scale = options_.user_bound_scale;
+  }
+  
+  // Even if there is no user objective and bound scaling to be
+  // considered, the HighsUserScaleData instance is needed so that
+  //
+  // user_scale_data.applied is set
+  //
+  // Values of user_objective_scale and 
+
+
+  if (options_.user_objective_scale ||
+      options_.user_bound_scale) {
+    if (!kCallInitialiseUserScaleData) 
+      initialiseUserScaleData(this->options_, user_scale_data);
     // Determine whether user scaling yields excessively large cost,
     // Hessian values, column/row bounds or matrix values. If not,
     // then apply the user scaling to the model...
@@ -994,8 +1010,7 @@ HighsStatus Highs::runFromUserScaling() {
   // Optimize the model in the Highs instance
   HighsStatus status = optimizeHighs();
 
-  if (user_scaling) {
-    assert(user_scale_data.applied);
+  if (user_scale_data.applied) {
     // Unscale the incumbent model and solution
     //
     // Flip the scaling sign
