@@ -60,7 +60,7 @@ class Factorise {
   const Regul& regul_;
 
   // flag to stop computation
-  bool flag_stop_ = false;
+  std::atomic<bool> flag_stop_{false};
 
   const Log* log_;
   DataCollector& data_;
