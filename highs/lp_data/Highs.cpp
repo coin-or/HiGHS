@@ -928,7 +928,6 @@ HighsStatus Highs::presolve() {
 }
 
 HighsStatus Highs::runFromExe() {
-  //  this->sub_solver_call_time_.initialise();
   const bool options_had_highs_files = this->optionsHasHighsFiles();
   if (options_had_highs_files) {
     HighsStatus status = HighsStatus::kOk;
@@ -969,24 +968,40 @@ HighsStatus Highs::runFromExe() {
 }
 
 HighsStatus Highs::runUserScaling() {
+  // Possibly apply user-defined scaling to the incumbent model and
+  // solution
   assert(!this->optionsHasHighsFiles());
 
   this->reportModelStats();
 
-  // Possibly apply user-defined scaling to the incumbent model and solution
+  const bool user_scaling =
+    options_.user_objective_scale || options_.user_bound_scale;
+  // Should no longer be necessary to modify the user scale option
+  // values to prevent further scaling
+  const bool kModifyUserScaleOptions = false;
+
+  // User objective and bound scaling data are accumulated in the
+  // HighsUserScaleData struct, in particular, there is a local copy
+  // of the user objective and bound scaling options values, and
+  // records of resulting extreme data values that prevent the user
+  // objective and bound scaling from being applied.
   HighsUserScaleData user_scale_data;
   initialiseUserScaleData(this->options_, user_scale_data);
-  const bool user_scaling =
-      user_scale_data.user_objective_scale || user_scale_data.user_bound_scale;
   if (user_scaling) {
+    // Determine whether user scaling yields excessively large cost,
+    // Hessian values, column/row bounds or matrix values. If not,
+    // then apply the user scaling to the model...
     if (this->userScaleModel(user_scale_data) == HighsStatus::kError)
       return HighsStatus::kError;
+    // ... and the solution
     this->userScaleSolution(user_scale_data);
     // Indicate that the scaling has been applied
     user_scale_data.applied = true;
-    // Zero the user scale values to prevent further scaling
-    this->options_.user_objective_scale = 0;
-    this->options_.user_bound_scale = 0;
+    if (kModifyUserScaleOptions) {
+      // Zero the user scale values to prevent further scaling
+      this->options_.user_objective_scale = 0;
+      this->options_.user_bound_scale = 0;
+    }
   }
 
   // Determine coefficient ranges and possibly warn the user about
@@ -1014,10 +1029,12 @@ HighsStatus Highs::runUserScaling() {
     }
     const bool update_kkt = true;
     unscale_status = this->userScaleSolution(user_scale_data, update_kkt);
-    // Restore the user scale values, remembering that they've been
-    // negated to undo user scaling
-    this->options_.user_objective_scale = -user_scale_data.user_objective_scale;
-    this->options_.user_bound_scale = -user_scale_data.user_bound_scale;
+    if (kModifyUserScaleOptions) {
+      // Restore the user scale values, remembering that they've been
+      // negated to undo user scaling
+      this->options_.user_objective_scale = -user_scale_data.user_objective_scale;
+      this->options_.user_bound_scale = -user_scale_data.user_bound_scale;
+    }
     // Indicate that the scaling has not been applied
     user_scale_data.applied = false;
     highsLogUser(this->options_.log_options, HighsLogType::kInfo,
@@ -1046,8 +1063,9 @@ HighsStatus Highs::optimizeHighs() {
   return status;
 }
 
-// Checks the options calls presolve and postsolve if needed. Solvers are called
-// with callSolveLp(..)
+// Checks the options calls presolve and postsolve if needed.
+//
+// LP solvers are called with callSolveLp(..)
 HighsStatus Highs::optimizeModel() {
   HighsInt min_highs_debug_level = kHighsDebugLevelMin;
   // kHighsDebugLevelCostly;
