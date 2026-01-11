@@ -16,17 +16,6 @@
 
 #include "lp_data/HConst.h"
 
-struct HighsFiles {
-  bool empty = true;
-  std::string read_solution_file = "";
-  std::string read_basis_file = "";
-  std::string write_model_file = "";
-  std::string write_iis_model_file = "";
-  std::string write_solution_file = "";
-  std::string write_basis_file = "";
-  void clear();
-};
-
 struct HighsSolution {
   bool value_valid = false;
   bool dual_valid = false;

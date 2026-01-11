@@ -938,30 +938,10 @@ HighsStatus Highs::runFromExe() {
     if (this->options_.write_model_file != "")
       status = this->writeModel(this->options_.write_model_file);
     if (status != HighsStatus::kOk) return status;
-    if (kCacheHighsFiles) {
-      // Save all the Highs files names from options_ to Highs::files_
-      // so that any relating to files written after run() are saved,
-      // and all can be reset to the user's values
-      this->saveHighsFiles();
-    }
   }
-  if (kCacheHighsFiles) {
-    // No subsequent calls to run() can have HiGHS files in options_, so
-    // options_had_highs_files is false in any future calls to
-    // Highs::run(), so solution and basis files are only written when
-    // returning to this call
-    assert(!this->optionsHasHighsFiles());
-  }
-
   HighsStatus status = runUserScaling();
 
   if (options_had_highs_files) {
-    if (kCacheHighsFiles) {
-    // This call to Highs::runFromExe() had HiGHS files in options, so
-    // recover HiGHS files to options_
-      this->getHighsFiles();
-      this->files_.clear();
-    }
     if (this->options_.write_iis_model_file != "")
       status = this->writeIisModel(this->options_.write_iis_model_file);
     if (this->options_.solution_file != "")
@@ -976,7 +956,6 @@ HighsStatus Highs::runFromExe() {
 HighsStatus Highs::runUserScaling() {
   // Possibly apply user-defined scaling to the incumbent model and
   // solution
-  if (kCacheHighsFiles) assert(!this->optionsHasHighsFiles());
 
   this->reportModelStats();
 
@@ -4959,16 +4938,6 @@ void Highs::resetGlobalScheduler(bool blocking) {
   HighsTaskExecutor::shutdown(blocking);
 }
 
-void HighsFiles::clear() {
-  this->empty = true;
-  this->read_solution_file = "";
-  this->read_basis_file = "";
-  this->write_model_file = "";
-  this->write_iis_model_file = "";
-  this->write_solution_file = "";
-  this->write_basis_file = "";
-}
-
 bool Highs::optionsHasHighsFiles() const {
   if (this->options_.read_solution_file != "") return true;
   if (this->options_.read_basis_file != "") return true;
@@ -4977,49 +4946,4 @@ bool Highs::optionsHasHighsFiles() const {
   if (this->options_.solution_file != "") return true;
   if (this->options_.write_basis_file != "") return true;
   return false;
-}
-
-void Highs::saveHighsFiles() {
-  this->files_.empty = true;
-  if (this->options_.read_solution_file != "") {
-    this->files_.read_solution_file = this->options_.read_solution_file;
-    this->options_.read_solution_file = "";
-    this->files_.empty = false;
-  }
-  if (this->options_.read_basis_file != "") {
-    this->files_.read_basis_file = this->options_.read_basis_file;
-    this->options_.read_basis_file = "";
-    this->files_.empty = false;
-  }
-  if (this->options_.write_model_file != "") {
-    this->files_.write_model_file = this->options_.write_model_file;
-    this->options_.write_model_file = "";
-    this->files_.empty = false;
-  }
-  if (this->options_.write_iis_model_file != "") {
-    this->files_.write_iis_model_file = this->options_.write_iis_model_file;
-    this->options_.write_iis_model_file = "";
-    this->files_.empty = false;
-  }
-  if (this->options_.solution_file != "") {
-    this->files_.write_solution_file = this->options_.solution_file;
-    this->options_.solution_file = "";
-    this->files_.empty = false;
-  }
-  if (this->options_.write_basis_file != "") {
-    this->files_.write_basis_file = this->options_.write_basis_file;
-    this->options_.write_basis_file = "";
-    this->files_.empty = false;
-  }
-}
-
-void Highs::getHighsFiles() {
-  if (this->files_.empty) return;
-  this->options_.read_solution_file = this->files_.read_solution_file;
-  this->options_.read_basis_file = this->files_.read_basis_file;
-  this->options_.write_model_file = this->files_.write_model_file;
-  this->options_.write_iis_model_file = this->files_.write_iis_model_file;
-  this->options_.solution_file = this->files_.write_solution_file;
-  this->options_.write_basis_file = this->files_.write_basis_file;
-  this->files_.clear();
 }

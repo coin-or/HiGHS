@@ -48,8 +48,6 @@ const HighsInt kNoThreadInstance = -1;
 const bool kAllowDeveloperAssert = false;
 const bool kExtendInvertWhenAddingRows = false;
 
-const bool kCacheHighsFiles = false; // For fix-2738
-
 enum class HighsLogType { kInfo = 1, kDetailed, kVerbose, kWarning, kError };
 
 enum SimplexScaleStrategy {
