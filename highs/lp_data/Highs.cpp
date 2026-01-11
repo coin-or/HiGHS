@@ -1042,10 +1042,14 @@ HighsStatus Highs::optimizeHighs() {
   return status;
 }
 
+HighsStatus Highs::optimizeModel() {
+  return this->calledOptimizeModel();
+}
+
 // Checks the options calls presolve and postsolve if needed.
 //
 // LP solvers are called with callSolveLp(..)
-HighsStatus Highs::optimizeModel() {
+HighsStatus Highs::calledOptimizeModel() {
   HighsInt min_highs_debug_level = kHighsDebugLevelMin;
   // kHighsDebugLevelCostly;
   // kHighsDebugLevelMax;
@@ -2677,6 +2681,7 @@ HighsStatus Highs::optimizeLp() {
   // Solve what's in the HighsLp instance Highs::model_.lp_
   assert(!model_.isQp());
   assert(!model_.lp_.hasSemiVariables());
+  assert(!this->multi_linear_objective_.size());
   return optimizeHighs();
 }
 

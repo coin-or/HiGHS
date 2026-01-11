@@ -1566,6 +1566,7 @@ class Highs {
   HighsStatus runFromUserScaling();
   HighsStatus optimizeHighs();
   HighsStatus optimizeModel();
+  HighsStatus calledOptimizeModel();
 
   void exactResizeModel() {
     this->model_.lp_.exactResize();

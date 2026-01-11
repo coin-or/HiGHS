@@ -1,10 +1,14 @@
 # `Highs::run()`
 
 `Highs::run()` has evolved a great deal since it was first created to
-"solve" the LP in the `HighsLp` instance `Highs::lp_`. When the
-multiple objective code was added, `Highs::optimizeModel()` inherited
-the content of `Highs::run()` so that a single call to`Highs::run()`
-could perform multiple optimizations.
+"solve" the LP in the `HighsLp` instance `Highs::lp_`. As well as
+solving more problem classes, and using more solvers, features have
+been added inelegantly.
+
+The only refactoring came when the multiple objective code was added:
+`Highs::optimizeModel()` inherited the content of `Highs::run()` so
+that a single call to`Highs::run()` could perform multiple
+optimizations.
 
 Other developments that have been implemented inelegantly are
 
@@ -32,15 +36,15 @@ before returning from `Highs::run()`.
 
 ### Performing user scaling
 
-User objective and/or bound scaling is performed before assess
-excessive problem data and suggesting user objective and bound
-scaling. These user scaling actions must only be performed at the "top
-level" of `Highs::run()`, and this is acheived by caching the user
-scaling options in the `Highs` class and clearing them from options_
-so that they aren't applied at lower level calls to `Highs::run()`. If
-user scaling has been applied in a call to `Highs::run()`, it is
-unapplied and the option values restored before returning from
-`Highs::run()`.
+User objective and/or bound scaling is performed before assessing
+whether there is excessive problem data and suggesting user objective
+and bound scaling. These user scaling actions must only be performed
+at the "top level" of `Highs::run()`, and this is acheived by caching
+the user scaling options in the `Highs` class and clearing them from
+options_ so that they aren't applied at lower level calls to
+`Highs::run()`. If user scaling has been applied in a call to
+`Highs::run()`, it is unapplied and the option values restored before
+returning from `Highs::run()`.
 
 ### Applying "mods"
 
@@ -79,13 +83,19 @@ The inelegance of `Highs::run()` (and `Highs::optimizeModel()`) was
 exposed by
 [\#2635](https://github.com/ERGO-Code/HiGHS/issues/2635). Both methods
 need to be refactored. Firstly, `Highs::run()` must be refactored into
-the following set of nested methods.
+the following set of nested methods. By calling the appropriate
+method, there is no need to "hide" option settings by caching and then
+clearing their value. 
+
+Refactoring `Highs::optimizeModel()` is trickier. There needs to be a
+method where any "mods" are made, so that at the level below the
+problem defined by the `HighsModel` class (without semi-variables) is
+solved.
 
 ### `Highs::runFromExe()`
 
 This "outer" layer should contain just the "HiGHS files" actions that were
-previously in `app/RunHighs.cpp`, so only available to users who could
-run the executable. 
+previously in `app/RunHighs.cpp`.
 
 ### `Highs::runFromUserScaling()`
 
@@ -93,22 +103,28 @@ The next layer should handle user scaling
 
 ### `Highs::optimizeHighs()`
 
-The next layer optimizes the problem defined in the `Highs` class with
-respect to the (remaining) options. Currently this will be either a
-single call to optimize what's in the `HighsModel`, or a call to
-`Highs::multiobjectiveSolve()` if there are multiple objectives.
+The next layer applies any "mods" to the `HighsModel` class, and calls
+`Highs::optimizeModel()` or `Highs::multiobjectiveSolve()` if there
+are multiple objectives.
 
 ### `Highs::optimizeModel()`
 
-The next layer just optimizes what's in the `HighsModel`, and is the current `Highs::optimizeModel()`
+The next layer should just optimize what's in the `HighsModel` (without semi-variables)
 
 ## Observations
 
 - `Highs::run()` is (of course) retained, but should just return the
   value of `Highs::runFromExe()`
 
-- Although there is no overhead within the nest of methods when
-  solving an LP without file or user scaling options, calling
-  `Highs::run()` from the MIP solver is opaque, so these calls
-  should be to `Highs::optimizeModel()`
+- Refactoring `Highs::optimizeModel()` is tricky, so is is temporarily
+  renamed `Highs::calledOptimizeModel()`, and `Highs::optimizeModel()`
+  is a temporary intermediate method to facilitate this is.
+
+- The most obvious place where `Highs::run()` was called at a "lower
+  level" is in the MIP solver. Since there are no "upper level"
+  actions to be performed, it can call `Highs::optimizeModel()`. To
+  emphasise that just an LP is being solved, `Highs::optimizeLp()` has
+  been created. This is currently a call to `Highs::optimizeModel()`
+
+
 
