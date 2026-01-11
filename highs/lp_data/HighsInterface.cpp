@@ -2487,12 +2487,14 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
             this->options_.primal_feasibility_tolerance) {
           if (kIisDevReport)
             printf(
-                "E-col %2d (column %2d) corresponds to column %2d with %s bound "
+                "E-col %2d (column %2d) corresponds to column %2d with %s "
+                "bound "
                 "%11.4g "
                 "and has solution value %11.4g\n",
                 int(eCol), int(col_ecol_offset + eCol), int(iCol),
                 bound_of_col_of_ecol_is_lower[eCol] ? "lower" : "upper",
-                bound_of_col_of_ecol_is_lower[eCol] ? lp.col_lower_[iCol] : lp.col_upper_[iCol],
+                bound_of_col_of_ecol_is_lower[eCol] ? lp.col_lower_[iCol]
+                                                    : lp.col_upper_[iCol],
                 solution.col_value[col_ecol_offset + eCol]);
           this->changeColBounds(col_ecol_offset + eCol, 0, 0);
           num_fixed++;
@@ -2506,12 +2508,14 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
             this->options_.primal_feasibility_tolerance) {
           if (kIisDevReport)
             printf(
-                "E-row %2d (column %2d) corresponds to    row %2d with %s bound "
+                "E-row %2d (column %2d) corresponds to    row %2d with %s "
+                "bound "
                 "%11.4g "
                 "and has solution value %11.4g\n",
                 int(eCol), int(row_ecol_offset + eCol), int(iRow),
                 bound_of_row_of_ecol_is_lower[eCol] ? "lower" : "upper",
-                bound_of_row_of_ecol_is_lower[eCol] ? lp.row_lower_[iRow] : lp.row_upper_[iRow],
+                bound_of_row_of_ecol_is_lower[eCol] ? lp.row_lower_[iRow]
+                                                    : lp.row_upper_[iRow],
                 solution.col_value[row_ecol_offset + eCol]);
           this->changeColBounds(row_ecol_offset + eCol, 0, 0);
           num_fixed++;
@@ -2543,12 +2547,14 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
       if (lp.col_upper_[col_ecol_offset + eCol] == 0) {
         num_enforced_col_ecol++;
         printf(
-            "Col e-col %2d (column %2d) corresponds to column %2d with %s bound "
+            "Col e-col %2d (column %2d) corresponds to column %2d with %s "
+            "bound "
             "%11.4g "
             "and is enforced\n",
             int(eCol), int(col_ecol_offset + eCol), int(iCol),
-	    bound_of_col_of_ecol_is_lower[eCol] ? "lower" : "upper",
-	    bound_of_col_of_ecol_is_lower[eCol] ? lp.col_lower_[iCol] : lp.col_upper_[iCol]);
+            bound_of_col_of_ecol_is_lower[eCol] ? "lower" : "upper",
+            bound_of_col_of_ecol_is_lower[eCol] ? lp.col_lower_[iCol]
+                                                : lp.col_upper_[iCol]);
       }
     }
   }
@@ -2565,11 +2571,13 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
         */
         if (kIisDevReport)
           printf(
-              "Row e-col %2d (column %2d) corresponds to    row %2d with %s bound "
+              "Row e-col %2d (column %2d) corresponds to    row %2d with %s "
+              "bound "
               "%11.4g and is enforced\n",
               int(eCol), int(row_ecol_offset + eCol), int(iRow),
-	      bound_of_row_of_ecol_is_lower[eCol] ? "lower" : "upper",
-	      bound_of_row_of_ecol_is_lower[eCol] ? lp.row_lower_[iRow] : lp.row_upper_[iRow]);
+              bound_of_row_of_ecol_is_lower[eCol] ? "lower" : "upper",
+              bound_of_row_of_ecol_is_lower[eCol] ? lp.row_lower_[iRow]
+                                                  : lp.row_upper_[iRow]);
       }
     }
   }
@@ -2660,7 +2668,9 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
       HighsInt iX = in_row_index[iRow];
       // Should only have one bound assigned
       assert(iis.row_bound_[iX] == -1);
-      iis.row_bound_[iX] = bound_of_row_of_ecol_is_lower[eCol] ? kIisBoundStatusLower : kIisBoundStatusUpper;
+      iis.row_bound_[iX] = bound_of_row_of_ecol_is_lower[eCol]
+                               ? kIisBoundStatusLower
+                               : kIisBoundStatusUpper;
     }
   }
   assert(iis.row_bound_.size() == iis.row_index_.size());

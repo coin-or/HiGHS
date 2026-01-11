@@ -739,7 +739,7 @@ TEST_CASE("feasible-lp-iis", "[iis]") {
   h.resetGlobalScheduler(true);
 }
 
-  TEST_CASE("write-iis_model-file", "[iis]") {
+TEST_CASE("write-iis_model-file", "[iis]") {
   // Reproduces #2635, and adds code coverage for writing IIS model
   // and solution at runtime
   const std::string test_name = Catch::getResultCapture().getCurrentTestName();

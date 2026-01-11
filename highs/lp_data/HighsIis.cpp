@@ -1068,7 +1068,12 @@ bool HighsIis::lpOk(const HighsOptions& options) const {
   h.setOptionValue("output_flag", false);
   h.passModel(iis_lp);
   h.writeModel("");
-  h.run();
+  HighsStatus status = h.optimizeModel();
+  if (status != HighsStatus::kOk) {
+    highsLogUser(log_options, HighsLogType::kError,
+                 "HighsIis: Solve failure for IIS LP\n");
+    return lpOkReturn(false);
+  }
   if (h.getModelStatus() != HighsModelStatus::kInfeasible) {
     highsLogUser(log_options, HighsLogType::kError,
                  "HighsIis: IIS LP is not infeasible\n");
