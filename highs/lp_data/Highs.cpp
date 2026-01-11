@@ -960,7 +960,7 @@ HighsStatus Highs::runFromExe() {
       status = this->writeIisModel(this->options_.write_iis_model_file);
     if (this->options_.solution_file != "")
       status = this->writeSolution(this->options_.solution_file,
-				   this->options_.write_solution_style);
+                                   this->options_.write_solution_style);
     if (this->options_.write_basis_file != "")
       status = this->writeBasis(this->options_.write_basis_file);
   }
@@ -975,7 +975,7 @@ HighsStatus Highs::runUserScaling() {
   this->reportModelStats();
 
   const bool user_scaling =
-    options_.user_objective_scale || options_.user_bound_scale;
+      options_.user_objective_scale || options_.user_bound_scale;
   // Should no longer be necessary to modify the user scale option
   // values to prevent further scaling
   const bool kModifyUserScaleOptions = false;
@@ -1013,7 +1013,7 @@ HighsStatus Highs::runUserScaling() {
   //  this->writeModel("");
 
   HighsStatus status = optimizeHighs();
-  
+
   if (user_scaling) {
     // Unscale the incumbent model and solution
     //
@@ -1032,7 +1032,8 @@ HighsStatus Highs::runUserScaling() {
     if (kModifyUserScaleOptions) {
       // Restore the user scale values, remembering that they've been
       // negated to undo user scaling
-      this->options_.user_objective_scale = -user_scale_data.user_objective_scale;
+      this->options_.user_objective_scale =
+          -user_scale_data.user_objective_scale;
       this->options_.user_bound_scale = -user_scale_data.user_bound_scale;
     }
     // Indicate that the scaling has not been applied
@@ -1058,7 +1059,9 @@ HighsStatus Highs::runUserScaling() {
 HighsStatus Highs::optimizeHighs() {
   if (!options_.use_warm_start) this->clearSolver();
   this->sub_solver_call_time_.initialise();
-  HighsStatus status = this->multi_linear_objective_.size() ? this->multiobjectiveSolve() : this->optimizeModel();
+  HighsStatus status = this->multi_linear_objective_.size()
+                           ? this->multiobjectiveSolve()
+                           : this->optimizeModel();
   if (this->options_.log_dev_level > 0) this->reportSubSolverCallTime();
   return status;
 }
@@ -2698,7 +2701,7 @@ HighsStatus Highs::optimizeLp() {
   // Solve what's in the HighsLp instance Highs::model_.lp_
   assert(!model_.isQp());
   assert(!model_.lp_.hasSemiVariables());
-  return optimizeHighs();   
+  return optimizeHighs();
 }
 
 HighsStatus Highs::putIterate() {
