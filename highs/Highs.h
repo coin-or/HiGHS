@@ -1793,7 +1793,6 @@ class Highs {
 
   bool tryPdlpCleanup(HighsInt& pdlp_cleanup_iteration_limit,
                       const HighsInfo& presolved_lp_info) const;
-
 };
 
 // Start of deprecated methods not in the Highs class

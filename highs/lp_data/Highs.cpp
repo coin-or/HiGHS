@@ -949,7 +949,7 @@ HighsStatus Highs::runFromExe() {
     status = this->writeIisModel(this->options_.write_iis_model_file);
   if (this->options_.solution_file != "")
     status = this->writeSolution(this->options_.solution_file,
-				 this->options_.write_solution_style);
+                                 this->options_.write_solution_style);
   if (this->options_.write_basis_file != "")
     status = this->writeBasis(this->options_.write_basis_file);
 
@@ -963,33 +963,22 @@ HighsStatus Highs::runFromUserScaling() {
   // solution, and call Highs::optimizeHighs()
   this->reportModelStats();
 
-  // User objective and bound scaling data are accumulated in the
-  // HighsUserScaleData struct, in particular, there is a local copy
-  // of the user objective and bound scaling options values, and
-  // records of resulting extreme data values that prevent the user
-  // objective and bound scaling from being applied.
   HighsUserScaleData user_scale_data;
-  const bool kCallInitialiseUserScaleData = false;
-  if (kCallInitialiseUserScaleData) {
-    initialiseUserScaleData(this->options_, user_scale_data);
-  } else {
-    //    user_scale_data.applied = false;
-    //    user_scale_data.user_objective_scale = options_.user_objective_scale;
-    //    user_scale_data.user_bound_scale = options_.user_bound_scale;
-  }
-  
   // Even if there is no user objective and bound scaling to be
   // considered, the HighsUserScaleData instance is needed so that
   //
-  // user_scale_data.applied is set
+  // user_scale_data.applied is set false so that no unscaling is
+  // considered
   //
-  // Values of user_objective_scale and 
-
-
-  if (options_.user_objective_scale ||
-      options_.user_bound_scale) {
-    if (!kCallInitialiseUserScaleData) 
-      initialiseUserScaleData(this->options_, user_scale_data);
+  // Values of user_scale_data.user_objective_scale and
+  // user_scale_data.user_bound_scale are defined for use in
+  if (options_.user_objective_scale || options_.user_bound_scale) {
+    // User objective and bound scaling data are accumulated in the
+    // HighsUserScaleData struct, in particular, there is a local copy
+    // of the user objective and bound scaling options values, and
+    // records of resulting extreme data values that prevent the user
+    // objective and bound scaling from being applied.
+    initialiseUserScaleData(this->options_, user_scale_data);
     // Determine whether user scaling yields excessively large cost,
     // Hessian values, column/row bounds or matrix values. If not,
     // then apply the user scaling to the model...
@@ -4939,4 +4928,3 @@ HighsStatus Highs::closeLogFile() {
 void Highs::resetGlobalScheduler(bool blocking) {
   HighsTaskExecutor::shutdown(blocking);
 }
-
