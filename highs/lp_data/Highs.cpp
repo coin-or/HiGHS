@@ -1040,6 +1040,14 @@ HighsStatus Highs::optimizeHighs() {
                                               : this->optimizeModel();
 }
 
+HighsStatus Highs::optimizeLp() {
+  // Solve what's in the HighsLp instance Highs::model_.lp_
+  assert(!model_.isQp());
+  assert(!model_.lp_.hasSemiVariables());
+  assert(!this->multi_linear_objective_.size());
+  return optimizeModel();
+}
+
 HighsStatus Highs::optimizeModel() {
   // Level 3a of Highs::run()
   //
@@ -2681,14 +2689,6 @@ HighsStatus Highs::setBasis() {
   newHighsBasis();
   // Can't use returnFromHighs since...
   return HighsStatus::kOk;
-}
-
-HighsStatus Highs::optimizeLp() {
-  // Solve what's in the HighsLp instance Highs::model_.lp_
-  assert(!model_.isQp());
-  assert(!model_.lp_.hasSemiVariables());
-  assert(!this->multi_linear_objective_.size());
-  return optimizeModel();
 }
 
 HighsStatus Highs::putIterate() {
