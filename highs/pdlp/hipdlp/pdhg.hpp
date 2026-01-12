@@ -11,8 +11,10 @@
 #ifndef PDHG_HPP
 #define PDHG_HPP
 
+#ifdef CUPDLP_GPU
 #include <cuda_runtime.h>
 #include <cusparse.h>
+#endif
 
 #include <algorithm>
 #include <cmath>
