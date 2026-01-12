@@ -245,14 +245,12 @@ set(factor_highs_headers_python
     highs/ipm/hipo/factorhighs/Timing.h)
 
 set(hipo_util_sources_python
-    highs/ipm/hipo/auxiliary/AutoDetect.cpp
     highs/ipm/hipo/auxiliary/Auxiliary.cpp
     highs/ipm/hipo/auxiliary/KrylovMethods.cpp
     highs/ipm/hipo/auxiliary/Log.cpp
     highs/ipm/hipo/auxiliary/VectorOperations.cpp)
 
 set(hipo_util_headers_python
-    highs/ipm/hipo/auxiliary/AutoDetect.h
     highs/ipm/hipo/auxiliary/Auxiliary.h
     highs/ipm/hipo/auxiliary/IntConfig.h
     highs/ipm/hipo/auxiliary/KrylovMethods.h
