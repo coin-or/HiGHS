@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
     return runHighsReturn(highs, status);
   }
   // Solve the model
-  HighsStatus run_status = highs.runFromExe();
+  HighsStatus run_status = highs.run();
   if (run_status == HighsStatus::kError) runHighsReturn(highs, run_status);
 
   // Shut down task executor for explicit release of memory.

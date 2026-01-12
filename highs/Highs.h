@@ -212,9 +212,10 @@ class Highs {
   HighsStatus presolve();
 
   /**
-   * @brief Run the solver
+   * @brief Run the solver, applying file-based options and user
+   * scaling before optimization
    */
-  HighsStatus run() { return runFromExe(); }
+  HighsStatus run();
 
   /**
    * @brief Postsolve the incumbent model using a solution
@@ -1292,11 +1293,9 @@ class Highs {
 
   // Start of advanced methods: only for internal use!
 
-  // Nested methods below Highs::run(), which just returns
-  // Highs::runFromExe()
+  // Nested methods below Highs::run()
   //
   // See highs/HighsRun.md
-  HighsStatus runFromExe();
   HighsStatus runFromUserScaling();
   HighsStatus optimizeHighs();
   HighsStatus optimizeModel();
@@ -1777,9 +1776,12 @@ class Highs {
   void restoreInfCost(HighsStatus& return_status);
   HighsStatus optionChangeAction();
 
+  HighsStatus userScale(HighsUserScaleData& data);
+  HighsStatus userUnscale(HighsUserScaleData& data);
   HighsStatus userScaleModel(HighsUserScaleData& data);
   HighsStatus userScaleSolution(HighsUserScaleData& data,
                                 bool update_kkt = false);
+
   HighsStatus computeIllConditioning(HighsIllConditioning& ill_conditioning,
                                      const bool constraint,
                                      const HighsInt method,

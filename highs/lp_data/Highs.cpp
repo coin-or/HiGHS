@@ -927,7 +927,7 @@ HighsStatus Highs::presolve() {
   return returnFromHighs(return_status);
 }
 
-HighsStatus Highs::runFromExe() {
+HighsStatus Highs::run() {
   // Level 0 of Highs::run()
   //
   // Action the file operations associated with running HiGHS, and
@@ -964,32 +964,9 @@ HighsStatus Highs::runFromUserScaling() {
   this->reportModelStats();
 
   HighsUserScaleData user_scale_data;
-  // Even if there is no user objective and bound scaling to be
-  // considered, the HighsUserScaleData instance is needed so that
-  //
-  // user_scale_data.applied is set false so that no unscaling is
-  // considered
-  //
-  // Values of user_scale_data.user_objective_scale and
-  // user_scale_data.user_bound_scale are defined for use in
-  if (options_.user_objective_scale || options_.user_bound_scale) {
-    // User objective and bound scaling data are accumulated in the
-    // HighsUserScaleData struct, in particular, there is a local copy
-    // of the user objective and bound scaling options values, and
-    // records of resulting extreme data values that prevent the user
-    // objective and bound scaling from being applied.
-    initialiseUserScaleData(this->options_, user_scale_data);
-    // Determine whether user scaling yields excessively large cost,
-    // Hessian values, column/row bounds or matrix values. If not,
-    // then apply the user scaling to the model...
-    if (this->userScaleModel(user_scale_data) == HighsStatus::kError)
+  if (this->userScale(user_scale_data) == HighsStatus::kError)
       return HighsStatus::kError;
-    // ... and the solution
-    this->userScaleSolution(user_scale_data);
-    // Indicate that the scaling has been applied
-    user_scale_data.applied = true;
-  }
-
+  
   // Determine coefficient ranges and possibly warn the user about
   // excessive values, obtaining suggested values for user_objective_scale
   // and user_bound_scale
@@ -999,36 +976,9 @@ HighsStatus Highs::runFromUserScaling() {
   // Optimize the model in the Highs instance
   HighsStatus status = optimizeHighs();
 
-  if (user_scale_data.applied) {
-    // Unscale the incumbent model and solution
-    //
-    // Flip the scaling sign
-    user_scale_data.user_objective_scale *= -1;
-    user_scale_data.user_bound_scale *= -1;
-    HighsStatus unscale_status = this->userScaleModel(user_scale_data);
-    if (unscale_status == HighsStatus::kError) {
-      highsLogUser(
-          this->options_.log_options, HighsLogType::kError,
-          "Unexpected error removing user scaling from the incumbent model\n");
-      assert(unscale_status != HighsStatus::kError);
-    }
-    const bool update_kkt = true;
-    unscale_status = this->userScaleSolution(user_scale_data, update_kkt);
-    highsLogUser(this->options_.log_options, HighsLogType::kInfo,
-                 "After solving the user-scaled model, the unscaled solution "
-                 "has objective value %.12g\n",
-                 this->info_.objective_function_value);
-    if (model_status_ == HighsModelStatus::kOptimal &&
-        unscale_status != HighsStatus::kOk) {
-      // KKT errors in the unscaled optimal solution, so log a warning and
-      // return
-      highsLogUser(
-          this->options_.log_options, HighsLogType::kWarning,
-          "User scaled problem solved to optimality, but unscaled solution "
-          "does not satisfy feasibility and optimality tolerances\n");
-      status = HighsStatus::kWarning;
-    }
-  }
+  if (this->userUnscale(user_scale_data) == HighsStatus::kError)
+      return HighsStatus::kError;
+
   return status;
 }
 
