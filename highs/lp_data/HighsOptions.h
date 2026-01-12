@@ -261,6 +261,8 @@ void reportOption(FILE* file, const HighsLogOptions& report_log_options,
                   const bool report_only_deviations,
                   const HighsFileType file_type);
 
+const string kHighsRunLogFile = "Highs.log";
+
 const string kSimplexString = "simplex";
 const string kIpmString = "ipm";
 const string kHipoString = "hipo";

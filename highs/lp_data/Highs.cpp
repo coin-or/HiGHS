@@ -4088,6 +4088,17 @@ HighsStatus Highs::callSolveQp() {
                  int(nullspace_limit));
   });
 
+  // Define the degeneracy failure logging function
+  settings.degeneracy_fail_log.subscribe(
+      [this](std::pair<HighsInt, double>& degeneracy_fail_data) {
+        highsLogUser(options_.log_options, HighsLogType::kError,
+                     "QP solver has failed due to degeneracy: "
+                     "cannot find non-active constraint to leave basis."
+                     " max: log(d[%d]) = %lf\n",
+                     int(degeneracy_fail_data.first),
+                     degeneracy_fail_data.second);
+      });
+
   settings.time_limit = options_.time_limit;
   settings.lambda_zero_threshold = options_.dual_feasibility_tolerance;
 

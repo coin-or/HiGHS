@@ -1,4 +1,150 @@
-# BLAS
+# Fetch OpenBLAS
+if (BUILD_OPENBLAS)
+    include(FetchContent)
+    set(FETCHCONTENT_QUIET OFF)
+    set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
+    # set(BUILD_SHARED_LIBS ON)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+    set(BUILD_TESTING OFF)
+    set(CMAKE_Fortran_COMPILER OFF)
+
+    # Define the size-minimizing flags as a list
+    set(OPENBLAS_MINIMAL_FLAGS
+        # Exclude components not used by HiGHS
+        -DONLY_CBLAS:BOOL=ON
+        -DNO_LAPACK:BOOL=ON
+        -DNO_LAPACKE:BOOL=ON
+        -DNO_COMPLEX:BOOL=ON
+        -DNO_COMPLEX16:BOOL=ON
+        -DNO_DOUBLE_COMPLEX:BOOL=ON
+        -DNO_SINGLE:BOOL=ON
+    )
+
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|armv8|arm")
+        if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+            message(FATAL_ERROR "The HiGHS build with OpenBLAS does not yet support 32-bit ARM architectures. \
+            You could try to compile OpenBLAS separately on your machine, see https://github.com/OpenMathLib/OpenBLAS. \
+            Then link with HiGHS by passing the path to the OpenBLAS installation via BLAS_ROOT. \
+            Please don't hesitate to get in touch with us with details about your related issues.")
+
+            # Unreachable, revisit later. Could not get it to work on the CI, -DNOASM=1 is not being respected and openblas
+            # keeps trying to use 64bit registers which are not available. Works fine on 32bit amd and 64bit arm.
+            message(STATUS "ARM architecture detected. 32bit.")
+
+            # list(APPEND OPENBLAS_MINIMAL_FLAGS -DARMV7:BOOL=ON)
+             # Set environment variable to disable assembly
+            # set(ENV{NOASM} "1")
+            # set(NOASM 1)
+
+            list(APPEND OPENBLAS_MINIMAL_FLAGS
+                -DTARGET=GENERIC
+                -DBINARY=32
+                -DNOASM=1
+                -DDYNAMIC_ARCH:BOOL=OFF
+                -DUSE_THREAD:BOOL=OFF
+                # Aggressively disable complex operations
+                -DNO_CGEMM:BOOL=ON
+                -DNO_ZGEMM:BOOL=ON
+                -DNO_CTRMM:BOOL=ON
+                -DNO_ZTRMM:BOOL=ON
+                -DNO_CTRSM:BOOL=ON
+                -DNO_ZTRSM:BOOL=ON
+                # Disable all Level 3 BLAS (includes TRMM, TRSM, etc.)
+                -DNO_LEVEL3:BOOL=ON
+                -DCMAKE_C_FLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp"
+                -DCMAKE_ASM_FLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp"
+                -DCMAKE_CXX_FLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp"
+                # -DARM_SOFTFP_ABI=1
+                # -DCMAKE_ASM_FLAGS="-mfpu=vfpv3-d16"
+                # -DCMAKE_C_FLAGS="-march=armv7-a -mfpu=vfpv3-d16"
+                # -DCMAKE_ASM_FLAGS="-march=armv7-a -mfpu=vfpv3-d16"
+                # -DCMAKE_CXX_FLAGS="-march=armv7-a -mfpu=vfpv3-d16"
+            )
+            # list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=GENERIC)
+            # list(APPEND OPENBLAS_MINIMAL_FLAGS
+            #     -DDYNAMIC_ARCH:BOOL=OFF
+            #     -DUSE_THREAD:BOOL=OFF        # Simplify build
+            #     -DNO_WARMUP:BOOL=ON          # Skip warmup routine
+            #     # -DNO_GETARCH:BOOL=ON
+            #     # -DUSE_VFPV3:BOOL=ON
+            #     # -DUSE_VFPV3_D32:BOOL=OFF   # crucial: only use d0–d15
+            #     # -DNO_TRMM:BOOL=ON
+            #     # -DNO_TRSM:BOOL=ON
+            #     -DNO_L3:BOOL=ON               # skip complex Level-3 kernels
+            #     # -DCMAKE_ASM_FLAGS="-mfpu=vfpv3-d16"
+            #     # -DUSE_GENERIC:BOOL=ON
+            # )
+            # # Explicitly disable assembly
+
+            # set(CMAKE_ASM_COMPILER "")
+            # set(NOASM 1)
+
+            # set(SKIP_PARSE_GETARCH TRUE)
+        else()
+            message(STATUS "ARM architecture detected. Applying -DTARGET=ARMV8.")
+            list(APPEND OPENBLAS_MINIMAL_FLAGS -DTARGET=ARMV8)
+            # list(APPEND OPENBLAS_MINIMAL_FLAGS -DONLY_BLAS=ON -DNO_LAPACK=ON -DNO_LAPACKE=ON)
+        endif()
+    # else()
+        # list(APPEND OPENBLAS_MINIMAL_FLAGS -DONLY_BLAS=ON -DNO_LAPACK=ON -DNO_LAPACKE=ON)
+    endif()
+
+    # CMAKE_SIZEOF_VOID_P is 4 for 32-bit builds, 8 for 64-bit builds.
+    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+        message(STATUS "32-bit target detected. Applying 32-bit configuration flags for OpenBLAS.")
+
+        if (WIN32)
+            list(APPEND OPENBLAS_MINIMAL_FLAGS -DCMAKE_GENERATOR_PLATFORM=Win32)
+        endif()
+
+        # Crucial for static linking: Force OpenBLAS to use the static runtime
+        if (NOT BUILD_SHARED_LIBS)
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+        endif()
+
+        # list(APPEND OPENBLAS_MINIMAL_FLAGS -DUSE_THREAD=OFF)
+        list(APPEND OPENBLAS_MINIMAL_FLAGS -DINTERFACE64=0)
+
+        # If the MSVC runtime library issue persists, you can try this flag as well,
+        # though CMAKE_GENERATOR_PLATFORM should usually be sufficient.
+        # list(APPEND OPENBLAS_MINIMAL_FLAGS -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL)
+    endif()
+
+    message(CHECK_START "Fetching OpenBLAS")
+    list(APPEND CMAKE_MESSAGE_INDENT "  ")
+    FetchContent_Declare(
+        openblas
+        GIT_REPOSITORY "https://github.com/OpenMathLib/OpenBLAS.git"
+        GIT_TAG        "v0.3.30"
+        GIT_SHALLOW TRUE
+        UPDATE_COMMAND git reset --hard
+        CMAKE_ARGS ${OPENBLAS_MINIMAL_FLAGS}
+    )
+    FetchContent_MakeAvailable(openblas)
+    list(POP_BACK CMAKE_MESSAGE_INDENT)
+    message(CHECK_PASS "fetched")
+
+    if (TARGET openblas)
+        get_target_property(_openblas_aliased openblas ALIASED_TARGET)
+        if(_openblas_aliased)
+            set(_openblas_target ${_openblas_aliased})
+            message(STATUS "OpenBLAS is an alias for: ${_openblas_target}")
+        else()
+            set(_openblas_target openblas)
+        endif()
+    elseif (TARGET openblas_static)
+        set(_openblas_target openblas_static)
+    elseif (TARGET openblas_shared)
+        set(_openblas_target openblas_shared)
+    else()
+        message(FATAL_ERROR "OpenBLAS target not found")
+    endif()
+    message(STATUS "OpenBLAS target: ${_openblas_target}")
+
+    return()
+endif()
+
+# Find BLAS
 set(BLAS_ROOT "" CACHE STRING "Root directory of BLAS or OpenBLAS")
 if (NOT BLAS_ROOT STREQUAL "")
     message(STATUS "BLAS_ROOT is " ${BLAS_ROOT})
