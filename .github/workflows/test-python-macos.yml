@@ -58,7 +58,7 @@ jobs:
 
       - name: Test Python Interface
         run: |
-          python3 -m pip install .
+          python3 -m pip install . \
              --config-settings=cmake.define.HIPO=ON
           pytest
           pytest check/test_highspy_hipo.py
