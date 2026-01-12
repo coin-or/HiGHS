@@ -328,12 +328,11 @@ num_var = h.getNumCol()
 solution = h.getSolution()
 basis = h.getBasis()
 info = h.getInfo()
-#
-col_status = basis.col_status
-col_value = list(solution.col_value)
 # basis.col_status is already a list, but accessing values in
 # solution.col_value directly is very inefficient, so convert it to a
 # list
+col_status = basis.col_status
+col_value = list(solution.col_value)
 model_status = h.getModelStatus()
 print("Model status = ", h.modelStatusToString(model_status))
 print("Optimal objective = ", info.objective_function_value)

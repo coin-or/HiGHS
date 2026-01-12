@@ -92,7 +92,6 @@ if (BUILD_OPENBLAS)
     # CMAKE_SIZEOF_VOID_P is 4 for 32-bit builds, 8 for 64-bit builds.
     if(CMAKE_SIZEOF_VOID_P EQUAL 4)
         message(STATUS "32-bit target detected. Applying 32-bit configuration flags for OpenBLAS.")
-        set(OPENBLAS_32 ON)
 
         if (WIN32)
             list(APPEND OPENBLAS_MINIMAL_FLAGS -DCMAKE_GENERATOR_PLATFORM=Win32)
