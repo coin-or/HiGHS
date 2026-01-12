@@ -491,7 +491,7 @@ void HighsLp::unapplyMods() {
   this->mods_.clear();
 }
 
-void HighsLpMods::clearInfCostRecord() {
+void HighsLpMods::clearInfiniteCostRecord() {
   this->save_inf_cost_variable_index.clear();
   this->save_inf_cost_variable_cost.clear();
   this->save_inf_cost_variable_lower.clear();
@@ -511,7 +511,7 @@ void HighsLpMods::clearSemiVariableRecord() {
 }
 
 void HighsLpMods::clear() {
-  this->clearInfCostRecord();
+  this->clearInfiniteCostRecord();
   this->clearSemiVariableRecord();
 }
 
