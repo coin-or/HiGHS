@@ -10,14 +10,14 @@
 #include "mip/HighsMipSolverData.h"
 #include "mip/MipTimer.h"
 
-HighsMipWorker::HighsMipWorker(const HighsMipSolver& mipsolver__,
-                               HighsLpRelaxation* lprelax_, HighsDomain* domain,
+HighsMipWorker::HighsMipWorker(const HighsMipSolver& mipsolver,
+                               HighsLpRelaxation* lp, HighsDomain* domain,
                                HighsCutPool* cutpool,
                                HighsConflictPool* conflictpool,
                                HighsPseudocost* pseudocost)
-    : mipsolver_(mipsolver__),
-      mipdata_(*mipsolver_.mipdata_.get()),
-      lprelaxation_(lprelax_),
+    : mipsolver_(mipsolver),
+      mipdata_(*mipsolver_.mipdata_),
+      lp_(lp),
       globaldom_(domain),
       cutpool_(cutpool),
       conflictpool_(conflictpool),
@@ -29,23 +29,25 @@ HighsMipWorker::HighsMipWorker(const HighsMipSolver& mipsolver__,
       std::unique_ptr<HighsSearch>(new HighsSearch(*this, getPseudocost()));
   sepa_ptr_ = std::unique_ptr<HighsSeparation>(new HighsSeparation(*this));
   numNeighbourhoodQueries = 0;
-  search_ptr_->setLpRelaxation(lprelaxation_);
-  sepa_ptr_->setLpRelaxation(lprelaxation_);
+  search_ptr_->setLpRelaxation(lp_);
+  sepa_ptr_->setLpRelaxation(lp_);
 }
 
-const HighsMipSolver& HighsMipWorker::getMipSolver() { return mipsolver_; }
+const HighsMipSolver& HighsMipWorker::getMipSolver() const {
+  return mipsolver_;
+}
 
 void HighsMipWorker::resetSearch() {
   search_ptr_.reset();
   search_ptr_ =
       std::unique_ptr<HighsSearch>(new HighsSearch(*this, getPseudocost()));
-  search_ptr_->setLpRelaxation(lprelaxation_);
+  search_ptr_->setLpRelaxation(lp_);
 }
 
 void HighsMipWorker::resetSepa() {
   sepa_ptr_.reset();
   sepa_ptr_ = std::unique_ptr<HighsSeparation>(new HighsSeparation(*this));
-  sepa_ptr_->setLpRelaxation(lprelaxation_);
+  sepa_ptr_->setLpRelaxation(lp_);
 }
 
 bool HighsMipWorker::addIncumbent(const std::vector<double>& sol, double solobj,
@@ -72,7 +74,7 @@ bool HighsMipWorker::addIncumbent(const std::vector<double>& sol, double solobj,
 }
 
 std::pair<bool, double> HighsMipWorker::transformNewIntegerFeasibleSolution(
-    const std::vector<double>& sol) {
+    const std::vector<double>& sol) const {
   HighsSolution solution;
   solution.col_value = sol;
   solution.value_valid = true;

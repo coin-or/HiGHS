@@ -35,12 +35,9 @@ HighsMipSolverData::HighsMipSolverData(HighsMipSolver& mipsolver)
       conflictPool(conflictpools.at(0)),
       pseudocost(),
       parallel_lock(false),
-      // workers({HighsMipWorker(mipsolver, lp)}),
       heuristics(mipsolver),
       cliquetable(mipsolver.numCol()),
       implications(mipsolver),
-      // heuristics_ptr(new HighsPrimalHeuristics(mipsolver)),
-      // heuristics(*heuristics_ptr.get()),
       objectiveFunction(mipsolver),
       presolve_status(HighsPresolveStatus::kNotSet),
       cliquesExtracted(false),
@@ -89,9 +86,6 @@ HighsMipSolverData::HighsMipSolverData(HighsMipSolver& mipsolver)
       debugSolution(mipsolver) {
   domain.addCutpool(cutpool);
   domain.addConflictPool(conflictPool);
-
-  // ig:here
-  // workers.emplace_back(mipsolver, lp);
 }
 
 std::string HighsMipSolverData::solutionSourceToString(

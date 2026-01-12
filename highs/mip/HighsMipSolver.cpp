@@ -338,7 +338,7 @@ restart:
     worker.globaldom_->addConflictPool(*worker.conflictpool_);
     mipdata_->pseudocosts.emplace_back(*this);
     worker.pseudocost_ = &mipdata_->pseudocosts.back();
-    worker.lprelaxation_->setMipWorker(worker);
+    worker.lp_->setMipWorker(worker);
     worker.resetSearch();
     worker.resetSepa();
   };
@@ -779,20 +779,20 @@ restart:
     auto doStoreBasis = [&](HighsInt i) {
       // after separation we store the new basis and proceed with the outer loop
       // to perform a dive from this node
-      if (mipdata_->workers[i].lprelaxation_->getStatus() !=
+      if (mipdata_->workers[i].lp_->getStatus() !=
               HighsLpRelaxation::Status::kError &&
-          mipdata_->workers[i].lprelaxation_->getStatus() !=
+          mipdata_->workers[i].lp_->getStatus() !=
               HighsLpRelaxation::Status::kNotSet)
-        mipdata_->workers[i].lprelaxation_->storeBasis();
+        mipdata_->workers[i].lp_->storeBasis();
 
-      basis = mipdata_->workers[i].lprelaxation_->getStoredBasis();
+      basis = mipdata_->workers[i].lp_->getStoredBasis();
       if (!basis || !isBasisConsistent(
-                        mipdata_->workers[i].lprelaxation_->getLp(), *basis)) {
+                        mipdata_->workers[i].lp_->getLp(), *basis)) {
         HighsBasis b = mipdata_->firstrootbasis;
-        b.row_status.resize(mipdata_->workers[i].lprelaxation_->numRows(),
+        b.row_status.resize(mipdata_->workers[i].lp_->numRows(),
                             HighsBasisStatus::kBasic);
         basis = std::make_shared<const HighsBasis>(std::move(b));
-        mipdata_->workers[i].lprelaxation_->setStoredBasis(basis);
+        mipdata_->workers[i].lp_->setStoredBasis(basis);
       }
     };
 
@@ -823,7 +823,7 @@ restart:
           analysis_.mipTimerStart(kMipClockDiveRandomizedRounding);
           mipdata_->heuristics.randomizedRounding(
               worker,
-              worker.lprelaxation_->getLpSolver().getSolution().col_value);
+              worker.lp_->getLpSolver().getSolution().col_value);
           analysis_.mipTimerStop(kMipClockDiveRandomizedRounding);
         }
         if (mipdata_->incumbent.empty()) {
@@ -831,7 +831,7 @@ restart:
             if (clocks) analysis_.mipTimerStart(kMipClockDiveRens);
             mipdata_->heuristics.RENS(
                 worker,
-                worker.lprelaxation_->getLpSolver().getSolution().col_value);
+                worker.lp_->getLpSolver().getSolution().col_value);
             if (clocks) analysis_.mipTimerStop(kMipClockDiveRens);
           }
         } else {
@@ -839,7 +839,7 @@ restart:
             if (clocks) analysis_.mipTimerStart(kMipClockDiveRins);
             mipdata_->heuristics.RINS(
                 worker,
-                worker.lprelaxation_->getLpSolver().getSolution().col_value);
+                worker.lp_->getLpSolver().getSolution().col_value);
             if (clocks) analysis_.mipTimerStop(kMipClockDiveRins);
           }
         }

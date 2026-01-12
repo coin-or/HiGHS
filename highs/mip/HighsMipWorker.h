@@ -25,7 +25,7 @@ class HighsMipWorker {
   const HighsMipSolver& mipsolver_;
   const HighsMipSolverData& mipdata_;
 
-  HighsLpRelaxation* lprelaxation_;
+  HighsLpRelaxation* lp_;
   HighsDomain* globaldom_;
   HighsCutPool* cutpool_;
   HighsConflictPool* conflictpool_;
@@ -34,7 +34,7 @@ class HighsMipWorker {
   std::unique_ptr<HighsSearch> search_ptr_;
   std::unique_ptr<HighsSeparation> sepa_ptr_;
 
-  const HighsMipSolver& getMipSolver();
+  const HighsMipSolver& getMipSolver() const;
 
   double upper_bound;
   double upper_limit;
@@ -48,7 +48,7 @@ class HighsMipWorker {
 
   int64_t numNeighbourhoodQueries;
 
-  HighsMipWorker(const HighsMipSolver& mipsolver__, HighsLpRelaxation* lprelax_,
+  HighsMipWorker(const HighsMipSolver& mipsolver, HighsLpRelaxation* lp,
                  HighsDomain* domain, HighsCutPool* cutpool,
                  HighsConflictPool* conflictpool, HighsPseudocost* pseudocost);
 
@@ -72,7 +72,7 @@ class HighsMipWorker {
                     int solution_source);
 
   std::pair<bool, double> transformNewIntegerFeasibleSolution(
-      const std::vector<double>& sol);
+      const std::vector<double>& sol) const;
 
   bool trySolution(const std::vector<double>& solution,
                    const int solution_source);

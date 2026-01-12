@@ -396,7 +396,7 @@ void HighsPrimalHeuristics::RENS(HighsMipWorker& worker,
                                }),
                 intcols.end());
 
-  HighsLpRelaxation heurlp(*worker.lprelaxation_);
+  HighsLpRelaxation heurlp(*worker.lp_);
   // only use the global upper limit as LP limit so that dual proofs are valid
   // TODO MT: Should this be the upper limit from the worker?
   heurlp.setObjectiveLimit(mipsolver.mipdata_->upper_limit);
@@ -654,7 +654,7 @@ void HighsPrimalHeuristics::RINS(HighsMipWorker& worker,
   HighsDomain& localdom = heur.getLocalDomain();
   heur.setHeuristic(true);
 
-  HighsLpRelaxation heurlp(*worker.lprelaxation_);
+  HighsLpRelaxation heurlp(*worker.lp_);
   // only use the global upper limit as LP limit so that dual proofs are valid
   // TODO MT: Should this be the upper limit from the worker?
   heurlp.setObjectiveLimit(mipsolver.mipdata_->upper_limit);
@@ -1182,7 +1182,7 @@ void HighsPrimalHeuristics::shifting(HighsMipWorker& worker,
   std::vector<double> current_relax_solution = relaxationsol;
   HighsInt t = 0;
   const HighsLp& currentLp = *mipsolver.model_;
-  HighsLpRelaxation lprelax(*worker.lprelaxation_);
+  HighsLpRelaxation lprelax(*worker.lp_);
   std::vector<std::pair<HighsInt, double>> current_fractional_integers =
       lprelax.getFractionalIntegers();
   std::vector<std::tuple<HighsInt, HighsInt, double>> current_infeasible_rows =
@@ -1555,7 +1555,7 @@ void HighsPrimalHeuristics::ziRound(HighsMipWorker& worker,
 }
 
 void HighsPrimalHeuristics::feasibilityPump(HighsMipWorker& worker) {
-  HighsLpRelaxation lprelax(*worker.lprelaxation_);
+  HighsLpRelaxation lprelax(*worker.lp_);
   std::unordered_set<std::vector<HighsInt>, HighsVectorHasher, HighsVectorEqual>
       referencepoints;
   std::vector<double> roundedsol;

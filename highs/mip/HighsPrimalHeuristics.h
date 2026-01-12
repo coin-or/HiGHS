@@ -21,10 +21,6 @@ class HighsLpRelaxation;
 class HighsPrimalHeuristics {
  private:
   const HighsMipSolver& mipsolver;
-
-  // HighsMipWorker& mipworker;
-  // const HighsMipSolver& mipsolver;
-
   std::vector<HighsInt> intcols;
 
  public:
@@ -40,10 +36,10 @@ class HighsPrimalHeuristics {
       numInfeasObservations = 0;
     }
 
-    size_t total_repair_lp;
-    size_t total_repair_lp_feasible;
-    size_t total_repair_lp_iterations;
-    size_t lp_iterations;
+    int64_t total_repair_lp;
+    int64_t total_repair_lp_feasible;
+    int64_t total_repair_lp_iterations;
+    int64_t lp_iterations;
 
     double successObservations;
     HighsInt numSuccessObservations;
