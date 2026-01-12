@@ -4,7 +4,6 @@
 #include <cmath>
 #include <iostream>
 
-#include "ipm/hipo/auxiliary/AutoDetect.h"
 #include "ipm/hipo/auxiliary/Log.h"
 #include "parallel/HighsParallel.h"
 
