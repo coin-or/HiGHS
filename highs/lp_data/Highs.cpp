@@ -977,9 +977,17 @@ HighsStatus Highs::run() {
 HighsStatus Highs::optimizeHighs() {
   // Level 1 of Highs::run()
   //
-  // Move the "mods" to here
-  return this->multi_linear_objective_.size() ? this->multiobjectiveSolve()
-                                              : this->optimizeModel();
+  HighsStatus optimize_status = doReformulation();
+  if (optimize_status == HighsStatus::kError) return optimize_status;
+  
+  optimize_status =
+    this->multi_linear_objective_.size() ?
+    this->multiobjectiveSolve() :
+    this->optimizeModel();
+
+  undoReformulation(optimize_status);
+
+  return optimize_status;
 }
 
 HighsStatus Highs::optimizeLp() {
@@ -3782,6 +3790,32 @@ void Highs::invalidateRanging() { ranging_.invalidate(); }
 void Highs::invalidateEkk() { ekk_instance_.invalidate(); }
 
 void Highs::clearIis() { iis_.clear(); }
+
+HighsStatus Highs::doReformulation() {
+  HighsStatus status = HighsStatus::kOk;
+  assert(model_.lp_.has_infinite_cost_ ==
+	 model_.lp_.hasInfiniteCost(options_.infinite_cost));
+  if (model_.lp_.has_infinite_cost_) {
+    // If the model has infinite costs, then try to remove them. The
+    // status indicates the success of this operation and, if
+    // it's unsuccessful, the model will not have been modified.
+    status = handleInfCost();
+    if (status != HighsStatus::kOk) {
+      assert(status == HighsStatus::kError);
+      setHighsModelStatusAndClearSolutionAndBasis(HighsModelStatus::kUnknown);
+      return status;
+    }
+    assert(!model_.lp_.has_infinite_cost_);
+  } else {
+    assert(!model_.lp_.hasInfiniteCost(options_.infinite_cost));
+  }
+  return status;
+}
+
+void Highs::undoReformulation(HighsStatus& optimize_status) {
+  this->restoreInfCost(optimize_status);
+  //  this->model_.lp_.unapplyMods();
+}
 
 HighsStatus Highs::completeSolutionFromDiscreteAssignment() {
   // Determine whether the current solution of a MIP is feasible and,

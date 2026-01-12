@@ -1571,6 +1571,9 @@ class Highs {
 
   void reportModelStats() const;
 
+  HighsStatus doReformulation();
+  void undoReformulation(HighsStatus& optimize_status);
+
   void exactResizeModel() {
     this->model_.lp_.exactResize();
     this->model_.hessian_.exactResize();
@@ -1772,7 +1775,7 @@ class Highs {
   HighsStatus invertRequirementError(std::string method_name) const;
 
   HighsStatus handleInfCost();
-  void restoreInfCost(HighsStatus& return_status);
+  void restoreInfCost(HighsStatus& optimize_status);
   HighsStatus optionChangeAction();
 
   HighsStatus userScale(HighsUserScaleData& data);

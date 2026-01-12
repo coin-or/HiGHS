@@ -3148,7 +3148,7 @@ HighsStatus Highs::optionChangeAction() {
   return HighsStatus::kOk;
 }
 
-void Highs::restoreInfCost(HighsStatus& return_status) {
+void Highs::restoreInfCost(HighsStatus& optimize_status) {
   HighsLp& lp = this->model_.lp_;
   HighsBasis& basis = this->basis_;
   HighsLpMods& mods = lp.mods_;
@@ -3178,13 +3178,14 @@ void Highs::restoreInfCost(HighsStatus& return_status) {
   // Infinite costs have been reintroduced, so reset to true the flag
   // that was set false in Highs::handleInfCost() (See #1446)
   lp.has_infinite_cost_ = true;
+  mods.clearInfCostRecord();
 
   if (this->model_status_ == HighsModelStatus::kInfeasible) {
     // Model is infeasible with the infinite cost variables fixed at
     // appropriate values, so model status cannot be determined
     this->model_status_ = HighsModelStatus::kUnknown;
     setHighsModelStatusAndClearSolutionAndBasis(this->model_status_);
-    return_status = highsStatusFromHighsModelStatus(model_status_);
+    optimize_status = highsStatusFromHighsModelStatus(model_status_);
   }
 }
 

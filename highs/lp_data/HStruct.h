@@ -119,6 +119,8 @@ struct HighsLpMods {
   std::vector<double> save_inf_cost_variable_upper;
 
   void clear();
+  void clearInfCostRecord();
+  void clearSemiVariableRecord();
   bool isClear();
 };
 
