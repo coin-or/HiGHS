@@ -74,7 +74,7 @@ jobs:
             /var/lib/apt/lists
           key: ${{ runner.os }}-apt-libblas
 
-      - name: Install OpenBLAS
+      - name: Install BLAS
         shell: bash
         run: |
           sudo apt update

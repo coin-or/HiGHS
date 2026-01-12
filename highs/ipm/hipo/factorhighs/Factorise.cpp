@@ -190,7 +190,7 @@ void Factorise::processSupernode(Int sn) {
   const bool parallel = S_.parTree();
   const bool serial = !parallel;
 
-  if (flag_stop_) return;
+  if (flag_stop_.load(std::memory_order_relaxed)) return;
 
   if (parallel) {
     // spawn children of this supernode in forward order
@@ -266,13 +266,13 @@ void Factorise::processSupernode(Int sn) {
       // sync with spawned child, apart from the first one
       if (child_sn != first_child_reverse_[sn]) tg.sync();
 
-      if (flag_stop_) return;
+      if (flag_stop_.load(std::memory_order_relaxed)) return;
 
       child_clique = schur_contribution_[child_sn].data();
 
       if (!child_clique) {
         if (log_) log_->printDevInfo("Missing child supernode contribution\n");
-        flag_stop_ = true;
+        flag_stop_.store(true, std::memory_order_relaxed);
         return;
       }
     } else {
@@ -335,7 +335,7 @@ void Factorise::processSupernode(Int sn) {
     child_sn = next_child_reverse_[child_sn];
   }
 
-  if (flag_stop_) return;
+  if (flag_stop_.load(std::memory_order_relaxed)) return;
 
   // ===================================================
   // Partial factorisation
@@ -346,7 +346,7 @@ void Factorise::processSupernode(Int sn) {
   const double reg_thresh = M_norm1_ * kDynamicDiagCoeff;
 
   if (Int flag = FH->denseFactorise(reg_thresh)) {
-    flag_stop_ = true;
+    flag_stop_.store(true, std::memory_order_relaxed);
 
     if (log_ && flag == kRetInvalidInput)
       log_->printDevInfo("DenseFact: invalid input\n");
@@ -409,7 +409,7 @@ bool Factorise::run(Numeric& num) {
     }
   }
 
-  if (flag_stop_) return true;
+  if (flag_stop_.load(std::memory_order_relaxed)) return true;
 
   // move factorisation to numerical object
   num.S_ = &S_;

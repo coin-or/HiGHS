@@ -243,14 +243,12 @@ set(factor_highs_headers
     ipm/hipo/factorhighs/Timing.h)
 
 set(hipo_util_sources
-    ipm/hipo/auxiliary/AutoDetect.cpp
     ipm/hipo/auxiliary/Auxiliary.cpp
     ipm/hipo/auxiliary/KrylovMethods.cpp
     ipm/hipo/auxiliary/Log.cpp
     ipm/hipo/auxiliary/VectorOperations.cpp)
 
 set(hipo_util_headers
-    ipm/hipo/auxiliary/AutoDetect.h
     ipm/hipo/auxiliary/Auxiliary.h
     ipm/hipo/auxiliary/IntConfig.h
     ipm/hipo/auxiliary/KrylovMethods.h
