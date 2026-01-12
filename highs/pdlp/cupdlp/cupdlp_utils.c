@@ -1792,6 +1792,7 @@ void debugPdlpDataInitialise(struct DebugPdlpData* debug_pdlp) {
   debug_pdlp->aty_norm = 0;
   debug_pdlp->ax_average_norm = 0;
   debug_pdlp->aty_average_norm = 0;
+  debug_pdlp->x_average_norm = 0;
 }
 
 void debugPdlpIterLog(FILE* file, const int iter_num, const struct DebugPdlpData* debug_pdlp, const double beta, const double primal_step, const double dual_step) {
