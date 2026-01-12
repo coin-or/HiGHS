@@ -95,14 +95,10 @@ method where any "mods" are made, so that at the level below the
 problem defined by the `HighsModel` class (without semi-variables) is
 solved.
 
-### `Highs::runFromExe()`
+### `Highs::run`
 
-This "outer" layer should contain just the "HiGHS files" actions that were
-previously in `app/RunHighs.cpp`.
-
-### `Highs::runFromUserScaling()`
-
-The next layer should handle user scaling
+This "outer" layer can contain the "HiGHS files" actions that were
+previously in `app/RunHighs.cpp`, and user scaling
 
 ### `Highs::optimizeHighs()`
 
@@ -116,9 +112,6 @@ The next layer should just optimize what's in the `HighsModel` (without semi-var
 
 ## Observations
 
-- `Highs::run()` is (of course) retained, but should just return the
-  value of `Highs::runFromExe()`
-
 - Refactoring `Highs::optimizeModel()` is tricky, so is is temporarily
   renamed `Highs::calledOptimizeModel()`, and `Highs::optimizeModel()`
   is a temporary intermediate method to facilitate this is.
@@ -131,7 +124,7 @@ The next layer should just optimize what's in the `HighsModel` (without semi-var
 
 ## ToDo
 
-- Move the code to write out the presolved model from `app/RunHighs.cpp` to `Highs::runFromExe()`
+- Move the code to write out the presolved model from `app/RunHighs.cpp` to `Highs::run()`
 
 - Move the "mods" to `Highs::optimizeHighs()`
 

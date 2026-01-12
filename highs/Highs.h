@@ -1296,7 +1296,6 @@ class Highs {
   // Nested methods below Highs::run()
   //
   // See highs/HighsRun.md
-  HighsStatus runFromUserScaling();
   HighsStatus optimizeHighs();
   HighsStatus optimizeModel();
   HighsStatus calledOptimizeModel();

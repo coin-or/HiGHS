@@ -3189,8 +3189,8 @@ void Highs::restoreInfCost(HighsStatus& return_status) {
 }
 
 HighsStatus Highs::userScale(HighsUserScaleData& data) {
-  if (!options_.user_objective_scale &&
-      !options_.user_bound_scale) return HighsStatus::kOk;
+  if (!options_.user_objective_scale && !options_.user_bound_scale)
+    return HighsStatus::kOk;
   // User objective and bound scaling data are accumulated in the
   // HighsUserScaleData struct, in particular, there is a local copy
   // of the user objective and bound scaling options values, and
@@ -3218,23 +3218,25 @@ HighsStatus Highs::userUnscale(HighsUserScaleData& data) {
   data.user_bound_scale *= -1;
   HighsStatus unscale_status = this->userScaleModel(data);
   if (unscale_status == HighsStatus::kError) {
-    highsLogUser(this->options_.log_options, HighsLogType::kError,
-		 "Unexpected error removing user scaling from the incumbent model\n");
+    highsLogUser(
+        this->options_.log_options, HighsLogType::kError,
+        "Unexpected error removing user scaling from the incumbent model\n");
     assert(unscale_status != HighsStatus::kError);
   }
   const bool update_kkt = true;
   unscale_status = this->userScaleSolution(data, update_kkt);
   highsLogUser(this->options_.log_options, HighsLogType::kInfo,
-	       "After solving the user-scaled model, the unscaled solution "
-	       "has objective value %.12g\n",
-	       this->info_.objective_function_value);
+               "After solving the user-scaled model, the unscaled solution "
+               "has objective value %.12g\n",
+               this->info_.objective_function_value);
   if (model_status_ == HighsModelStatus::kOptimal &&
       unscale_status != HighsStatus::kOk) {
     // KKT errors in the unscaled optimal solution, so log a warning and
     // return
-    highsLogUser(this->options_.log_options, HighsLogType::kWarning,
-		 "User scaled problem solved to optimality, but unscaled solution "
-		 "does not satisfy feasibility and optimality tolerances\n");
+    highsLogUser(
+        this->options_.log_options, HighsLogType::kWarning,
+        "User scaled problem solved to optimality, but unscaled solution "
+        "does not satisfy feasibility and optimality tolerances\n");
     status = HighsStatus::kWarning;
   }
   return status;

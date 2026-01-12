@@ -942,8 +942,26 @@ HighsStatus Highs::run() {
 
   if (status != HighsStatus::kOk) return status;
 
-  status = runFromUserScaling();
+  this->reportModelStats();
+
+  // Apply any user objective and bound scaling
+  HighsUserScaleData user_scale_data;
+  if (this->userScale(user_scale_data) == HighsStatus::kError)
+    return HighsStatus::kError;
+
+  // Determine coefficient ranges and possibly warn the user about
+  // excessive values, obtaining suggested values for user_objective_scale
+  // and user_bound_scale
+  assessExcessiveObjectiveBoundScaling(this->options_.log_options, this->model_,
+                                       user_scale_data);
+
+  // Optimize the model in the Highs instance
+  status = optimizeHighs();
   if (status == HighsStatus::kError) return status;
+
+  // Undo any user objective and bound scaling
+  if (this->userUnscale(user_scale_data) == HighsStatus::kError)
+    return HighsStatus::kError;
 
   if (this->options_.write_iis_model_file != "")
     status = this->writeIisModel(this->options_.write_iis_model_file);
@@ -956,34 +974,8 @@ HighsStatus Highs::run() {
   return status;
 }
 
-HighsStatus Highs::runFromUserScaling() {
-  // Level 1 of Highs::run()
-  //
-  // Possibly apply user-defined scaling to the incumbent model and
-  // solution, and call Highs::optimizeHighs()
-  this->reportModelStats();
-
-  HighsUserScaleData user_scale_data;
-  if (this->userScale(user_scale_data) == HighsStatus::kError)
-      return HighsStatus::kError;
-  
-  // Determine coefficient ranges and possibly warn the user about
-  // excessive values, obtaining suggested values for user_objective_scale
-  // and user_bound_scale
-  assessExcessiveObjectiveBoundScaling(this->options_.log_options, this->model_,
-                                       user_scale_data);
-
-  // Optimize the model in the Highs instance
-  HighsStatus status = optimizeHighs();
-
-  if (this->userUnscale(user_scale_data) == HighsStatus::kError)
-      return HighsStatus::kError;
-
-  return status;
-}
-
 HighsStatus Highs::optimizeHighs() {
-  // Level 2 of Highs::run()
+  // Level 1 of Highs::run()
   //
   // Move the "mods" to here
   return this->multi_linear_objective_.size() ? this->multiobjectiveSolve()
@@ -999,7 +991,7 @@ HighsStatus Highs::optimizeLp() {
 }
 
 HighsStatus Highs::optimizeModel() {
-  // Level 3a of Highs::run()
+  // Level 2a of Highs::run()
   //
   if (!options_.use_warm_start) this->clearSolver();
   this->sub_solver_call_time_.initialise();
@@ -1012,7 +1004,7 @@ HighsStatus Highs::optimizeModel() {
 //
 // LP solvers are called with callSolveLp(..)
 HighsStatus Highs::calledOptimizeModel() {
-  // Level 3b of Highs::run()
+  // Level 2b of Highs::run()
   //
   HighsInt min_highs_debug_level = kHighsDebugLevelMin;
   // kHighsDebugLevelCostly;
