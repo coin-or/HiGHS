@@ -5127,7 +5127,11 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
     // no reductions for this row?
     if (noReductions) {
+      // clang-format off
+      //
+      // clang formatting on oronsay can put the ";" on the next line!
       while (doBacktrack(numBranches));
+      // clang-format on
       continue;
     }
 
