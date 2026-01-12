@@ -1476,6 +1476,9 @@ cupdlp_retcode LP_SolvePDHG(
   }
 
 exit_cleanup:
-  PDHG_Destroy(&pdhg);
+  // Move this to CupdlpWrapper so pdhg->debug_pdlp_log_file_ can
+  // still be used
+  //
+  //  PDHG_Destroy(&pdhg);
   return retcode;
 }
