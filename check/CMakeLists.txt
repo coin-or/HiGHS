@@ -324,7 +324,7 @@ if ((NOT FAST_BUILD OR ALL_TESTS) AND NOT (BUILD_EXTRA_UNIT_ONLY))
     endif()
   elseif(WIN32 AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM" AND
             NOT (CMAKE_SIZEOF_VOID_P EQUAL 4) AND
-            NOT (CMAKE_SYSTEM_PROCESSOR MATCHES "AMD64|x86_64"))
+            CMAKE_SYSTEM_PROCESSOR MATCHES "AMD64|x86_64")
     if (CUPDLP_GPU)
         set(pdlpInstances
             "25fv47\; 5.50184\;"
@@ -442,9 +442,8 @@ if ((NOT FAST_BUILD OR ALL_TESTS) AND NOT (BUILD_EXTRA_UNIT_ONLY))
         add_instancetests(successRiscVInstances "Optimal")
     endif()
   else()
-    # actually pass, pdlp ones are failing
-    #   elseif(NOT (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64") AND
-    #          NOT (CMAKE_SIZEOF_VOID_P EQUAL 4))
+      elseif(NOT (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64") AND
+             NOT (CMAKE_SIZEOF_VOID_P EQUAL 4))
     add_instancetests(successInstances "Optimal")
   endif()
 
