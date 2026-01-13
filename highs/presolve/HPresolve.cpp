@@ -5178,14 +5178,14 @@ HPresolve::Result HPresolve::enumerateSolutions(
         // check if two binary variables take identical or complementary
         // values in all feasible solutions
         if (identicalVars(numSolutions, i, ii)) {
-          // add clique x_1 + (1 - x_2) = 1 to clique table
+          // add clique (1 - x_1) + x_2 = 1 to clique table
           std::array<HighsCliqueTable::CliqueVar, 2> clique;
           clique[0] = HighsCliqueTable::CliqueVar(col, 0);
           clique[1] = HighsCliqueTable::CliqueVar(col2, 1);
           cliquetable.addClique(*mipsolver, clique.data(), 2, true);
           HPRESOLVE_CHECKED_CALL(handleInfeasibility(domain.infeasible()));
         } else if (complementaryVars(numSolutions, i, ii)) {
-          // add clique x_1 + x_2 = 1 to clique table
+          // add clique (1 - x_1) + (1 - x_2) = 1 to clique table
           std::array<HighsCliqueTable::CliqueVar, 2> clique;
           clique[0] = HighsCliqueTable::CliqueVar(col, 0);
           clique[1] = HighsCliqueTable::CliqueVar(col2, 0);
