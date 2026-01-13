@@ -28,7 +28,6 @@ HighsMipWorker::HighsMipWorker(const HighsMipSolver& mipsolver,
   search_ptr_ =
       std::unique_ptr<HighsSearch>(new HighsSearch(*this, getPseudocost()));
   sepa_ptr_ = std::unique_ptr<HighsSeparation>(new HighsSeparation(*this));
-  numNeighbourhoodQueries = 0;
   search_ptr_->setLpRelaxation(lp_);
   sepa_ptr_->setLpRelaxation(lp_);
 }

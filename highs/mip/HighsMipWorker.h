@@ -22,6 +22,12 @@ class HighsSearch;
 
 class HighsMipWorker {
  public:
+  struct SepaStatistics {
+    SepaStatistics() : numNeighbourhoodQueries(0), sepa_lp_iterations(0) {}
+
+    int64_t numNeighbourhoodQueries;
+    int64_t sepa_lp_iterations;
+  };
   const HighsMipSolver& mipsolver_;
   const HighsMipSolverData& mipdata_;
 
@@ -43,10 +49,9 @@ class HighsMipWorker {
   std::vector<std::tuple<std::vector<double>, double, int>> solutions_;
 
   HighsPrimalHeuristics::Statistics heur_stats;
+  SepaStatistics sepa_stats;
 
   HighsRandom randgen;
-
-  int64_t numNeighbourhoodQueries;
 
   HighsMipWorker(const HighsMipSolver& mipsolver, HighsLpRelaxation* lp,
                  HighsDomain* domain, HighsCutPool* cutpool,
@@ -66,7 +71,6 @@ class HighsMipWorker {
   HighsDomain& getGlobalDomain() const { return *globaldom_; };
 
   HighsPseudocost& getPseudocost() const { return *pseudocost_; };
-
 
   bool addIncumbent(const std::vector<double>& sol, double solobj,
                     int solution_source);

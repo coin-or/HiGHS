@@ -59,8 +59,6 @@ HighsInt HighsSeparation::separationRound(HighsDomain& propdomain,
     if (&propdomain == &mipdata.domain)
       mipdata.cliquetable.cleanupFixed(mipdata.domain);
 
-    // TODO: Currently adding a check for both. Should only need to check
-    // mipworker
     if (mipworker_.getGlobalDomain().infeasible()) {
       status = HighsLpRelaxation::Status::kInfeasible;
       propdomain.clearChangedCols();
@@ -85,9 +83,7 @@ HighsInt HighsSeparation::separationRound(HighsDomain& propdomain,
     return numBoundChgs;
   };
 
-  // TODO MT: Look into delta implications (probing for global info locally and
-  // buffer it)
-  // TODO MT: Disabled timers because they fail for parallel mode
+  // TODO MT: Look into delta implications
   // lp->getMipSolver().analysis_.mipTimerStart(implBoundClock);
   mipdata.implications.separateImpliedBounds(
       *lp, lp->getSolution().col_value, *mipworker_.cutpool_, mipdata.feastol,
@@ -101,15 +97,13 @@ HighsInt HighsSeparation::separationRound(HighsDomain& propdomain,
   else
     ncuts += numboundchgs;
 
-  // TODO: This can be enabled if randgen and cliquesubsumption are disabled for
-  // parallel case
   // lp->getMipSolver().analysis_.mipTimerStart(cliqueClock);
   mipdata.cliquetable.separateCliques(
       lp->getMipSolver(), sol.col_value, *mipworker_.cutpool_, mipdata.feastol,
       mipdata.parallelLockActive() ? mipworker_.randgen
                                    : mipdata.cliquetable.getRandgen(),
       mipdata.parallelLockActive()
-          ? mipworker_.numNeighbourhoodQueries
+          ? mipworker_.sepa_stats.numNeighbourhoodQueries
           : mipdata.cliquetable.getNumNeighbourhoodQueries());
   // lp->getMipSolver().analysis_.mipTimerStop(cliqueClock);
 
@@ -183,16 +177,16 @@ void HighsSeparation::separate(HighsDomain& propdomain) {
     while (lp->getObjective() < mipsolver.mipdata_->optimality_limit) {
       double lastobj = lp->getObjective();
 
-      size_t nlpiters = -lp->getNumLpIterations();
+      int64_t nlpiters = -lp->getNumLpIterations();
       HighsInt ncuts = separationRound(propdomain, status);
       nlpiters += lp->getNumLpIterations();
 
-      // replace with mipworker iterations field
-      // mipsolver.mipdata_->sepa_lp_iterations += nlpiters;
-      // mipsolver.mipdata_->total_lp_iterations += nlpiters;
-
-      // todo:ig  more stats for separation iterations?
-      mipworker_.heur_stats.lp_iterations += nlpiters;
+      if (mipsolver.mipdata_->parallelLockActive()) {
+        mipworker_.sepa_stats.sepa_lp_iterations += nlpiters;
+      } else {
+        mipsolver.mipdata_->sepa_lp_iterations += nlpiters;
+        mipsolver.mipdata_->total_lp_iterations += nlpiters;
+      }
 
       // printf("separated %" HIGHSINT_FORMAT " cuts\n", ncuts);
 
@@ -217,11 +211,7 @@ void HighsSeparation::separate(HighsDomain& propdomain) {
     //        (HighsInt)status);
     lp->performAging(true);
 
-    // mipsolver.mipdata_->cutpool.performAging();
-    // ig: using worker cutpool
-    // TODO MT: Is this thread safe? Depends if LP is only copied at the start.
-    if (!mipsolver.mipdata_->parallelLockActive()) {
-      mipworker_.cutpool_->performAging();
-    }
+    // TODO MT: If LP is only copied at start this should be thread safe.
+    mipworker_.cutpool_->performAging();
   }
 }

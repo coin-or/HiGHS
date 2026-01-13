@@ -171,8 +171,8 @@ void HighsCutPool::performAging() {
 
   for (HighsInt i = 0; i != cutIndexEnd; ++i) {
     // Catch buffered changes (should only occur in parallel case)
-    // TODO: This misses the case where a cut is added then deleted before aging
-    // TODO: has been called once. We'd miss resetting the age in this case.
+    // TODO MT: Misses the case where a cut is added then deleted before aging
+    // TODO MT: has been called once. We'd miss resetting the age in this case.
     if (numLps_[i] > 0 && ages_[i] >= 0) {
       // Cut has been added to the LP, but age changes haven't been made
       --ageDistribution[ages_[i]];
@@ -245,7 +245,9 @@ void HighsCutPool::separate(const std::vector<double>& sol, HighsDomain& domain,
 
   for (HighsInt i = 0; i < nrows; ++i) {
     // cuts with an age of -1 are already in the LP and are therefore skipped
-    // TODO: Parallel case here loops over cuts potentially added in current LP
+    // TODO MT: Parallel case tries to add cuts already in current LP.
+    // TODO MT: Inefficient. Not sure what happens if added twice.
+    // TODO MT: The cut shouldn't have enough violation to be added though.
     if (ages_[i] < 0) continue;
 
     HighsInt start = matrix_.getRowStart(i);
@@ -402,8 +404,9 @@ void HighsCutPool::separate(const std::vector<double>& sol, HighsDomain& domain,
           break;
         }
       } else {
-        // TODO MT: Is this safe for the future? If we copy an LP with a cut
-        // from a local pool then this is not thread safe
+        // TODO MT: This assumes the cuts in the pool are not changing during,
+        // TODO MT: this query, i.e., the worker's pool and the global pool.
+        // TODO MT: Currently safe, but doesn't generalise to all designs.
         if (getParallelism(p.second, cutset.cutindices[i],
                            cutpools[cutset.cutpools[i]]) > maxpar) {
           discard = true;
@@ -498,8 +501,7 @@ void HighsCutPool::separateLpCutsAfterRestart(HighsCutSet& cutset) {
 HighsInt HighsCutPool::addCut(const HighsMipSolver& mipsolver, HighsInt* Rindex,
                               double* Rvalue, HighsInt Rlen, double rhs,
                               bool integral, bool propagate,
-                              bool extractCliques, bool isConflict,
-                              HighsCutPool* globalpool) {
+                              bool extractCliques, bool isConflict) {
   mipsolver.mipdata_->debugSolution.checkCut(Rindex, Rvalue, Rlen, rhs);
 
   sortBuffer.resize(Rlen);
@@ -526,10 +528,6 @@ HighsInt HighsCutPool::addCut(const HighsMipSolver& mipsolver, HighsInt* Rindex,
   double normalization = 1.0 / double(sqrt(norm));
 
   if (isDuplicate(h, normalization, Rindex, Rvalue, Rlen, rhs)) return -1;
-
-  if (globalpool != nullptr &&
-      globalpool->isDuplicate(h, normalization, Rindex, Rvalue, Rlen, rhs))
-    return -1;
 
   // if (Rlen > 0.15 * matrix_.numCols())
   //   printf("cut with len %d not propagated\n", Rlen);
@@ -645,6 +643,8 @@ void HighsCutPool::syncCutPool(const HighsMipSolver& mipsolver,
       std::vector<double> vals(Rvalue, Rvalue + Rlen);
       syncpool.addCut(mipsolver, idxs.data(), vals.data(), Rlen, rhs_[i],
                       rowintegral[i]);
+      // TODO MT: Should I check whether the cut is accepted before changing
+      // hasSynced?
       hasSynced_[i] = true;
     }
   }

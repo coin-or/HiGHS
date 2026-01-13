@@ -8,7 +8,7 @@
 #include "mip/HighsCutGeneration.h"
 
 #include "../extern/pdqsort/pdqsort.h"
-#include "HighsDomain.h"
+#include "mip/HighsDomain.h"
 #include "mip/HighsMipSolverData.h"
 #include "mip/HighsTransformedLp.h"
 #include "util/HighsIntegers.h"

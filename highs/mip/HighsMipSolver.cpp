@@ -734,15 +734,22 @@ restart:
     applyTask(doSeparate, tg, true, search_indices);
     analysis_.mipTimerStop(kMipClockNodeSearchSeparation);
 
-    for (const HighsInt i : search_indices) {
-      // Sync numNeighbourhoodQueries
+    auto syncSepaStats = [&](HighsMipWorker& worker) {
       mipdata_->cliquetable.getNumNeighbourhoodQueries() +=
-          mipdata_->workers[i].numNeighbourhoodQueries;
-      mipdata_->workers[i].numNeighbourhoodQueries = 0;
-      if (mipdata_->workers[i].getGlobalDomain().infeasible()) {
-        mipdata_->workers[i].search_ptr_->cutoffNode();
+          worker.sepa_stats.numNeighbourhoodQueries;
+      worker.sepa_stats.numNeighbourhoodQueries = 0;
+      mipdata_->sepa_lp_iterations += worker.sepa_stats.sepa_lp_iterations;
+      mipdata_->total_lp_iterations += worker.sepa_stats.sepa_lp_iterations;
+      worker.sepa_stats.sepa_lp_iterations = 0;
+    };
+
+    for (const HighsInt i : search_indices) {
+      HighsMipWorker& worker = mipdata_->workers[i];
+      syncSepaStats(worker);
+      if (worker.getGlobalDomain().infeasible()) {
+        worker.search_ptr_->cutoffNode();
         analysis_.mipTimerStart(kMipClockOpenNodesToQueue1);
-        mipdata_->workers[i].search_ptr_->openNodesToQueue(mipdata_->nodequeue);
+        worker.search_ptr_->openNodesToQueue(mipdata_->nodequeue);
         analysis_.mipTimerStop(kMipClockOpenNodesToQueue1);
         mipdata_->nodequeue.clear();
         mipdata_->pruned_treeweight = 1.0;
