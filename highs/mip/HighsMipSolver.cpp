@@ -111,8 +111,6 @@ void HighsMipSolver::run() {
 
   mipdata_ = decltype(mipdata_)(new HighsMipSolverData(*this));
 
-  // todo:ig mipdata_. initialize worker
-
   analysis_.mipTimerStart(kMipClockPresolve);
   analysis_.mipTimerStart(kMipClockInit);
 
@@ -289,10 +287,10 @@ restart:
     while (mipdata_->lps.size() > 1) {
       mipdata_->lps.pop_back();
     }
+    // Global pseudo-cost not stored in pseudo-costs!
     while (!mipdata_->pseudocosts.empty()) {
       mipdata_->pseudocosts.pop_back();
     }
-    // Global pseudo-cost not stored in pseudo-costs!
     while (mipdata_->workers.size() > 1) {
       mipdata_->workers.pop_back();
     }
@@ -403,11 +401,11 @@ restart:
     worker.search_ptr_->resetLocalDomain();
     worker.getGlobalDomain().clearChangedCols();
 #ifndef NDEBUG
-    for (HighsInt i = 0; i < numCol(); ++i) {
-      assert(mipdata_->domain.col_lower_[i] ==
-             worker.globaldom_->col_lower_[i]);
-      assert(mipdata_->domain.col_upper_[i] ==
-             worker.globaldom_->col_upper_[i]);
+    for (HighsInt col = 0; col < numCol(); ++col) {
+      assert(mipdata_->domain.col_lower_[col] ==
+             worker.globaldom_->col_lower_[col]);
+      assert(mipdata_->domain.col_upper_[col] ==
+             worker.globaldom_->col_upper_[col]);
     }
 #endif
   };
@@ -432,6 +430,7 @@ restart:
                   (HighsInt)mipdata_->domain.getChangedCols().size());
       mipdata_->cliquetable.cleanupFixed(mipdata_->domain);
       if (mipdata_->hasMultipleWorkers() && resetWorkers) {
+        // Sync worker domains here. cleanupFixed might have found extra changes
         std::vector<HighsInt> indices(num_workers);
         std::iota(indices.begin(), indices.end(), 0);
         applyTask(doResetWorkerDomain, tg, false, indices);
@@ -446,9 +445,6 @@ restart:
       mipdata_->removeFixedIndices();
       analysis_.mipTimerStop(kMipClockUpdateLocalDomain);
     }
-    // Note for multiple workers: It is possible that while cleaning up the
-    // clique table some domain changes were made. Therefore the worker
-    // global domains may at this point be "weaker" than the true global domain.
   };
 
   auto syncGlobalPseudoCost = [&]() -> void {
@@ -474,11 +470,10 @@ restart:
     applyTask(doResetWorkerPseudoCost, tg, false, indices);
   };
 
-  // TODO: Should we be propagating this first?
   destroyOldWorkers();
   // TODO: Is this reset actually needed? Is copying over all
   // the current domain changes actually going to cause an error?
-  if (num_workers > 1) {
+  if (mipdata_->hasMultipleWorkers()) {
     resetGlobalDomain(true, false);
     constructAdditionalWorkerData(master_worker);
   } else {
