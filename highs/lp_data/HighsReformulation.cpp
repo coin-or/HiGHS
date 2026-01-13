@@ -21,6 +21,17 @@
 
 HighsStatus Highs::doReformulation() {
   HighsStatus status = HighsStatus::kOk;
+  status = this->doInfiniteCostReformulation();
+  return status;
+}
+
+void Highs::undoReformulation(HighsStatus& optimize_status) {
+  this->undoInfiniteCostReformulation(optimize_status);
+  //  this->model_.lp_.unapplyMods();
+}
+
+HighsStatus Highs::doInfiniteCostReformulation() {
+  HighsStatus status = HighsStatus::kOk;
   assert(model_.lp_.has_infinite_cost_ ==
          model_.lp_.hasInfiniteCost(options_.infinite_cost));
   if (model_.lp_.has_infinite_cost_) {
@@ -37,12 +48,7 @@ HighsStatus Highs::doReformulation() {
   } else {
     assert(!model_.lp_.hasInfiniteCost(options_.infinite_cost));
   }
-  return status;
-}
-
-void Highs::undoReformulation(HighsStatus& optimize_status) {
-  this->restoreInfiniteCost(optimize_status);
-  //  this->model_.lp_.unapplyMods();
+  return status;  
 }
 
 HighsStatus Highs::handleInfiniteCost() {
@@ -132,7 +138,7 @@ HighsStatus Highs::handleInfiniteCost() {
   return HighsStatus::kOk;
 }
 
-void Highs::restoreInfiniteCost(HighsStatus& optimize_status) {
+void Highs::undoInfiniteCostReformulation(HighsStatus& optimize_status) {
   HighsLp& lp = this->model_.lp_;
   HighsBasis& basis = this->basis_;
   HighsLpMods& mods = lp.mods_;

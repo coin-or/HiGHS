@@ -1803,8 +1803,11 @@ class Highs {
   HighsStatus doReformulation();
   void undoReformulation(HighsStatus& optimize_status);
 
+  HighsStatus doInfiniteCostReformulation();
   HighsStatus handleInfiniteCost();
-  void restoreInfiniteCost(HighsStatus& optimize_status);
+  void undoInfiniteCostReformulation(HighsStatus& optimize_status);
+
+
 };
 
 // Start of deprecated methods not in the Highs class
