@@ -665,39 +665,39 @@ void HighsCliqueTable::addClique(const HighsMipSolver& mipsolver,
                                  bool equality, HighsInt origin) {
   HighsDomain& globaldom = mipsolver.mipdata_->domain;
   mipsolver.mipdata_->debugSolution.checkClique(cliquevars, numcliquevars);
-  for (HighsInt i = 0; i != numcliquevars; ++i) {
-    resolveSubstitution(cliquevars[i]);
-    if (globaldom.isFixed(cliquevars[i].col)) {
-      if (cliquevars[i].val == globaldom.col_lower_[cliquevars[i].col]) {
-        // column is fixed to 1, every other entry can be fixed to zero
-        HighsInt k;
-        for (k = 0; k < i; ++k) {
-          bool wasfixed = globaldom.isFixed(cliquevars[k].col);
-          globaldom.fixCol(cliquevars[k].col, double(1 - cliquevars[k].val));
-          if (globaldom.infeasible()) return;
-          if (!wasfixed) {
-            ++nfixings;
-            infeasvertexstack.push_back(cliquevars[k]);
-          }
-        }
-        for (k = i + 1; k < numcliquevars; ++k) {
-          bool wasfixed = globaldom.isFixed(cliquevars[k].col);
-          globaldom.fixCol(cliquevars[k].col, double(1 - cliquevars[k].val));
-          if (globaldom.infeasible()) return;
-          if (!wasfixed) {
-            ++nfixings;
-            infeasvertexstack.push_back(cliquevars[k]);
-          }
-        }
+  const HighsInt maxNumCliqueVars = 100;
 
-        processInfeasibleVertices(globaldom);
-        return;
-      }
+  // lambda for complementing clique
+  auto complementClique = [&]() {
+    for (HighsInt i = 0; i != numcliquevars; ++i) {
+      cliquevars[i] = cliquevars[i].complement();
     }
-  }
+  };
 
-  if (numcliquevars <= 100) {
-    bool hasNewEdge = false;
+  // lambda for analysing the clique to see if all variables can be fixed
+  auto fixAllVarsInClique = [&](bool& hasNewEdge) {
+    for (HighsInt i = 0; i != numcliquevars; ++i) {
+      if (!globaldom.isFixed(cliquevars[i].col) ||
+          cliquevars[i].val != globaldom.col_lower_[cliquevars[i].col])
+        continue;
+      // column is fixed to 1, every other entry can be fixed to zero
+      for (HighsInt k = 0; k != numcliquevars; ++k) {
+        if (k == i) continue;
+
+        bool wasfixed = globaldom.isFixed(cliquevars[k].col);
+        globaldom.fixCol(cliquevars[k].col, double(1 - cliquevars[k].val));
+        if (globaldom.infeasible()) return false;
+        if (!wasfixed) {
+          ++nfixings;
+          infeasvertexstack.push_back(cliquevars[k]);
+        }
+      }
+
+      processInfeasibleVertices(globaldom);
+      return true;
+    }
+
+    if (numcliquevars > maxNumCliqueVars) return false;
 
     // todo, sort new clique to allow log n lookup of membership in size by
     // binary search
@@ -714,17 +714,17 @@ void HighsCliqueTable::addClique(const HighsMipSolver& mipsolver,
         if (globaldom.isFixed(cliquevars[j].col)) continue;
 
         if (haveCommonClique(cliquevars[i], cliquevars[j])) continue;
-        // todo: Instead of haveCommonClique use findCommonClique. If the common
-        // clique is smaller than this clique check if it is a subset of this
-        // clique. If it is a subset remove the clique and iterate the process
-        // until either a common clique that is not a subset of this one is
-        // found, or no common clique exists anymore in which case we proceed
-        // with the code below and set hasNewEdge to true
+        // todo: Instead of haveCommonClique use findCommonClique. If the
+        // common clique is smaller than this clique check if it is a subset
+        // of this clique. If it is a subset remove the clique and iterate the
+        // process until either a common clique that is not a subset of this
+        // one is found, or no common clique exists anymore in which case we
+        // proceed with the code below and set hasNewEdge to true
 
         hasNewEdge = true;
 
         bool iscover = processNewEdge(globaldom, cliquevars[i], cliquevars[j]);
-        if (globaldom.infeasible()) return;
+        if (globaldom.infeasible()) return false;
 
         if (!mipsolver.mipdata_->nodequeue.empty()) {
           const auto& v1Nodes =
@@ -744,12 +744,12 @@ void HighsCliqueTable::addClique(const HighsMipSolver& mipsolver,
             // care here, since the set of nodes branched upwards or downwards
             // are not necessarily containing domain changes setting the
             // variables to the corresponding clique value but could be
-            // redundant bound changes setting the upper bound to u >= 1 or the
-            // lower bound to l <= 0.
+            // redundant bound changes setting the upper bound to u >= 1 or
+            // the lower bound to l <= 0.
 
             // itV1 will point to the first node where v1 is fixed to val and
-            // endV1 to the end of the range of such nodes. Same for itV2/endV2
-            // with v2.
+            // endV1 to the end of the range of such nodes. Same for
+            // itV2/endV2 with v2.
             auto itV1 = v1Nodes.lower_bound(
                 std::make_pair(double(cliquevars[i].val), kHighsIInf));
             auto endV1 = v1Nodes.upper_bound(
@@ -788,7 +788,7 @@ void HighsCliqueTable::addClique(const HighsMipSolver& mipsolver,
 
             bool wasfixed = globaldom.isFixed(cliquevars[k].col);
             globaldom.fixCol(cliquevars[k].col, double(1 - cliquevars[k].val));
-            if (globaldom.infeasible()) return;
+            if (globaldom.infeasible()) return false;
             if (!wasfixed) {
               ++nfixings;
               infeasvertexstack.push_back(cliquevars[k]);
@@ -796,12 +796,42 @@ void HighsCliqueTable::addClique(const HighsMipSolver& mipsolver,
           }
 
           processInfeasibleVertices(globaldom);
-          return;
+          return true;
         }
       }
     }
-    if (!hasNewEdge && origin == kHighsIInf) return;
+    return false;
+  };
+
+  // lambda for checking the (complemented) clique
+  auto checkClique = [&](bool& hasNewEdge, bool complement) {
+    if (complement) complementClique();
+    bool done = fixAllVarsInClique(hasNewEdge);
+    if (complement) complementClique();
+    if (done) return true;
+    return false;
+  };
+
+  // resolve substitutions
+  for (HighsInt i = 0; i != numcliquevars; ++i) {
+    resolveSubstitution(cliquevars[i]);
   }
+
+  // initialise flag
+  bool hasNewEdge = false;
+
+  // check if all variables can be fixed or infeasibility was detected
+  if (checkClique(hasNewEdge, false)) return;
+  if (globaldom.infeasible()) return;
+
+  if (equality) {
+    // try complemented clique
+    if (checkClique(hasNewEdge, true)) return;
+    if (globaldom.infeasible()) return;
+  }
+
+  if (!hasNewEdge && origin == kHighsIInf) return;
+
   CliqueVar* unfixedend =
       std::remove_if(cliquevars, cliquevars + numcliquevars,
                      [&](CliqueVar v) { return globaldom.isFixed(v.col); });
