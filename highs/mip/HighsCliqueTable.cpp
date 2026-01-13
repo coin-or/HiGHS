@@ -842,10 +842,6 @@ void HighsCliqueTable::extractCliques(
     std::vector<double>& vals, std::vector<int8_t>& complementation, double rhs,
     HighsInt nbin, std::vector<HighsInt>& perm, std::vector<CliqueVar>& clique,
     double feastol) {
-  // only extract cliques before the dive.
-  // not needed, only called in presolve.
-  // if (mipsolver.mipdata_->workers.size() > 1)
-  //   return;
 
   HighsImplications& implics = mipsolver.mipdata_->implications;
   HighsDomain& globaldom = mipsolver.mipdata_->domain;
@@ -1095,10 +1091,6 @@ void HighsCliqueTable::extractCliquesFromCut(const HighsMipSolver& mipsolver,
 
   HighsImplications& implics = mipsolver.mipdata_->implications;
   HighsDomain& globaldom = mipsolver.mipdata_->domain;
-
-  // todo:(ig)
-  // const HighsImplications& implics = mipsolver.mipdata_->implications;
-  // const HighsDomain& globaldom = mipsolver.mipdata_->domain;
 
   const double feastol = mipsolver.mipdata_->feastol;
 

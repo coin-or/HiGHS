@@ -639,10 +639,8 @@ struct HighsOptionsStruct {
         mip_improving_solution_file(""),
         mip_root_presolve_only(false),
         mip_lifting_for_probing(-1),
-        // clang-format off
         mip_search_concurrency(0),
         mip_search_simulate_concurrency(false) {};
-  // clang-format on
 };
 
 // For now, but later change so HiGHS properties are string based so that new
@@ -929,7 +927,7 @@ class HighsOptions : public HighsOptionsStruct {
 
     record_bool = new OptionRecordBool(
         "timeless_log", "Suppression of time-based data in logging", true,
-        &timeless_log, true);  // false);
+        &timeless_log, false);  // false);
     records.push_back(record_bool);
 
     record_string = new OptionRecordString(kLogFileString, "Log file", advanced,
@@ -1247,13 +1245,15 @@ class HighsOptions : public HighsOptionsStruct {
     records.push_back(record_double);
 
     record_int = new OptionRecordInt(
-        "mip_search_concurrency", "Concurrency to use in MIP search", advanced,
-        &mip_search_concurrency, 1, 2, kMipSearchConcurrencyLimit);
+        "mip_search_concurrency",
+        "Number of workers to create per thread for concurrent MIP search",
+        advanced, &mip_search_concurrency, 0, 2, kMipSearchConcurrencyLimit);
     records.push_back(record_int);
 
-    record_bool = new OptionRecordBool("mip_search_simulate_concurrency",
-                                       "Simulate concurrency on a single thread", advanced,
-                                       &mip_search_simulate_concurrency, false);
+    record_bool = new OptionRecordBool(
+        "mip_search_simulate_concurrency",
+        "Simulate MIP search concurrency on a single thread", advanced,
+        &mip_search_simulate_concurrency, false);
     records.push_back(record_bool);
 
     record_int = new OptionRecordInt(

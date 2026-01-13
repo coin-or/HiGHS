@@ -267,7 +267,7 @@ restart:
   // Initialize worker relaxations and mipworkers
   const HighsInt mip_search_concurrency = options_mip_->mip_search_concurrency;
   const HighsInt num_workers =
-      highs::parallel::num_threads() == 1 || mip_search_concurrency <= 1 ||
+      highs::parallel::num_threads() == 1 || mip_search_concurrency <= 0 ||
               submip
           ? 1
           : mip_search_concurrency * highs::parallel::num_threads();
@@ -396,10 +396,6 @@ restart:
       worker.getGlobalDomain().changeBound(domchg,
                                            HighsDomain::Reason::unspecified());
     }
-    worker.getGlobalDomain().setDomainChangeStack(
-        std::vector<HighsDomainChange>());
-    worker.search_ptr_->resetLocalDomain();
-    worker.getGlobalDomain().clearChangedCols();
 #ifndef NDEBUG
     for (HighsInt col = 0; col < numCol(); ++col) {
       assert(mipdata_->domain.col_lower_[col] ==
@@ -408,6 +404,10 @@ restart:
              worker.globaldom_->col_upper_[col]);
     }
 #endif
+    worker.getGlobalDomain().setDomainChangeStack(
+        std::vector<HighsDomainChange>());
+    worker.search_ptr_->resetLocalDomain();
+    worker.getGlobalDomain().clearChangedCols();
   };
 
   auto resetWorkerDomains = [&]() -> void {
@@ -473,7 +473,7 @@ restart:
   destroyOldWorkers();
   // TODO: Is this reset actually needed? Is copying over all
   // the current domain changes actually going to cause an error?
-  if (mipdata_->hasMultipleWorkers()) {
+  if (num_workers > 1) {
     resetGlobalDomain(true, false);
     constructAdditionalWorkerData(master_worker);
   } else {

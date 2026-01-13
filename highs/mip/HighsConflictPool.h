@@ -74,8 +74,10 @@ class HighsConflictPool {
 
   void resetAge(HighsInt conflict) {
     if (ages_[conflict] > 0) {
-      usedInDive_[conflict] = true;
-      if (age_lock_) return;
+      if (age_lock_) {
+        usedInDive_[conflict] = true;
+        return;
+      }
       ageDistribution_[ages_[conflict]] -= 1;
       ageDistribution_[0] += 1;
       ages_[conflict] = 0;
