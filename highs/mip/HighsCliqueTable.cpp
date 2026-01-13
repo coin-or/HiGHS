@@ -824,7 +824,7 @@ void HighsCliqueTable::addClique(const HighsMipSolver& mipsolver,
   if (checkClique(hasNewEdge, false)) return;
   if (globaldom.infeasible()) return;
 
-  if (equality) {
+  if (numcliquevars == 2 && equality) {
     // try complemented clique
     if (checkClique(hasNewEdge, true)) return;
     if (globaldom.infeasible()) return;
