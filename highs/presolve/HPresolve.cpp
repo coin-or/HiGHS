@@ -5168,13 +5168,9 @@ HPresolve::Result HPresolve::enumerateSolutions(
     for (size_t i = 0; i < numVars - 1; i++) {
       // get column index
       HighsInt col = vars[i];
-      // skip already fixed columns
-      if (domain.isFixed(col)) continue;
       for (size_t ii = i + 1; ii < numVars; ii++) {
         // get column index
         HighsInt col2 = vars[ii];
-        // skip already fixed columns
-        if (domain.isFixed(col2)) continue;
         // check if two binary variables take identical or complementary
         // values in all feasible solutions
         if (identicalVars(numSolutions, i, ii)) {
