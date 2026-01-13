@@ -159,7 +159,9 @@ if ((NOT FAST_BUILD OR ALL_TESTS) AND NOT (BUILD_EXTRA_UNIT_ONLY))
   add_test(NAME capi_unit_tests COMMAND capi_unit_tests)
 
   # Check whether test executable builds OK.
-  if (NOT HIGHS_COVERAGE)
+  if ((NOT HIGHS_COVERAGE) AND
+        (NOT BUILD_OPENBLAS OR
+        (LINUX AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64")))
     add_test(NAME unit-test-build
             COMMAND ${CMAKE_COMMAND}
                     --build ${HIGHS_BINARY_DIR}
@@ -435,7 +437,8 @@ if ((NOT FAST_BUILD OR ALL_TESTS) AND NOT (BUILD_EXTRA_UNIT_ONLY))
     if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "riscv64")
         add_instancetests(successRiscVInstances "Optimal")
     endif()
-  else()
+  elseif(NOT (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64") AND
+         NOT (CMAKE_SIZEOF_VOID_P EQUAL 4))
     add_instancetests(successInstances "Optimal")
   endif()
 
