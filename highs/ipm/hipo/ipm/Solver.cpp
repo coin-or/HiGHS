@@ -381,8 +381,9 @@ void Solver::recoverDirection(NewtonDir& delta, const Residuals& rhs) const {
     }
   }
 
-  // not sure if this has any effect, but IPX uses it
-  /*std::vector<double> Atdy(n_);
+  // Shift residual to the last two block equations (used by ipx, probably not
+  // needed in hipo).
+  std::vector<double> Atdy(n_);
   model_.A().alphaProductPlusY(1.0, delta.y, Atdy, true);
   for (Int i = 0; i < n_; ++i) {
     if (model_.hasLb(i) || model_.hasUb(i)) {
@@ -397,7 +398,7 @@ void Solver::recoverDirection(NewtonDir& delta, const Residuals& rhs) const {
         delta.zu[i] = -res4[i] + delta.zl[i] + Atdy[i];
       }
     }
-  }*/
+  }
 }
 
 double Solver::stepToBoundary(const std::vector<double>& x,
