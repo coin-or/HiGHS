@@ -391,62 +391,52 @@ restart:
     }
   };
 
+  auto doResetWorkerDomain = [&](HighsInt i) {
+    HighsMipWorker& worker = mipdata_->workers[i];
+    for (const HighsDomainChange& domchg :
+         mipdata_->domain.getDomainChangeStack()) {
+      worker.getGlobalDomain().changeBound(domchg,
+                                           HighsDomain::Reason::unspecified());
+    }
+    worker.getGlobalDomain().setDomainChangeStack(
+        std::vector<HighsDomainChange>());
+    worker.search_ptr_->resetLocalDomain();
+    worker.getGlobalDomain().clearChangedCols();
+#ifndef NDEBUG
+    for (HighsInt i = 0; i < numCol(); ++i) {
+      assert(mipdata_->domain.col_lower_[i] ==
+             worker.globaldom_->col_lower_[i]);
+      assert(mipdata_->domain.col_upper_[i] ==
+             worker.globaldom_->col_upper_[i]);
+    }
+#endif
+  };
+
   auto resetWorkerDomains = [&]() -> void {
     // Push all changes from the true global domain to each worker's global
     // domain and then clear worker's changedCols / domChgStack, and reset
     // their local search domain
     if (mipdata_->hasMultipleWorkers()) {
-      for (HighsMipWorker& worker : mipdata_->workers) {
-        for (const HighsDomainChange& domchg :
-             mipdata_->domain.getDomainChangeStack()) {
-          worker.getGlobalDomain().changeBound(
-              domchg, HighsDomain::Reason::unspecified());
-        }
-        worker.getGlobalDomain().setDomainChangeStack(
-            std::vector<HighsDomainChange>());
-        worker.search_ptr_->resetLocalDomain();
-        worker.getGlobalDomain().clearChangedCols();
-#ifndef NDEBUG
-        // TODO: This might produce a mismatch currently due to cleanup clique
-        // table
-        // for (HighsInt i = 0; i < numCol(); ++i) {
-        //   assert(mipdata_->domain.col_lower_[i] ==
-        //          worker.globaldom_->col_lower_[i]);
-        //   assert(mipdata_->domain.col_upper_[i] ==
-        //          worker.globaldom_->col_upper_[i]);
-        // }
-#endif
+      for (HighsInt i = 0; i != num_workers; i++) {
+        doResetWorkerDomain(i);
       }
     }
   };
 
-  auto resetGlobalDomain = [&](bool force = false) -> void {
+  auto resetGlobalDomain = [&](bool force, bool resetWorkers) -> void {
     // if global propagation found bound changes, we update the domain
     if (!mipdata_->domain.getChangedCols().empty() || force) {
       analysis_.mipTimerStart(kMipClockUpdateLocalDomain);
       highsLogDev(options_mip_->log_options, HighsLogType::kInfo,
                   "added %" HIGHSINT_FORMAT " global bound changes\n",
                   (HighsInt)mipdata_->domain.getChangedCols().size());
-      HighsInt prevStackSize = mipdata_->domain.getNumDomainChanges();
       mipdata_->cliquetable.cleanupFixed(mipdata_->domain);
-      HighsInt currStackSize = mipdata_->domain.getNumDomainChanges();
-      if (mipdata_->hasMultipleWorkers() && currStackSize > prevStackSize) {
-        // Update workers with new global changes before the stack is reset
-        // TODO: Check if this is alright? Does this get overwirtten via
-        // TODO: installNode?
-        // TODO: If it does, should I just call a more general
-        // TODO: resetWorkerDomains?
-        const auto& domchgstack = mipdata_->domain.getDomainChangeStack();
-        for (HighsInt i = prevStackSize; i != currStackSize; i++) {
-          const HighsDomainChange& domchg = domchgstack[i];
-          // for (HighsMipWorker& worker : mipdata_->workers) {
-          //   worker.getGlobalDomain().changeBound(
-          //       domchg, HighsDomain::Reason::unspecified());
-          // }
-          // TODO: Need to reset these worker domains....
-        }
+      if (mipdata_->hasMultipleWorkers() && resetWorkers) {
+        std::vector<HighsInt> indices(num_workers);
+        std::iota(indices.begin(), indices.end(), 0);
+        applyTask(doResetWorkerDomain, tg, false, indices);
       }
-      for (HighsInt col : mipdata_->domain.getChangedCols())
+      for (const HighsInt col : mipdata_->domain.getChangedCols())
         mipdata_->implications.cleanupVarbounds(col);
 
       mipdata_->domain.setDomainChangeStack(std::vector<HighsDomainChange>());
@@ -489,7 +479,7 @@ restart:
   // TODO: Is this reset actually needed? Is copying over all
   // the current domain changes actually going to cause an error?
   if (num_workers > 1) {
-    resetGlobalDomain(true);
+    resetGlobalDomain(true, false);
     constructAdditionalWorkerData(master_worker);
   } else {
     master_worker.search_ptr_->resetLocalDomain();
@@ -786,8 +776,8 @@ restart:
         mipdata_->workers[i].lp_->storeBasis();
 
       basis = mipdata_->workers[i].lp_->getStoredBasis();
-      if (!basis || !isBasisConsistent(
-                        mipdata_->workers[i].lp_->getLp(), *basis)) {
+      if (!basis ||
+          !isBasisConsistent(mipdata_->workers[i].lp_->getLp(), *basis)) {
         HighsBasis b = mipdata_->firstrootbasis;
         b.row_status.resize(mipdata_->workers[i].lp_->numRows(),
                             HighsBasisStatus::kBasic);
@@ -822,24 +812,21 @@ restart:
         if (mipdata_->incumbent.empty() && clocks) {
           analysis_.mipTimerStart(kMipClockDiveRandomizedRounding);
           mipdata_->heuristics.randomizedRounding(
-              worker,
-              worker.lp_->getLpSolver().getSolution().col_value);
+              worker, worker.lp_->getLpSolver().getSolution().col_value);
           analysis_.mipTimerStop(kMipClockDiveRandomizedRounding);
         }
         if (mipdata_->incumbent.empty()) {
           if (options_mip_->mip_heuristic_run_rens) {
             if (clocks) analysis_.mipTimerStart(kMipClockDiveRens);
             mipdata_->heuristics.RENS(
-                worker,
-                worker.lp_->getLpSolver().getSolution().col_value);
+                worker, worker.lp_->getLpSolver().getSolution().col_value);
             if (clocks) analysis_.mipTimerStop(kMipClockDiveRens);
           }
         } else {
           if (options_mip_->mip_heuristic_run_rins) {
             if (clocks) analysis_.mipTimerStart(kMipClockDiveRins);
             mipdata_->heuristics.RINS(
-                worker,
-                worker.lp_->getLpSolver().getSolution().col_value);
+                worker, worker.lp_->getLpSolver().getSolution().col_value);
             if (clocks) analysis_.mipTimerStop(kMipClockDiveRins);
           }
         }
@@ -1056,12 +1043,8 @@ restart:
     mipdata_->printDisplayLine();
     if (mipdata_->nodequeue.empty()) break;
 
-    // set local global domains of all workers to copy changes of global
-    if (mipdata_->hasMultipleWorkers()) resetWorkerDomains();
-    // flush all changes made to the global domain
-    resetGlobalDomain();
-    // TODO: Does this line need to be here? Isn't it already reset above?
-    // if (!mipdata_->hasMultipleWorkers()) search.resetLocalDomain();
+    // reset global domain and sync worker's global domains
+    resetGlobalDomain(false, mipdata_->hasMultipleWorkers());
 
     if (!submip && mipdata_->num_nodes >= nextCheck) {
       auto nTreeRestarts = mipdata_->numRestarts - mipdata_->numRestartsRoot;
@@ -1174,9 +1157,8 @@ restart:
       if (search_indices.empty()) {
         if (mipdata_->hasMultipleWorkers()) {
           syncGlobalDomain();
-          resetWorkerDomains();
         }
-        resetGlobalDomain();
+        resetGlobalDomain(false, mipdata_->hasMultipleWorkers());
         continue;
       }
 
