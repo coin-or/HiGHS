@@ -1301,7 +1301,7 @@ class HighsOptions : public HighsOptionsStruct {
         new OptionRecordString(kHipoScalingString,
                                "HiPO scaling option: \"curtis-reid\" "
                                "or \"norm\".",
-                               advanced, &hipo_scaling, kHipoCRscaling);
+                               advanced, &hipo_scaling, kHipoNormScaling);
     records.push_back(record_string);
 
     record_bool = new OptionRecordBool(
