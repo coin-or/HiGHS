@@ -382,6 +382,7 @@ void Model::print(const LogHighs& log) const {
     log_stream << "-\n";
 
   if (log.debug(1)) {
+    log_stream << textline("Scaling:") << scaling_option_ << '\n';
     log_stream << textline("Scaling CG iterations:")
                << integer(CG_iter_scaling_) << '\n';
     log_stream << textline("Norm b unscaled") << sci(norm_unscaled_rhs_, 0, 1)
@@ -432,6 +433,8 @@ void Model::scale(const std::string& scaling) {
       boundScaling();
     }
   }
+
+  scaling_option_ = scaling;
 
   assert(!isNanVector(colscale_) && !isNanVector(rowscale_) &&
          !isInfVector(colscale_) && !isInfVector(rowscale_));

@@ -63,6 +63,7 @@ class Model {
   std::vector<double> colscale_{};
   std::vector<double> rowscale_{};
   Int CG_iter_scaling_{};
+  std::string scaling_option_{};
 
   // information about empty rows, for postprocessing
   std::vector<Int> rows_shift_{};
