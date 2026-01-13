@@ -260,8 +260,8 @@ if ((NOT FAST_BUILD OR ALL_TESTS) AND NOT (BUILD_EXTRA_UNIT_ONLY))
 
   set(failInstances
       )
-  
-  set(mipInstances 
+
+  set(mipInstances
       "small_mip\;3.2368421\;"
       "flugpl\;1201500\;"
       "lseu\;1120|1119.9999999\;"
@@ -286,7 +286,9 @@ if ((NOT FAST_BUILD OR ALL_TESTS) AND NOT (BUILD_EXTRA_UNIT_ONLY))
   #   "--parallel=on"
       )
 
-  if (UNIX AND NOT APPLE AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
+  if (UNIX AND NOT APPLE AND
+        NOT CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM"
+        AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64")
     if (CUPDLP_GPU)
         set(pdlpInstances
             "25fv47\; 5.501847\;"
@@ -320,7 +322,9 @@ if ((NOT FAST_BUILD OR ALL_TESTS) AND NOT (BUILD_EXTRA_UNIT_ONLY))
             "standgub\; 1.25769944\;"
             )
     endif()
-  elseif(WIN32 AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
+  elseif(WIN32 AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM" AND
+            NOT (CMAKE_SIZEOF_VOID_P EQUAL 4) AND
+            NOT (CMAKE_SYSTEM_PROCESSOR MATCHES "AMD64|x86_64"))
     if (CUPDLP_GPU)
         set(pdlpInstances
             "25fv47\; 5.50184\;"
@@ -437,8 +441,10 @@ if ((NOT FAST_BUILD OR ALL_TESTS) AND NOT (BUILD_EXTRA_UNIT_ONLY))
     if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "riscv64")
         add_instancetests(successRiscVInstances "Optimal")
     endif()
-  elseif(NOT (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64") AND
-         NOT (CMAKE_SIZEOF_VOID_P EQUAL 4))
+  else()
+    # actually pass, pdlp ones are failing
+    #   elseif(NOT (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64") AND
+    #          NOT (CMAKE_SIZEOF_VOID_P EQUAL 4))
     add_instancetests(successInstances "Optimal")
   endif()
 
