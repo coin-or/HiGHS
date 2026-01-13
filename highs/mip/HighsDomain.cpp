@@ -2134,8 +2134,6 @@ void HighsDomain::changeBound(HighsDomainChange boundchg, Reason reason) {
   domchgreason_.push_back(reason);
 
   if (binary && !infeasible_ && isFixed(boundchg.column)) {
-    // TODO MT: Parallel lock should not be needed here...
-    // TODO MT: This code doesn't change the clique table?????
     mipsolver->mipdata_->cliquetable.addImplications(
         *this, boundchg.column, col_lower_[boundchg.column] > 0.5);
   }
@@ -3772,6 +3770,8 @@ HighsInt HighsDomain::ConflictSet::resolveDepth(std::set<LocalDomChg>& frontier,
     for (const LocalDomChg& i : resolvedDomainChanges) {
       auto insertResult = frontier.insert(i);
       if (insertResult.second) {
+        // TODO MT: Currently this conflict score update is suppressed during
+        // concurrent search
         if (increaseConflictScore &&
             !localdom.mipsolver->mipdata_->parallelLockActive()) {
           if (localdom.domchgstack_[i.pos].boundtype == HighsBoundType::kLower)

@@ -527,6 +527,14 @@ HighsInt HighsCutPool::addCut(const HighsMipSolver& mipsolver, HighsInt* Rindex,
   uint64_t h = compute_cut_hash(Rindex, Rvalue, maxabscoef, Rlen);
   double normalization = 1.0 / double(sqrt(norm));
 
+  // TODO MT: This global duplicate check assumes the global pool doesn't
+  // have cuts added or deleted during time when local pools can add a cut.
+  if (this != &mipsolver.mipdata_->cutpool) {
+    if (mipsolver.mipdata_->cutpool.isDuplicate(h, normalization, Rindex,
+                                                Rvalue, Rlen, rhs)) {
+      return -1;
+    }
+  }
   if (isDuplicate(h, normalization, Rindex, Rvalue, Rlen, rhs)) return -1;
 
   // if (Rlen > 0.15 * matrix_.numCols())
