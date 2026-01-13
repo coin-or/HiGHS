@@ -71,7 +71,7 @@ cc_library(
         "highs/mip/feasibilityjump.hh",
     ] + glob([
         "**/*.h",
-        "highs/io/filereaderlp/*.cpp",
+        "highs/io/filereaderlp/*.hpp",
         "highs/qpsolver/*.hpp",
         "extern/zstr/*.hpp",
     ]),
