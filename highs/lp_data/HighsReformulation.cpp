@@ -8,16 +8,16 @@
 /**@file lp_data/HighsReformulation.cpp
  * @brief
  */
-//#include <sstream>
+// #include <sstream>
 
 #include "Highs.h"
-//#include "lp_data/HighsLpUtils.h"
+// #include "lp_data/HighsLpUtils.h"
 #include "lp_data/HighsModelUtils.h"
-//#include "mip/HighsMipSolver.h"  // For getGapString
-//#include "model/HighsHessianUtils.h"
-//#include "simplex/HSimplex.h"
-//#include "util/HighsMatrixUtils.h"
-//#include "util/HighsSort.h"
+// #include "mip/HighsMipSolver.h"  // For getGapString
+// #include "model/HighsHessianUtils.h"
+// #include "simplex/HSimplex.h"
+// #include "util/HighsMatrixUtils.h"
+// #include "util/HighsSort.h"
 
 HighsStatus Highs::doReformulation() {
   HighsStatus status = HighsStatus::kOk;
@@ -38,7 +38,7 @@ HighsStatus Highs::doInfiniteCostReformulation() {
     // If the model has infinite costs, then try to remove them. The
     // status indicates the success of this operation and, if
     // it's unsuccessful, the model will not have been modified.
-    status = handleInfiniteCost();
+    status = infiniteCostReformulation();
     if (status != HighsStatus::kOk) {
       assert(status == HighsStatus::kError);
       setHighsModelStatusAndClearSolutionAndBasis(HighsModelStatus::kUnknown);
@@ -48,10 +48,10 @@ HighsStatus Highs::doInfiniteCostReformulation() {
   } else {
     assert(!model_.lp_.hasInfiniteCost(options_.infinite_cost));
   }
-  return status;  
+  return status;
 }
 
-HighsStatus Highs::handleInfiniteCost() {
+HighsStatus Highs::infiniteCostReformulation() {
   HighsLp& lp = this->model_.lp_;
   if (!lp.has_infinite_cost_) return HighsStatus::kOk;
   HighsLpMods& mods = lp.mods_;
@@ -166,7 +166,7 @@ void Highs::undoInfiniteCostReformulation(HighsStatus& optimize_status) {
     lp.col_upper_[iCol] = upper;
   }
   // Infinite costs have been reintroduced, so reset to true the flag
-  // that was set false in Highs::handleInfiniteCost() (See #1446)
+  // that was set false in Highs::infiniteCostReformulation()
   lp.has_infinite_cost_ = true;
   mods.clearInfiniteCostRecord();
 
