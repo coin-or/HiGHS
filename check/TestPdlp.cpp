@@ -445,11 +445,11 @@ TEST_CASE("cuda-sandbox", "[pdlp]") {
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, 0);
   printf("Cuda device %d: %s\n", 0, prop.name);
-  printf("  Clock rate (KHz): %d\n", prop.clockRate);
-  printf("  Memory clock rate (KHz): %d\n", prop.memoryClockRate);
+  //  printf("  Clock rate (KHz): %d\n", prop.clockRate);
+  //  printf("  Memory clock rate (KHz): %d\n", prop.memoryClockRate);
   printf("  Memory bus width (bits): %d\n", prop.memoryBusWidth);
-  printf("  Peak memory bandwidth (GB/s): %f\n",
-         2.0 * prop.memoryClockRate * (prop.memoryBusWidth / 8) / 1.0e6);
+  //  printf("  Peak memory bandwidth (GB/s): %f\n",
+  //         2.0 * prop.memoryClockRate * (prop.memoryBusWidth / 8) / 1.0e6);
   printf("  Global memory available on device (GB): %f\n",
          prop.totalGlobalMem / 1.0e9);
   printf("  Shared memory available per block (B): %zu\n",
