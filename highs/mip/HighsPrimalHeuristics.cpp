@@ -598,7 +598,7 @@ retry:
                   500,  // std::max(50, int(0.05 *
                   // (mipsolver.mipdata_->num_leaves))),
                   200 + mipsolver.mipdata_->num_nodes / 20, 12);
-  if (mipsolver.mipdata_->terminatorTerminated()) return;
+  if (mipsolver.mipdata_->terminatorTerminatedWorker(worker)) return;
   if (!solve_sub_mip_return) {
     int64_t new_lp_iterations =
         worker.heur_stats.lp_iterations + heur.getLocalLpIterations();
@@ -894,7 +894,7 @@ retry:
                   500,  // std::max(50, int(0.05 *
                   // (mipsolver.mipdata_->num_leaves))),
                   200 + mipsolver.mipdata_->num_nodes / 20, 12);
-  if (mipsolver.mipdata_->terminatorTerminated()) return;
+  if (mipsolver.mipdata_->terminatorTerminatedWorker(worker)) return;
   if (!solve_sub_mip_return) {
     int64_t new_lp_iterations =
         worker.heur_stats.lp_iterations + heur.getLocalLpIterations();

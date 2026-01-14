@@ -2893,6 +2893,11 @@ bool HighsMipSolverData::terminatorTerminated() const {
   return mipsolver.termination_status_ != HighsModelStatus::kNotset;
 }
 
+bool HighsMipSolverData::terminatorTerminatedWorker(
+    HighsMipWorker& worker) const {
+  return worker.heur_stats.termination_status_ != HighsModelStatus::kNotset;
+}
+
 void HighsMipSolverData::terminatorReport() const {
   if (this->terminatorActive())
     mipsolver.terminator_.report(mipsolver.options_mip_->log_options);
