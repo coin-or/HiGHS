@@ -14,12 +14,6 @@
 #include "mip/HighsDomainChange.h"
 #include "mip/HighsMipSolverData.h"
 
-// HighsSearch::HighsSearch(HighsMipSolver& mipsolver, HighsPseudocost&
-// pseudocost)
-//     : mipsolver(mipsolver),
-//       lp(nullptr),
-//       localdom(mipsolver.mipdata_->domain),
-
 HighsSearch::HighsSearch(HighsMipWorker& mipworker, HighsPseudocost& pseudocost)
     : mipworker(mipworker),
       mipsolver(mipworker.mipsolver_),
@@ -1772,9 +1766,6 @@ bool HighsSearch::backtrackPlunge(HighsNodeQueue& nodequeue) {
 
     if (nodeToQueue) {
       // if (!mipsolver.submip) printf("node goes to queue\n");
-      // todo: a collection of postponed nodes to add to the global node queue
-      // later
-      //
       std::vector<HighsInt> branchPositions;
       auto domchgStack = localdom.getReducedDomainChangeStack(branchPositions);
       double tmpTreeWeight = nodequeue.emplaceNode(
@@ -1938,7 +1929,8 @@ const HighsNodeQueue& HighsSearch::getNodeQueue() const {
   return mipsolver.mipdata_->nodequeue;
 }
 
-const bool HighsSearch::checkLimits(int64_t nodeOffset) const {
+bool HighsSearch::checkLimits(int64_t nodeOffset) const {
+  // TODO MT: Need to make some limited worker limit check
   return mipsolver.mipdata_->checkLimits(nodeOffset);
 }
 
@@ -1956,9 +1948,6 @@ bool HighsSearch::addIncumbent(const std::vector<double>& sol, double solobj,
     return mipsolver.mipdata_->addIncumbent(sol, solobj, solution_source,
                                             print_display_line);
   }
-  // dive part.
-  // return mipworker.addIncumbent(sol, solobj, solution_source,
-  //                                         print_display_line);
 }
 
 int64_t& HighsSearch::getNumNodes() { return mipsolver.mipdata_->num_nodes; }

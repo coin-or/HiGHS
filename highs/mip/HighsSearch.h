@@ -73,13 +73,6 @@ class HighsSearch {
     kOpen,
   };
 
-  // Data members for parallel search
-  bool limit_reached_;
-  bool performed_dive_;
-  bool break_search_;
-  HighsInt evaluate_node_global_max_recursion_level_;
-  HighsInt evaluate_node_local_max_recursion_level_;
-
  private:
   ChildSelectionRule childselrule;
 
@@ -151,7 +144,6 @@ class HighsSearch {
   bool orbitsValidInChildNode(const HighsDomainChange& branchChg) const;
 
  public:
-  // HighsSearch(HighsMipSolver& mipsolver, HighsPseudocost& pseudocost);
   HighsSearch(HighsMipWorker& mipworker, HighsPseudocost& pseudocost);
 
   void setRINSNeighbourhood(const std::vector<double>& basesol,
@@ -265,11 +257,9 @@ class HighsSearch {
 
   const HighsNodeQueue& getNodeQueue() const;
 
-  const bool checkLimits(int64_t nodeOffset = 0) const;
+  bool checkLimits(int64_t nodeOffset = 0) const;
 
   HighsSymmetries& getSymmetries() const;
-
-  // one error computeStabilizerOrbits
 
   bool addIncumbent(const std::vector<double>& sol, double solobj,
                     const int solution_source,
