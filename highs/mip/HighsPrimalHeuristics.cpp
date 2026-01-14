@@ -205,12 +205,7 @@ bool HighsPrimalHeuristics::solveSubMip(
   HighsInt oldNumImprovingSols = mipsolver.mipdata_->numImprovingSols;
   if (submipsolver.modelstatus_ != HighsModelStatus::kInfeasible &&
       !submipsolver.solution_.empty()) {
-    if (mipsolver.mipdata_->parallelLockActive()) {
-      worker.trySolution(submipsolver.solution_, kSolutionSourceSubMip);
-    } else {
-      mipsolver.mipdata_->trySolution(submipsolver.solution_,
-                                      kSolutionSourceSubMip);
-    }
+    trySolution(submipsolver.solution_, kSolutionSourceSubMip, worker);
   }
 
   if (mipsolver.mipdata_->numImprovingSols != oldNumImprovingSols) {
@@ -994,28 +989,16 @@ bool HighsPrimalHeuristics::tryRoundedPoint(HighsMipWorker& worker,
       if (!integerFeasible) {
         // there may be fractional integer variables -> try ziRound heuristic
         ziRound(worker, lpsol);
-        if (mipsolver.mipdata_->parallelLockActive()) {
-          return worker.trySolution(lpsol, solution_source);
-        } else {
-          mipsolver.mipdata_->trySolution(lpsol, solution_source);
-        }
+        trySolution(lpsol, solution_source, worker);
       } else {
         // all integer variables are fixed -> add incumbent
-        if (mipsolver.mipdata_->parallelLockActive()) {
-          worker.addIncumbent(lpsol, lprelax.getObjective(), solution_source);
-        } else {
-          mipsolver.mipdata_->addIncumbent(lpsol, lprelax.getObjective(),
-                                           solution_source);
-        }
+        addIncumbent(lpsol, lprelax.getObjective(), solution_source, worker);
         return true;
       }
     }
   }
 
-  if (mipsolver.mipdata_->parallelLockActive()) {
-    return worker.trySolution(localdom.col_lower_, solution_source);
-  }
-  return mipsolver.mipdata_->trySolution(localdom.col_lower_, solution_source);
+  return trySolution(localdom.col_lower_, solution_source, worker);
 }
 
 bool HighsPrimalHeuristics::linesearchRounding(
@@ -1147,24 +1130,12 @@ void HighsPrimalHeuristics::randomizedRounding(
       }
 
     } else if (HighsLpRelaxation::unscaledPrimalFeasible(st)) {
-      if (mipsolver.mipdata_->parallelLockActive()) {
-        worker.addIncumbent(lprelax.getLpSolver().getSolution().col_value,
-                            lprelax.getObjective(),
-                            kSolutionSourceRandomizedRounding);
-      } else {
-        mipsolver.mipdata_->addIncumbent(
-            lprelax.getLpSolver().getSolution().col_value,
-            lprelax.getObjective(), kSolutionSourceRandomizedRounding);
-      }
+      addIncumbent(lprelax.getLpSolver().getSolution().col_value,
+                   lprelax.getObjective(), kSolutionSourceRandomizedRounding,
+                   worker);
     }
   } else {
-    if (mipsolver.mipdata_->parallelLockActive()) {
-      worker.trySolution(localdom.col_lower_,
-                         kSolutionSourceRandomizedRounding);
-    } else {
-      mipsolver.mipdata_->trySolution(localdom.col_lower_,
-                                      kSolutionSourceRandomizedRounding);
-    }
+    trySolution(localdom.col_lower_, kSolutionSourceRandomizedRounding, worker);
   }
 }
 
@@ -1419,12 +1390,7 @@ void HighsPrimalHeuristics::shifting(HighsMipWorker& worker,
     if (current_fractional_integers.size() > 0) {
       ziRound(worker, current_relax_solution);
     } else {
-      if (mipsolver.mipdata_->parallelLockActive()) {
-        worker.trySolution(current_relax_solution, kSolutionSourceShifting);
-      } else {
-        mipsolver.mipdata_->trySolution(current_relax_solution,
-                                        kSolutionSourceShifting);
-      }
+      trySolution(current_relax_solution, kSolutionSourceShifting, worker);
     }
   }
 }
@@ -1539,12 +1505,7 @@ void HighsPrimalHeuristics::ziRound(HighsMipWorker& worker,
     improvement_in_feasibility = previous_zi_total - zi_total;
   }
   // re-check for feasibility and add incumbent
-  if (mipsolver.mipdata_->parallelLockActive()) {
-    worker.trySolution(current_relax_solution, kSolutionSourceZiRound);
-  } else {
-    mipsolver.mipdata_->trySolution(current_relax_solution,
-                                    kSolutionSourceZiRound);
-  }
+  trySolution(current_relax_solution, kSolutionSourceZiRound, worker);
 }
 
 void HighsPrimalHeuristics::feasibilityPump(HighsMipWorker& worker) {
@@ -1654,15 +1615,9 @@ void HighsPrimalHeuristics::feasibilityPump(HighsMipWorker& worker) {
 
   if (lprelax.getFractionalIntegers().empty() &&
       HighsLpRelaxation::unscaledPrimalFeasible(status)) {
-    if (mipsolver.mipdata_->parallelLockActive()) {
-      worker.addIncumbent(lprelax.getLpSolver().getSolution().col_value,
-                          lprelax.getObjective(),
-                          kSolutionSourceFeasibilityPump);
-    } else {
-      mipsolver.mipdata_->addIncumbent(
-          lprelax.getLpSolver().getSolution().col_value, lprelax.getObjective(),
-          kSolutionSourceFeasibilityPump);
-    }
+    addIncumbent(lprelax.getLpSolver().getSolution().col_value,
+                 lprelax.getObjective(), kSolutionSourceFeasibilityPump,
+                 worker);
   }
 }
 
@@ -1754,6 +1709,27 @@ void HighsPrimalHeuristics::clique() {
   }
 }
 #endif
+
+bool HighsPrimalHeuristics::addIncumbent(const std::vector<double>& sol,
+                                         double solobj,
+                                         const int solution_source,
+                                         HighsMipWorker& worker) {
+  if (mipsolver.mipdata_->parallelLockActive()) {
+    return worker.addIncumbent(sol, solobj, solution_source);
+  } else {
+    return mipsolver.mipdata_->addIncumbent(sol, solobj, solution_source);
+  }
+}
+
+bool HighsPrimalHeuristics::trySolution(const std::vector<double>& solution,
+                                        const int solution_source,
+                                        HighsMipWorker& worker) {
+  if (mipsolver.mipdata_->parallelLockActive()) {
+    return worker.trySolution(solution, solution_source);
+  } else {
+    return mipsolver.mipdata_->trySolution(solution, solution_source);
+  }
+}
 
 void HighsPrimalHeuristics::flushStatistics(HighsMipSolver& mipsolver,
                                             HighsMipWorker& worker) {

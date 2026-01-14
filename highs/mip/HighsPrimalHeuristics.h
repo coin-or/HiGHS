@@ -67,6 +67,12 @@ class HighsPrimalHeuristics {
 
   void ziRound(HighsMipWorker& worker,
                const std::vector<double>& relaxationsol);
+
+  bool addIncumbent(const std::vector<double>& sol, double solobj,
+                    const int solution_source, HighsMipWorker& worker);
+
+  bool trySolution(const std::vector<double>& solution,
+                   const int solution_source, HighsMipWorker& worker);
 };
 
 #endif
