@@ -751,7 +751,7 @@ void HighsCliqueTable::addClique(const HighsMipSolver& mipsolver,
   // initialise flag
   bool hasNewEdge = false;
 
-  // check if all variables can be fixed or infeasibility was detected
+  // check if all variables can be fixed or infeasibility is detected
   if (checkClique(hasNewEdge, false)) return;
   if (globaldom.infeasible()) return;
 
