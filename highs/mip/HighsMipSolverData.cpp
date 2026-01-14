@@ -1888,7 +1888,7 @@ bool HighsMipSolverData::rootSeparationRound(
     heuristics.randomizedRounding(worker, solvals);
     if (mipsolver.options_mip_->mip_heuristic_run_shifting)
       heuristics.shifting(worker, solvals);
-    heuristics.flushStatistics(worker);
+    heuristics.flushStatistics(mipsolver, worker);
     status = evaluateRootLp(worker);
     if (status == HighsLpRelaxation::Status::kInfeasible) return true;
   }
@@ -2176,7 +2176,7 @@ restart:
   if (mipsolver.options_mip_->mip_heuristic_run_shifting)
     heuristics.shifting(worker, firstlpsol);
 
-  heuristics.flushStatistics(worker);
+  heuristics.flushStatistics(mipsolver, worker);
 
   analysis.mipTimerStart(kMipClockEvaluateRootLp);
   status = evaluateRootLp(worker);
@@ -2280,7 +2280,7 @@ restart:
       heuristics.centralRounding(worker);
       analysis.mipTimerStop(kMipClockRootSeparationCentralRounding);
 
-      heuristics.flushStatistics(worker);
+      heuristics.flushStatistics(mipsolver, worker);
 
       if (checkLimits()) {
         analysis.mipTimerStop(kMipClockRootSeparation);
@@ -2369,11 +2369,11 @@ restart:
 
   if (mipsolver.options_mip_->mip_heuristic_run_zi_round) {
     heuristics.ziRound(worker, firstlpsol);
-    heuristics.flushStatistics(worker);
+    heuristics.flushStatistics(mipsolver, worker);
   }
   if (mipsolver.options_mip_->mip_heuristic_run_shifting) {
     heuristics.shifting(worker, rootlpsol);
-    heuristics.flushStatistics(worker);
+    heuristics.flushStatistics(mipsolver, worker);
   }
 
   if (!analyticCenterComputed && compute_analytic_centre) {
@@ -2387,7 +2387,7 @@ restart:
     heuristics.centralRounding(worker);
     analysis.mipTimerStop(kMipClockRootCentralRounding);
 
-    heuristics.flushStatistics(worker);
+    heuristics.flushStatistics(mipsolver, worker);
 
     // if there are new global bound changes we re-evaluate the LP and do one
     // more separation round
@@ -2434,7 +2434,7 @@ restart:
       // atm breaks lseu random seed 2 but not default presolve on and off
       // heuristics.rootReducedCost(worker);
       analysis.mipTimerStop(kMipClockRootHeuristicsReducedCost);
-      heuristics.flushStatistics(worker);
+      heuristics.flushStatistics(mipsolver, worker);
     }
 
     if (checkLimits()) return clockOff(analysis);
@@ -2466,7 +2466,7 @@ restart:
       // atm breaks p0548 presolve off
       // heuristics.RENS(worker, rootlpsol);
       analysis.mipTimerStop(kMipClockRootHeuristicsRens);
-      heuristics.flushStatistics(worker);
+      heuristics.flushStatistics(mipsolver, worker);
     }
 
     if (checkLimits()) return clockOff(analysis);
@@ -2501,7 +2501,7 @@ restart:
     analysis.mipTimerStart(kMipClockRootFeasibilityPump);
     heuristics.feasibilityPump(worker);
     analysis.mipTimerStop(kMipClockRootFeasibilityPump);
-    heuristics.flushStatistics(worker);
+    heuristics.flushStatistics(mipsolver, worker);
 
     if (checkLimits()) return clockOff(analysis);
     analysis.mipTimerStart(kMipClockEvaluateRootLp);

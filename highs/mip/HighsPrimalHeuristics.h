@@ -22,38 +22,13 @@ class HighsPrimalHeuristics {
  private:
   const HighsMipSolver& mipsolver;
   std::vector<HighsInt> intcols;
+  double successObservations;
+  HighsInt numSuccessObservations;
+  double infeasObservations;
+  HighsInt numInfeasObservations;
 
  public:
-  struct Statistics {
-    Statistics()
-        : total_repair_lp(0),
-          total_repair_lp_feasible(0),
-          total_repair_lp_iterations(0),
-          lp_iterations(0) {
-      successObservations = 0;
-      numSuccessObservations = 0;
-      infeasObservations = 0;
-      numInfeasObservations = 0;
-    }
-
-    int64_t total_repair_lp;
-    int64_t total_repair_lp_feasible;
-    int64_t total_repair_lp_iterations;
-    int64_t lp_iterations;
-
-    double successObservations;
-    HighsInt numSuccessObservations;
-    double infeasObservations;
-    HighsInt numInfeasObservations;
-
-    // still need to create in the mipworker
-    // probably keep them separate
-
-    // HighsRandom randgen;
-  };
-
   HighsPrimalHeuristics(HighsMipSolver& mipsolver);
-  // HighsPrimalHeuristics(HighsMipSolver& mipsolver);
 
   void setupIntCols();
 
@@ -66,17 +41,15 @@ class HighsPrimalHeuristics {
 
   void rootReducedCost(HighsMipWorker& worker);
 
-  // void RENS(const std::vector<double>& relaxationsol);
   void RENS(HighsMipWorker& worker, const std::vector<double>& relaxationsol);
 
-  // void RINS(const std::vector<double>& relaxationsol);
   void RINS(HighsMipWorker& worker, const std::vector<double>& relaxationsol);
 
   void feasibilityPump(HighsMipWorker& worker);
 
   void centralRounding(HighsMipWorker& worker);
 
-  void flushStatistics(HighsMipWorker& worker);
+  void flushStatistics(HighsMipSolver& mipsolver, HighsMipWorker& worker);
 
   bool tryRoundedPoint(HighsMipWorker& worker, const std::vector<double>& point,
                        const int solution_source);

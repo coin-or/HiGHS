@@ -33,10 +33,11 @@
 #endif
 
 HighsPrimalHeuristics::HighsPrimalHeuristics(HighsMipSolver& mipsolver)
-    // HighsPrimalHeuristics::HighsPrimalHeuristics(HighsMipWorker& mipworker)
-    // : mipworker(mipworker),
-    //  mipsolver(mipworker.mipsolver_),
-    : mipsolver(mipsolver) {}
+    : mipsolver(mipsolver),
+      successObservations(0.0),
+      numSuccessObservations(0),
+      infeasObservations(0.0),
+      numInfeasObservations(0) {}
 
 void HighsPrimalHeuristics::setupIntCols() {
   intcols = mipsolver.mipdata_->integer_cols;
@@ -103,11 +104,11 @@ bool HighsPrimalHeuristics::solveSubMip(
   submipoptions.mip_max_stall_nodes = stallnodes;
   submipoptions.mip_pscost_minreliable = 0;
   submipoptions.time_limit -= mipsolver.timer_.read();
-  submipoptions.objective_bound = mipsolver.mipdata_->upper_limit;
+  submipoptions.objective_bound = worker.upper_limit;
 
   if (!mipsolver.submip) {
-    double curr_abs_gap =
-        mipsolver.mipdata_->upper_limit - mipsolver.mipdata_->lower_bound;
+    // TODO MT: Does the mipworker need a lower bound?
+    double curr_abs_gap = worker.upper_limit - mipsolver.mipdata_->lower_bound;
 
     if (curr_abs_gap == kHighsInf) {
       curr_abs_gap = fabs(mipsolver.mipdata_->lower_bound);
@@ -150,10 +151,8 @@ bool HighsPrimalHeuristics::solveSubMip(
   submipsolver.implicinit = &mipsolver.mipdata_->implications;
   // Solve the sub-MIP
   submipsolver.run();
-  // TODO MT: Need to make max_submip_level on the mipworker level
-  // mipsolver.max_submip_level =
-  //     std::max(submipsolver.max_submip_level + 1,
-  //     mipsolver.max_submip_level);
+  worker.heur_stats.submip_level = std::max(submipsolver.max_submip_level + 1,
+                                            worker.heur_stats.submip_level);
   if (!mipsolver.submip && !mipsolver.mipdata_->parallelLockActive()) {
     mipsolver.analysis_.mipTimerStop(kMipClockSubMipSolve);
     mipsolver.sub_solver_call_time_.num_call[kSubSolverSubMip]++;
@@ -172,8 +171,7 @@ bool HighsPrimalHeuristics::solveSubMip(
     assert(submipsolver.mipdata_);
   }
   if (submipsolver.termination_status_ != HighsModelStatus::kNotset) {
-    // TODO MT: This assingment also needs to go through the mip worker
-    // mipsolver.termination_status_ = submipsolver.termination_status_;
+    worker.heur_stats.termination_status_ = submipsolver.termination_status_;
     return false;
   }
   if (submipsolver.mipdata_) {
@@ -192,6 +190,7 @@ bool HighsPrimalHeuristics::solveSubMip(
         submipsolver.mipdata_->total_repair_lp_feasible;
     worker.heur_stats.total_repair_lp_iterations +=
         submipsolver.mipdata_->total_repair_lp_iterations;
+    // Warning: This will not be deterministic if sub-mips are run in parallel
     if (mipsolver.submip)
       mipsolver.mipdata_->num_nodes += std::max(
           int64_t{1}, int64_t(adjustmentfactor * submipsolver.node_count_));
@@ -229,16 +228,14 @@ double HighsPrimalHeuristics::determineTargetFixingRate(
   double lowFixingRate = 0.6;
   double highFixingRate = 0.6;
 
-  if (worker.heur_stats.numInfeasObservations != 0) {
-    double infeasRate = worker.heur_stats.infeasObservations /
-                        worker.heur_stats.numInfeasObservations;
+  if (numInfeasObservations != 0) {
+    double infeasRate = infeasObservations / numInfeasObservations;
     highFixingRate = 0.9 * infeasRate;
     lowFixingRate = std::min(lowFixingRate, highFixingRate);
   }
 
-  if (worker.heur_stats.numSuccessObservations != 0) {
-    double successFixingRate = worker.heur_stats.successObservations /
-                               worker.heur_stats.numSuccessObservations;
+  if (numSuccessObservations != 0) {
+    double successFixingRate = successObservations / numSuccessObservations;
     lowFixingRate = std::min(lowFixingRate, 0.9 * successFixingRate);
     highFixingRate = std::max(successFixingRate * 1.1, highFixingRate);
   }
@@ -318,7 +315,7 @@ void HighsPrimalHeuristics::rootReducedCost(HighsMipWorker& worker) {
     while (true) {
       localdom.propagate();
       if (localdom.infeasible()) {
-        localdom.conflictAnalysis(*worker.conflictpool_,
+        localdom.conflictAnalysis(worker.getConflictPool(),
                                   worker.getGlobalDomain(),
                                   worker.getPseudocost());
 
@@ -381,10 +378,6 @@ void HighsPrimalHeuristics::RENS(HighsMipWorker& worker,
   if (worker.getGlobalDomain().infeasible()) return;
 
   HighsPseudocost pscost(worker.getPseudocost());
-
-  // HighsSearch heur(mipsolver, pscost);
-
-  // HighsMipWorker worker{mipsolver, mipsolver.mipdata_->lp};
   HighsSearch heur(worker, pscost);
 
   HighsDomain& localdom = heur.getLocalDomain();
@@ -396,10 +389,11 @@ void HighsPrimalHeuristics::RENS(HighsMipWorker& worker,
                                }),
                 intcols.end());
 
-  HighsLpRelaxation heurlp(*worker.lp_);
+  HighsLpRelaxation heurlp(worker.getLpRelaxation());
+  heurlp.setMipWorker(worker);
   // only use the global upper limit as LP limit so that dual proofs are valid
   // TODO MT: Should this be the upper limit from the worker?
-  heurlp.setObjectiveLimit(mipsolver.mipdata_->upper_limit);
+  heurlp.setObjectiveLimit(worker.upper_limit);
   heurlp.setAdjustSymmetricBranchingCol(false);
   heur.setLpRelaxation(&heurlp);
 
@@ -475,7 +469,7 @@ retry:
         heur.branchUpwards(i, downval, downval - 0.5);
         localdom.propagate();
         if (localdom.infeasible()) {
-          localdom.conflictAnalysis(*worker.conflictpool_,
+          localdom.conflictAnalysis(worker.getConflictPool(),
                                     worker.getGlobalDomain(),
                                     worker.getPseudocost());
           break;
@@ -486,7 +480,7 @@ retry:
         heur.branchDownwards(i, upval, upval + 0.5);
         localdom.propagate();
         if (localdom.infeasible()) {
-          localdom.conflictAnalysis(*worker.conflictpool_,
+          localdom.conflictAnalysis(worker.getConflictPool(),
                                     worker.getGlobalDomain(),
                                     worker.getPseudocost());
           break;
@@ -539,7 +533,7 @@ retry:
           heur.branchUpwards(fracint.first, fixval, fracint.second);
           localdom.propagate();
           if (localdom.infeasible()) {
-            localdom.conflictAnalysis(*worker.conflictpool_,
+            localdom.conflictAnalysis(worker.getConflictPool(),
                                       worker.getGlobalDomain(),
                                       worker.getPseudocost());
             break;
@@ -553,7 +547,7 @@ retry:
           heur.branchDownwards(fracint.first, fixval, fracint.second);
           localdom.propagate();
           if (localdom.infeasible()) {
-            localdom.conflictAnalysis(*worker.conflictpool_,
+            localdom.conflictAnalysis(worker.getConflictPool(),
                                       worker.getGlobalDomain(),
                                       worker.getPseudocost());
             break;
@@ -645,19 +639,15 @@ void HighsPrimalHeuristics::RINS(HighsMipWorker& worker,
                 intcols.end());
 
   HighsPseudocost pscost(worker.getPseudocost());
-
-  // HighsSearch heur(mipsolver, pscost);
-
-  // HighsMipWorker worker{mipsolver, mipsolver.mipdata_->lp};
   HighsSearch heur(worker, pscost);
 
   HighsDomain& localdom = heur.getLocalDomain();
   heur.setHeuristic(true);
 
-  HighsLpRelaxation heurlp(*worker.lp_);
+  HighsLpRelaxation heurlp(worker.getLpRelaxation());
+  heurlp.setMipWorker(worker);
   // only use the global upper limit as LP limit so that dual proofs are valid
-  // TODO MT: Should this be the upper limit from the worker?
-  heurlp.setObjectiveLimit(mipsolver.mipdata_->upper_limit);
+  heurlp.setObjectiveLimit(worker.upper_limit);
   heurlp.setAdjustSymmetricBranchingCol(false);
   heur.setLpRelaxation(&heurlp);
 
@@ -767,7 +757,7 @@ retry:
             heur.branchUpwards(i, fixval, fixval - 0.5);
             localdom.propagate();
             if (localdom.infeasible()) {
-              localdom.conflictAnalysis(*worker.conflictpool_,
+              localdom.conflictAnalysis(worker.getConflictPool(),
                                         worker.getGlobalDomain(),
                                         worker.getPseudocost());
               break;
@@ -780,7 +770,7 @@ retry:
             heur.branchDownwards(i, fixval, fixval + 0.5);
             localdom.propagate();
             if (localdom.infeasible()) {
-              localdom.conflictAnalysis(*worker.conflictpool_,
+              localdom.conflictAnalysis(worker.getConflictPool(),
                                         worker.getGlobalDomain(),
                                         worker.getPseudocost());
               break;
@@ -838,7 +828,7 @@ retry:
         ++numBranched;
         heur.branchUpwards(fracint->first, fixval, fracint->second);
         if (localdom.infeasible()) {
-          localdom.conflictAnalysis(*worker.conflictpool_,
+          localdom.conflictAnalysis(worker.getConflictPool(),
                                     worker.getGlobalDomain(),
                                     worker.getPseudocost());
           break;
@@ -851,7 +841,7 @@ retry:
         ++numBranched;
         heur.branchDownwards(fracint->first, fixval, fracint->second);
         if (localdom.infeasible()) {
-          localdom.conflictAnalysis(*worker.conflictpool_,
+          localdom.conflictAnalysis(worker.getConflictPool(),
                                     worker.getGlobalDomain(),
                                     worker.getPseudocost());
           break;
@@ -954,13 +944,15 @@ bool HighsPrimalHeuristics::tryRoundedPoint(HighsMipWorker& worker,
 
     localdom.fixCol(col, intval, HighsDomain::Reason::branching());
     if (localdom.infeasible()) {
-      localdom.conflictAnalysis(*worker.conflictpool_, worker.getGlobalDomain(),
+      localdom.conflictAnalysis(worker.getConflictPool(),
+                                worker.getGlobalDomain(),
                                 worker.getPseudocost());
       return false;
     }
     localdom.propagate();
     if (localdom.infeasible()) {
-      localdom.conflictAnalysis(*worker.conflictpool_, worker.getGlobalDomain(),
+      localdom.conflictAnalysis(worker.getConflictPool(),
+                                worker.getGlobalDomain(),
                                 worker.getPseudocost());
       return false;
     }
@@ -1103,13 +1095,15 @@ void HighsPrimalHeuristics::randomizedRounding(
 
     localdom.fixCol(i, intval, HighsDomain::Reason::branching());
     if (localdom.infeasible()) {
-      localdom.conflictAnalysis(*worker.conflictpool_, worker.getGlobalDomain(),
+      localdom.conflictAnalysis(worker.getConflictPool(),
+                                worker.getGlobalDomain(),
                                 worker.getPseudocost());
       return;
     }
     localdom.propagate();
     if (localdom.infeasible()) {
-      localdom.conflictAnalysis(*worker.conflictpool_, worker.getGlobalDomain(),
+      localdom.conflictAnalysis(worker.getConflictPool(),
+                                worker.getGlobalDomain(),
                                 worker.getPseudocost());
       return;
     }
@@ -1182,7 +1176,7 @@ void HighsPrimalHeuristics::shifting(HighsMipWorker& worker,
   std::vector<double> current_relax_solution = relaxationsol;
   HighsInt t = 0;
   const HighsLp& currentLp = *mipsolver.model_;
-  HighsLpRelaxation lprelax(*worker.lp_);
+  HighsLpRelaxation lprelax(worker.getLpRelaxation());
   std::vector<std::pair<HighsInt, double>> current_fractional_integers =
       lprelax.getFractionalIntegers();
   std::vector<std::tuple<HighsInt, HighsInt, double>> current_infeasible_rows =
@@ -1555,7 +1549,7 @@ void HighsPrimalHeuristics::ziRound(HighsMipWorker& worker,
 }
 
 void HighsPrimalHeuristics::feasibilityPump(HighsMipWorker& worker) {
-  HighsLpRelaxation lprelax(*worker.lp_);
+  HighsLpRelaxation lprelax(worker.getLpRelaxation());
   std::unordered_set<std::vector<HighsInt>, HighsVectorHasher, HighsVectorEqual>
       referencepoints;
   std::vector<double> roundedsol;
@@ -1594,14 +1588,14 @@ void HighsPrimalHeuristics::feasibilityPump(HighsMipWorker& worker) {
       if (!localdom.infeasible()) {
         localdom.fixCol(i, intval, HighsDomain::Reason::branching());
         if (localdom.infeasible()) {
-          localdom.conflictAnalysis(*worker.conflictpool_,
+          localdom.conflictAnalysis(worker.getConflictPool(),
                                     worker.getGlobalDomain(),
                                     worker.getPseudocost());
           continue;
         }
         localdom.propagate();
         if (localdom.infeasible()) {
-          localdom.conflictAnalysis(*worker.conflictpool_,
+          localdom.conflictAnalysis(worker.getConflictPool(),
                                     worker.getGlobalDomain(),
                                     worker.getPseudocost());
           continue;
@@ -1762,17 +1756,34 @@ void HighsPrimalHeuristics::clique() {
 }
 #endif
 
-void HighsPrimalHeuristics::flushStatistics(HighsMipWorker& worker) {
-  mipsolver.mipdata_->total_repair_lp += worker.heur_stats.total_repair_lp;
+void HighsPrimalHeuristics::flushStatistics(HighsMipSolver& mipsolver,
+                                            HighsMipWorker& worker) {
+  HighsMipWorker::HeurStatistics& heur_stats = worker.heur_stats;
+  mipsolver.mipdata_->total_repair_lp += heur_stats.total_repair_lp;
   mipsolver.mipdata_->total_repair_lp_feasible +=
-      worker.heur_stats.total_repair_lp_feasible;
+      heur_stats.total_repair_lp_feasible;
   mipsolver.mipdata_->total_repair_lp_iterations +=
-      worker.heur_stats.total_repair_lp_iterations;
-  worker.heur_stats.total_repair_lp = 0;
-  worker.heur_stats.total_repair_lp_feasible = 0;
-  worker.heur_stats.total_repair_lp_iterations = 0;
-  mipsolver.mipdata_->heuristic_lp_iterations +=
-      worker.heur_stats.lp_iterations;
+      heur_stats.total_repair_lp_iterations;
+  heur_stats.total_repair_lp = 0;
+  heur_stats.total_repair_lp_feasible = 0;
+  heur_stats.total_repair_lp_iterations = 0;
+  mipsolver.mipdata_->heuristic_lp_iterations += heur_stats.lp_iterations;
   mipsolver.mipdata_->total_lp_iterations += worker.heur_stats.lp_iterations;
-  worker.heur_stats.lp_iterations = 0;
+  heur_stats.lp_iterations = 0;
+  mipsolver.max_submip_level =
+      std::max(mipsolver.max_submip_level, heur_stats.submip_level);
+  heur_stats.submip_level = 0;
+  if (heur_stats.termination_status_ != HighsModelStatus::kNotset &&
+      mipsolver.termination_status_ == HighsModelStatus::kNotset) {
+    mipsolver.termination_status_ = heur_stats.termination_status_;
+  }
+  heur_stats.termination_status_ = HighsModelStatus::kNotset;
+  successObservations += heur_stats.successObservations;
+  heur_stats.successObservations = 0;
+  numSuccessObservations += heur_stats.numSuccessObservations;
+  heur_stats.numSuccessObservations = 0;
+  infeasObservations += heur_stats.infeasObservations;
+  heur_stats.infeasObservations = 0;
+  numInfeasObservations += heur_stats.numInfeasObservations;
+  heur_stats.numInfeasObservations = 0;
 }

@@ -28,6 +28,32 @@ class HighsMipWorker {
     int64_t numNeighbourhoodQueries;
     int64_t sepa_lp_iterations;
   };
+  struct HeurStatistics {
+    HeurStatistics()
+        : total_repair_lp(0),
+          total_repair_lp_feasible(0),
+          total_repair_lp_iterations(0),
+          lp_iterations(0) {
+      successObservations = 0;
+      numSuccessObservations = 0;
+      infeasObservations = 0;
+      numInfeasObservations = 0;
+      submip_level = 0;
+      termination_status_ = HighsModelStatus::kNotset;
+    }
+
+    int64_t total_repair_lp;
+    int64_t total_repair_lp_feasible;
+    int64_t total_repair_lp_iterations;
+    int64_t lp_iterations;
+
+    double successObservations;
+    HighsInt numSuccessObservations;
+    double infeasObservations;
+    HighsInt numInfeasObservations;
+    HighsInt submip_level;
+    HighsModelStatus termination_status_;
+  };
   const HighsMipSolver& mipsolver_;
   const HighsMipSolverData& mipdata_;
 
@@ -48,7 +74,7 @@ class HighsMipWorker {
 
   std::vector<std::tuple<std::vector<double>, double, int>> solutions_;
 
-  HighsPrimalHeuristics::Statistics heur_stats;
+  HeurStatistics heur_stats;
   SepaStatistics sepa_stats;
 
   HighsRandom randgen;
@@ -73,6 +99,8 @@ class HighsMipWorker {
   HighsPseudocost& getPseudocost() const { return *pseudocost_; };
 
   HighsConflictPool& getConflictPool() const { return *conflictpool_; };
+
+  HighsLpRelaxation& getLpRelaxation() const { return *lp_; };
 
   bool addIncumbent(const std::vector<double>& sol, double solobj,
                     int solution_source);

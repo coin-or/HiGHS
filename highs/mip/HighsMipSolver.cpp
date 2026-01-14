@@ -833,21 +833,17 @@ restart:
           }
         }
 
-        if (clocks) mipdata_->heuristics.flushStatistics(master_worker);
         if (clocks) analysis_.mipTimerStop(kMipClockDivePrimalHeuristics);
       }
     };
     std::vector<HighsInt> search_indices = getSearchIndicesWithNodes();
     applyTask(doRunHeuristics, tg, true, search_indices);
-    if (mipdata_->hasMultipleWorkers()) {
-      for (const HighsInt i : search_indices) {
-        if (mipdata_->workers[i].search_ptr_->currentNodePruned()) {
-          ++mipdata_->num_leaves;
-          search.flushStatistics();
-        } else {
-          mipdata_->heuristics.flushStatistics(mipdata_->workers[i]);
-        }
+    for (const HighsInt i : search_indices) {
+      if (mipdata_->workers[i].search_ptr_->currentNodePruned()) {
+        ++mipdata_->num_leaves;
+        mipdata_->workers[i].search_ptr_->flushStatistics();
       }
+      mipdata_->heuristics.flushStatistics(*this, mipdata_->workers[i]);
     }
   };
 
