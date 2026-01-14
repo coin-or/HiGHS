@@ -72,6 +72,8 @@ class HighsMipWorker {
 
   HighsPseudocost& getPseudocost() const { return *pseudocost_; };
 
+  HighsConflictPool& getConflictPool() const { return *conflictpool_; };
+
   bool addIncumbent(const std::vector<double>& sol, double solobj,
                     int solution_source);
 

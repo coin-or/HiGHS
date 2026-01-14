@@ -197,8 +197,10 @@ void HighsRedcostFixing::addRootRedcost(const HighsMipSolver& mipsolver,
   lurkingColLower.resize(mipsolver.numCol());
   lurkingColUpper.resize(mipsolver.numCol());
 
+  // Provided domains won't be used (only used for dual proof)
   mipsolver.mipdata_->lp.computeBasicDegenerateDuals(
-      mipsolver.mipdata_->feastol);
+      mipsolver.mipdata_->feastol, mipsolver.mipdata_->domain,
+      mipsolver.mipdata_->domain, mipsolver.mipdata_->conflictPool, false);
 
   // Compute maximum number of steps per column with large domain
   // max_steps = 2 ** k, k = max(5, min(10 ,round(log(|D| / 10)))),

@@ -174,10 +174,10 @@ class HighsLpRelaxation {
 
   void resetToGlobalDomain(HighsDomain& globaldom);
 
-  void computeBasicDegenerateDuals(double threshold,
-                                   HighsDomain* localdom = nullptr,
-                                   HighsDomain* globaldom = nullptr,
-                                   HighsConflictPool* conflictpol = nullptr);
+  void computeBasicDegenerateDuals(double threshold, HighsDomain& localdom,
+                                   HighsDomain& globaldom,
+                                   HighsConflictPool& conflictpol,
+                                   bool getdualproof);
 
   double getAvgSolveIters() { return avgSolveIters; }
 
@@ -244,9 +244,7 @@ class HighsLpRelaxation {
     return false;
   }
 
-  void setMipWorker(HighsMipWorker& worker) {
-    worker_ = &worker;
-  };
+  void setMipWorker(HighsMipWorker& worker) { worker_ = &worker; };
 
   double computeBestEstimate(const HighsPseudocost& ps) const;
 

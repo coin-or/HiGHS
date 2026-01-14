@@ -243,12 +243,10 @@ HighsLpRelaxation::HighsLpRelaxation(const HighsLpRelaxation& other)
 
 void HighsLpRelaxation::loadModel() {
   HighsLp lpmodel = *mipsolver.model_;
-  lpmodel.col_lower_ = (worker_ && mipsolver.mipdata_->parallelLockActive())
-                           ? worker_->globaldom_->col_lower_
-                           : mipsolver.mipdata_->domain.col_lower_;
-  lpmodel.col_upper_ = (worker_ && mipsolver.mipdata_->parallelLockActive())
-                           ? worker_->globaldom_->col_upper_
-                           : mipsolver.mipdata_->domain.col_upper_;
+  lpmodel.col_lower_ = worker_ ? worker_->globaldom_->col_lower_
+                               : mipsolver.mipdata_->domain.col_lower_;
+  lpmodel.col_upper_ = worker_ ? worker_->globaldom_->col_upper_
+                               : mipsolver.mipdata_->domain.col_upper_;
   lpmodel.offset_ = 0;
   lprows.clear();
   lprows.reserve(lpmodel.num_row_);
@@ -269,8 +267,8 @@ void HighsLpRelaxation::resetToGlobalDomain(HighsDomain& globaldom) {
 }
 
 void HighsLpRelaxation::computeBasicDegenerateDuals(
-    double threshold, HighsDomain* localdom, HighsDomain* globaldom,
-    HighsConflictPool* conflictpool) {
+    double threshold, HighsDomain& localdom, HighsDomain& globaldom,
+    HighsConflictPool& conflictpool, bool getdualproof) {
   if (!lpsolver.hasInvert()) return;
 
   HighsInt k = 0;
@@ -388,7 +386,7 @@ void HighsLpRelaxation::computeBasicDegenerateDuals(
 
     if (degenerateColDual < threshold) continue;
 
-    if (degenerateColDual == kHighsInf && localdom) {
+    if (degenerateColDual == kHighsInf && getdualproof) {
       HighsCDouble rhs = 0;
       for (HighsInt i = 0; i < row_ep.count; ++i) {
         HighsInt iRow = row_ep.index[i];
@@ -419,13 +417,10 @@ void HighsLpRelaxation::computeBasicDegenerateDuals(
         domchg.boundval = lp.col_upper_[var];
       }
 
-      if (globaldom == nullptr) globaldom = &mipsolver.mipdata_->domain;
-      if (conflictpool == nullptr)
-        conflictpool = &mipsolver.mipdata_->conflictPool;
-      localdom->conflictAnalyzeReconvergence(
+      localdom.conflictAnalyzeReconvergence(
           domchg, row_ap.nonzeroinds.data(), dualproofvals.data(),
-          row_ap.nonzeroinds.size(), static_cast<double>(rhs), *conflictpool,
-          *globaldom);
+          static_cast<HighsInt>(row_ap.nonzeroinds.size()),
+          static_cast<double>(rhs), conflictpool, globaldom);
 
       continue;
     }

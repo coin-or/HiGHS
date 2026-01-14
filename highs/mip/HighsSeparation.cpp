@@ -114,9 +114,10 @@ HighsInt HighsSeparation::separationRound(HighsDomain& propdomain,
     ncuts += numboundchgs;
 
   if (&propdomain != &mipworker_.getGlobalDomain())
-    lp->computeBasicDegenerateDuals(mipdata.feastol, &propdomain,
-                                    mipworker_.globaldom_,
-                                    mipworker_.conflictpool_);
+    lp->computeBasicDegenerateDuals(mipdata.feastol, propdomain,
+                                    mipworker_.getGlobalDomain(),
+                                    mipworker_.getConflictPool(),
+                                    true);
 
   HighsTransformedLp transLp(*lp, mipdata.implications,
                              mipworker_.getGlobalDomain());
