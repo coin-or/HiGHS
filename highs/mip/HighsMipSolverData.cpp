@@ -1539,6 +1539,7 @@ bool HighsMipSolverData::addIncumbent(const std::vector<double>& sol,
                                       double solobj, const int solution_source,
                                       const bool print_display_line,
                                       const bool is_user_solution) {
+  assert(!parallelLockActive());
   const bool execute_mip_solution_callback =
       !is_user_solution && !mipsolver.submip &&
       (mipsolver.callback_->user_callback
@@ -1584,6 +1585,9 @@ bool HighsMipSolverData::addIncumbent(const std::vector<double>& sol,
     double prev_upper_bound = upper_bound;
 
     upper_bound = solobj;
+    if (hasSingleWorker()) {
+      workers[0].upper_bound = upper_bound;
+    }
 
     bool bound_change = upper_bound != prev_upper_bound;
     if (!mipsolver.submip && bound_change)
@@ -1603,6 +1607,10 @@ bool HighsMipSolverData::addIncumbent(const std::vector<double>& sol,
           computeNewUpperLimit(solobj, mipsolver.options_mip_->mip_abs_gap,
                                mipsolver.options_mip_->mip_rel_gap);
       nodequeue.setOptimalityLimit(optimality_limit);
+      if (hasSingleWorker()) {
+        workers[0].upper_limit = upper_limit;
+        workers[0].optimality_limit = optimality_limit;
+      }
       debugSolution.newIncumbentFound();
       domain.propagate();
       if (!domain.infeasible()) redcostfixing.propagateRootRedcost(mipsolver);

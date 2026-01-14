@@ -107,7 +107,6 @@ bool HighsPrimalHeuristics::solveSubMip(
   submipoptions.objective_bound = worker.upper_limit;
 
   if (!mipsolver.submip) {
-    // TODO MT: Does the mipworker need a lower bound?
     double curr_abs_gap = worker.upper_limit - mipsolver.mipdata_->lower_bound;
 
     if (curr_abs_gap == kHighsInf) {
