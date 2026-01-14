@@ -1011,7 +1011,6 @@ void HPresolve::shrinkProblem(HighsPostsolveStack& postsolve_stack) {
     mipsolver->mipdata_->rowMatrixSet = false;
     mipsolver->mipdata_->objectiveFunction = HighsObjectiveFunction(*mipsolver);
     mipsolver->mipdata_->domains[0] = HighsDomain(*mipsolver);
-    mipsolver->mipdata_->domain = mipsolver->mipdata_->domains.at(0);
     mipsolver->mipdata_->cliquetable.rebuild(model->num_col_, postsolve_stack,
                                              mipsolver->mipdata_->domain,
                                              newColIndex, newRowIndex);
@@ -1027,8 +1026,6 @@ void HPresolve::shrinkProblem(HighsPostsolveStack& postsolve_stack) {
     mipsolver->mipdata_->conflictpools[0] =
         HighsConflictPool(5 * mipsolver->options_mip_->mip_pool_age_limit,
                           mipsolver->options_mip_->mip_pool_soft_limit);
-    mipsolver->mipdata_->conflictPool =
-        mipsolver->mipdata_->conflictpools.at(0);
 
     for (HighsInt i = 0; i != oldNumCol; ++i)
       if (newColIndex[i] != -1) numProbes[newColIndex[i]] = numProbes[i];
