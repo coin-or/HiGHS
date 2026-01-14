@@ -249,7 +249,7 @@ struct HighsSimplexBadBasisChangeRecord {
   HighsInt variable_out;
   HighsInt variable_in;
   BadBasisChangeReason reason;
-  double save_value;
+  double save_value = 0.0;
 };
 
 struct HighsRayRecord {
