@@ -1261,6 +1261,7 @@ double HighsMipSolverData::percentageInactiveIntegers() const {
 }
 
 void HighsMipSolverData::performRestart() {
+  printf("HighsMipSolverData::performRestart()\n");
   HighsBasis root_basis;
   HighsPseudocostInitialization pscostinit(
       pseudocost, mipsolver.options_mip_->mip_pscost_minreliable,

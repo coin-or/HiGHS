@@ -68,6 +68,11 @@ void highsSparseTranspose(HighsInt numRow, HighsInt numCol,
   std::vector<HighsInt> iwork(numRow, 0);
   ARstart.resize(numRow + 1, 0);
   HighsInt AcountX = Aindex.size();
+  HighsInt checkAcountX = Astart[numCol];
+  if (AcountX != checkAcountX) {
+    printf("highsSparseTranspose: %d = AcountX != checkAcountX = %d\n", int(AcountX), int(checkAcountX));
+    assert(AcountX == checkAcountX);
+  }
   ARindex.resize(AcountX);
   ARvalue.resize(AcountX);
   for (HighsInt k = 0; k < AcountX; k++) {
