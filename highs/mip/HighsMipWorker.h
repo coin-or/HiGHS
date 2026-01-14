@@ -100,6 +100,8 @@ class HighsMipWorker {
 
   HighsConflictPool& getConflictPool() const { return *conflictpool_; };
 
+  HighsCutPool& getCutPool() const { return *cutpool_; };
+
   HighsLpRelaxation& getLpRelaxation() const { return *lp_; };
 
   bool addIncumbent(const std::vector<double>& sol, double solobj,

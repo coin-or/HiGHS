@@ -25,12 +25,10 @@ class HighsSeparation {
   HighsInt separationRound(HighsDomain& propdomain,
                            HighsLpRelaxation::Status& status);
 
-  // void separate(HighsDomain& propdomain);
   void separate(HighsDomain& propdomain);
 
   void setLpRelaxation(HighsLpRelaxation* lp) { this->lp = lp; }
 
-  // HighsSeparation(const HighsMipSolver& mipsolver);
   HighsSeparation(HighsMipWorker& mipworker);
 
  private:

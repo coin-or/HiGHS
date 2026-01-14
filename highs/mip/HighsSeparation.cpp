@@ -86,8 +86,9 @@ HighsInt HighsSeparation::separationRound(HighsDomain& propdomain,
   // TODO MT: Look into delta implications
   // lp->getMipSolver().analysis_.mipTimerStart(implBoundClock);
   mipdata.implications.separateImpliedBounds(
-      *lp, lp->getSolution().col_value, *mipworker_.cutpool_, mipdata.feastol,
-      mipworker_.getGlobalDomain(), mipdata.parallelLockActive());
+      *lp, lp->getSolution().col_value, mipworker_.getCutPool(),
+      mipdata.feastol, mipworker_.getGlobalDomain(),
+      mipdata.parallelLockActive());
   // lp->getMipSolver().analysis_.mipTimerStop(implBoundClock);
 
   HighsInt ncuts = 0;
@@ -99,7 +100,8 @@ HighsInt HighsSeparation::separationRound(HighsDomain& propdomain,
 
   // lp->getMipSolver().analysis_.mipTimerStart(cliqueClock);
   mipdata.cliquetable.separateCliques(
-      lp->getMipSolver(), sol.col_value, *mipworker_.cutpool_, mipdata.feastol,
+      lp->getMipSolver(), sol.col_value, mipworker_.getCutPool(),
+      mipdata.feastol,
       mipdata.parallelLockActive() ? mipworker_.randgen
                                    : mipdata.cliquetable.getRandgen(),
       mipdata.parallelLockActive()
@@ -116,8 +118,7 @@ HighsInt HighsSeparation::separationRound(HighsDomain& propdomain,
   if (&propdomain != &mipworker_.getGlobalDomain())
     lp->computeBasicDegenerateDuals(mipdata.feastol, propdomain,
                                     mipworker_.getGlobalDomain(),
-                                    mipworker_.getConflictPool(),
-                                    true);
+                                    mipworker_.getConflictPool(), true);
 
   HighsTransformedLp transLp(*lp, mipdata.implications,
                              mipworker_.getGlobalDomain());
@@ -128,7 +129,7 @@ HighsInt HighsSeparation::separationRound(HighsDomain& propdomain,
   HighsLpAggregator lpAggregator(*lp);
 
   for (const std::unique_ptr<HighsSeparator>& separator : separators) {
-    separator->run(*lp, lpAggregator, transLp, *mipworker_.cutpool_);
+    separator->run(*lp, lpAggregator, transLp, mipworker_.getCutPool());
     if (mipworker_.getGlobalDomain().infeasible()) {
       status = HighsLpRelaxation::Status::kInfeasible;
       return 0;
@@ -212,7 +213,7 @@ void HighsSeparation::separate(HighsDomain& propdomain) {
     //        (HighsInt)status);
     lp->performAging(true);
 
-    // TODO MT: If LP is only copied at start this should be thread safe.
+    // Warning: If LP is only copied at start this should be thread safe.
     mipworker_.cutpool_->performAging();
   }
 }

@@ -31,7 +31,6 @@ void HighsSeparator::run(HighsLpRelaxation& lpRelaxation,
   ++numCalls;
   HighsInt currNumCuts = cutpool.getNumCuts();
 
-  // TODO MT: Clock error (after merging master into branch)
   // lpRelaxation.getMipSolver().analysis_.mipTimerStart(clockIndex);
   separateLpSolution(lpRelaxation, lpAggregator, transLp, cutpool);
   // lpRelaxation.getMipSolver().analysis_.mipTimerStop(clockIndex);
