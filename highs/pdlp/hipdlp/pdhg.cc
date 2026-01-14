@@ -587,10 +587,11 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
          * sizeof(double), cudaMemcpyDeviceToHost));
       */
       computeAverageIterateGpu();
-#endif
+#else
       hipdlpTimerStart(kHipdlpClockAverageIterate);
       computeAverageIterate(Ax_avg, ATy_avg);
       hipdlpTimerStop(kHipdlpClockAverageIterate);
+#endif
 
       // Reset the average iterate accumulation
       int inner_iter = iter - restart_scheme_.GetLastRestartIter();
@@ -1997,6 +1998,11 @@ void PDLPSolver::setupGpu() {
   CUDA_CHECK(cudaMalloc(&d_col_scale_, a_num_cols_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_row_scale_, a_num_rows_ * sizeof(double)));
 
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_x_desc_, a_num_cols_, d_x_current_, CUDA_R_64F));
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_y_desc_, a_num_rows_, d_y_current_, CUDA_R_64F));
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_ax_desc_, a_num_rows_, d_ax_current_, CUDA_R_64F));
+  CUSPARSE_CHECK(cusparseCreateDnVec(&vec_aty_desc_, a_num_cols_, d_aty_current_, CUDA_R_64F));
+
   CUDA_CHECK(cudaMemcpy(d_col_cost_, lp_.col_cost_.data(),
                         a_num_cols_ * sizeof(double), cudaMemcpyHostToDevice));
   CUDA_CHECK(cudaMemcpy(d_col_lower_, lp_.col_lower_.data(),
@@ -2128,55 +2134,51 @@ void PDLPSolver::cleanupGpu() {
   if (d_row_scale_) CUDA_CHECK(cudaFree(d_row_scale_));
   CUDA_CHECK(cudaFree(d_buffer_));
   CUDA_CHECK(cudaFree(d_buffer2_));
+  if (vec_x_desc_) CUSPARSE_CHECK(cusparseDestroyDnVec(vec_x_desc_));
+  if (vec_y_desc_) CUSPARSE_CHECK(cusparseDestroyDnVec(vec_y_desc_));
+  if (vec_ax_desc_) CUSPARSE_CHECK(cusparseDestroyDnVec(vec_ax_desc_));
+  if (vec_aty_desc_) CUSPARSE_CHECK(cusparseDestroyDnVec(vec_aty_desc_));
 }
 
 void PDLPSolver::linalgGpuAx(const double* d_x_in, double* d_ax_out) {
   // Ax = 1.0 * A * x + 0.0 * ax
   double alpha = 1.0;
   double beta = 0.0;
-  cusparseDnVecDescr_t vec_x, vec_ax;
-  CUSPARSE_CHECK(
-      cusparseCreateDnVec(&vec_x, a_num_cols_, (void*)d_x_in, CUDA_R_64F));
-  CUSPARSE_CHECK(
-      cusparseCreateDnVec(&vec_ax, a_num_rows_, d_ax_out, CUDA_R_64F));
+
+  CUSPARSE_CHECK(cusparseDnVecSetValues(vec_x_desc_, (void*)d_x_in));
+  CUSPARSE_CHECK(cusparseDnVecSetValues(vec_ax_desc_, (void*)d_ax_out));
   if (spmv_buffer_size_ax_ == 0) {
     CUSPARSE_CHECK(cusparseSpMV_bufferSize(
         cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, mat_a_csr_,
-        vec_x, &beta, vec_ax, CUDA_R_64F, CUSPARSE_SPMV_CSR_ALG2,
+        vec_x_desc_, &beta, vec_ax_desc_, CUDA_R_64F, CUSPARSE_SPMV_CSR_ALG2,
         &spmv_buffer_size_ax_));
     CUDA_CHECK(cudaMalloc(&d_spmv_buffer_ax_, spmv_buffer_size_ax_));
   }
 
   CUSPARSE_CHECK(cusparseSpMV(cusparse_handle_,
                               CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha,
-                              mat_a_csr_, vec_x, &beta, vec_ax, CUDA_R_64F,
+                              mat_a_csr_, vec_x_desc_, &beta, vec_ax_desc_, CUDA_R_64F,
                               CUSPARSE_SPMV_CSR_ALG2, d_spmv_buffer_ax_));
-  CUSPARSE_CHECK(cusparseDestroyDnVec(vec_x));
-  CUSPARSE_CHECK(cusparseDestroyDnVec(vec_ax));
 }
 
 void PDLPSolver::linalgGpuATy(const double* d_y_in, double* d_aty_out) {
   // ATy = 1.0 * A^T * y + 0.0 * aty
   double alpha = 1.0;
   double beta = 0.0;
-  cusparseDnVecDescr_t vec_y, vec_aty;
-  CUSPARSE_CHECK(
-      cusparseCreateDnVec(&vec_y, a_num_rows_, (void*)d_y_in, CUDA_R_64F));
-  CUSPARSE_CHECK(
-      cusparseCreateDnVec(&vec_aty, a_num_cols_, d_aty_out, CUDA_R_64F));
+  
+  CUSPARSE_CHECK(cusparseDnVecSetValues(vec_y_desc_, (void*)d_y_in));
+  CUSPARSE_CHECK(cusparseDnVecSetValues(vec_aty_desc_, (void*)d_aty_out));  
   if (spmv_buffer_size_aty_ == 0) {
     CUSPARSE_CHECK(cusparseSpMV_bufferSize(
         cusparse_handle_, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha,
-        mat_a_T_csr_, vec_y, &beta, vec_aty, CUDA_R_64F, CUSPARSE_SPMV_CSR_ALG2,
+        mat_a_T_csr_, vec_y_desc_, &beta, vec_aty_desc_, CUDA_R_64F, CUSPARSE_SPMV_CSR_ALG2,
         &spmv_buffer_size_aty_));
     CUDA_CHECK(cudaMalloc(&d_spmv_buffer_aty_, spmv_buffer_size_aty_));
   }
   CUSPARSE_CHECK(cusparseSpMV(cusparse_handle_,
                               CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha,
-                              mat_a_T_csr_, vec_y, &beta, vec_aty, CUDA_R_64F,
+                              mat_a_T_csr_, vec_y_desc_, &beta, vec_aty_desc_, CUDA_R_64F,
                               CUSPARSE_SPMV_CSR_ALG2, d_spmv_buffer_aty_));
-  CUSPARSE_CHECK(cusparseDestroyDnVec(vec_y));
-  CUSPARSE_CHECK(cusparseDestroyDnVec(vec_aty));
 }
 
 void PDLPSolver::launchKernelUpdateX(double primal_step) {

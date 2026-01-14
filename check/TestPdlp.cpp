@@ -14,7 +14,7 @@
 
 const bool dev_run = false;
 const double double_equal_tolerance = 1e-3;
-const double kkt_tolerance = 1e-4;
+const double kkt_tolerance = 1e-8;
 #ifdef CUPDLP_CPU
 TEST_CASE("pdlp-distillation-lp", "[pdlp]") {
   SpecialLps special_lps;
@@ -342,13 +342,14 @@ TEST_CASE("pdlp-restart-add-row", "[pdlp]") {
 }
 
 TEST_CASE("hi-pdlp", "[pdlp]") {
-  std::string model = "25fv47";  //"adlittle";//"afiro";// shell// stair
-                                 ////25fv47 //fit2p //avgas
+  std::string model = "neso-2005";  //"adlittle";//"afiro";// shell// stair
+                                 ////25fv47 //fit2p //avgas //neso-2245 //neso-2005
   std::string model_file =
-      std::string(HIGHS_DIR) + "/check/instances/" + model + ".mps";
+      //std::string(HIGHS_DIR) + "/srv/" + model + ".mps.gz";
+      "/srv/mps_da/" + model + ".mps.gz";
   Highs h;
   // h.setOptionValue("output_flag", dev_run);
-  REQUIRE(h.readModel(model_file) == HighsStatus::kOk);
+  REQUIRE(h.readModel(model_file) != HighsStatus::kError);
   h.setOptionValue("solver", kHiPdlpString);
   h.setOptionValue("kkt_tolerance", kkt_tolerance);
   h.setOptionValue("presolve", "off");
@@ -367,7 +368,8 @@ TEST_CASE("hi-pdlp", "[pdlp]") {
   h.setOptionValue("pdlp_scaling_mode", pdlp_scaling);
   h.setOptionValue("pdlp_step_size_strategy", 1);
   h.setOptionValue("pdlp_restart_strategy", 2);
-  // h.setOptionValue("pdlp_iteration_limit", 10);
+  h.setOptionValue("pdlp_iteration_limit", 20000);
+  //h.setOptionValue("pdlp_time_limit", 60);
   //   h.setOptionValue("log_dev_level", kHighsLogDevLevelVerbose);
   auto start_hipdlp = std::chrono::high_resolution_clock::now();
   HighsStatus run_status = h.run();

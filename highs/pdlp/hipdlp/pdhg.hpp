@@ -291,6 +291,11 @@ class PDLPSolver {
                                 const double* d_aty_new,
                                 const double* d_aty_old);
   double computeDiffNormCuBLAS(const double* d_a, const double* d_b, int n);
+
+  cusparseDnVecDescr_t vec_x_desc_ = nullptr;
+  cusparseDnVecDescr_t vec_y_desc_ = nullptr;
+  cusparseDnVecDescr_t vec_ax_desc_ = nullptr;
+  cusparseDnVecDescr_t vec_aty_desc_ = nullptr;
 #endif
 };
 

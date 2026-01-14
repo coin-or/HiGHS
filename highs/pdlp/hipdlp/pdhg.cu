@@ -133,10 +133,15 @@ __global__ void kernelCheckPrimal(
     local_feas_sq += residual * residual;
   }
 
-  // Atomic acculation
-  // To be optimized: use warp-level reduction
-  atomicAdd(&d_results[IDX_PRIMAL_FEAS], local_feas_sq);
-  atomicAdd(&d_results[IDX_DUAL_OBJ], local_dual_obj);
+  // 1. wrap reduce
+  FULL_WARP_REDUCE(local_feas_sq);
+  FULL_WARP_REDUCE(local_dual_obj);
+
+  // 2. Atomic Add only from the first thread of each warp
+  if ((threadIdx.x & 31) == 0){
+    atomicAdd(&d_results[IDX_PRIMAL_FEAS], local_feas_sq);
+    atomicAdd(&d_results[IDX_DUAL_OBJ], local_dual_obj);
+  }
 }
 
 // === KERNEL 5: Dual Convergence Check (Column-wise) ===
