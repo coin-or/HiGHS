@@ -504,14 +504,15 @@ HighsInt HighsCliqueTable::shrinkToNeighbourhood(
   return static_cast<HighsInt>(neighbourhoodInds.size());
 }
 
-bool HighsCliqueTable::fixCol(HighsDomain& globaldom, CliqueVar v) {
+bool HighsCliqueTable::fixCol(HighsDomain& globaldom, CliqueVar v,
+                              bool doProcessInfeasibleVertices) {
   bool wasfixed = globaldom.isFixed(v.col);
   globaldom.fixCol(v.col, static_cast<double>(1 - v.val));
   if (globaldom.infeasible()) return false;
   if (!wasfixed) {
     ++nfixings;
     infeasvertexstack.push_back(v);
-    processInfeasibleVertices(globaldom);
+    if (doProcessInfeasibleVertices) processInfeasibleVertices(globaldom);
   }
   return true;
 }
@@ -520,7 +521,7 @@ bool HighsCliqueTable::processNewEdge(HighsDomain& globaldom, CliqueVar v1,
                                       CliqueVar v2) {
   if (v1.col == v2.col) {
     if (v1.val == v2.val) {
-      fixCol(globaldom, v1);
+      fixCol(globaldom, v1, true);
       return false;
     }
 
@@ -530,11 +531,10 @@ bool HighsCliqueTable::processNewEdge(HighsDomain& globaldom, CliqueVar v1,
   // invertedEdgeCache.erase(sortedEdge(v1, v2));
 
   if (haveCommonClique(v1.complement(), v2)) {
-    fixCol(globaldom, v2);
-    bool wasfixed = globaldom.isFixed(v2.col);
+    fixCol(globaldom, v2, true);
     return false;
   } else if (haveCommonClique(v2.complement(), v1)) {
-    fixCol(globaldom, v1);
+    fixCol(globaldom, v1, true);
     return false;
   } else {
     // return if complements are not in a clique
