@@ -79,7 +79,7 @@ class FormatHandler {
                                        Int child_sn, Int row, Int col, Int i,
                                        Int j) = 0;
   virtual void assembleClique(const double* child, Int nc, Int child_sn) = 0;
-  virtual Int denseFactorise(double reg_thresh) = 0;
+  virtual Int denseFactorise(double reg_thresh, bool parallelise) = 0;
 
   // =================================================================
   // Virtual functions.

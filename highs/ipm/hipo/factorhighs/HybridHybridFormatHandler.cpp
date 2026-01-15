@@ -75,7 +75,8 @@ void HybridHybridFormatHandler::assembleFrontalMultiple(Int num,
                     &frontal_[diag_start_[block] + ii + ldb * jj], 1, data_);
 }
 
-Int HybridHybridFormatHandler::denseFactorise(double reg_thresh) {
+Int HybridHybridFormatHandler::denseFactorise(double reg_thresh,
+                                              bool parallelise) {
   Int status;
 
   // either clique is valid, or clique is not needed
@@ -91,7 +92,7 @@ Int HybridHybridFormatHandler::denseFactorise(double reg_thresh) {
   status = denseFactFH('H', ldf_, sn_size_, S_->blockSize(), frontal_.data(),
                        clique_ptr_, pivot_sign, reg_thresh, regul_,
                        local_reg_.data(), swaps_.data(), pivot_2x2_.data(),
-                       S_->parNode(), data_);
+                       parallelise, data_);
 
   return status;
 }
@@ -138,7 +139,8 @@ void HybridHybridFormatHandler::assembleClique(const double* child, Int nc,
 
         // sun consecutive entries in a row.
         // consecutive need to be reduced, to account for edge of the block
-        const Int zeros_stored_row = std::max((Int)0, jb_c - (row - row_start) - 1);
+        const Int zeros_stored_row =
+            std::max((Int)0, jb_c - (row - row_start) - 1);
         Int consecutive = S_->consecutiveSums(child_sn, col);
         const Int left_in_child = col_end - col - zeros_stored_row;
         consecutive = std::min(consecutive, left_in_child);
