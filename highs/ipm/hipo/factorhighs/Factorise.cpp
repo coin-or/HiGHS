@@ -191,19 +191,19 @@ void Factorise::processSupernode(Int sn, const bool should_parallelise) {
   if (do_parallelise) {
     // if there is only one child, do not parallelise
     if (first_child_[sn] != -1 && next_child_[first_child_[sn]] == -1) {
-      spawnNode(first_child_[sn], tg, false);
+      spawn(first_child_[sn], tg, false);
       do_parallelise = false;
     } else {
       // spawn children of this supernode in reverse order
       Int child_to_spawn = first_child_reverse_[sn];
       while (child_to_spawn != -1) {
-        spawnNode(child_to_spawn, tg);
+        spawn(child_to_spawn, tg);
         child_to_spawn = next_child_reverse_[child_to_spawn];
       }
 
       // wait for first child to finish, before starting the parent (if there is
       // a first child)
-      if (first_child_reverse_[sn] != -1) syncNode(first_child_[sn], tg);
+      if (first_child_reverse_[sn] != -1) sync(first_child_[sn], tg);
     }
   }
 
@@ -262,13 +262,18 @@ void Factorise::processSupernode(Int sn, const bool should_parallelise) {
     // Child contribution is found:
     // - in cliquestack, if we are processing the tree in serial.
     // - in schur_contribution_ if we are processing the tree in parallel.
-    // Children are always summed from last to first.
+    // Children are summed:
+    // - in reverse order in serial, so that the correct child is found on top
+    //   of the CliqueStack.
+    // - in forward order otherwise, so that if a small subtree is synced, and
+    //   it is not the first in its group, it will already have synced when it
+    //   is needed.
 
     const double* child_clique;
 
     if (do_parallelise) {
       // sync with spawned child, apart from the first one
-      if (child_sn != first_child_[sn]) syncNode(child_sn, tg);
+      if (child_sn != first_child_[sn]) sync(child_sn, tg);
       if (flag_stop_.load(std::memory_order_relaxed)) return;
     }
 
@@ -379,7 +384,7 @@ void Factorise::processSupernode(Int sn, const bool should_parallelise) {
   HIPO_CLOCK_STOP(2, data_, kTimeFactoriseTerminate);
 }
 
-void Factorise::spawnNode(Int sn, const TaskGroupSpecial& tg, bool do_spawn) {
+void Factorise::spawn(Int sn, const TaskGroupSpecial& tg, bool do_spawn) {
   // If do_spawn is true, a task is actually spawned, otherwise it is executed
   // immediately. This avoids the overhead of spawning a task if a supernode has
   // a single child.
@@ -388,7 +393,7 @@ void Factorise::spawnNode(Int sn, const TaskGroupSpecial& tg, bool do_spawn) {
 
   if (!data) {
     // sn is head of small subtree, but not the first subtree in the group.
-    // It will be processed in another task.
+    // It is processed in another task.
     return;
   }
 
@@ -423,8 +428,8 @@ void Factorise::spawnNode(Int sn, const TaskGroupSpecial& tg, bool do_spawn) {
   }
 }
 
-void Factorise::syncNode(Int sn, const TaskGroupSpecial& tg) {
-  // If spawnNode(sn,tg) created a task, then sync it.
+void Factorise::sync(Int sn, const TaskGroupSpecial& tg) {
+  // If spawn(sn,tg) created a task, then sync it.
   // This happens only if sn is found in the treeSplitting data structure.
   if (S_.treeSplitting().belong(sn)) tg.sync();
 }
@@ -448,7 +453,7 @@ bool Factorise::run(Numeric& num) {
   if (S_.parTree()) {
     // spawn tasks for root supernodes
     for (Int sn = 0; sn < S_.sn(); ++sn) {
-      if (S_.snParent(sn) == -1) (spawnNode(sn, tg));
+      if (S_.snParent(sn) == -1) (spawn(sn, tg));
     }
 
     // sync tasks for root supernodes
