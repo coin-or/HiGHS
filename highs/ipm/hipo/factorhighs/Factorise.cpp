@@ -175,7 +175,7 @@ TaskGroupSpecial::~TaskGroupSpecial() {
   }
 }
 
-void Factorise::processSupernode(Int sn, bool parallelise) {
+void Factorise::processSupernode(Int sn, const bool should_parallelise) {
   // Assemble frontal matrix for supernode sn, perform partial factorisation and
   // store the result.
 
@@ -184,13 +184,15 @@ void Factorise::processSupernode(Int sn, bool parallelise) {
 
   const bool serial = !S_.parTree();
 
+  bool do_parallelise = should_parallelise;
+
   if (flag_stop_.load(std::memory_order_relaxed)) return;
 
-  if (parallelise) {
+  if (do_parallelise) {
     // if there is only one child, do not parallelise
     if (first_child_[sn] != -1 && next_child_[first_child_[sn]] == -1) {
       spawnNode(first_child_[sn], tg, false);
-      parallelise = false;
+      do_parallelise = false;
     } else {
       // spawn children of this supernode in reverse order
       Int child_to_spawn = first_child_reverse_[sn];
@@ -264,7 +266,7 @@ void Factorise::processSupernode(Int sn, bool parallelise) {
 
     const double* child_clique;
 
-    if (parallelise) {
+    if (do_parallelise) {
       // sync with spawned child, apart from the first one
       if (child_sn != first_child_[sn]) syncNode(child_sn, tg);
       if (flag_stop_.load(std::memory_order_relaxed)) return;
@@ -350,7 +352,9 @@ void Factorise::processSupernode(Int sn, bool parallelise) {
   // const double reg_thresh = max_diag_ * kDynamicDiagCoeff;
   const double reg_thresh = M_norm1_ * kDynamicDiagCoeff;
 
-  if (Int flag = FH->denseFactorise(reg_thresh)) {
+  const bool node_parallel = should_parallelise && S_.parNode();
+
+  if (Int flag = FH->denseFactorise(reg_thresh, node_parallel)) {
     flag_stop_.store(true, std::memory_order_relaxed);
 
     if (log_ && flag == kRetInvalidInput)
