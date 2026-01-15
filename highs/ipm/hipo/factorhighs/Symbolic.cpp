@@ -50,6 +50,9 @@ const std::vector<Int>& Symbolic::pivotSign() const { return pivot_sign_; }
 const std::map<Int, NodeData>& Symbolic::treeSplitting() const {
   return tree_splitting_;
 }
+bool Symbolic::isInTreeSplitting(Int sn) const {
+  return is_in_tree_splitting_[sn];
+}
 
 static std::string memoryString(double mem) {
   std::stringstream ss;
