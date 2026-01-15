@@ -55,6 +55,7 @@ HighsStatus Highs::infiniteCostReformulation() {
   HighsLp& lp = this->model_.lp_;
   if (!lp.has_infinite_cost_) return HighsStatus::kOk;
   HighsLpMods& mods = lp.mods_;
+  HighsLpReformulation& reformulation = lp.reformulation_;
   double inf_cost = this->options_.infinite_cost;
   for (HighsInt k = 0; k < 2; k++) {
     // Pass twice: first checking that infinite costs can be handled,
@@ -121,16 +122,16 @@ HighsStatus Highs::infiniteCostReformulation() {
         }
       }
       if (k) {
-        mods.save_inf_cost_variable_index.push_back(iCol);
-        mods.save_inf_cost_variable_cost.push_back(cost);
-        mods.save_inf_cost_variable_lower.push_back(lower);
-        mods.save_inf_cost_variable_upper.push_back(upper);
+        reformulation.inf_cost_variable_index.push_back(iCol);
+        reformulation.inf_cost_variable_cost.push_back(cost);
+        reformulation.inf_cost_variable_lower.push_back(lower);
+        reformulation.inf_cost_variable_upper.push_back(upper);
         lp.col_cost_[iCol] = 0;
       }
     }
   }
   // Infinite costs have been removed, but their presence in the
-  // original model is known from mods.save_inf_cost_variable_*, so
+  // original model is known from reformulation.inf_cost_variable_*, so
   // set lp.has_infinite_cost_ to be false to avoid assert when run()
   // is called using copy of model in MIP solver (See #1446)
   lp.has_infinite_cost_ = false;
@@ -142,14 +143,15 @@ void Highs::undoInfiniteCostReformulation(HighsStatus& optimize_status) {
   HighsLp& lp = this->model_.lp_;
   HighsBasis& basis = this->basis_;
   HighsLpMods& mods = lp.mods_;
-  HighsInt num_inf_cost = mods.save_inf_cost_variable_index.size();
+  HighsLpReformulation& reformulation = lp.reformulation_;
+  HighsInt num_inf_cost = reformulation.inf_cost_variable_index.size();
   if (num_inf_cost <= 0) return;
   assert(num_inf_cost);
   for (HighsInt ix = 0; ix < num_inf_cost; ix++) {
-    HighsInt iCol = mods.save_inf_cost_variable_index[ix];
-    double cost = mods.save_inf_cost_variable_cost[ix];
-    double lower = mods.save_inf_cost_variable_lower[ix];
-    double upper = mods.save_inf_cost_variable_upper[ix];
+    HighsInt iCol = reformulation.inf_cost_variable_index[ix];
+    double cost = reformulation.inf_cost_variable_cost[ix];
+    double lower = reformulation.inf_cost_variable_lower[ix];
+    double upper = reformulation.inf_cost_variable_upper[ix];
     double value = solution_.value_valid ? solution_.col_value[iCol] : 0;
     if (basis.valid) {
       assert(basis.col_status[iCol] != HighsBasisStatus::kBasic);
@@ -168,7 +170,7 @@ void Highs::undoInfiniteCostReformulation(HighsStatus& optimize_status) {
   // Infinite costs have been reintroduced, so reset to true the flag
   // that was set false in Highs::infiniteCostReformulation()
   lp.has_infinite_cost_ = true;
-  mods.clearInfiniteCostRecord();
+  reformulation.clearInfiniteCostRecord();
 
   if (this->model_status_ == HighsModelStatus::kInfeasible) {
     // Model is infeasible with the infinite cost variables fixed at

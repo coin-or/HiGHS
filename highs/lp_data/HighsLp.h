@@ -55,6 +55,7 @@ class HighsLp {
   bool is_moved_;
   HighsInt cost_row_location_;
   bool has_infinite_cost_;
+  HighsLpReformulation reformulation_;
   HighsLpMods mods_;
 
   bool operator==(const HighsLp& lp) const;

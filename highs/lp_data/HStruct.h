@@ -91,6 +91,17 @@ struct HighsScale {
   std::vector<double> row;
 };
 
+struct HighsLpReformulation {
+  // Variables with infinite costs that are fixed during solve
+  std::vector<HighsInt> inf_cost_variable_index;
+  std::vector<double> inf_cost_variable_cost;
+  std::vector<double> inf_cost_variable_lower;
+  std::vector<double> inf_cost_variable_upper;
+  void clear();
+  void clearInfiniteCostRecord();
+  //  bool isClear();
+};
+
 struct HighsLpMods {
   // Semi-variables with zero lower bound that are treated as non-semi
   std::vector<HighsInt> save_non_semi_variable_index;
@@ -112,14 +123,7 @@ struct HighsLpMods {
   std::vector<HighsInt> save_tightened_semi_variable_upper_bound_index;
   std::vector<double> save_tightened_semi_variable_upper_bound_value;
 
-  // Variables with infinite costs that are fixed during solve
-  std::vector<HighsInt> save_inf_cost_variable_index;
-  std::vector<double> save_inf_cost_variable_cost;
-  std::vector<double> save_inf_cost_variable_lower;
-  std::vector<double> save_inf_cost_variable_upper;
-
   void clear();
-  void clearInfiniteCostRecord();
   void clearSemiVariableRecord();
   bool isClear();
 };

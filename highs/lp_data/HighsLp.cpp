@@ -49,9 +49,7 @@ bool HighsLp::hasMods() const {
   return this->mods_.save_non_semi_variable_index.size() > 0 ||
          this->mods_.save_inconsistent_semi_variable_index.size() > 0 ||
          this->mods_.save_relaxed_semi_variable_lower_bound_index.size() > 0 ||
-         this->mods_.save_tightened_semi_variable_upper_bound_index.size() >
-             0 ||
-         this->mods_.save_inf_cost_variable_index.size() > 0;
+         this->mods_.save_tightened_semi_variable_upper_bound_index.size() > 0;
 }
 
 bool HighsLp::needsMods(const double infinite_cost) const {
@@ -225,6 +223,7 @@ void HighsLp::clear() {
   this->is_moved_ = false;
   this->cost_row_location_ = -1;
   this->has_infinite_cost_ = false;
+  this->reformulation_.clear();
   this->mods_.clear();
 }
 
@@ -491,11 +490,11 @@ void HighsLp::unapplyMods() {
   this->mods_.clear();
 }
 
-void HighsLpMods::clearInfiniteCostRecord() {
-  this->save_inf_cost_variable_index.clear();
-  this->save_inf_cost_variable_cost.clear();
-  this->save_inf_cost_variable_lower.clear();
-  this->save_inf_cost_variable_upper.clear();
+void HighsLpReformulation::clearInfiniteCostRecord() {
+  this->inf_cost_variable_index.clear();
+  this->inf_cost_variable_cost.clear();
+  this->inf_cost_variable_lower.clear();
+  this->inf_cost_variable_upper.clear();
 }
 
 void HighsLpMods::clearSemiVariableRecord() {
@@ -510,10 +509,9 @@ void HighsLpMods::clearSemiVariableRecord() {
   this->save_tightened_semi_variable_upper_bound_value.clear();
 }
 
-void HighsLpMods::clear() {
-  this->clearInfiniteCostRecord();
-  this->clearSemiVariableRecord();
-}
+void HighsLpReformulation::clear() { this->clearInfiniteCostRecord(); }
+
+void HighsLpMods::clear() { this->clearSemiVariableRecord(); }
 
 bool HighsLpMods::isClear() {
   if (this->save_non_semi_variable_index.size()) return false;
