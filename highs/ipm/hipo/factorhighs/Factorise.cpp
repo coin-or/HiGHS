@@ -187,16 +187,22 @@ void Factorise::processSupernode(Int sn, bool parallelise) {
   if (flag_stop_.load(std::memory_order_relaxed)) return;
 
   if (parallelise) {
-    // spawn children of this supernode in reverse order
-    Int child_to_spawn = first_child_reverse_[sn];
-    while (child_to_spawn != -1) {
-      spawnNode(child_to_spawn, tg);
-      child_to_spawn = next_child_reverse_[child_to_spawn];
-    }
+    // if there is only one child, do not parallelise
+    if (first_child_[sn] != -1 && next_child_[first_child_[sn]] == -1) {
+      spawnNode(first_child_[sn], tg, false);
+      parallelise = false;
+    } else {
+      // spawn children of this supernode in reverse order
+      Int child_to_spawn = first_child_reverse_[sn];
+      while (child_to_spawn != -1) {
+        spawnNode(child_to_spawn, tg);
+        child_to_spawn = next_child_reverse_[child_to_spawn];
+      }
 
-    // wait for first child to finish, before starting the parent (if there is a
-    // first child)
-    if (first_child_reverse_[sn] != -1) syncNode(first_child_[sn], tg);
+      // wait for first child to finish, before starting the parent (if there is
+      // a first child)
+      if (first_child_reverse_[sn] != -1) syncNode(first_child_[sn], tg);
+    }
   }
 
   // ===================================================
@@ -369,7 +375,11 @@ void Factorise::processSupernode(Int sn, bool parallelise) {
   HIPO_CLOCK_STOP(2, data_, kTimeFactoriseTerminate);
 }
 
-void Factorise::spawnNode(Int sn, const TaskGroupSpecial& tg) {
+void Factorise::spawnNode(Int sn, const TaskGroupSpecial& tg, bool do_spawn) {
+  // If do_spawn is true, a task is actually spawned, otherwise it is executed
+  // immediately. This avoids the overhead of spawning a task if a supernode has
+  // a single child.
+
   auto it = S_.treeSplitting().find(sn);
 
   if (it == S_.treeSplitting().end()) {
@@ -378,24 +388,36 @@ void Factorise::spawnNode(Int sn, const TaskGroupSpecial& tg) {
     return;
   }
 
-  if (it->second.type == NodeType::single) {
-    // sn is single node; spawn only that
-    tg.spawn([this, sn]() { processSupernode(sn, true); });
+  const NodeData* data = &(it->second);
+
+  if (data->type == NodeType::single) {
+    // sn is single node; run only that
+    auto lambda = [this, sn]() { processSupernode(sn, true); };
+
+    if (do_spawn)
+      tg.spawn(std::move(lambda));
+    else
+      lambda();
 
   } else {
-    // sn is head of the first subtree in a group of small subtrees; spawn all
+    // sn is head of the first subtree in a group of small subtrees; run all
     // of them
 
-    tg.spawn([this, it]() {
-      for (Int i = 0; i < it->second.group.size(); ++i) {
-        Int st_head = it->second.group[i];
-        Int start = it->second.firstdesc[i];
+    auto lambda = [this, data]() {
+      for (Int i = 0; i < data->group.size(); ++i) {
+        Int st_head = data->group[i];
+        Int start = data->firstdesc[i];
         Int end = st_head + 1;
         for (Int sn = start; sn < end; ++sn) {
           processSupernode(sn, false);
         }
       }
-    });
+    };
+
+    if (do_spawn)
+      tg.spawn(std::move(lambda));
+    else
+      lambda();
   }
 }
 
