@@ -1337,7 +1337,7 @@ void Analyse::findTreeSplitting() {
   std::vector<Int> first_desc;
   firstDescendant(sn_parent_, first_desc);
 
-  is_in_tree_splitting_.assign(sn_count_, false);
+  tree_splitting_.resize(sn_count_);
 
   // Divide the tree into single nodes and subtrees, such that each subtree has
   // at most small_thresh operations overall.
@@ -1345,14 +1345,12 @@ void Analyse::findTreeSplitting() {
   for (Int sn = 0; sn < sn_count_; ++sn) {
     if (subtree_ops[sn] > small_thresh) {
       // sn is a single node
-      auto res_insert = tree_splitting_.insert({sn, {}});
-      is_in_tree_splitting_[sn] = true;
-      res_insert.first->second.type = NodeType::single;
+      tree_splitting_.insertSingle(sn);
 
       // The children of this sn are either single nodes or head of subtrees.
-      // Divide the head of subtrees in groups, so that each group has 1% to 2%
-      // of total operations. Each group corresponds to one task executed in
-      // parallel.
+      // Divide the head of subtrees in groups, so that each group's operation
+      // count is in the interval [small_thresh, 2*small_thresh]. Each group
+      // corresponds to one task executed in parallel.
 
       double current_ops = 0.0;
       NodeData* current_nodedata = nullptr;
@@ -1362,10 +1360,7 @@ void Analyse::findTreeSplitting() {
 
         if (is_small) {
           if (!current_nodedata) {
-            auto res_insert = tree_splitting_.insert({child, {}});
-            is_in_tree_splitting_[child] = true;
-            current_nodedata = &res_insert.first->second;
-            current_nodedata->type = NodeType::subtree;
+            current_nodedata = &tree_splitting_.insertSubtree(child);
             current_ops = 0.0;
           }
 
@@ -1381,11 +1376,9 @@ void Analyse::findTreeSplitting() {
 
     } else if (sn_parent_[sn] == -1) {
       // sn is small root: single task with whole subtree
-      auto res_insert = tree_splitting_.insert({sn, {}});
-      is_in_tree_splitting_[sn] = true;
-      res_insert.first->second.type = NodeType::subtree;
-      res_insert.first->second.group.push_back(sn);
-      res_insert.first->second.firstdesc.push_back(first_desc[sn]);
+      NodeData& data = tree_splitting_.insert(sn);
+      data.group.push_back(sn);
+      data.firstdesc.push_back(first_desc[sn]);
     }
     /*
     else if (subtree_ops[sn_parent_[sn]] > small_thresh) {
@@ -1494,7 +1487,6 @@ Int Analyse::run(Symbolic& S) {
   S.consecutive_sums_ = std::move(consecutive_sums_);
   S.clique_block_start_ = std::move(clique_block_start_);
   S.tree_splitting_ = std::move(tree_splitting_);
-  S.is_in_tree_splitting_ = std::move(is_in_tree_splitting_);
 
   HIPO_CLOCK_STOP(1, data_, kTimeAnalyse);
 
