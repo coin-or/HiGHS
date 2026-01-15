@@ -191,10 +191,10 @@ void HighsCutPool::performAging() {
       ages_[i] = 1;
       --numLpCuts;
       ++ageDistribution[1];
-    } else if (usedInRound_[i]) {
+    } else if (ageResetWhileLocked_[i]) {
       resetAge(i);
     }
-    usedInRound_[i] = false;
+    ageResetWhileLocked_[i] = false;
     if (ages_[i] < 0) continue;
 
     bool isPropagated = matrix_.columnsLinked(i);
@@ -290,7 +290,7 @@ void HighsCutPool::separate(const std::vector<double>& sol, HighsDomain& domain,
         matrix_.removeRow(i);
         ages_[i] = -1;
         rhs_[i] = kHighsInf;
-        usedInRound_[i] = false;
+        ageResetWhileLocked_[i] = false;
         hasSynced_[i] = false;
         auto range = hashToCutMap.equal_range(h);
 
@@ -600,7 +600,7 @@ HighsInt HighsCutPool::addCut(const HighsMipSolver& mipsolver, HighsInt* Rindex,
     rhs_.resize(rowindex + 1);
     ages_.resize(rowindex + 1);
     numLps_.resize(rowindex + 1);
-    usedInRound_.resize(rowindex + 1);
+    ageResetWhileLocked_.resize(rowindex + 1);
     hasSynced_.resize(rowindex + 1);
     rownormalization_.resize(rowindex + 1);
     maxabscoef_.resize(rowindex + 1);
@@ -613,7 +613,7 @@ HighsInt HighsCutPool::addCut(const HighsMipSolver& mipsolver, HighsInt* Rindex,
   ++ageDistribution[ages_[rowindex]];
   rowintegral[rowindex] = integral;
   numLps_[rowindex] = 0;
-  usedInRound_[rowindex] = false;
+  ageResetWhileLocked_[rowindex] = false;
   hasSynced_[rowindex] = false;
   if (propagate) propRows.emplace(ages_[rowindex], rowindex);
   assert((HighsInt)propRows.size() == numPropRows);

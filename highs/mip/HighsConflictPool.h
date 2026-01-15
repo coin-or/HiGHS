@@ -22,7 +22,7 @@ class HighsConflictPool {
   std::vector<HighsInt> ageDistribution_;
   std::vector<int16_t> ages_;
   std::vector<unsigned> modification_;
-  std::vector<bool> usedInDive_;
+  std::vector<bool> ageResetWhileLocked_;
 
   std::vector<HighsDomainChange> conflictEntries_;
   std::vector<std::pair<HighsInt, HighsInt>> conflictRanges_;
@@ -44,7 +44,7 @@ class HighsConflictPool {
         ageDistribution_(),
         ages_(),
         modification_(),
-        usedInDive_(),
+        ageResetWhileLocked_(),
         conflictEntries_(),
         conflictRanges_(),
         freeSpaces_(),
@@ -75,7 +75,7 @@ class HighsConflictPool {
   void resetAge(HighsInt conflict) {
     if (ages_[conflict] > 0) {
       if (age_lock_) {
-        usedInDive_[conflict] = true;
+        ageResetWhileLocked_[conflict] = true;
         return;
       }
       ageDistribution_[ages_[conflict]] -= 1;
@@ -118,7 +118,7 @@ class HighsConflictPool {
     return conflictRanges_.size() - deletedConflicts_.size();
   }
 
-  void setAgeLock(const bool ageLock) {age_lock_ = ageLock;}
+  void setAgeLock(const bool ageLock) { age_lock_ = ageLock; }
 };
 
 #endif

@@ -45,7 +45,7 @@ void HighsConflictPool::addConflictCut(
     conflictRanges_.emplace_back(start, end);
     ages_.resize(conflictRanges_.size());
     modification_.resize(conflictRanges_.size());
-    usedInDive_.resize(conflictRanges_.size());
+    ageResetWhileLocked_.resize(conflictRanges_.size());
   } else {
     conflictIndex = deletedConflicts_.back();
     deletedConflicts_.pop_back();
@@ -53,7 +53,7 @@ void HighsConflictPool::addConflictCut(
     conflictRanges_[conflictIndex].second = end;
   }
 
-  usedInDive_[conflictIndex] = false;
+  ageResetWhileLocked_[conflictIndex] = false;
   modification_[conflictIndex] += 1;
   ages_[conflictIndex] = 0;
   ageDistribution_[ages_[conflictIndex]] += 1;
@@ -119,7 +119,7 @@ void HighsConflictPool::addReconvergenceCut(
     conflictRanges_.emplace_back(start, end);
     ages_.resize(conflictRanges_.size());
     modification_.resize(conflictRanges_.size());
-    usedInDive_.resize(conflictRanges_.size());
+    ageResetWhileLocked_.resize(conflictRanges_.size());
   } else {
     conflictIndex = deletedConflicts_.back();
     deletedConflicts_.pop_back();
@@ -127,7 +127,7 @@ void HighsConflictPool::addReconvergenceCut(
     conflictRanges_[conflictIndex].second = end;
   }
 
-  usedInDive_[conflictIndex] = false;
+  ageResetWhileLocked_[conflictIndex] = false;
   modification_[conflictIndex] += 1;
   ages_[conflictIndex] = 0;
   ageDistribution_[ages_[conflictIndex]] += 1;
@@ -193,11 +193,11 @@ void HighsConflictPool::performAging(const bool thread_safe) {
 
   for (HighsInt i = 0; i != conflictMaxIndex; ++i) {
     if (ages_[i] < 0) continue;
-    if (thread_safe && usedInDive_[i]) resetAge(i);
+    if (thread_safe && ageResetWhileLocked_[i]) resetAge(i);
 
     ageDistribution_[ages_[i]] -= 1;
     ages_[i] += 1;
-    usedInDive_[i] = false;
+    ageResetWhileLocked_[i] = false;
 
     if (ages_[i] > agelim) {
       ages_[i] = -1;
@@ -240,7 +240,7 @@ void HighsConflictPool::addConflictFromOtherPool(
     conflictRanges_.emplace_back(start, end);
     ages_.resize(conflictRanges_.size());
     modification_.resize(conflictRanges_.size());
-    usedInDive_.resize(conflictRanges_.size());
+    ageResetWhileLocked_.resize(conflictRanges_.size());
   } else {
     conflictIndex = deletedConflicts_.back();
     deletedConflicts_.pop_back();
@@ -248,7 +248,7 @@ void HighsConflictPool::addConflictFromOtherPool(
     conflictRanges_[conflictIndex].second = end;
   }
 
-  usedInDive_[conflictIndex] = false;
+  ageResetWhileLocked_[conflictIndex] = false;
   modification_[conflictIndex] += 1;
   ages_[conflictIndex] = 0;
   ageDistribution_[ages_[conflictIndex]] += 1;
@@ -278,5 +278,5 @@ void HighsConflictPool::syncConflictPool(HighsConflictPool& syncpool) {
   conflictEntries_.clear();
   modification_.clear();
   ages_.clear();
-  usedInDive_.clear();
+  ageResetWhileLocked_.clear();
 }
