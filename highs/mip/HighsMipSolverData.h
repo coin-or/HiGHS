@@ -274,10 +274,6 @@ struct HighsMipSolverData {
   bool hasMultipleWorkers() const {
     return workers.size() > 1;
   }
-
-  bool hasSingleWorker() const {
-    return workers.size() == 1;
-  }
 };
 
 #endif

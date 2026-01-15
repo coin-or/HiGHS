@@ -954,6 +954,7 @@ bool HighsPrimalHeuristics::tryRoundedPoint(HighsMipWorker& worker,
 
   if (numintcols != mipsolver.numCol()) {
     HighsLpRelaxation lprelax(mipsolver);
+    lprelax.setMipWorker(worker);
     lprelax.loadModel();
     lprelax.setIterationLimit(
         std::max(int64_t{10000}, 2 * mipsolver.mipdata_->firstrootlpiters));
@@ -1094,6 +1095,7 @@ void HighsPrimalHeuristics::randomizedRounding(
   if (mipsolver.mipdata_->integer_cols.size() !=
       static_cast<size_t>(mipsolver.numCol())) {
     HighsLpRelaxation lprelax(mipsolver);
+    lprelax.setMipWorker(worker);
     lprelax.loadModel();
     lprelax.setIterationLimit(
         std::max(int64_t{10000}, 2 * mipsolver.mipdata_->firstrootlpiters));
@@ -1147,6 +1149,7 @@ void HighsPrimalHeuristics::shifting(HighsMipWorker& worker,
   HighsInt t = 0;
   const HighsLp& currentLp = *mipsolver.model_;
   HighsLpRelaxation lprelax(worker.getLpRelaxation());
+  lprelax.setMipWorker(worker);
   std::vector<std::pair<HighsInt, double>> current_fractional_integers =
       lprelax.getFractionalIntegers();
   std::vector<std::tuple<HighsInt, HighsInt, double>> current_infeasible_rows =
@@ -1510,6 +1513,7 @@ void HighsPrimalHeuristics::ziRound(HighsMipWorker& worker,
 
 void HighsPrimalHeuristics::feasibilityPump(HighsMipWorker& worker) {
   HighsLpRelaxation lprelax(worker.getLpRelaxation());
+  lprelax.setMipWorker(worker);
   std::unordered_set<std::vector<HighsInt>, HighsVectorHasher, HighsVectorEqual>
       referencepoints;
   std::vector<double> roundedsol;

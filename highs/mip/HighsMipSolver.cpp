@@ -335,20 +335,13 @@ restart:
   };
 
   auto syncSolutions = [&]() -> void {
+    // Note: Upper bound / limit of workers updated via addIncumbent
     for (HighsMipWorker& worker : mipdata_->workers) {
       for (auto& sol : worker.solutions_) {
         mipdata_->addIncumbent(std::get<0>(sol), std::get<1>(sol),
                                std::get<2>(sol));
       }
       worker.solutions_.clear();
-    }
-    // TODO: Should addIncumbent just update all worker bounds?
-    // Pass the new upper bound information back to the workers
-    for (HighsMipWorker& worker : mipdata_->workers) {
-      assert(mipdata_->upper_bound <= worker.upper_bound);
-      worker.upper_bound = mipdata_->upper_bound;
-      worker.upper_limit = mipdata_->upper_limit;
-      worker.optimality_limit = mipdata_->optimality_limit;
     }
   };
 
@@ -358,8 +351,6 @@ restart:
     for (const HighsInt i : indices) {
       mipdata_->workers[i].conflictpool_->syncConflictPool(
           mipdata_->conflictPool);
-      // TODO: Is this aging call needed? (Already aged at end of separate)
-      mipdata_->workers[i].cutpool_->performAging();
       mipdata_->workers[i].cutpool_->syncCutPool(*this, mipdata_->cutpool);
     }
     mipdata_->cutpool.performAging();
@@ -767,9 +758,7 @@ restart:
       if (evaluate_node_result == HighsSearch::NodeResult::kSubOptimal) return;
 
       // analysis_.mipTimerStart(kMipClockDivePrimalHeuristics);
-      // TODO MT: Make trivial heuristics work locally
-      // TODO MT: Why can't these run locally now???
-      if (mipdata_->incumbent.empty() && !mipdata_->parallelLockActive()) {
+      if (mipdata_->incumbent.empty()) {
         // analysis_.mipTimerStart(kMipClockDiveRandomizedRounding);
         mipdata_->heuristics.randomizedRounding(
             worker, worker.lp_->getLpSolver().getSolution().col_value);

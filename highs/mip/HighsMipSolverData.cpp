@@ -1585,8 +1585,8 @@ bool HighsMipSolverData::addIncumbent(const std::vector<double>& sol,
     double prev_upper_bound = upper_bound;
 
     upper_bound = solobj;
-    if (hasSingleWorker()) {
-      workers[0].upper_bound = upper_bound;
+    for (HighsMipWorker& worker : workers) {
+      worker.upper_bound = upper_bound;
     }
 
     bool bound_change = upper_bound != prev_upper_bound;
@@ -1607,9 +1607,9 @@ bool HighsMipSolverData::addIncumbent(const std::vector<double>& sol,
           computeNewUpperLimit(solobj, mipsolver.options_mip_->mip_abs_gap,
                                mipsolver.options_mip_->mip_rel_gap);
       nodequeue.setOptimalityLimit(optimality_limit);
-      if (hasSingleWorker()) {
-        workers[0].upper_limit = upper_limit;
-        workers[0].optimality_limit = optimality_limit;
+      for (HighsMipWorker& worker : workers) {
+        worker.upper_limit = upper_limit;
+        worker.optimality_limit = optimality_limit;
       }
       debugSolution.newIncumbentFound();
       domain.propagate();
