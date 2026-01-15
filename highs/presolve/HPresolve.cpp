@@ -2889,6 +2889,9 @@ void HPresolve::toCSC(std::vector<double>& Aval, std::vector<HighsInt>& Aindex,
     Aval[pos] = Avalue[i];
     Aindex[pos] = Arow[i];
   }
+#ifndef NDEBUG
+  checkCSC(Aval, Aindex, Astart);
+#endif
 }
 
 #ifndef NDEBUG
