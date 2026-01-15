@@ -384,14 +384,13 @@ void Factorise::spawnNode(Int sn, const TaskGroupSpecial& tg, bool do_spawn) {
   // immediately. This avoids the overhead of spawning a task if a supernode has
   // a single child.
 
-  if (!S_.isInTreeSplitting(sn)) {
+  const NodeData* data = S_.treeSplitting().find(sn);
+
+  if (!data) {
     // sn is head of small subtree, but not the first subtree in the group.
     // It will be processed in another task.
     return;
   }
-
-  // only search the map if sn is inside
-  const NodeData* data = &(S_.treeSplitting().find(sn)->second);
 
   if (data->type == NodeType::single) {
     // sn is single node; run only that
@@ -427,8 +426,7 @@ void Factorise::spawnNode(Int sn, const TaskGroupSpecial& tg, bool do_spawn) {
 void Factorise::syncNode(Int sn, const TaskGroupSpecial& tg) {
   // If spawnNode(sn,tg) created a task, then sync it.
   // This happens only if sn is found in the treeSplitting data structure.
-
-  if (S_.isInTreeSplitting(sn)) tg.sync();
+  if (S_.treeSplitting().belong(sn)) tg.sync();
 }
 
 bool Factorise::run(Numeric& num) {

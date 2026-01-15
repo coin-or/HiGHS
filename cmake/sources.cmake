@@ -219,7 +219,8 @@ set(factor_highs_sources
     ipm/hipo/factorhighs/Numeric.cpp
     ipm/hipo/factorhighs/SolveHandler.cpp
     ipm/hipo/factorhighs/Swaps.cpp
-    ipm/hipo/factorhighs/Symbolic.cpp)
+    ipm/hipo/factorhighs/Symbolic.cpp
+    ipm/hipo/factorhighs/TreeSplitting.cpp)
 
 set(factor_highs_headers
     ipm/hipo/factorhighs/Analyse.h
@@ -240,7 +241,8 @@ set(factor_highs_headers
     ipm/hipo/factorhighs/SolveHandler.h
     ipm/hipo/factorhighs/Swaps.h
     ipm/hipo/factorhighs/Symbolic.h
-    ipm/hipo/factorhighs/Timing.h)
+    ipm/hipo/factorhighs/Timing.h
+    ipm/hipo/factorhighs/TreeSplitting.h)
 
 set(hipo_util_sources
     ipm/hipo/auxiliary/Auxiliary.cpp
