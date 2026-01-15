@@ -1458,7 +1458,6 @@ void HighsMipSolverData::performRestart() {
     // is never applied, since MIP solving is complete, and
     // lower_bound is set to upper_bound, so apply the offset now, so
     // that housekeeping in updatePrimalDualIntegral is correct
-    // MT: If the model is optimal after presolve, then don't check prev data
     double prev_lower_bound = lower_bound - mipsolver.model_->offset_;
 
     lower_bound = upper_bound;
@@ -1497,7 +1496,9 @@ void HighsMipSolverData::performRestart() {
     mipsolver.mipdata_->workers[0].conflictpool_ = &conflictPool;
     mipsolver.mipdata_->workers[0].globaldom_ = &domain;
     mipsolver.mipdata_->workers[0].pseudocost_ = &pseudocost;
-    // mipsolver.mipdata_->workers[0].lprelaxation_ = &lp;
+    mipsolver.mipdata_->workers[0].upper_bound = upper_bound;
+    mipsolver.mipdata_->workers[0].upper_limit = upper_limit;
+    mipsolver.mipdata_->workers[0].optimality_limit = optimality_limit;
   }
 
   // remove the pointer into the stack-space of this function
@@ -2232,10 +2233,7 @@ restart:
   HighsInt stall = 0;
   double smoothprogress = 0.0;
   HighsInt nseparounds = 0;
-
-  // HighsSeparation sepa(mipsolver);
   HighsSeparation sepa(worker);
-
   sepa.setLpRelaxation(&lp);
 
   while (lp.scaledOptimal(status) && !lp.getFractionalIntegers().empty() &&
@@ -2471,8 +2469,7 @@ restart:
     if (checkLimits()) return clockOff(analysis);
     if (mipsolver.options_mip_->mip_heuristic_run_rens) {
       analysis.mipTimerStart(kMipClockRootHeuristicsRens);
-      // atm breaks p0548 presolve off
-      // heuristics.RENS(worker, rootlpsol);
+      heuristics.RENS(worker, rootlpsol);
       analysis.mipTimerStop(kMipClockRootHeuristicsRens);
       heuristics.flushStatistics(mipsolver, worker);
     }
@@ -2600,10 +2597,9 @@ restart:
     }
 
     // add the root node to the nodequeue to initialize the search
-    // TODO MT: Does the pseudo-cost of master_worker need to be used?
     nodequeue.emplaceNode(std::vector<HighsDomainChange>(),
                           std::vector<HighsInt>(), lower_bound,
-                          lp.computeBestEstimate(pseudocost), 1);
+                          lp.computeBestEstimate(worker.getPseudocost()), 1);
   }
   // End of HighsMipSolverData::evaluateRootNode()
   clockOff(analysis);

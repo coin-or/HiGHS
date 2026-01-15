@@ -84,12 +84,8 @@ struct HighsMipSolverData {
   std::deque<HighsPseudocost> pseudocosts;
   HighsPseudocost pseudocost;
   bool parallel_lock;
-  // std::deque<HighsPrimalHeuristics> heuristics_deque;
 
-  // std::unique_ptr<HighsPrimalHeuristics> heuristics_ptr;
-  // HighsPrimalHeuristics heuristics;
   HighsPrimalHeuristics heuristics;
-
   HighsCliqueTable cliquetable;
   HighsImplications implications;
   HighsRedcostFixing redcostfixing;
