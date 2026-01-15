@@ -47,6 +47,9 @@ const std::vector<Int>& Symbolic::iperm() const { return iperm_; }
 const std::vector<Int>& Symbolic::snParent() const { return sn_parent_; }
 const std::vector<Int>& Symbolic::snStart() const { return sn_start_; }
 const std::vector<Int>& Symbolic::pivotSign() const { return pivot_sign_; }
+const std::map<Int, NodeData>& Symbolic::treeSplitting() const {
+  return tree_splitting_;
+}
 
 static std::string memoryString(double mem) {
   std::stringstream ss;
@@ -78,6 +81,8 @@ void Symbolic::print(const Log& log, bool verbose) const {
     log_stream << textline("Critical ops:") << sci(critops_, 0, 1) << '\n';
     log_stream << textline("Max tree speedup:") << fix(flops_ / critops_, 0, 2)
                << '\n';
+    log_stream << textline("Number of tasks:")
+               << integer(tree_splitting_.size()) << '\n';
     log_stream << textline("Artificial nz:") << sci(artificial_nz_, 0, 1)
                << '\n';
     log_stream << textline("Artificial ops:") << sci(artificial_ops_, 0, 1)

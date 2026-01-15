@@ -79,6 +79,8 @@ class Analyse {
 
   std::vector<std::vector<Int64>> clique_block_start_{};
 
+  std::map<Int, NodeData> tree_splitting_;
+
   // block size
   Int nb_{};
 
@@ -107,6 +109,7 @@ class Analyse {
   void computeBlockStart();
   void computeStackSize();
   Int checkOverflow() const;
+  void findTreeSplitting();
 
  public:
   // Constructor: matrix must be in lower triangular format

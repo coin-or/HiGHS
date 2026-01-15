@@ -28,6 +28,7 @@ void processEdge(Int j, Int i, const std::vector<Int>& first,
                  std::vector<Int>& prevleaf, std::vector<Int>& ancestor);
 Int64 getDiagStart(Int n, Int k, Int nb, Int n_blocks,
                    std::vector<Int64>& start, bool triang = false);
+void firstDescendant(const std::vector<Int>& parent, std::vector<Int>& first);
 
 template <typename T>
 void counts2Ptr(std::vector<T>& ptr, std::vector<T>& w) {
