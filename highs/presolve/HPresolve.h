@@ -268,6 +268,12 @@ class HPresolve {
   void toCSR(std::vector<double>& ARval, std::vector<HighsInt>& ARindex,
              std::vector<HighsInt>& ARstart);
 
+#ifndef NDEBUG
+  void checkCSC(const std::vector<double>& Aval,
+                const std::vector<HighsInt>& Aindex,
+                const std::vector<HighsInt>& Astart) const;
+#endif
+
   void getRowPositions(HighsInt row,
                        std::vector<HighsInt>& myrowpositions) const;
 

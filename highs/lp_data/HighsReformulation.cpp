@@ -8,16 +8,16 @@
 /**@file lp_data/HighsReformulation.cpp
  * @brief
  */
-//#include <sstream>
+// #include <sstream>
 
 #include "Highs.h"
-//#include "lp_data/HighsLpUtils.h"
+// #include "lp_data/HighsLpUtils.h"
 #include "lp_data/HighsModelUtils.h"
-//#include "mip/HighsMipSolver.h"  // For getGapString
-//#include "model/HighsHessianUtils.h"
-//#include "simplex/HSimplex.h"
-//#include "util/HighsMatrixUtils.h"
-//#include "util/HighsSort.h"
+// #include "mip/HighsMipSolver.h"  // For getGapString
+// #include "model/HighsHessianUtils.h"
+// #include "simplex/HSimplex.h"
+// #include "util/HighsMatrixUtils.h"
+// #include "util/HighsSort.h"
 
 HighsStatus Highs::doReformulation() {
   HighsStatus status = HighsStatus::kOk;

@@ -2891,6 +2891,43 @@ void HPresolve::toCSC(std::vector<double>& Aval, std::vector<HighsInt>& Aindex,
   }
 }
 
+#ifndef NDEBUG
+// Segfault #2748 occurs in highsSparseTranspose, so this method is
+// used to ensure that index and value are of the correct size, that
+// the entries of index are in bounds, and that there there are no
+// explicit zeros in value
+void HPresolve::checkCSC(const std::vector<double>& Aval,
+                         const std::vector<HighsInt>& Aindex,
+                         const std::vector<HighsInt>& Astart) const {
+  size_t numcol = colsize.size();
+  size_t numrow = rowsize.size();
+  assert(Astart.size() == numcol + 1);
+  HighsInt nnz = Astart[numcol];
+  bool Aindex_size_ok = Aindex.size() == static_cast<size_t>(nnz);
+  if (!Aindex_size_ok) {
+    printf("HPresolve::checkCSC %d = Aindex.size() != nnz = %d\n",
+           int(Aindex.size()), int(nnz));
+    assert(Aindex_size_ok);
+  }
+  bool Aval_size_ok = Aval.size() == static_cast<size_t>(nnz);
+  if (!Aval_size_ok) {
+    printf("HPresolve::checkCSC %d = Aval.size() != nnz = %d\n",
+           int(Aval.size()), int(nnz));
+    assert(Aval_size_ok);
+  }
+  for (size_t i = 0; i != nnz; ++i) {
+    if (!Aval[i])
+      printf("HPresolve::checkCSC Aval[%d/%d] is explicit zero\n", int(i),
+             int(nnz));
+    assert(Aval[i]);
+    bool index_ok = 0 <= Aindex[i] && Aindex[i] < static_cast<HighsInt>(numrow);
+    if (!index_ok)
+      printf("HPresolve::checkCSC row index %d is out of bounds [0, %d]\n",
+             static_cast<HighsInt>(i), static_cast<HighsInt>(numrow));
+  }
+}
+#endif
+
 void HPresolve::toCSR(std::vector<double>& ARval,
                       std::vector<HighsInt>& ARindex,
                       std::vector<HighsInt>& ARstart) {
