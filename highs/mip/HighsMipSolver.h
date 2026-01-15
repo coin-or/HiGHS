@@ -66,7 +66,6 @@ class HighsMipSolver {
   const HighsCliqueTable* clqtableinit;
   const HighsImplications* implicinit;
 
-  // std::unique_ptr<const HighsMipSolverData> mipdata_;
   std::unique_ptr<HighsMipSolverData> mipdata_;
 
   HighsMipAnalysis analysis_;
@@ -109,7 +108,7 @@ class HighsMipSolver {
   ~HighsMipSolver();
 
   template <class F>
-  void applyTask(
+  void runTask(
       F&& f, highs::parallel::TaskGroup& tg, bool parallel_lock,
       const std::vector<HighsInt>& indices = std::vector<HighsInt>(1, 0));
 
