@@ -1,12 +1,19 @@
 #ifndef FACTORHIGHS_SYMBOLIC_H
 #define FACTORHIGHS_SYMBOLIC_H
 
+#include <map>
 #include <vector>
 
 #include "ipm/hipo/auxiliary/IntConfig.h"
 #include "ipm/hipo/auxiliary/Log.h"
 
 namespace hipo {
+
+enum NodeType { single, subtree };
+struct NodeData {
+  NodeType type;
+  Int first;
+};
 
 // Symbolic factorisation object
 class Symbolic {
@@ -99,6 +106,8 @@ class Symbolic {
 
   std::string ordering;
 
+  std::map<Int, NodeData> tree_splitting_;
+
   friend class Analyse;
 
  public:
@@ -132,6 +141,7 @@ class Symbolic {
   const std::vector<Int>& snParent() const;
   const std::vector<Int>& snStart() const;
   const std::vector<Int>& pivotSign() const;
+  const std::map<Int, NodeData>& treeSplitting() const;
 
   void print(const Log& log, bool verbose = false) const;
 };

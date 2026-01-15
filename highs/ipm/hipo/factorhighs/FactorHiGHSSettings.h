@@ -50,6 +50,10 @@ const double kDynamicDiagCoeff = 1e-24;
 // metis
 const Int kMetisSeed = 42;
 
+// tree splitting
+const double kSmallThreshCoeff = 0.01;
+const double kSpopsWeightSplitting = 30.0;
+
 struct Regul {
   double primal{};
   double dual{};
