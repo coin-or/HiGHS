@@ -2931,34 +2931,6 @@ void HPresolve::checkCSC(const std::vector<double>& Aval,
 }
 #endif
 
-void HPresolve::toCSR(std::vector<double>& ARval,
-                      std::vector<HighsInt>& ARindex,
-                      std::vector<HighsInt>& ARstart) {
-  // set up the row starts using the row size array
-  size_t numrow = rowsize.size();
-  ARstart.resize(numrow + 1);
-  HighsInt nnz = 0;
-  for (size_t i = 0; i != numrow; ++i) {
-    ARstart[i] = nnz;
-    nnz += rowsize[i];
-  }
-  ARstart[numrow] = nnz;
-
-  // now setup the entries of the CSC matrix
-  // we reuse the colsize array to count down to zero
-  // for determining the position of each nonzero
-  ARval.resize(nnz);
-  ARindex.resize(nnz);
-  for (HighsInt i = 0; i != nnz; ++i) {
-    if (Avalue[i] == 0.0) continue;
-    HighsInt pos = ARstart[Arow[i] + 1] - rowsize[Arow[i]];
-    --rowsize[Arow[i]];
-    assert(rowsize[Arow[i]] >= 0);
-    ARval[pos] = Avalue[i];
-    ARindex[pos] = Acol[i];
-  }
-}
-
 HPresolve::Result HPresolve::doubletonEq(HighsPostsolveStack& postsolve_stack,
                                          HighsInt row,
                                          HighsPostsolveStack::RowType rowType) {

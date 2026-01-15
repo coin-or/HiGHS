@@ -265,9 +265,6 @@ class HPresolve {
   void toCSC(std::vector<double>& Aval, std::vector<HighsInt>& Aindex,
              std::vector<HighsInt>& Astart);
 
-  void toCSR(std::vector<double>& ARval, std::vector<HighsInt>& ARindex,
-             std::vector<HighsInt>& ARstart);
-
 #ifndef NDEBUG
   void checkCSC(const std::vector<double>& Aval,
                 const std::vector<HighsInt>& Aindex,
