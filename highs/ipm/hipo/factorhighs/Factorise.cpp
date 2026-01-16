@@ -282,7 +282,9 @@ void Factorise::processSupernode(Int sn) {
       assert(child == child_sn);
     }
 
+    HIPO_CLOCK_START(2);
     FH->assembleChild(child_sn, child_clique);
+    HIPO_CLOCK_STOP(2, data_, kTimeFactoriseAssembleChildren);
 
     // Schur contribution of the child is no longer needed
     if (parallel) {

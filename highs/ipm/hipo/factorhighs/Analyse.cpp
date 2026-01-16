@@ -1299,7 +1299,7 @@ Int Analyse::run(Symbolic& S) {
 
   HIPO_CLOCK_START(2);
   if (getPermutation()) return kRetOrderingError;
-  HIPO_CLOCK_STOP(2, data_, kTimeAnalyseMetis);
+  HIPO_CLOCK_STOP(2, data_, kTimeAnalyseOrdering);
 
   HIPO_CLOCK_START(2);
   permute(iperm_);
