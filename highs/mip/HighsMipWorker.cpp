@@ -21,7 +21,8 @@ HighsMipWorker::HighsMipWorker(const HighsMipSolver& mipsolver,
       globaldom_(domain),
       cutpool_(cutpool),
       conflictpool_(conflictpool),
-      pseudocost_(pseudocost) {
+      pseudocost_(pseudocost),
+      randgen(mipsolver.options_mip_->random_seed) {
   upper_bound = mipdata_.upper_bound;
   upper_limit = mipdata_.upper_limit;
   optimality_limit = mipdata_.optimality_limit;

@@ -307,6 +307,8 @@ restart:
         &mipdata_->pseudocosts.back());
     mipdata_->lps.back().setMipWorker(mipdata_->workers.back());
     mipdata_->lp.notifyCutPoolsLpCopied(1);
+    mipdata_->workers.back().randgen.initialise(options_mip_->random_seed +
+                                                mipdata_->workers.size() - 1);
     mipdata_->debugSolution.registerDomain(
         mipdata_->workers.back().search_ptr_->getLocalDomain());
   };

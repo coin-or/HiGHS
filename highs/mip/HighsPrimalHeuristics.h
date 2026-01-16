@@ -27,6 +27,8 @@ class HighsPrimalHeuristics {
   double infeasObservations;
   HighsInt numInfeasObservations;
 
+  HighsRandom randgen;
+
  public:
   HighsPrimalHeuristics(HighsMipSolver& mipsolver);
 

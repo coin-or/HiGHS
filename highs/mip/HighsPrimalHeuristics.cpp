@@ -37,7 +37,8 @@ HighsPrimalHeuristics::HighsPrimalHeuristics(HighsMipSolver& mipsolver)
       successObservations(0.0),
       numSuccessObservations(0),
       infeasObservations(0.0),
-      numInfeasObservations(0) {}
+      numInfeasObservations(0),
+      randgen(mipsolver.options_mip_->random_seed) {}
 
 void HighsPrimalHeuristics::setupIntCols() {
   intcols = mipsolver.mipdata_->integer_cols;
@@ -222,6 +223,9 @@ double HighsPrimalHeuristics::determineTargetFixingRate(
   double lowFixingRate = 0.6;
   double highFixingRate = 0.6;
 
+  HighsRandom& randgen =
+      mipsolver.mipdata_->parallelLockActive() ? this->randgen : worker.randgen;
+
   if (getNumInfeasObservations(worker) != 0) {
     double infeasRate =
         getInfeasObservations(worker) / getNumInfeasObservations(worker);
@@ -236,7 +240,7 @@ double HighsPrimalHeuristics::determineTargetFixingRate(
     highFixingRate = std::max(successFixingRate * 1.1, highFixingRate);
   }
 
-  double fixingRate = worker.randgen.real(lowFixingRate, highFixingRate);
+  double fixingRate = randgen.real(lowFixingRate, highFixingRate);
   // if (!mipsolver.submip) printf("fixing rate: %.2f\n", 100.0 * fixingRate);
   return fixingRate;
 }
@@ -1065,6 +1069,8 @@ void HighsPrimalHeuristics::randomizedRounding(
   if (relaxationsol.size() != static_cast<size_t>(mipsolver.numCol())) return;
 
   HighsDomain localdom = worker.getGlobalDomain();
+  HighsRandom& randgen =
+      mipsolver.mipdata_->parallelLockActive() ? this->randgen : worker.randgen;
 
   for (HighsInt i : intcols) {
     double intval;
@@ -1073,7 +1079,7 @@ void HighsPrimalHeuristics::randomizedRounding(
     else if (mipsolver.mipdata_->downlocks[i] == 0)
       intval = std::floor(relaxationsol[i] + mipsolver.mipdata_->feastol);
     else
-      intval = std::floor(relaxationsol[i] + worker.randgen.real(0.1, 0.9));
+      intval = std::floor(relaxationsol[i] + randgen.real(0.1, 0.9));
 
     intval = std::min(localdom.col_upper_[i], intval);
     intval = std::max(localdom.col_lower_[i], intval);
@@ -1152,6 +1158,8 @@ void HighsPrimalHeuristics::shifting(HighsMipWorker& worker,
   const HighsLp& currentLp = *mipsolver.model_;
   HighsLpRelaxation lprelax(worker.getLpRelaxation());
   lprelax.setMipWorker(worker);
+  HighsRandom& randgen =
+      mipsolver.mipdata_->parallelLockActive() ? this->randgen : worker.randgen;
   std::vector<std::pair<HighsInt, double>> current_fractional_integers =
       lprelax.getFractionalIntegers();
   std::vector<std::tuple<HighsInt, HighsInt, double>> current_infeasible_rows =
@@ -1207,7 +1215,7 @@ void HighsPrimalHeuristics::shifting(HighsMipWorker& worker,
       HighsInt row_index = rIndex - 1;
       if (!fractionalIntegerFound) {
         // otherwise select a random infeasible row
-        row_index = worker.randgen.integer(current_infeasible_rows.size());
+        row_index = randgen.integer(current_infeasible_rows.size());
       }
 
       HighsInt row = std::get<0>(current_infeasible_rows[row_index]);
@@ -1522,6 +1530,9 @@ void HighsPrimalHeuristics::feasibilityPump(HighsMipWorker& worker) {
   HighsLpRelaxation::Status status = lprelax.resolveLp();
   worker.heur_stats.lp_iterations += lprelax.getNumLpIterations();
 
+  HighsRandom& randgen =
+      mipsolver.mipdata_->parallelLockActive() ? this->randgen : worker.randgen;
+
   std::vector<double> fracintcost;
   std::vector<HighsInt> fracintset;
 
@@ -1546,7 +1557,7 @@ void HighsPrimalHeuristics::feasibilityPump(HighsMipWorker& worker) {
     HighsDomain localdom = worker.getGlobalDomain();
     for (HighsInt i : mipsolver.mipdata_->integer_cols) {
       assert(mipsolver.variableType(i) == HighsVarType::kInteger);
-      double intval = std::floor(roundedsol[i] + worker.randgen.real(0.4, 0.6));
+      double intval = std::floor(roundedsol[i] + randgen.real(0.4, 0.6));
       intval = std::max(intval, localdom.col_lower_[i]);
       intval = std::min(intval, localdom.col_upper_[i]);
       roundedsol[i] = intval;
@@ -1573,7 +1584,7 @@ void HighsPrimalHeuristics::feasibilityPump(HighsMipWorker& worker) {
     for (HighsInt k = 0; havecycle && k < 2; ++k) {
       for (HighsInt i = 0; i != 10; ++i) {
         HighsInt flippos =
-            worker.randgen.integer(mipsolver.mipdata_->integer_cols.size());
+            randgen.integer(mipsolver.mipdata_->integer_cols.size());
         HighsInt col = mipsolver.mipdata_->integer_cols[flippos];
         if (roundedsol[col] > lpsol[col])
           roundedsol[col] = (HighsInt)std::floor(lpsol[col]);
@@ -1606,9 +1617,9 @@ void HighsPrimalHeuristics::feasibilityPump(HighsMipWorker& worker) {
           mipsolver.mipdata_->downlocks[i] == 0)
         cost[i] = 0.0;
       else if (lpsol[i] > roundedsol[i] - mipsolver.mipdata_->feastol)
-        cost[i] = -1.0 + worker.randgen.real(-1e-4, 1e-4);
+        cost[i] = -1.0 + randgen.real(-1e-4, 1e-4);
       else
-        cost[i] = 1.0 + worker.randgen.real(-1e-4, 1e-4);
+        cost[i] = 1.0 + randgen.real(-1e-4, 1e-4);
     }
 
     lprelax.getLpSolver().changeColsCost(mask.data(), cost.data());
