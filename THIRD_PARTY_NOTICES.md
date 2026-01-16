@@ -28,17 +28,6 @@ The upstream source code is available at:
 
 CLI11 is only used to parse command line input for the HiGHS executable, so does not affect the license status of the HiGHS library or language interfaces to it.
 
-## filereaderlp
-
-The source code in `/extern/filereaderlp` is distributed under the [MIT license](https://opensource.org/license/MIT)
-at `/extern/filereaderlp/LICENSE`.
-
-It was originally developed by Michael Feldmeier.
-
-The upstream source code is available at:
-
- * https://github.com/feldmeier/FilereaderLP
-
 ## metis
 
 The source code in `/extern/metis` is distributed under the [Apache 2.0 license](https://opensource.org/license/apache-2-0)
