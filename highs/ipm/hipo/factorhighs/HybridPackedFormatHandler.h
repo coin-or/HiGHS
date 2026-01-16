@@ -13,11 +13,8 @@ class HybridPackedFormatHandler : public FormatHandler {
   void initFrontal() override;
   void initClique() override;
   void assembleFrontal(Int i, Int j, double val) override;
-  void assembleFrontalMultiple(Int num, const double* child, Int nc,
-                               Int child_sn, Int row, Int col, Int i,
-                               Int j) override;
   Int denseFactorise(double reg_thresh) override;
-  void assembleClique(const double* child, Int nc, Int child_sn) override;
+  void assembleChild(Int child_sn,const double* child) override;
   void extremeEntries() override;
 
  public:
