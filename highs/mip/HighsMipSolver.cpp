@@ -424,6 +424,7 @@ restart:
   };
 
   auto syncGlobalPseudoCost = [&]() -> void {
+    if (!mipdata_->hasMultipleWorkers()) return;
     std::vector<HighsInt> nsamplesup = mipdata_->pseudocost.getNSamplesUp();
     std::vector<HighsInt> nsamplesdown = mipdata_->pseudocost.getNSamplesDown();
     std::vector<HighsInt> ninferencesup =
@@ -440,6 +441,7 @@ restart:
   };
 
   auto resetWorkerPseudoCosts = [&](std::vector<HighsInt>& indices) {
+    if (!mipdata_->hasMultipleWorkers()) return;
     auto doResetWorkerPseudoCost = [&](HighsInt i) -> void {
       mipdata_->pseudocost.syncPseudoCost(mipdata_->workers[i].getPseudocost());
     };
@@ -863,7 +865,6 @@ restart:
     iterlimit = std::max({HighsInt{10000}, iterlimit,
                           HighsInt((3 * mipdata_->firstrootlpiters) / 2)});
 
-    mipdata_->lp.setIterationLimit(iterlimit);
     for (HighsLpRelaxation& lp : mipdata_->lps) {
       lp.setIterationLimit(iterlimit);
     }

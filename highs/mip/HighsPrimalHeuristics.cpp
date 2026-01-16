@@ -151,8 +151,8 @@ bool HighsPrimalHeuristics::solveSubMip(
   submipsolver.implicinit = &mipsolver.mipdata_->implications;
   // Solve the sub-MIP
   submipsolver.run();
-  worker.heur_stats.submip_level = std::max(submipsolver.max_submip_level + 1,
-                                            worker.heur_stats.submip_level);
+  worker.heur_stats.max_submip_level = std::max(
+      submipsolver.max_submip_level + 1, worker.heur_stats.max_submip_level);
   if (!mipsolver.submip && !mipsolver.mipdata_->parallelLockActive()) {
     mipsolver.analysis_.mipTimerStop(kMipClockSubMipSolve);
     mipsolver.sub_solver_call_time_.num_call[kSubSolverSubMip]++;
@@ -383,6 +383,7 @@ void HighsPrimalHeuristics::RENS(HighsMipWorker& worker,
   HighsDomain& localdom = heur.getLocalDomain();
   heur.setHeuristic(true);
 
+  // TODO MT: This needs to use some local copy if done in parallel!
   intcols.erase(std::remove_if(intcols.begin(), intcols.end(),
                                [&](HighsInt i) {
                                  return worker.getGlobalDomain().isFixed(i);
@@ -392,7 +393,6 @@ void HighsPrimalHeuristics::RENS(HighsMipWorker& worker,
   HighsLpRelaxation heurlp(worker.getLpRelaxation());
   heurlp.setMipWorker(worker);
   // only use the global upper limit as LP limit so that dual proofs are valid
-  // TODO MT: Should this be the upper limit from the worker?
   heurlp.setObjectiveLimit(worker.upper_limit);
   heurlp.setAdjustSymmetricBranchingCol(false);
   heur.setLpRelaxation(&heurlp);
@@ -1783,8 +1783,8 @@ void HighsPrimalHeuristics::flushStatistics(HighsMipSolver& mipsolver,
   mipsolver.mipdata_->total_lp_iterations += worker.heur_stats.lp_iterations;
   heur_stats.lp_iterations = 0;
   mipsolver.max_submip_level =
-      std::max(mipsolver.max_submip_level, heur_stats.submip_level);
-  heur_stats.submip_level = 0;
+      std::max(mipsolver.max_submip_level, heur_stats.max_submip_level);
+  heur_stats.max_submip_level = 0;
   if (heur_stats.termination_status_ != HighsModelStatus::kNotset &&
       mipsolver.termination_status_ == HighsModelStatus::kNotset) {
     mipsolver.termination_status_ = heur_stats.termination_status_;

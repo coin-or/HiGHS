@@ -38,7 +38,7 @@ class HighsMipWorker {
       numSuccessObservations = 0;
       infeasObservations = 0;
       numInfeasObservations = 0;
-      submip_level = 0;
+      max_submip_level = 0;
       termination_status_ = HighsModelStatus::kNotset;
     }
 
@@ -51,7 +51,7 @@ class HighsMipWorker {
     HighsInt numSuccessObservations;
     double infeasObservations;
     HighsInt numInfeasObservations;
-    HighsInt submip_level;
+    HighsInt max_submip_level;
     HighsModelStatus termination_status_;
   };
   const HighsMipSolver& mipsolver_;

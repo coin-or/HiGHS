@@ -3932,12 +3932,15 @@ void HighsDomain::ConflictSet::conflictAnalysis(const HighsInt* proofinds,
                                double(activitymin)))
     return;
 
-  pseudocost.increaseConflictWeight();
+  HighsPseudocost& ps = localdom.mipsolver->mipdata_->parallelLockActive()
+                            ? pseudocost
+                            : localdom.mipsolver->mipdata_->pseudocost;
+  ps.increaseConflictWeight();
   for (const LocalDomChg& locdomchg : resolvedDomainChanges) {
     if (locdomchg.domchg.boundtype == HighsBoundType::kLower)
-      pseudocost.increaseConflictScoreUp(locdomchg.domchg.column);
+      ps.increaseConflictScoreUp(locdomchg.domchg.column);
     else
-      pseudocost.increaseConflictScoreDown(locdomchg.domchg.column);
+      ps.increaseConflictScoreDown(locdomchg.domchg.column);
   }
 
   if (10 * resolvedDomainChanges.size() >
