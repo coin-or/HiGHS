@@ -222,14 +222,16 @@ double HighsPrimalHeuristics::determineTargetFixingRate(
   double lowFixingRate = 0.6;
   double highFixingRate = 0.6;
 
-  if (numInfeasObservations != 0) {
-    double infeasRate = infeasObservations / numInfeasObservations;
+  if (getNumInfeasObservations(worker) != 0) {
+    double infeasRate =
+        getInfeasObservations(worker) / getNumInfeasObservations(worker);
     highFixingRate = 0.9 * infeasRate;
     lowFixingRate = std::min(lowFixingRate, highFixingRate);
   }
 
-  if (numSuccessObservations != 0) {
-    double successFixingRate = successObservations / numSuccessObservations;
+  if (getNumSuccessObservations(worker) != 0) {
+    double successFixingRate =
+        getSuccessObservations(worker) / getNumSuccessObservations(worker);
     lowFixingRate = std::min(lowFixingRate, 0.9 * successFixingRate);
     highFixingRate = std::max(successFixingRate * 1.1, highFixingRate);
   }
@@ -1733,6 +1735,26 @@ bool HighsPrimalHeuristics::trySolution(const std::vector<double>& solution,
   } else {
     return mipsolver.mipdata_->trySolution(solution, solution_source);
   }
+}
+
+HighsInt HighsPrimalHeuristics::getNumSuccessObservations(
+    HighsMipWorker& worker) const {
+  return numSuccessObservations + worker.heur_stats.numSuccessObservations;
+}
+
+HighsInt HighsPrimalHeuristics::getNumInfeasObservations(
+    HighsMipWorker& worker) const {
+  return numInfeasObservations + worker.heur_stats.numInfeasObservations;
+}
+
+double HighsPrimalHeuristics::getSuccessObservations(
+    HighsMipWorker& worker) const {
+  return successObservations + worker.heur_stats.successObservations;
+}
+
+double HighsPrimalHeuristics::getInfeasObservations(
+    HighsMipWorker& worker) const {
+  return infeasObservations + worker.heur_stats.infeasObservations;
 }
 
 void HighsPrimalHeuristics::flushStatistics(HighsMipSolver& mipsolver,

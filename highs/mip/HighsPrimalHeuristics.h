@@ -73,6 +73,14 @@ class HighsPrimalHeuristics {
 
   bool trySolution(const std::vector<double>& solution,
                    const int solution_source, HighsMipWorker& worker);
+
+  HighsInt getNumSuccessObservations(HighsMipWorker& worker) const;
+
+  HighsInt getNumInfeasObservations(HighsMipWorker& worker) const;
+
+  double getSuccessObservations(HighsMipWorker& worker) const;
+
+  double getInfeasObservations(HighsMipWorker& worker) const;
 };
 
 #endif
