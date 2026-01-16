@@ -50,26 +50,6 @@ void HybridPackedFormatHandler::assembleFrontal(Int i, Int j, double val) {
   frontal_[diag_start_[block] + ii + ldb * jj] = val;
 }
 
-void HybridPackedFormatHandler::assembleFrontalMultiple(Int num,
-                                                        const double* child,
-                                                        Int nc, Int child_sn,
-                                                        Int row, Int col, Int i,
-                                                        Int j) {
-  const Int jblock = col / nb_;
-  row -= jblock * nb_;
-  col -= jblock * nb_;
-  const Int64 start_block = S_->cliqueBlockStart(child_sn, jblock);
-  const Int ld = nc - nb_ * jblock;
-
-  Int block = j / nb_;
-  Int ldb = ldf_ - block * nb_;
-  Int ii = i - block * nb_;
-  Int jj = j - block * nb_;
-
-  callAndTime_daxpy(num, 1.0, &child[start_block + row + ld * col], 1,
-                    &frontal_[diag_start_[block] + ii + ldb * jj], 1, data_);
-}
-
 Int HybridPackedFormatHandler::denseFactorise(double reg_thresh) {
   Int status;
 
@@ -90,50 +70,71 @@ Int HybridPackedFormatHandler::denseFactorise(double reg_thresh) {
   return status;
 }
 
-void HybridPackedFormatHandler::assembleClique(const double* child, Int nc,
-                                               Int child_sn) {
-  //   go through the columns of the contribution of the child
-  for (Int col = 0; col < nc; ++col) {
+void HybridPackedFormatHandler::assembleChild(Int child_sn,
+                                              const double* child) {
+  const Int child_begin = S_->snStart(child_sn);
+  const Int child_end = S_->snStart(child_sn + 1);
+  const Int child_sn_size = child_end - child_begin;
+  const Int child_clique_size =
+      S_->ptr(child_sn + 1) - S_->ptr(child_sn) - child_sn_size;
+
+  // go through the columns of the contribution of the child
+  for (Int col = 0; col < child_clique_size; ++col) {
     // relative index of column in the frontal matrix
-    Int j = S_->relindClique(child_sn, col);
+    const Int j = S_->relindClique(child_sn, col);
 
-    if (j >= sn_size_) {
-      // assemble into clique
+    Int row = col;
+    while (row < child_clique_size) {
+      // relative index of the entry in the matrix frontal
+      const Int i = S_->relindClique(child_sn, row);
 
-      // adjust relative index to access clique
-      j -= sn_size_;
+      // how many entries to sum
+      const Int consecutive = S_->consecutiveSums(child_sn, row);
 
-      // go through the rows of the contribution of the child
-      Int row = col;
-      while (row < nc) {
-        // relative index of the entry in the matrix clique
-        const Int i = S_->relindClique(child_sn, row) - sn_size_;
+      // information to access child
+      const Int block_child = col / nb_;
+      const Int row_child = row - block_child * nb_;
+      const Int col_child = col - block_child * nb_;
+      const Int ld_child = child_clique_size - nb_ * block_child;
+      const Int64 start_block_child =
+          S_->cliqueBlockStart(child_sn, block_child);
 
-        // how many entries to sum
-        const Int consecutive = S_->consecutiveSums(child_sn, row);
+      if (j < sn_size_) {
+        // assemble entries, from (row,col) in child, to (i,j) in frontal
 
-        // use daxpy_ for summing consecutive entries
+        const Int block_frontal = j / nb_;
+        const Int row_frontal = i - block_frontal * nb_;
+        const Int col_frontal = j - block_frontal * nb_;
+        const Int ld_frontal = ldf_ - block_frontal * nb_;
 
-        const Int jblock_c = col / nb_;
-        const Int jb_c = std::min(nb_, nc - nb_ * jblock_c);
-        const Int row_c = row - jblock_c * nb_;
-        const Int col_c = col - jblock_c * nb_;
-        const Int64 start_block_c = S_->cliqueBlockStart(child_sn, jblock_c);
-        const Int ld_c = nc - nb_ * jblock_c;
+        callAndTime_daxpy(
+            consecutive, 1.0,
+            &child[start_block_child + row_child + ld_child * col_child], 1,
+            &frontal_[diag_start_[block_frontal] + row_frontal +
+                      ld_frontal * col_frontal],
+            1, data_);
 
-        const Int jblock = j / nb_;
-        const Int jb = std::min(nb_, ldc_ - nb_ * jblock);
-        const Int ii = i - jblock * nb_;
-        const Int jj = j - jblock * nb_;
-        const Int64 start_block = S_->cliqueBlockStart(sn_, jblock);
-        const Int ld = ldc_ - nb_ * jblock;
+      } else {
+        // assemble entries, from (row,col) in child, to (rel_i,rel_j) in clique
 
-        callAndTime_daxpy(consecutive, 1.0,
-                          &child[start_block_c + row_c + ld_c * col_c], 1,
-                          &clique_ptr_[start_block + ii + ld * jj], 1, data_);
+        const Int rel_j = j - sn_size_;
+        const Int rel_i = i - sn_size_;
+        const Int block_clique = rel_j / nb_;
+        const Int row_clique = rel_i - block_clique * nb_;
+        const Int col_clique = rel_j - block_clique * nb_;
+        const Int ld_clique = ldc_ - nb_ * block_clique;
+        const Int64 start_block_clique =
+            S_->cliqueBlockStart(sn_, block_clique);
 
-        row += consecutive;
+        callAndTime_daxpy(
+            consecutive, 1.0,
+            &child[start_block_child + row_child + ld_child * col_child], 1,
+            &clique_ptr_[start_block_clique + row_clique +
+                         ld_clique * col_clique],
+            1, data_);
       }
+
+      row += consecutive;
     }
   }
 }

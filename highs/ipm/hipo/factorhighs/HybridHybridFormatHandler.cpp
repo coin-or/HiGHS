@@ -138,7 +138,8 @@ void HybridHybridFormatHandler::assembleClique(const double* child, Int nc,
 
         // sun consecutive entries in a row.
         // consecutive need to be reduced, to account for edge of the block
-        const Int zeros_stored_row = std::max((Int)0, jb_c - (row - row_start) - 1);
+        const Int zeros_stored_row =
+            std::max((Int)0, jb_c - (row - row_start) - 1);
         Int consecutive = S_->consecutiveSums(child_sn, col);
         const Int left_in_child = col_end - col - zeros_stored_row;
         consecutive = std::min(consecutive, left_in_child);
@@ -169,6 +170,42 @@ void HybridHybridFormatHandler::assembleClique(const double* child, Int nc,
 
     row_start += nb_;
   }
+}
+
+void HybridHybridFormatHandler::assembleChild(Int child_sn,
+                                              const double* child) {
+  const Int child_begin = S_->snStart(child_sn);
+  const Int child_end = S_->snStart(child_sn + 1);
+  const Int child_sn_size = child_end - child_begin;
+  const Int child_clique_size =
+      S_->ptr(child_sn + 1) - S_->ptr(child_sn) - child_sn_size;
+
+  // go through the columns of the contribution of the child
+  for (Int col = 0; col < child_clique_size; ++col) {
+    // relative index of column in the frontal matrix
+    Int j = S_->relindClique(child_sn, col);
+
+    if (j < sn_size_) {
+      // assemble into frontal
+
+      // go through the rows of the contribution of the child
+      Int row = col;
+      while (row < child_clique_size) {
+        // relative index of the entry in the matrix frontal
+        const Int i = S_->relindClique(child_sn, row);
+
+        // how many entries to sum
+        const Int consecutive = S_->consecutiveSums(child_sn, row);
+
+        assembleFrontalMultiple(consecutive, child, child_clique_size, child_sn,
+                                row, col, i, j);
+
+        row += consecutive;
+      }
+    }
+  }
+
+  assembleClique(child, child_clique_size, child_sn);
 }
 
 void HybridHybridFormatHandler::extremeEntries() {
