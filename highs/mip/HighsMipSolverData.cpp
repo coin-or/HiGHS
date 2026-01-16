@@ -2437,8 +2437,7 @@ restart:
 
     if (mipsolver.options_mip_->mip_heuristic_run_root_reduced_cost) {
       analysis.mipTimerStart(kMipClockRootHeuristicsReducedCost);
-      // atm breaks lseu random seed 2 but not default presolve on and off
-      // heuristics.rootReducedCost(worker);
+      heuristics.rootReducedCost(worker);
       analysis.mipTimerStop(kMipClockRootHeuristicsReducedCost);
       heuristics.flushStatistics(mipsolver, worker);
     }
