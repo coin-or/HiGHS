@@ -400,7 +400,7 @@ void HighsMipSolverData::startAnalyticCenterComputation(
       (void)output_flag;
       ipm.setOptionValue("output_flag", !mipsolver.submip);
     }
-    ipm.run();
+    ipm.optimizeLp();
     if (ipm_logging) ipm.setOptionValue("output_flag", false);
     if (use_hipo && mip_ipm_solver == kHighsChooseString &&
         HighsInt(sol.size()) != mipsolver.numCol()) {
@@ -410,7 +410,7 @@ void HighsMipSolverData::startAnalyticCenterComputation(
           ipm.modelStatusToString(ipm.getModelStatus()).c_str());
       // HiPO has failed to get a solution, so try IPX
       ipm.setOptionValue("solver", kIpxString);
-      ipm.run();
+      ipm.optimizeLp();
     }
     if (!mipsolver.submip) {
       const HighsSubSolverCallTime& sub_solver_call_time =
@@ -1164,7 +1164,7 @@ try_again:
     // Until a good decision can be made on whether to use simplex,
     // HiPO or IPX to solve an LP without a basis, use simplex
     tmpSolver.setOptionValue("solver", kSimplexString);
-    tmpSolver.run();
+    tmpSolver.optimizeLp();
     if (!mipsolver.submip) {
       const HighsSubSolverCallTime& sub_solver_call_time =
           tmpSolver.getSubSolverCallTime();
