@@ -214,6 +214,7 @@ set(factor_highs_sources
     ipm/hipo/factorhighs/Factorise.cpp
     ipm/hipo/factorhighs/FormatHandler.cpp
     ipm/hipo/factorhighs/HybridHybridFormatHandler.cpp
+    ipm/hipo/factorhighs/HybridPackedFormatHandler.cpp
     ipm/hipo/factorhighs/HybridSolveHandler.cpp
     ipm/hipo/factorhighs/KrylovMethodsIpm.cpp
     ipm/hipo/factorhighs/Numeric.cpp
@@ -233,6 +234,7 @@ set(factor_highs_headers
     ipm/hipo/factorhighs/Factorise.h
     ipm/hipo/factorhighs/FormatHandler.h
     ipm/hipo/factorhighs/HybridHybridFormatHandler.h
+    ipm/hipo/factorhighs/HybridPackedFormatHandler.h
     ipm/hipo/factorhighs/HybridSolveHandler.h
     ipm/hipo/factorhighs/KrylovMethodsIpm.h
     ipm/hipo/factorhighs/Numeric.h

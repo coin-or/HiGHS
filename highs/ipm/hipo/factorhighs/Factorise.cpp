@@ -7,6 +7,7 @@
 #include "FactorHiGHSSettings.h"
 #include "FormatHandler.h"
 #include "HybridHybridFormatHandler.h"
+#include "HybridPackedFormatHandler.h"
 #include "ReturnValues.h"
 #include "ipm/hipo/auxiliary/Auxiliary.h"
 #include "ipm/hipo/auxiliary/Log.h"
@@ -226,7 +227,7 @@ void Factorise::processSupernode(Int sn) {
 
   // initialise the format handler
   // this also allocates space for the frontal matrix and schur complement
-  std::unique_ptr<FormatHandler> FH(new HybridHybridFormatHandler(
+  std::unique_ptr<FormatHandler> FH(new HybridPackedFormatHandler(
       S_, sn, regul_, data_, sn_columns_[sn], clique_ptr));
 
   HIPO_CLOCK_STOP(2, data_, kTimeFactorisePrepare);
