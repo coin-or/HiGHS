@@ -927,7 +927,7 @@ class HighsOptions : public HighsOptionsStruct {
 
     record_bool = new OptionRecordBool(
         "timeless_log", "Suppression of time-based data in logging", true,
-        &timeless_log, false);  // false);
+        &timeless_log, false);
     records.push_back(record_bool);
 
     record_string = new OptionRecordString(kLogFileString, "Log file", advanced,

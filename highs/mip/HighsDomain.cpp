@@ -3857,6 +3857,8 @@ void HighsDomain::ConflictSet::conflictAnalysis(HighsConflictPool& conflictPool,
 
   if (!explainInfeasibility()) return;
 
+  // TODO: Only updating global pseudo cost so solution path is identical to
+  // original code. This should always actually use the given pseudocost?
   if (!localdom.mipsolver->mipdata_->parallelLockActive()) {
     localdom.mipsolver->mipdata_->pseudocost.increaseConflictWeight();
   } else {

@@ -383,7 +383,12 @@ void HighsPrimalHeuristics::RENS(HighsMipWorker& worker,
   HighsDomain& localdom = heur.getLocalDomain();
   heur.setHeuristic(true);
 
-  // TODO MT: This needs to use some local copy if done in parallel!
+  std::vector<HighsInt> intcols_;
+  if (mipsolver.mipdata_->parallelLockActive()) {
+    intcols_ = intcols;
+  }
+  std::vector<HighsInt>& intcols =
+      mipsolver.mipdata_->parallelLockActive() ? intcols_ : this->intcols;
   intcols.erase(std::remove_if(intcols.begin(), intcols.end(),
                                [&](HighsInt i) {
                                  return worker.getGlobalDomain().isFixed(i);
@@ -632,6 +637,12 @@ void HighsPrimalHeuristics::RINS(HighsMipWorker& worker,
 
   if (relaxationsol.size() != static_cast<size_t>(mipsolver.numCol())) return;
 
+  std::vector<HighsInt> intcols_;
+  if (mipsolver.mipdata_->parallelLockActive()) {
+    intcols_ = intcols;
+  }
+  std::vector<HighsInt>& intcols =
+      mipsolver.mipdata_->parallelLockActive() ? intcols_ : this->intcols;
   intcols.erase(std::remove_if(intcols.begin(), intcols.end(),
                                [&](HighsInt i) {
                                  return worker.getGlobalDomain().isFixed(i);
