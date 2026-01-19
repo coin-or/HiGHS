@@ -59,33 +59,16 @@ HiGHS can be installed using a package manager in the cases of
 
 ## Precompiled Binaries
 
-_These binaries are provided by the Julia community and are not officially
-supported by the HiGHS development team. If you have trouble using these
-libraries, please open a GitHub issue and tag `@odow` in your question._
+From v1.13.0 onwards, precompiled static binaries are available at https://github.com/ERGO-Code/HiGHS/releases.
 
-Precompiled static executables are available for a variety of platforms at
+Additionally, there is one package containing shared libraries for Windows x64.
 
- * [https://github.com/JuliaBinaryWrappers/HiGHSstatic_jll.jl/releases](https://github.com/JuliaBinaryWrappers/HiGHSstatic_jll.jl/releases)
+The `*-mit` binary packages contain HiGHS and are MIT-licenced.
+The `*-apache` binary packages contain HiGHS with HiPO and are Apache-licenced, due to the licensing of the dependencies of HiPO. For more information, see [THIRD_PARTY_NOTICES.md](https://github.com/ERGO-Code/HiGHS/blob/master/THIRD_PARTY_NOTICES.md).
 
-Multiple versions are available. Each version has the form `vX.Y.Z`. In
-general, you should choose the most recent version.
+If you have any questions or requests for more platforms and binaries, please get in touch with us at hello@highs.dev.
 
-To install a precompiled binary, download the appropriate `HiGHSstatic.vX.Y.Z.[platform-string].tar.gz`
-file and extract the executable located at `/bin/highs`.
-
-Do not download the file starting with `HiGHSstatic-logs`. These files contain
-information from the automated compilation system. Click "Show all N assets"
-to see more files.
-
-### Platform strings
-
-The GitHub releases contain precompiled binaries for a number of different
-platforms. These are indicated by the platform-specific string in each
-filename.
-
- * For Windows users: choose the file ending in `x86_64-w64-mingw32-cxx11.tar.gz`
- * For M1 macOS users: choose the file ending in `aarch64-apple-darwin.tar.gz`
- * For Intel macOS users: choose the file ending in `x86_64-apple-darwin.tar.gz`
+To install a precompiled binary, download and extract the archive corresponding to your Operating System and architecture, the executable is located at `/bin/highs`.
 
 ## [Building HiGHS with NVidia GPU support](@id gpu-build)
 

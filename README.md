@@ -66,6 +66,8 @@ Documentation is available at https://ergo-code.github.io/HiGHS/.
 
 ## Installation
 
+<a id="build-from-source-using-cmake"></a>
+
 ### Build from source using CMake
 
 HiGHS uses CMake as build system, and requires at least version 3.15. To generate build files in a new subdirectory called 'build', run:
@@ -134,12 +136,14 @@ _The nix build files are provided by the community and are not officially suppor
 
 ### Precompiled binaries
 
-Precompiled static executables are available for a variety of platforms at
-https://github.com/JuliaBinaryWrappers/HiGHSstatic_jll.jl/releases
+From v1.13.0 onwards, precompiled static binaries are available at https://github.com/ERGO-Code/HiGHS/releases.
 
-_These binaries are provided by the Julia community and are not officially supported by the HiGHS development team. If you have trouble using these libraries, please open a GitHub issue and tag `@odow` in your question._
+Additionally, there is one package containing shared libraries for Windows x64.
 
-See https://ergo-code.github.io/HiGHS/stable/installation/#Precompiled-Binaries.
+The `*-mit` binary packages contain HiGHS and are MIT-licenced.
+The `*-apache` binary packages contain HiGHS with HiPO and are Apache-licenced, due to the licensing of the dependencies of HiPO. For more information, see [THIRD_PARTY_NOTICES.md](https://github.com/ERGO-Code/HiGHS/blob/master/THIRD_PARTY_NOTICES.md).
+
+If you have any questions or requests for more platforms and binaries, please get in touch with us at hello@highs.dev.
 
 <a id="running-highs"></a>
 
