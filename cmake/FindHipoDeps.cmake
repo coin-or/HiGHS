@@ -98,9 +98,10 @@ if (BUILD_OPENBLAS)
         endif()
 
         # Crucial for static linking: Force OpenBLAS to use the static runtime
-        if (NOT BUILD_SHARED_LIBS)
-            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
-        endif()
+        # if (NOT BUILD_SHARED_LIBS)
+        #     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+        # endif()
+        # now global
 
         # list(APPEND OPENBLAS_MINIMAL_FLAGS -DUSE_THREAD=OFF)
         list(APPEND OPENBLAS_MINIMAL_FLAGS -DINTERFACE64=0)
@@ -118,7 +119,11 @@ if (BUILD_OPENBLAS)
         GIT_TAG        "v0.3.30"
         GIT_SHALLOW TRUE
         UPDATE_COMMAND git reset --hard
-        CMAKE_ARGS ${OPENBLAS_MINIMAL_FLAGS}
+        CMAKE_ARGS
+            ${OPENBLAS_MINIMAL_FLAGS}
+            # Force optimization even in Debug builds to avoid register spills
+            -DCMAKE_BUILD_TYPE=Release
+            -DCORE_OPTIMIZATION="-O2"
     )
     FetchContent_MakeAvailable(openblas)
 
