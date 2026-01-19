@@ -29,10 +29,12 @@ class TreeSplitting {
   // structure. Avoids too many lookups into the map.
   std::vector<bool> belong_;
 
+ private:
+  NodeData& insert(Int sn);
+
  public:
   void resize(Int sn_count);
 
-  NodeData& insert(Int sn);
   NodeData& insertSingle(Int sn);
   NodeData& insertSubtree(Int sn);
 
@@ -66,7 +68,7 @@ class TreeSplitting {
 // - When d is ran, nothing happens, since it was already executed as part of
 //   the task that executed a.
 // - When e is ran, a task is executed that executes the whole subtree of nodes
-//   e and f.
+//   e and g.
 // - When f is ran, a task is created that executes only that supernode.
 // - When g is ran, nothing happens, since it was already executed as part of
 //   the task that executed e.

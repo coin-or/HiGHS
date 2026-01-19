@@ -1376,7 +1376,7 @@ void Analyse::findTreeSplitting() {
 
     } else if (sn_parent_[sn] == -1) {
       // sn is small root: single task with whole subtree
-      NodeData& data = tree_splitting_.insert(sn);
+      NodeData& data = tree_splitting_.insertSubtree(sn);
       data.group.push_back(sn);
       data.firstdesc.push_back(first_desc[sn]);
     }
