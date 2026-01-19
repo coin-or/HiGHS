@@ -122,8 +122,10 @@ if (BUILD_OPENBLAS)
         CMAKE_ARGS
             ${OPENBLAS_MINIMAL_FLAGS}
             # Force optimization even in Debug builds to avoid register spills
-            -DCMAKE_BUILD_TYPE=Release
-            -DCORE_OPTIMIZATION="-O2"
+            # Force high optimization and strip debug symbols for the kernels
+            -DCMAKE_C_FLAGS_DEBUG="-O2"
+            -DCMAKE_C_FLAGS="-O3"
+            -DCORE_OPTIMIZATION="-O3"
     )
     FetchContent_MakeAvailable(openblas)
 
