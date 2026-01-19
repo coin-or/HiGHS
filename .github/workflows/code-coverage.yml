@@ -39,6 +39,7 @@ jobs:
         shell: bash
         run: ctest --parallel --timeout 300 --output-on-failure
 
+        # Coverage with HiPO will be different
       - name: Generate Report
         working-directory: ${{runner.workspace}}/build
         shell: bash
@@ -46,10 +47,7 @@ jobs:
           lcov -d . -c -o cov.info --ignore-errors empty
           lcov --remove cov.info "/usr/include/*" -o cov.info
           lcov --remove cov.info "/usr/lib/*" -o cov.info
-          lcov --remove cov.info "extern/amd/*" -o cov.info
-          lcov --remove cov.info "extern/metis/*" -o cov.info
           lcov --remove cov.info "extern/pdqsort/*" -o cov.info
-          lcov --remove cov.info "extern/rcm/*" -o cov.info
           lcov --remove cov.info "extern/zstr/*" -o cov.info
           lcov --remove cov.info "extern/catch*" -o cov.info
           lcov --remove cov.info "extern/CLI11*" -o cov.info
