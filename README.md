@@ -1,3 +1,4 @@
+<a id="highs---linear-optimization-software"></a>
 # HiGHS - Linear optimization software
 
 <!-- ![Build Status](https://github.com/ERGO-Code/HiGHS/actions/workflows/build.yml/badge.svg) -->
@@ -41,7 +42,8 @@
     - [Fortran](#fortran)
   - [Reference](#reference)
 
-## <a id="about-highs"></a>About HiGHS
+<a id="about-highs"></a>
+## About HiGHS
 
 HiGHS is a high performance serial and parallel solver for large scale sparse
 linear optimization problems of the form
@@ -56,7 +58,8 @@ Find out more about HiGHS at https://www.highs.dev.
 
 Although HiGHS is freely available under the MIT license, we would be pleased to learn about users' experience and give advice via email sent to highsopt@gmail.com.
 
-## <a id="documentation"></a>Documentation
+<a id="documentation"></a>
+## Documentation
 
 Documentation is available at https://ergo-code.github.io/HiGHS/.
 
