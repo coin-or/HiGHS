@@ -139,31 +139,37 @@ void HybridPackedFormatHandler::assembleChild(Int child_sn,
   const Int child_clique_size =
       S_->ptr(child_sn + 1) - S_->ptr(child_sn) - child_sn_size;
 
-  // The loop over the columns of the child clique has completely independent
-  // iterations. The loop is split evenly among the available threads.
+  bool parallel = S_->parTree() || S_->parNode();
 
-  TaskGroupSpecial tg;
+  if (parallel) {
+    // The loop over the columns of the child clique has completely independent
+    // iterations. The loop is split evenly among the available threads.
 
-  const Int threads = highs::parallel::num_threads();
-  const double ops_per_thread =
-      (double)child_clique_size * (child_clique_size + 1) / 2 / threads;
-  double ops_current = 0;
-  Int next_col = 0;
-  for (Int last_col = 0; last_col < child_clique_size; ++last_col) {
-    ops_current += child_clique_size - last_col;
+    TaskGroupSpecial tg;
+    const Int threads = highs::parallel::num_threads();
+    const double ops_per_thread =
+        (double)child_clique_size * (child_clique_size + 1) / 2 / threads;
+    double ops_current = 0;
+    Int next_col = 0;
+    for (Int last_col = 0; last_col < child_clique_size; ++last_col) {
+      ops_current += child_clique_size - last_col;
 
-    if (ops_current > ops_per_thread || last_col == child_clique_size - 1) {
-      tg.spawn([=]() {
-        for (Int col = next_col; col <= last_col; ++col) {
-          assembleChildSingleCol(child_sn, child, child_clique_size, col);
-        }
-      });
-      next_col = last_col + 1;
-      ops_current = 0;
+      if (ops_current > ops_per_thread || last_col == child_clique_size - 1) {
+        tg.spawn([=]() {
+          for (Int col = next_col; col <= last_col; ++col) {
+            assembleChildSingleCol(child_sn, child, child_clique_size, col);
+          }
+        });
+        next_col = last_col + 1;
+        ops_current = 0;
+      }
     }
-  }
+    tg.taskWait();
 
-  tg.taskWait();
+  } else {
+    for (Int col = 0; col < child_clique_size; ++col)
+      assembleChildSingleCol(child_sn, child, child_clique_size, col);
+  }
 }
 
 void HybridPackedFormatHandler::extremeEntries() {
