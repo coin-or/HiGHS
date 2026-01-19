@@ -142,7 +142,7 @@ void HybridPackedFormatHandler::assembleChild(Int child_sn,
   // The loop over the columns of the child clique has completely independent
   // iterations. The loop is split evenly among the available threads.
 
-  highs::parallel::TaskGroup tg;
+  TaskGroupSpecial tg;
 
   const Int threads = highs::parallel::num_threads();
   const double ops_per_thread =
