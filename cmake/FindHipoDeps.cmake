@@ -124,8 +124,9 @@ if (BUILD_OPENBLAS)
             # Force optimization even in Debug builds to avoid register spills
             # Force high optimization and strip debug symbols for the kernels
             -DCMAKE_BUILD_TYPE=Release
-            -DCMAKE_C_FLAGS_DEBUG="-O2"
-            -DCMAKE_C_FLAGS="-O3"
+            -DCMAKE_C_FLAGS="-O3 -fomit-frame-pointer"
+            -DCMAKE_C_FLAGS_RELEASE="-O3 -fomit-frame-pointer"
+            -DCMAKE_C_FLAGS_DEBUG="-O2 -fomit-frame-pointer"
             -DCORE_OPTIMIZATION="-O3"
     )
     FetchContent_MakeAvailable(openblas)
