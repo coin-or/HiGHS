@@ -424,9 +424,13 @@ class HighsPseudocost {
   void flushConflictObservations(double& curr_observation,
                                  double new_observation,
                                  double conflict_weight) {
-    double d = (this->conflict_weight / conflict_weight) * new_observation;
-    curr_observation += d;
-    this->conflict_avg_score += d;
+    double s = this->conflict_weight *
+               std::max(curr_observation / this->conflict_weight,
+                        new_observation / conflict_weight);
+    if (s > curr_observation + minThreshold) {
+      this->conflict_avg_score += s - curr_observation;
+    }
+    curr_observation = s * this->conflict_weight;
   }
 
   void flushPseudoCost(HighsPseudocost& pseudocost,
@@ -459,7 +463,7 @@ class HighsPseudocost {
           this->inferencesdown[col], pseudocost.inferencesdown[col],
           ninferencesdown[col], pseudocost.ninferencesdown[col],
           this->ninferencesdown[col], true);
-      // Simply average the conflict scores (no way to guess num observations)
+      // Take the max conflict score (no way to guess num observations)
       flushConflictObservations(this->conflictscoreup[col],
                                 pseudocost.conflictscoreup[col],
                                 pseudocost.conflict_weight);
