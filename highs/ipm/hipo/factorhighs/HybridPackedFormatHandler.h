@@ -14,8 +14,11 @@ class HybridPackedFormatHandler : public FormatHandler {
   void initClique() override;
   void assembleFrontal(Int i, Int j, double val) override;
   Int denseFactorise(double reg_thresh) override;
-  void assembleChild(Int child_sn,const double* child) override;
+  void assembleChild(Int child_sn, const double* child) override;
   void extremeEntries() override;
+
+  void assembleChildSingleCol(Int child_sn, const double* child,
+                              Int child_clique_size, Int col);
 
  public:
   HybridPackedFormatHandler(const Symbolic& S, Int sn, const Regul& regul,

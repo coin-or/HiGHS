@@ -6,6 +6,7 @@
 #include "DataCollector.h"
 #include "DenseFact.h"
 #include "ipm/hipo/auxiliary/Auxiliary.h"
+#include "parallel/HighsParallel.h"
 
 namespace hipo {
 
@@ -70,6 +71,66 @@ Int HybridPackedFormatHandler::denseFactorise(double reg_thresh) {
   return status;
 }
 
+void HybridPackedFormatHandler::assembleChildSingleCol(Int child_sn,
+                                                       const double* child,
+                                                       Int child_clique_size,
+                                                       Int col) {
+  // relative index of column in the frontal matrix
+  const Int j = S_->relindClique(child_sn, col);
+
+  Int row = col;
+  while (row < child_clique_size) {
+    // relative index of the entry in the matrix frontal
+    const Int i = S_->relindClique(child_sn, row);
+
+    // how many entries to sum
+    const Int consecutive = S_->consecutiveSums(child_sn, row);
+
+    // information to access child
+    const Int block_child = col / nb_;
+    const Int row_child = row - block_child * nb_;
+    const Int col_child = col - block_child * nb_;
+    const Int ld_child = child_clique_size - nb_ * block_child;
+    const Int64 start_block_child = S_->cliqueBlockStart(child_sn, block_child);
+
+    if (j < sn_size_) {
+      // assemble entries, from (row,col) in child, to (i,j) in frontal
+
+      const Int block_frontal = j / nb_;
+      const Int row_frontal = i - block_frontal * nb_;
+      const Int col_frontal = j - block_frontal * nb_;
+      const Int ld_frontal = ldf_ - block_frontal * nb_;
+
+      callAndTime_daxpy(
+          consecutive, 1.0,
+          &child[start_block_child + row_child + ld_child * col_child], 1,
+          &frontal_[diag_start_[block_frontal] + row_frontal +
+                    ld_frontal * col_frontal],
+          1, data_);
+
+    } else {
+      // assemble entries, from (row,col) in child, to (rel_i,rel_j) in clique
+
+      const Int rel_j = j - sn_size_;
+      const Int rel_i = i - sn_size_;
+      const Int block_clique = rel_j / nb_;
+      const Int row_clique = rel_i - block_clique * nb_;
+      const Int col_clique = rel_j - block_clique * nb_;
+      const Int ld_clique = ldc_ - nb_ * block_clique;
+      const Int64 start_block_clique = S_->cliqueBlockStart(sn_, block_clique);
+
+      callAndTime_daxpy(
+          consecutive, 1.0,
+          &child[start_block_child + row_child + ld_child * col_child], 1,
+          &clique_ptr_[start_block_clique + row_clique +
+                       ld_clique * col_clique],
+          1, data_);
+    }
+
+    row += consecutive;
+  }
+}
+
 void HybridPackedFormatHandler::assembleChild(Int child_sn,
                                               const double* child) {
   const Int child_begin = S_->snStart(child_sn);
@@ -78,65 +139,31 @@ void HybridPackedFormatHandler::assembleChild(Int child_sn,
   const Int child_clique_size =
       S_->ptr(child_sn + 1) - S_->ptr(child_sn) - child_sn_size;
 
-  // go through the columns of the contribution of the child
-  for (Int col = 0; col < child_clique_size; ++col) {
-    // relative index of column in the frontal matrix
-    const Int j = S_->relindClique(child_sn, col);
+  // The loop over the columns of the child clique has completely independent
+  // iterations. The loop is split evenly among the available threads.
 
-    Int row = col;
-    while (row < child_clique_size) {
-      // relative index of the entry in the matrix frontal
-      const Int i = S_->relindClique(child_sn, row);
+  highs::parallel::TaskGroup tg;
 
-      // how many entries to sum
-      const Int consecutive = S_->consecutiveSums(child_sn, row);
+  const Int threads = highs::parallel::num_threads();
+  const double ops_per_thread =
+      (double)child_clique_size * (child_clique_size + 1) / 2 / threads;
+  double ops_current = 0;
+  Int next_col = 0;
+  for (Int last_col = 0; last_col < child_clique_size; ++last_col) {
+    ops_current += child_clique_size - last_col;
 
-      // information to access child
-      const Int block_child = col / nb_;
-      const Int row_child = row - block_child * nb_;
-      const Int col_child = col - block_child * nb_;
-      const Int ld_child = child_clique_size - nb_ * block_child;
-      const Int64 start_block_child =
-          S_->cliqueBlockStart(child_sn, block_child);
-
-      if (j < sn_size_) {
-        // assemble entries, from (row,col) in child, to (i,j) in frontal
-
-        const Int block_frontal = j / nb_;
-        const Int row_frontal = i - block_frontal * nb_;
-        const Int col_frontal = j - block_frontal * nb_;
-        const Int ld_frontal = ldf_ - block_frontal * nb_;
-
-        callAndTime_daxpy(
-            consecutive, 1.0,
-            &child[start_block_child + row_child + ld_child * col_child], 1,
-            &frontal_[diag_start_[block_frontal] + row_frontal +
-                      ld_frontal * col_frontal],
-            1, data_);
-
-      } else {
-        // assemble entries, from (row,col) in child, to (rel_i,rel_j) in clique
-
-        const Int rel_j = j - sn_size_;
-        const Int rel_i = i - sn_size_;
-        const Int block_clique = rel_j / nb_;
-        const Int row_clique = rel_i - block_clique * nb_;
-        const Int col_clique = rel_j - block_clique * nb_;
-        const Int ld_clique = ldc_ - nb_ * block_clique;
-        const Int64 start_block_clique =
-            S_->cliqueBlockStart(sn_, block_clique);
-
-        callAndTime_daxpy(
-            consecutive, 1.0,
-            &child[start_block_child + row_child + ld_child * col_child], 1,
-            &clique_ptr_[start_block_clique + row_clique +
-                         ld_clique * col_clique],
-            1, data_);
-      }
-
-      row += consecutive;
+    if (ops_current > ops_per_thread || last_col == child_clique_size - 1) {
+      tg.spawn([=]() {
+        for (Int col = next_col; col <= last_col; ++col) {
+          assembleChildSingleCol(child_sn, child, child_clique_size, col);
+        }
+      });
+      next_col = last_col + 1;
+      ops_current = 0;
     }
   }
+
+  tg.taskWait();
 }
 
 void HybridPackedFormatHandler::extremeEntries() {
