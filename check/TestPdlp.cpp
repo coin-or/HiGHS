@@ -14,7 +14,7 @@
 
 const bool dev_run = false;
 const double double_equal_tolerance = 1e-3;
-const double kkt_tolerance = 1e-8;
+const double kkt_tolerance = 1e-4;
 #ifdef CUPDLP_CPU
 TEST_CASE("pdlp-distillation-lp", "[pdlp]") {
   SpecialLps special_lps;

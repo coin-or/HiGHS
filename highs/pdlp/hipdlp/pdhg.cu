@@ -301,5 +301,4 @@ void launchCheckConvergenceKernels_wrapper(
 
     cudaGetLastError();
 }
-
 } // extern "C"
