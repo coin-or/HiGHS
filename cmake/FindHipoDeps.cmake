@@ -123,6 +123,7 @@ if (BUILD_OPENBLAS)
             ${OPENBLAS_MINIMAL_FLAGS}
             # Force optimization even in Debug builds to avoid register spills
             # Force high optimization and strip debug symbols for the kernels
+            -DCMAKE_BUILD_TYPE=Release
             -DCMAKE_C_FLAGS_DEBUG="-O2"
             -DCMAKE_C_FLAGS="-O3"
             -DCORE_OPTIMIZATION="-O3"
