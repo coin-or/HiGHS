@@ -41,10 +41,13 @@ jobs:
           lcov -d . -c -o cov.info --ignore-errors empty
           lcov --remove cov.info "/usr/include/*" -o cov.info
           lcov --remove cov.info "/usr/lib/*" -o cov.info
+          lcov --remove cov.info "extern/amd/*" -o cov.info
+          lcov --remove cov.info "extern/metis/*" -o cov.info
           lcov --remove cov.info "extern/pdqsort/*" -o cov.info
+          lcov --remove cov.info "extern/rcm/*" -o cov.info
           lcov --remove cov.info "extern/zstr/*" -o cov.info
           lcov --remove cov.info "extern/catch*" -o cov.info
-          lcov --remove cov.info "app/CLI11*" -o cov.info
+          lcov --remove cov.info "extern/CLI11*" -o cov.info
           lcov --remove cov.info "highs/test_kkt*" -o cov.info
           lcov --list cov.info
           mv cov.info coverage.info
