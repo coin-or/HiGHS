@@ -264,7 +264,8 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         run: |
           cmake $GITHUB_WORKSPACE -DHIPO=ON -DBUILD_OPENBLAS=ON \
-            -DALL_TESTS=${{ matrix.all_tests }}
+            -DALL_TESTS=${{ matrix.all_tests }} \
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }}
 
       - name: Build
         working-directory: ${{runner.workspace}}/build
