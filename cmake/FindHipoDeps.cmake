@@ -121,6 +121,11 @@ if (BUILD_OPENBLAS)
         CMAKE_ARGS ${OPENBLAS_MINIMAL_FLAGS}
     )
     FetchContent_MakeAvailable(openblas)
+
+    if (ALL_TESTS)
+        set(BUILD_TESTING ON)
+    endif()
+
     list(POP_BACK CMAKE_MESSAGE_INDENT)
     message(CHECK_PASS "fetched")
 
