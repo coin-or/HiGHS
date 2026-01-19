@@ -3857,12 +3857,27 @@ void HighsDomain::ConflictSet::conflictAnalysis(HighsConflictPool& conflictPool,
 
   if (!explainInfeasibility()) return;
 
-  pseudocost.increaseConflictWeight();
+  if (!localdom.mipsolver->mipdata_->parallelLockActive()) {
+    localdom.mipsolver->mipdata_->pseudocost.increaseConflictWeight();
+  } else {
+    pseudocost.increaseConflictWeight();
+  }
   for (const LocalDomChg& locdomchg : resolvedDomainChanges) {
-    if (locdomchg.domchg.boundtype == HighsBoundType::kLower)
-      pseudocost.increaseConflictScoreUp(locdomchg.domchg.column);
-    else
-      pseudocost.increaseConflictScoreDown(locdomchg.domchg.column);
+    if (locdomchg.domchg.boundtype == HighsBoundType::kLower) {
+      if (!localdom.mipsolver->mipdata_->parallelLockActive()) {
+        localdom.mipsolver->mipdata_->pseudocost.increaseConflictScoreUp(
+            locdomchg.domchg.column);
+      } else {
+        pseudocost.increaseConflictScoreUp(locdomchg.domchg.column);
+      }
+    } else {
+      if (!localdom.mipsolver->mipdata_->parallelLockActive()) {
+        localdom.mipsolver->mipdata_->pseudocost.increaseConflictScoreDown(
+            locdomchg.domchg.column);
+      } else {
+        pseudocost.increaseConflictScoreDown(locdomchg.domchg.column);
+      }
+    }
   }
 
   if (10 * resolvedDomainChanges.size() >
