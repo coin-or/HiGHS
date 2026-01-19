@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "ipm/hipo/auxiliary/IntConfig.h"
+#include "parallel/HighsParallel.h"
 
 namespace hipo {
 
@@ -86,6 +87,11 @@ class Clock {
   Clock();
   void start();
   double stop() const;
+};
+
+class TaskGroupSpecial : public highs::parallel::TaskGroup {
+ public:
+  ~TaskGroupSpecial();
 };
 
 }  // namespace hipo
