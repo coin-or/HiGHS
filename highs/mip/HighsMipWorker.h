@@ -14,6 +14,7 @@
 #include "mip/HighsLpRelaxation.h"
 #include "mip/HighsMipSolver.h"
 #include "mip/HighsMipSolverData.h"
+#include "mip/HighsNodeQueue.h"
 #include "mip/HighsPrimalHeuristics.h"
 #include "mip/HighsPseudocost.h"
 #include "mip/HighsSeparation.h"
@@ -65,6 +66,8 @@ class HighsMipWorker {
 
   std::unique_ptr<HighsSearch> search_ptr_;
   std::unique_ptr<HighsSeparation> sepa_ptr_;
+
+  HighsNodeQueue nodequeue;
 
   const HighsMipSolver& getMipSolver() const;
 

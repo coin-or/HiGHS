@@ -334,6 +334,7 @@ restart:
     worker.lp_->setMipWorker(worker);
     worker.resetSearch();
     worker.resetSepa();
+    worker.nodequeue.clear();
   };
 
   auto syncSolutions = [&]() -> void {
@@ -456,6 +457,8 @@ restart:
     constructAdditionalWorkerData(master_worker);
   } else {
     master_worker.search_ptr_->resetLocalDomain();
+    master_worker.nodequeue.clear();
+    // TODO: This is only done to match seed from v1.12
     master_worker.resetSepa();
   }
   master_worker.upper_bound = mipdata_->upper_bound;
@@ -752,7 +755,52 @@ restart:
     return false;
   };
 
+  auto backtrackPlunge = [&](std::vector<HighsInt>& indices,
+                             size_t plungestart) {
+    HighsInt numPlungeNodes = mipdata_->num_nodes - plungestart;
+    if (numPlungeNodes >= 100) return false;
+
+    std::vector<bool> backtracked(num_workers, false);
+
+    auto doBacktrackPlunge = [&](HighsInt i) {
+      backtracked[i] = mipdata_->workers[i].search_ptr_->backtrackPlunge(
+          mipdata_->hasMultipleWorkers() ? mipdata_->workers[i].nodequeue
+                                         : mipdata_->nodequeue);
+    };
+
+    analysis_.mipTimerStart(kMipClockBacktrackPlunge);
+    runTask(doBacktrackPlunge, tg, true, indices);
+    analysis_.mipTimerStop(kMipClockBacktrackPlunge);
+
+    // Remove search indices that were not backtracked
+    HighsInt num_search_indices = static_cast<HighsInt>(indices.size());
+    for (HighsInt i = num_search_indices - 1; i >= 0; i--) {
+      if (!backtracked[indices[i]]) {
+        num_search_indices--;
+        std::swap(indices[i], indices[num_search_indices]);
+      }
+    }
+    indices.resize(num_search_indices);
+    if (num_search_indices == 0) return false;
+#ifndef NDEBUG
+    for (HighsInt i : indices) {
+      assert(mipdata_->workers[i].search_ptr_->hasNode());
+    }
+#endif
+    analysis_.mipTimerStart(kMipClockPerformAging2);
+    for (HighsInt i : indices) {
+      if (mipdata_->workers[i].conflictpool_->getNumConflicts() >
+          options_mip_->mip_pool_soft_limit) {
+        mipdata_->workers[i].conflictpool_->performAging();
+      }
+      mipdata_->workers[i].search_ptr_->flushStatistics();
+    }
+    analysis_.mipTimerStop(kMipClockPerformAging2);
+    return true;
+  };
+
   auto runHeuristics = [&](std::vector<HighsInt>& indices) -> void {
+    std::vector<bool> suboptimal(num_workers, false);
     auto doRunHeuristics = [&](HighsInt i) -> void {
       HighsMipWorker& worker = mipdata_->workers[i];
       // analysis_.mipTimerStart(kMipClockDiveEvaluateNode);
@@ -760,7 +808,10 @@ restart:
           worker.search_ptr_->evaluateNode();
       // analysis_.mipTimerStop(kMipClockDiveEvaluateNode);
 
-      if (evaluate_node_result == HighsSearch::NodeResult::kSubOptimal) return;
+      if (evaluate_node_result == HighsSearch::NodeResult::kSubOptimal) {
+        suboptimal[i] = true;
+        return;
+      }
 
       // analysis_.mipTimerStart(kMipClockDivePrimalHeuristics);
       if (mipdata_->incumbent.empty()) {
@@ -789,16 +840,18 @@ restart:
     };
     runTask(doRunHeuristics, tg, true, indices);
     for (const HighsInt i : indices) {
-      if (mipdata_->workers[i].search_ptr_->currentNodePruned()) {
-        ++mipdata_->num_leaves;
-        mipdata_->workers[i].search_ptr_->flushStatistics();
+      if (!suboptimal[i]) {
+        if (mipdata_->workers[i].search_ptr_->currentNodePruned()) {
+          ++mipdata_->num_leaves;
+          mipdata_->workers[i].search_ptr_->flushStatistics();
+        }
+        mipdata_->heuristics.flushStatistics(*this, mipdata_->workers[i]);
       }
-      mipdata_->heuristics.flushStatistics(*this, mipdata_->workers[i]);
     }
-    // Remove search indices that have been pruned
+    // Remove search indices that have suboptimal status
     HighsInt num_search_indices = static_cast<HighsInt>(indices.size());
     for (HighsInt i = num_search_indices - 1; i >= 0; i--) {
-      if (mipdata_->workers[indices[i]].search_ptr_->currentNodePruned()) {
+      if (suboptimal[indices[i]]) {
         num_search_indices--;
         std::swap(indices[i], indices[num_search_indices]);
       }
@@ -806,20 +859,19 @@ restart:
     indices.resize(num_search_indices);
   };
 
-  auto diveSearches = [&](std::vector<HighsInt>& indices) -> bool {
+  auto diveSearches = [&](std::vector<HighsInt>& indices) {
     analysis_.mipTimerStart(kMipClockTheDive);
     std::vector<HighsSearch::NodeResult> dive_results(
         mipdata_->workers.size(), HighsSearch::NodeResult::kBranched);
 
-    // Remove search indices that have been pruned
-    HighsInt num_search_indices = static_cast<HighsInt>(indices.size());
-    for (HighsInt i = num_search_indices - 1; i >= 0; i--) {
-      if (mipdata_->workers[indices[i]].search_ptr_->currentNodePruned()) {
-        num_search_indices--;
-        std::swap(indices[i], indices[num_search_indices]);
+    // Create vector of non pruned indices
+    std::vector<HighsInt> non_pruned_indices;
+    for (HighsInt i : indices) {
+      if (!mipdata_->workers[indices[i]].search_ptr_->currentNodePruned()) {
+        non_pruned_indices.push_back(indices[i]);
       }
     }
-    indices.resize(num_search_indices);
+    if (non_pruned_indices.empty()) return;
 
     auto doDiveSearch = [&](HighsInt i) {
       HighsMipWorker& worker = mipdata_->workers[i];
@@ -828,18 +880,25 @@ restart:
         return;
       dive_results[i] = worker.search_ptr_->dive();
     };
-    runTask(doDiveSearch, tg, true, indices);
+    runTask(doDiveSearch, tg, true, non_pruned_indices);
     analysis_.mipTimerStop(kMipClockTheDive);
-    bool suboptimal = false;
-    for (const HighsInt i : indices) {
-      if (dive_results[i] == HighsSearch::NodeResult::kSubOptimal) {
-        suboptimal = true;
-      } else {
+
+    for (const HighsInt i : non_pruned_indices) {
+      if (dive_results[i] != HighsSearch::NodeResult::kSubOptimal) {
         ++mipdata_->num_leaves;
         mipdata_->workers[i].search_ptr_->flushStatistics();
       }
     }
-    return suboptimal;
+
+    // Remove search indices that have suboptimal status
+    HighsInt num_search_indices = static_cast<HighsInt>(indices.size());
+    for (HighsInt i = num_search_indices - 1; i >= 0; i--) {
+      if (dive_results[indices[i]] == HighsSearch::NodeResult::kSubOptimal) {
+        num_search_indices--;
+        std::swap(indices[i], indices[num_search_indices]);
+      }
+    }
+    indices.resize(num_search_indices);
   };
 
   // Search indices tracks which MIP workers were assigned nodes
@@ -880,6 +939,7 @@ restart:
       // Possibly apply primal heuristics
       if (considerHeuristics && mipdata_->moreHeuristicsAllowed()) {
         runHeuristics(reduced_search_indices);
+        if (reduced_search_indices.empty()) break;
       }
 
       considerHeuristics = false;
@@ -887,49 +947,38 @@ restart:
       if (infeasibleWorkerGlobalDomain()) break;
       syncSolutions();
 
-      bool suboptimal = diveSearches(reduced_search_indices);
+      diveSearches(reduced_search_indices);
       syncSolutions();
-      if (suboptimal) break;
+      if (reduced_search_indices.empty()) break;
 
       if (mipdata_->checkLimits()) {
         limit_reached = true;
         break;
       }
 
-      if (!mipdata_->hasMultipleWorkers()) {
-        HighsInt numPlungeNodes = mipdata_->num_nodes - plungestart;
-        if (numPlungeNodes >= 100) break;
-
-        // TODO: If they only node is pruned, can we even backtrack plunge?
-        reduced_search_indices.clear();
-        reduced_search_indices.push_back(0);
-
-        analysis_.mipTimerStart(kMipClockBacktrackPlunge);
-        const bool backtrack_plunge =
-            search.backtrackPlunge(mipdata_->nodequeue);
-        analysis_.mipTimerStop(kMipClockBacktrackPlunge);
-        if (!backtrack_plunge) break;
-        assert(search.hasNode());
-
-        if (mipdata_->conflictPool.getNumConflicts() >
-            options_mip_->mip_pool_soft_limit) {
-          analysis_.mipTimerStart(kMipClockPerformAging2);
-          mipdata_->conflictPool.performAging();
-          analysis_.mipTimerStop(kMipClockPerformAging2);
-        }
-        search.flushStatistics();
-      }
+      const bool backtrack_plunge =
+          backtrackPlunge(reduced_search_indices, plungestart);
+      if (!backtrack_plunge) break;
 
       mipdata_->printDisplayLine();
-      if (mipdata_->hasMultipleWorkers()) break;
       // printf("continue plunging due to good estimate\n");
     }  // while (true)
     analysis_.mipTimerStop(kMipClockDive);
 
     analysis_.mipTimerStart(kMipClockOpenNodesToQueue0);
-    for (const HighsMipWorker& worker : mipdata_->workers) {
+    for (HighsMipWorker& worker : mipdata_->workers) {
       if (worker.search_ptr_->hasNode()) {
         worker.search_ptr_->openNodesToQueue(mipdata_->nodequeue);
+      }
+      if (mipdata_->hasMultipleWorkers()) {
+        // Remove nodes from worker node queues if backtrack plunged
+        while (worker.nodequeue.numNodes() > 0) {
+          HighsNodeQueue::OpenNode node =
+              std::move(worker.nodequeue.popBestNode());
+          mipdata_->nodequeue.emplaceNode(
+              std::move(node.domchgstack), std::move(node.branchings),
+              node.lower_bound, node.estimate, node.depth);
+        }
       }
     }
     analysis_.mipTimerStop(kMipClockOpenNodesToQueue0);
