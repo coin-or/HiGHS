@@ -430,7 +430,7 @@ class HighsPseudocost {
     if (s > curr_observation + minThreshold) {
       this->conflict_avg_score += s - curr_observation;
     }
-    curr_observation = s * this->conflict_weight;
+    curr_observation = s;
   }
 
   void flushPseudoCost(HighsPseudocost& pseudocost,
