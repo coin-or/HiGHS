@@ -1297,9 +1297,10 @@ void Analyse::findTreeSplitting() {
   // The tree is parallelised by creating a task for each single node and a task
   // for each group of subtrees.
 
-  // linked lists of children
-  std::vector<Int> head, next;
-  childrenLinkedList(sn_parent_, head, next);
+  // reverse linked lists of children
+  std::vector<Int> head_reverse, next_reverse;
+  childrenLinkedList(sn_parent_, head_reverse, next_reverse);
+  reverseLinkedList(head_reverse, next_reverse);
 
   // compute number of operations for each supernode
   std::vector<double> sn_ops(sn_count_);
@@ -1352,9 +1353,13 @@ void Analyse::findTreeSplitting() {
       // count is in the interval [small_thresh, 2*small_thresh]. Each group
       // corresponds to one task executed in parallel.
 
+      // The children are explored in reverse order, so that they can be synced
+      // in reverse order during the factorisation. In this way, the parallel
+      // and serial code obtain the exact same answer.
+
       double current_ops = 0.0;
       NodeData* current_nodedata = nullptr;
-      Int child = head[sn];
+      Int child = head_reverse[sn];
       while (child != -1) {
         bool is_small = subtree_ops[child] <= small_thresh;
 
@@ -1371,7 +1376,7 @@ void Analyse::findTreeSplitting() {
           if (current_ops > small_thresh) current_nodedata = nullptr;
         }
 
-        child = next[child];
+        child = next_reverse[child];
       }
 
     } else if (sn_parent_[sn] == -1) {
