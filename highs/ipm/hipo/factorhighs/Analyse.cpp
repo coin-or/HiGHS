@@ -1408,7 +1408,7 @@ Int Analyse::run(Symbolic& S) {
 
   HIPO_CLOCK_START(2);
   if (getPermutation()) return kRetOrderingError;
-  HIPO_CLOCK_STOP(2, data_, kTimeAnalyseMetis);
+  HIPO_CLOCK_STOP(2, data_, kTimeAnalyseOrdering);
 
   HIPO_CLOCK_START(2);
   permute(iperm_);
@@ -1439,11 +1439,12 @@ Int Analyse::run(Symbolic& S) {
   relativeIndClique();
   HIPO_CLOCK_STOP(2, data_, kTimeAnalyseRelInd);
 
+  HIPO_CLOCK_START(2);
   computeBlockStart();
   computeCriticalPath();
   computeStackSize();
-
   findTreeSplitting();
+  HIPO_CLOCK_STOP(2, data_, kTimeAnalyseOther);
 
   // move relevant stuff into S
   S.n_ = n_;
