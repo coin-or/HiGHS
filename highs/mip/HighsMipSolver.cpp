@@ -309,6 +309,7 @@ restart:
     mipdata_->lp.notifyCutPoolsLpCopied(1);
     mipdata_->workers.back().randgen.initialise(options_mip_->random_seed +
                                                 mipdata_->workers.size() - 1);
+    mipdata_->workers.back().nodequeue.setNumCol(numCol());
     mipdata_->debugSolution.registerDomain(
         mipdata_->workers.back().search_ptr_->getLocalDomain());
   };
@@ -335,6 +336,7 @@ restart:
     worker.resetSearch();
     worker.resetSepa();
     worker.nodequeue.clear();
+    worker.nodequeue.setNumCol(numCol());
   };
 
   auto syncSolutions = [&]() -> void {
@@ -458,6 +460,7 @@ restart:
   } else {
     master_worker.search_ptr_->resetLocalDomain();
     master_worker.nodequeue.clear();
+    master_worker.nodequeue.setNumCol(numCol());
     // TODO: This is only done to match seed from v1.12
     master_worker.resetSepa();
   }
@@ -867,8 +870,8 @@ restart:
     // Create vector of non pruned indices
     std::vector<HighsInt> non_pruned_indices;
     for (HighsInt i : indices) {
-      if (!mipdata_->workers[indices[i]].search_ptr_->currentNodePruned()) {
-        non_pruned_indices.push_back(indices[i]);
+      if (!mipdata_->workers[i].search_ptr_->currentNodePruned()) {
+        non_pruned_indices.push_back(i);
       }
     }
     if (non_pruned_indices.empty()) return;
