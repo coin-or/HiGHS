@@ -60,25 +60,29 @@ class TreeSplitting {
 // where Fj is the first descendant of node j.
 // belong_[j] is true for j=p,a,c,e,f and false for j=b,d,g.
 //
-// - When a is ran, a task is executed that executes the whole subtree of nodes
+// - When a is run, a task is executed that executes the whole subtree of nodes
 //   a, b and d.
-// - When b is ran, nothing happens, since it was already executed as part of
+// - When b is run, nothing happens, since it was already executed as part of
 //   the task that executed a.
-// - When c is ran, a task is created that executes only that supernode.
-// - When d is ran, nothing happens, since it was already executed as part of
+// - When c is run, a task is created that executes only that supernode.
+// - When d is run, nothing happens, since it was already executed as part of
 //   the task that executed a.
-// - When e is ran, a task is executed that executes the whole subtree of nodes
+// - When e is run, a task is executed that executes the whole subtree of nodes
 //   e and g.
-// - When f is ran, a task is created that executes only that supernode.
-// - When g is ran, nothing happens, since it was already executed as part of
+// - When f is run, a task is created that executes only that supernode.
+// - When g is run, nothing happens, since it was already executed as part of
 //   the task that executed e.
 //
 // It is important that node a is processed before b and d, so that when b or d
 // are synced, their operations are already performed. Otherwise, syncing node b
 // would complete even though the operations for node b have not been performed.
-// In other words, children should be synced in forward order, and thus spawned
-// in reverse order.
-//
+// When the factorisation is run in serial using a CliqueStack, the children are
+// processed in reverse order. To obtain the same result when running the code
+// in parallel, the children must be synced in reverse order, and so spawned in
+// forward order. To make the TreeSplitting work, the groups of supernodes
+// should be formed in reverse order, so that in the group {a,b,d}, d has the
+// lowest ordering and a the highest one. In this way, syncing in reverse order
+// produces the correct result.
 
 }  // namespace hipo
 #endif

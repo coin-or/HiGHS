@@ -194,16 +194,16 @@ void Factorise::processSupernode(Int sn, const bool should_parallelise) {
       spawn(first_child_[sn], tg, false);
       do_parallelise = false;
     } else {
-      // spawn children of this supernode in reverse order
-      Int child_to_spawn = first_child_reverse_[sn];
+      // spawn children of this supernode in forward order
+      Int child_to_spawn = first_child_[sn];
       while (child_to_spawn != -1) {
         spawn(child_to_spawn, tg);
-        child_to_spawn = next_child_reverse_[child_to_spawn];
+        child_to_spawn = next_child_[child_to_spawn];
       }
 
       // wait for first child to finish, before starting the parent (if there is
       // a first child)
-      if (first_child_reverse_[sn] != -1) sync(first_child_[sn], tg);
+      if (first_child_reverse_[sn] != -1) sync(first_child_reverse_[sn], tg);
     }
   }
 
@@ -255,28 +255,20 @@ void Factorise::processSupernode(Int sn, const bool should_parallelise) {
   // ===================================================
   // Assemble frontal matrices of children
   // ===================================================
-  Int child_sn = first_child_[sn];
-  if (serial) child_sn = first_child_reverse_[sn];
-
+  Int child_sn = first_child_reverse_[sn];
   while (child_sn != -1) {
     // Child contribution is found:
     // - in cliquestack, if we are processing the tree in serial.
     // - in schur_contribution_ if we are processing the tree in parallel.
-    // Children are summed:
-    // - in reverse order in serial, so that the correct child is found on top
-    //   of the CliqueStack.
-    // - in forward order otherwise, so that if a small subtree is synced, and
-    //   it is not the first in its group, it will already have synced when it
-    //   is needed.
-
-    const double* child_clique;
+    // Children are summed always in reverse order.
 
     if (do_parallelise) {
       // sync with spawned child, apart from the first one
-      if (child_sn != first_child_[sn]) sync(child_sn, tg);
+      if (child_sn != first_child_reverse_[sn]) sync(child_sn, tg);
       if (flag_stop_.load(std::memory_order_relaxed)) return;
     }
 
+    const double* child_clique;
     if (!serial) {
       child_clique = schur_contribution_[child_sn].data();
       if (!child_clique) {
@@ -341,10 +333,7 @@ void Factorise::processSupernode(Int sn, const bool should_parallelise) {
     }
 
     // move on to the next child
-    if (!serial)
-      child_sn = next_child_[child_sn];
-    else
-      child_sn = next_child_reverse_[child_sn];
+    child_sn = next_child_reverse_[child_sn];
   }
 
   if (flag_stop_.load(std::memory_order_relaxed)) return;
