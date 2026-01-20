@@ -456,6 +456,7 @@ restart:
     constructAdditionalWorkerData(master_worker);
   } else {
     master_worker.search_ptr_->resetLocalDomain();
+    master_worker.resetSepa();
   }
   master_worker.upper_bound = mipdata_->upper_bound;
   master_worker.upper_limit = mipdata_->upper_limit;
