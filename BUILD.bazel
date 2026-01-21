@@ -40,11 +40,14 @@ cuda_library(
         "highs/pdlp/cupdlp/cuda/*.cuh",
     ]),
     defines = ["CUPDLP_GPU"],
-    target_compatible_with = requires_cuda(),
-    deps = [
+    target_compatible_with = select({
+        "@platforms//os:macos": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+    deps = if_cuda([
         "@local_cuda//:cublas",
         "@local_cuda//:cusparse",
-    ],
+    ], if_false = []),
 )
 
 cc_library(
