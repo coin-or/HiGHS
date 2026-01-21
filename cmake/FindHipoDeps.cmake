@@ -111,6 +111,20 @@ if (BUILD_OPENBLAS)
         # list(APPEND OPENBLAS_MINIMAL_FLAGS -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL)
     endif()
 
+    if(UNIX AND NOT APPLE)
+        execute_process(
+            COMMAND bash -c "grep -m1 'model name' /proc/cpuinfo | grep -i skylake"
+            RESULT_VARIABLE SKYLAKE_CHECK
+            OUTPUT_QUIET
+            ERROR_QUIET
+        )
+
+        if(SKYLAKE_CHECK EQUAL 0)
+            message(STATUS "Skylake detected - adjusting OpenBLAS target to avoid register spills")
+            set(CMAKE_C_FLAGS_OPENBLAS "-DTARGET=HASWELL -DNO_AVX512=1")
+        endif()
+    endif()
+
     message(CHECK_START "Fetching OpenBLAS")
     list(APPEND CMAKE_MESSAGE_INDENT "  ")
     FetchContent_Declare(
@@ -124,10 +138,11 @@ if (BUILD_OPENBLAS)
             # Force optimization even in Debug builds to avoid register spills
             # Force high optimization and strip debug symbols for the kernels
             -DCMAKE_BUILD_TYPE=Release
-            -DCMAKE_C_FLAGS="-O3 -fomit-frame-pointer"
-            -DCMAKE_C_FLAGS_RELEASE="-O3 -fomit-frame-pointer"
-            -DCMAKE_C_FLAGS_DEBUG="-O2 -fomit-frame-pointer"
-            -DCORE_OPTIMIZATION="-O3"
+            -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS_OPENBLAS}
+            # -DCMAKE_C_FLAGS="-O3 -fomit-frame-pointer"
+            # -DCMAKE_C_FLAGS_RELEASE="-O3 -fomit-frame-pointer"
+            # -DCMAKE_C_FLAGS_DEBUG="-O2 -fomit-frame-pointer"
+            # -DCORE_OPTIMIZATION="-O3"
     )
     FetchContent_MakeAvailable(openblas)
 
