@@ -122,8 +122,12 @@ if (BUILD_OPENBLAS)
         if(SKYLAKE_CHECK EQUAL 0)
             message(STATUS "Skylake detected - adjusting OpenBLAS target to avoid register spills")
             set(CMAKE_C_FLAGS_OPENBLAS "-DTARGET=HASWELL -DNO_AVX512=1")
+        else()
+            message(STATUS " NOT Skylake")
         endif()
     endif()
+
+    message(STATUS )
 
     message(CHECK_START "Fetching OpenBLAS")
     list(APPEND CMAKE_MESSAGE_INDENT "  ")
