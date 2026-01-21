@@ -25,10 +25,11 @@ jobs:
         run: bazel test --test_output=all //...
 
       - name: test example
+        shell: bash
         run: ./bazel-bin/call-highs-example
 
-      - name: Upload bazel-testlogs
-        uses: actions/upload-artifact@v4
-        with:
-          name: bazel-testlogs
-          path: bazel-testlogs/
+      # - name: Upload bazel-testlogs
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: bazel-testlogs-${{ matrix.os }}
+      #     path: bazel-testlogs/
