@@ -572,7 +572,7 @@ restart:
       HighsInt worker_id = indices[i];
       if (search_results[worker_id] == HighsSearch::NodeResult::kSubOptimal) {
         analysis_.mipTimerStart(kMipClockCurrentNodeToQueue);
-        mipdata_->workers[indices[worker_id]].search_ptr_->currentNodeToQueue(
+        mipdata_->workers[worker_id].search_ptr_->currentNodeToQueue(
             mipdata_->nodequeue);
         analysis_.mipTimerStop(kMipClockCurrentNodeToQueue);
       }
@@ -580,15 +580,15 @@ restart:
   };
 
   auto handlePrunedNodes = [&](std::vector<HighsInt>& indices) -> bool {
-    std::deque<bool> infeasible(num_workers, false);
-    std::deque<bool> flush(num_workers, false);
-    std::vector<bool> prune(num_workers, false);
+    std::vector<uint8_t> infeasible(num_workers, 0);
+    std::vector<uint8_t> flush(num_workers, 0);
+    std::vector<uint8_t> prune(num_workers, 0);
     bool multiple_workers = num_workers > 1;
     auto doHandlePrunedNodes = [&](HighsInt i) {
       if (!mipdata_->workers[i].search_ptr_->currentNodePruned()) return;
       HighsDomain& globaldom = mipdata_->workers[i].getGlobalDomain();
       mipdata_->workers[i].search_ptr_->backtrack();
-      flush[i] = true;
+      flush[i] = 1;
 
       globaldom.propagate();
       if (!multiple_workers) {
@@ -597,7 +597,7 @@ restart:
       }
 
       if (globaldom.infeasible()) {
-        infeasible[i] = true;
+        infeasible[i] = 1;
         if (!multiple_workers) {
           mipdata_->nodequeue.clear();
           mipdata_->pruned_treeweight = 1.0;
@@ -615,7 +615,7 @@ restart:
         return;
       }
 
-      prune[i] = true;
+      prune[i] = 1;
 
       if (multiple_workers || mipdata_->checkLimits()) {
         return;
@@ -635,25 +635,25 @@ restart:
     analysis_.mipTimerStart(kMipClockNodePrunedLoop);
     runTask(doHandlePrunedNodes, tg, true, indices);
     // Flush pruned nodes statistics that haven't yet been flushed
-    for (HighsInt i = 0; i != num_workers; ++i) {
-      if (flush[i]) {
+    for (HighsInt i : indices) {
+      if (flush[i] == 1) {
         ++mipdata_->num_leaves;
         ++mipdata_->num_nodes;
-        mipdata_->workers[indices[i]].search_ptr_->flushStatistics();
+        mipdata_->workers[i].search_ptr_->flushStatistics();
       }
     }
     // Remove search indices that need a new node
     HighsInt num_search_indices = static_cast<HighsInt>(indices.size());
     for (HighsInt i = num_search_indices - 1; i >= 0; i--) {
-      if (prune[i]) {
+      if (prune[indices[i]] == 1) {
         num_search_indices--;
         std::swap(indices[i], indices[num_search_indices]);
       }
     }
     indices.resize(num_search_indices);
 
-    for (bool status : infeasible) {
-      if (status) {
+    for (uint8_t status : infeasible) {
+      if (status == 1) {
         mipdata_->nodequeue.clear();
         mipdata_->pruned_treeweight = 1.0;
 
@@ -805,7 +805,7 @@ restart:
   };
 
   auto runHeuristics = [&](std::vector<HighsInt>& indices) -> void {
-    std::vector<bool> suboptimal(num_workers, false);
+    std::vector<uint8_t> suboptimal(num_workers, 0);
     auto doRunHeuristics = [&](HighsInt i) -> void {
       HighsMipWorker& worker = mipdata_->workers[i];
       // analysis_.mipTimerStart(kMipClockDiveEvaluateNode);
@@ -814,7 +814,7 @@ restart:
       // analysis_.mipTimerStop(kMipClockDiveEvaluateNode);
 
       if (evaluate_node_result == HighsSearch::NodeResult::kSubOptimal) {
-        suboptimal[i] = true;
+        suboptimal[i] = 1;
         return;
       }
 
@@ -845,7 +845,7 @@ restart:
     };
     runTask(doRunHeuristics, tg, true, indices);
     for (const HighsInt i : indices) {
-      if (!suboptimal[i]) {
+      if (suboptimal[i] == 0) {
         if (mipdata_->workers[i].search_ptr_->currentNodePruned()) {
           ++mipdata_->num_leaves;
           mipdata_->workers[i].search_ptr_->flushStatistics();
@@ -856,7 +856,7 @@ restart:
     // Remove search indices that have suboptimal status
     HighsInt num_search_indices = static_cast<HighsInt>(indices.size());
     for (HighsInt i = num_search_indices - 1; i >= 0; i--) {
-      if (suboptimal[indices[i]]) {
+      if (suboptimal[indices[i]] == 1) {
         num_search_indices--;
         std::swap(indices[i], indices[num_search_indices]);
       }

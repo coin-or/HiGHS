@@ -1941,7 +1941,6 @@ HighsSymmetries& HighsSearch::getSymmetries() const {
 bool HighsSearch::addIncumbent(const std::vector<double>& sol, double solobj,
                                const int solution_source,
                                const bool print_display_line) {
-  // if (mipsolver.mipdata_->workers.size() <= 1)
   if (mipsolver.mipdata_->parallelLockActive()) {
     return mipworker.addIncumbent(sol, solobj, solution_source);
   } else {

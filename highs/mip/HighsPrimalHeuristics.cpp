@@ -224,7 +224,7 @@ double HighsPrimalHeuristics::determineTargetFixingRate(
   double highFixingRate = 0.6;
 
   HighsRandom& randgen =
-      mipsolver.mipdata_->parallelLockActive() ? this->randgen : worker.randgen;
+      mipsolver.mipdata_->parallelLockActive() ? worker.randgen : this->randgen;
 
   if (getNumInfeasObservations(worker) != 0) {
     double infeasRate =
@@ -1081,7 +1081,7 @@ void HighsPrimalHeuristics::randomizedRounding(
 
   HighsDomain localdom = worker.getGlobalDomain();
   HighsRandom& randgen =
-      mipsolver.mipdata_->parallelLockActive() ? this->randgen : worker.randgen;
+      mipsolver.mipdata_->parallelLockActive() ? worker.randgen : this->randgen;
 
   for (HighsInt i : intcols) {
     double intval;
@@ -1170,7 +1170,7 @@ void HighsPrimalHeuristics::shifting(HighsMipWorker& worker,
   HighsLpRelaxation lprelax(worker.getLpRelaxation());
   lprelax.setMipWorker(worker);
   HighsRandom& randgen =
-      mipsolver.mipdata_->parallelLockActive() ? this->randgen : worker.randgen;
+      mipsolver.mipdata_->parallelLockActive() ? worker.randgen : this->randgen;
   std::vector<std::pair<HighsInt, double>> current_fractional_integers =
       lprelax.getFractionalIntegers();
   std::vector<std::tuple<HighsInt, HighsInt, double>> current_infeasible_rows =
@@ -1542,7 +1542,7 @@ void HighsPrimalHeuristics::feasibilityPump(HighsMipWorker& worker) {
   worker.heur_stats.lp_iterations += lprelax.getNumLpIterations();
 
   HighsRandom& randgen =
-      mipsolver.mipdata_->parallelLockActive() ? this->randgen : worker.randgen;
+      mipsolver.mipdata_->parallelLockActive() ? worker.randgen : this->randgen;
 
   std::vector<double> fracintcost;
   std::vector<HighsInt> fracintset;

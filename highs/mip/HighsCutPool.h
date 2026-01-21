@@ -57,7 +57,7 @@ class HighsCutPool {
   std::vector<double> rhs_;
   std::vector<int16_t> ages_;
   std::deque<std::atomic<int16_t>> numLps_;
-  std::vector<bool> ageResetWhileLocked_;  // Was the cut propagated?
+  std::vector<uint8_t> ageResetWhileLocked_;  // Was the cut propagated?
   std::vector<bool> hasSynced_;            // Has the cut been globally synced?
   std::vector<double> rownormalization_;
   std::vector<double> maxabscoef_;
@@ -105,7 +105,7 @@ class HighsCutPool {
   void resetAge(HighsInt cut, bool thread_safe = false) {
     if (ages_[cut] > 0) {
       if (thread_safe) {
-        ageResetWhileLocked_[cut] = true;
+        ageResetWhileLocked_[cut] = 1;
         return;
       }
       if (matrix_.columnsLinked(cut)) {
