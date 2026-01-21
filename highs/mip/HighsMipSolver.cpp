@@ -761,7 +761,9 @@ restart:
   auto backtrackPlunge = [&](std::vector<HighsInt>& indices,
                              size_t plungestart) {
     HighsInt numPlungeNodes = mipdata_->num_nodes - plungestart;
-    if (numPlungeNodes >= 100) return false;
+    if (numPlungeNodes >=
+        std::max(static_cast<double>(indices.size()) / 2, 1.0) * 100)
+      return false;
 
     std::vector<bool> backtracked(num_workers, false);
 
