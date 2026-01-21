@@ -121,13 +121,19 @@ if (BUILD_OPENBLAS)
 
         if(SKYLAKE_CHECK EQUAL 0)
             message(STATUS "Skylake detected - adjusting OpenBLAS target to avoid register spills")
-            set(CMAKE_C_FLAGS_OPENBLAS "-DTARGET=HASWELL -DNO_AVX512=1")
+            set(OPENBLAS_TARGET "HASWELL" CACHE STRING "OpenBLAS target architecture" FORCE)
+            set(NO_AVX512 ON CACHE BOOL "Disable AVX512" FORCE)
+            # set(CMAKE_C_FLAGS_OPENBLAS "-DTARGET=HASWELL -DNO_AVX512=1")
         else()
             message(STATUS " NOT Skylake")
         endif()
     endif()
 
-    message(STATUS )
+    set(OPENBLAS_BUILD_TYPE "Release" CACHE STRING "Build type for OpenBLAS" FORCE)
+
+    # Override CMAKE_BUILD_TYPE for OpenBLAS subdirectory
+    set(CMAKE_BUILD_TYPE_BACKUP ${CMAKE_BUILD_TYPE})
+    set(CMAKE_BUILD_TYPE Release)
 
     message(CHECK_START "Fetching OpenBLAS")
     list(APPEND CMAKE_MESSAGE_INDENT "  ")
@@ -141,8 +147,8 @@ if (BUILD_OPENBLAS)
             ${OPENBLAS_MINIMAL_FLAGS}
             # Force optimization even in Debug builds to avoid register spills
             # Force high optimization and strip debug symbols for the kernels
-            -DCMAKE_BUILD_TYPE=Release
-            -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS_OPENBLAS}
+            # -DCMAKE_BUILD_TYPE=Release
+            # -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS_OPENBLAS}
             # -DCMAKE_C_FLAGS="-O3 -fomit-frame-pointer"
             # -DCMAKE_C_FLAGS_RELEASE="-O3 -fomit-frame-pointer"
             # -DCMAKE_C_FLAGS_DEBUG="-O2 -fomit-frame-pointer"
@@ -153,6 +159,8 @@ if (BUILD_OPENBLAS)
     if (ALL_TESTS)
         set(BUILD_TESTING ON)
     endif()
+
+    set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE_BACKUP})
 
     list(POP_BACK CMAKE_MESSAGE_INDENT)
     message(CHECK_PASS "fetched")
