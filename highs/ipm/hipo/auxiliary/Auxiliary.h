@@ -72,7 +72,7 @@ void printTest(const std::vector<T>& v, const std::string s) {
 }
 
 template <typename T>
-void freeVector(std::vector<T> v) {
+void freeVector(std::vector<T>& v) {
   // Give up memory allocated to v.
   // (technically shrink_to_fit does not guarantee to deallocate)
   v.clear();
