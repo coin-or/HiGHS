@@ -269,14 +269,14 @@ restart:
 
   auto destroyOldWorkers = [&]() {
     if (mipdata_->workers.size() <= 1) return;
+    while (mipdata_->domains.size() > 1) {
+      mipdata_->domains.pop_back();
+    }
     while (mipdata_->cutpools.size() > 1) {
       mipdata_->cutpools.pop_back();
     }
     while (mipdata_->conflictpools.size() > 1) {
       mipdata_->conflictpools.pop_back();
-    }
-    while (mipdata_->domains.size() > 1) {
-      mipdata_->domains.pop_back();
     }
     while (mipdata_->lps.size() > 1) {
       mipdata_->lps.pop_back();
