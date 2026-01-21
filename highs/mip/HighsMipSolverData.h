@@ -74,7 +74,6 @@ struct HighsMipSolverData {
 
   std::deque<HighsLpRelaxation> lps;
   HighsLpRelaxation& lp;
-  std::deque<HighsMipWorker> workers;
   std::deque<HighsCutPool> cutpools;
   HighsCutPool& cutpool;
   std::deque<HighsConflictPool> conflictpools;
@@ -83,6 +82,7 @@ struct HighsMipSolverData {
   HighsDomain& domain;
   std::deque<HighsPseudocost> pseudocosts;
   HighsPseudocost pseudocost;
+  std::deque<HighsMipWorker> workers;
   bool parallel_lock;
 
   HighsPrimalHeuristics heuristics;
