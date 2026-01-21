@@ -1420,11 +1420,11 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
         }
         const HighsSubSolverCallTime& sub_solver_call_time =
             ipm.getSubSolverCallTime();
-        mipsolver.analysis_.addSubSolverCallTime(sub_solver_call_time);
+        // mipsolver.analysis_.addSubSolverCallTime(sub_solver_call_time);
         // Go through sub_solver_call_time to update any MIP clocks
         const bool valid_basis = false;
-        mipsolver.analysis_.mipTimerUpdate(sub_solver_call_time, valid_basis,
-                                           use_presolve);
+        // mipsolver.analysis_.mipTimerUpdate(sub_solver_call_time, valid_basis,
+        //                                    use_presolve);
 
         lpsolver.setBasis(ipm.getBasis(), "HighsLpRelaxation::run IPM basis");
         return run(false);
