@@ -25,8 +25,7 @@ bazel_dep(
     version = "0.2.5",
 )
 
+# cuda toolchain
 local_cuda = use_extension("@rules_cuda//cuda:extensions.bzl", "toolchain")
-local_cuda.local_toolchain(
-    toolkit_path = "",
-)
+local_cuda.local_toolchain()
 use_repo(local_cuda, "local_cuda")
