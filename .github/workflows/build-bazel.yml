@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [macos-latest, ubuntu-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -25,7 +25,6 @@ jobs:
         run: bazel test --test_output=all //...
 
       - name: test example
-        shell: bash
         run: ./bazel-bin/call-highs-example
 
       # - name: Upload bazel-testlogs
@@ -33,3 +32,70 @@ jobs:
       #   with:
       #     name: bazel-testlogs-${{ matrix.os }}
       #     path: bazel-testlogs/
+
+  bazel-win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+  
+      - name: Setup Bazelisk
+        uses: bazelbuild/setup-bazelisk@v3
+    
+      - name: Debug environment
+        shell: pwsh
+        run: |
+          Write-Host "=== Environment Debug ==="
+          Write-Host "Current Directory:"
+          Get-Location
+          Write-Host "`n--- Directory Contents ---"
+          Get-ChildItem
+          Write-Host "`n--- PATH ---"
+          $env:PATH -split ';' | ForEach-Object { Write-Host $_ }
+          Write-Host "`n--- Which Bazel ---"
+          Get-Command bazel -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+          Write-Host "`n--- Bazel Version ---"
+          bazel version
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Bazel version failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
+
+
+      - name: bazel clean
+        shell: pwsh
+        run: |
+          bazel clean --expunge
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Clean failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
+
+          Write-Host "Clean completed successfully"
+
+      - name: build bazel
+        shell: pwsh
+        run: |
+          bazel build //... --verbose_failures
+          if ($LASTEXITCODE -ne 0) { 
+            Write-Error "Build failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE 
+          }
+          Write-Host "Build completed successfully"
+      
+      - name: test all
+        shell: pwsh
+        run: |
+          bazel test --test_output=all //...
+          if ($LASTEXITCODE -ne 0) { 
+            Write-Error "Tests failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE 
+          }
+          Write-Host "Tests completed successfully"
+      
+      - name: test example
+        shell: pwsh
+        run: |
+          & .\bazel-bin\call-highs-example.exe
+          if ($LASTEXITCODE -ne 0) { 
+            Write-Error "Example failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE 
+          }
