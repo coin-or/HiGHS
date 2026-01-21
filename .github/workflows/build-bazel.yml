@@ -99,3 +99,23 @@ jobs:
             Write-Error "Example failed with exit code $LASTEXITCODE"
             exit $LASTEXITCODE 
           }
+
+  bazel-win_:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+           # Bazelisk is available via Chocolatey (on Windows)
+      - name: Install Bazelisk
+        run: |
+          choco install bazelisk --yes
+          bazelisk version
+
+      - name: Build with Bazelisk
+        run: bazelisk build //...
+
+      - name: Run tests with Bazelisk
+        run: bazelisk test --test_output=all //...
+
+      - name: test example
+        run: ./bazel-bin/call-highs-example.exe
