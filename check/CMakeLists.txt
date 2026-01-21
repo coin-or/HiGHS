@@ -286,9 +286,16 @@ if ((NOT FAST_BUILD OR ALL_TESTS) AND NOT (BUILD_EXTRA_UNIT_ONLY))
   #   "--parallel=on"
       )
 
+  if(CMAKE_SIZEOF_VOID_P EQUAL 4) OR if(CMAKE_C_FLAGS MATCHES "-m32" OR CMAKE_CXX_FLAGS MATCHES "-m32")
+    set(IS_32 ON)
+  else()
+    set(IS_32 OFF)
+  endif()
+
   if (UNIX AND NOT APPLE AND
         NOT CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM"
-        AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64")
+        AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64"
+        AND NOT IS_32)
     if (CUPDLP_GPU)
         set(pdlpInstances
             "25fv47\; 5.501847\;"
@@ -442,7 +449,7 @@ if ((NOT FAST_BUILD OR ALL_TESTS) AND NOT (BUILD_EXTRA_UNIT_ONLY))
         add_instancetests(successRiscVInstances "Optimal")
     endif()
   elseif(NOT (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64") AND
-             NOT (CMAKE_SIZEOF_VOID_P EQUAL 4))
+             NOT IS_32)
     add_instancetests(successInstances "Optimal")
   endif()
 

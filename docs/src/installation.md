@@ -7,42 +7,62 @@ HiGHS uses CMake as build system, and requires at least version
 
 ## HiGHS with HiPO
 
-HiGHS does not have any external dependencies, however, the new interior point solver HiPO uses BLAS. At the moment HiPO is optional and can be enabled via CMake. To build HiPO, you need to have BLAS installed on your machine. Please follow the instructions below.
+HiGHS does not have any external dependencies, however, the new interior point solver HiPO uses BLAS. At the moment HiPO is optional and can be enabled via CMake.
 
-#### BLAS
+### External ordering heuristics
 
-On Linux, libblas and libopenblas are supported. We recomment libopenblas for its better performance, and it is found by default if available on the system. Install with
+HiPO also relies on a fill-reducing ordering heuristic. HiGHS includes the source code of Metis, AMD and RCM, three open-source ordering heuristics. Their source code is already part of the HiGHS library, so there is no need to link them. In particular, there is no need to have Metis installed separately, as in previous versions of HiPO. These source codes can be found in extern/metis, extern/amd, extern/rcm, together with the respective license files. Notice that the HiGHS source code is MIT licensed. However, if you build HiGHS with HiPO support, then libhighs and the HiGHS executables are licensed Apache 2.0, due to the presence of Metis and AMD.
+
+### BLAS
+
+On MacOS no BLAS installation is required because HiPO uses [Apple Accelerate](https://developer.apple.com/accelerate/) by default.
+
+On Windows and Linux, you can either compile OpenBLAS at configure time using the option `-DBUILD_OPENBLAS=ON` (`OFF` by default) or compile BLAS using the instructions below.
+
+#### MacOS
+
+To build HiPO on MacOS, run
+```
+cmake -S. -B build -DHIPO=ON
+```
+
+#### Linux and Windows: Compile OpenBLAS at configure time
+
+```
+cmake -S. -B build -DHIPO=ON -DBUILD_OPENBLAS=ON
+```
+
+#### Linux and Windows: Link with BLAS installatied on your machine
+
+On Linux, libblas and libopenblas are supported. We recommend libopenblas for its better performance, and it is found by default if available on the system. Install with
 
 ```
 sudo apt update
 sudo apt install libopenblas-dev
 ```
 
-On MacOS no BLAS installation is required because HiPO uses [Apple Accelerate](https://developer.apple.com/accelerate/) by default.
+To build HiPO, run
+```
+cmake -S. -B build -DHIPO=ON
+```
 
 On Windows, OpenBLAS is required. It could be installed via [vcpkg](https://learn.microsoft.com/en-us/vcpkg/get_started/overview) with
 
 ```
 vcpkg install openblas[threads]
 ```
+
 Note, that `[threads]` is required for HiPO.
+
+On Windows, you also need to specify the path to OpenBLAS. If it was installed with vcpkg as suggested above, add the path to `vcpkg.cmake` to the CMake flags, e.g.
+```
+cmake -S. -B build -DHIPO=ON -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+```
+
+##### Path to BLAS
 
 To specify explicitly which BLAS vendor to look for, `BLA_VENDOR` coud be set in CMake, e.g. `-DBLA_VENDOR=Apple` or `-DBLA_VENDOR=OpenBLAS`. Alternatively, to specify which BLAS library to use, set `BLAS_LIBRARIES` to the full path of the library e.g. `-DBLAS_LIBRARIES=/path_to/libopenblas.so`.
 
-#### External ordering heuristics
-
-HiPO also relies on a fill-reducing ordering heuristic. HiGHS includes the source code of Metis, AMD and RCM, three open-source ordering heuristics. Their source code is already part of the HiGHS library, so there is no need to link them. In particular, there is no need to have Metis installed separately, as in previous versions of HiPO. These source codes can be found in extern/metis, extern/amd, extern/rcm, together with the respective license files. Notice that the HiGHS source code is MIT licensed. However, if you build HiGHS with HiPO support, then libhighs and the HiGHS executables are licensed Apache 2.0, due to the presence of Metis and AMD. 
-
-### HiPO
-
-To install HiPO, on Linux and MacOS, run
-```
-cmake -S. -B build -DHIPO=ON
-```
-On Windows, you also need to specify the path to OpenBLAS. If it was installed with vcpkg as suggested above, add the path to `vcpkg.cmake` to the CMake flags, e.g.
-```
--DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
-```
 
 ## Bazel build
 
