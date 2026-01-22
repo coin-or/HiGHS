@@ -1930,7 +1930,7 @@ const HighsNodeQueue& HighsSearch::getNodeQueue() const {
 }
 
 bool HighsSearch::checkLimits(int64_t nodeOffset) const {
-  // TODO MT: Need to make some limited worker limit check
+  if (mipsolver.mipdata_->parallelLockActive()) return false;
   return mipsolver.mipdata_->checkLimits(nodeOffset);
 }
 
