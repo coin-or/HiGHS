@@ -765,7 +765,7 @@ restart:
         std::max(static_cast<double>(indices.size()) / 2, 1.0) * 100)
       return false;
 
-    std::vector<bool> backtracked(num_workers, false);
+    std::vector<uint8_t> backtracked(num_workers, 0);
 
     auto doBacktrackPlunge = [&](HighsInt i) {
       backtracked[i] = mipdata_->workers[i].search_ptr_->backtrackPlunge(
@@ -780,7 +780,7 @@ restart:
     // Remove search indices that were not backtracked
     HighsInt num_search_indices = static_cast<HighsInt>(indices.size());
     for (HighsInt i = num_search_indices - 1; i >= 0; i--) {
-      if (!backtracked[indices[i]]) {
+      if (backtracked[indices[i]] == 0) {
         num_search_indices--;
         std::swap(indices[i], indices[num_search_indices]);
       }
