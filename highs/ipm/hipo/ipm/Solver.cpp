@@ -183,6 +183,7 @@ bool Solver::prepareIpx() {
   ipx_param.ipm_optimality_tol = options_.optimality_tol;
   ipx_param.start_crossover_tol = options_.crossover_tol;
   ipx_param.time_limit = options_.time_limit;
+  ipx_param.timeless_log = options_.timeless_log;
   ipx_param.ipm_maxiter = options_.max_iter - iter_;
   ipx_lps_.SetParameters(ipx_param);
 
@@ -1193,29 +1194,32 @@ void Solver::printSummary() const {
 
   if (logH_.debug(1)) {
     log_stream << textline("Correctors:") << integer(info_.correctors) << '\n';
-    log_stream << textline("Analyse AS time:")
-               << fix(info_.analyse_AS_time, 0, 2) << '\n';
-    log_stream << textline("Analyse NE time:")
-               << fix(info_.analyse_NE_time, 0, 2) << '\n';
-    log_stream << textline("Matrix time:") << fix(info_.matrix_time, 0, 2)
-               << '\n';
-    log_stream << textline("Matrix structure time:")
-               << fix(info_.matrix_structure_time, 0, 2) << '\n';
-    log_stream << textline("Factorisation time:")
-               << fix(info_.factor_time, 0, 2) << '\n';
-    log_stream << textline("Solve time:") << fix(info_.solve_time, 0, 2)
-               << '\n';
-    log_stream << textline("Residual time:") << fix(info_.residual_time, 0, 2)
-               << '\n';
-    log_stream << textline("Omega time:") << fix(info_.omega_time, 0, 2)
-               << '\n';
     log_stream << textline("Factorisations:") << integer(info_.factor_number)
                << '\n';
     log_stream << textline("Solves:") << integer(info_.solve_number) << '\n';
-    log_stream << textline("Avg time per factorisation:")
-               << sci(info_.factor_time / info_.factor_number, 0, 2) << '\n';
-    log_stream << textline("Avg time per solve:")
-               << sci(info_.solve_time / info_.solve_number, 0, 2) << '\n';
+
+    if (!options_.timeless_log) {
+      log_stream << textline("Analyse AS time:")
+                 << fix(info_.analyse_AS_time, 0, 2) << '\n';
+      log_stream << textline("Analyse NE time:")
+                 << fix(info_.analyse_NE_time, 0, 2) << '\n';
+      log_stream << textline("Matrix time:") << fix(info_.matrix_time, 0, 2)
+                 << '\n';
+      log_stream << textline("Matrix structure time:")
+                 << fix(info_.matrix_structure_time, 0, 2) << '\n';
+      log_stream << textline("Factorisation time:")
+                 << fix(info_.factor_time, 0, 2) << '\n';
+      log_stream << textline("Solve time:") << fix(info_.solve_time, 0, 2)
+                 << '\n';
+      log_stream << textline("Residual time:") << fix(info_.residual_time, 0, 2)
+                 << '\n';
+      log_stream << textline("Omega time:") << fix(info_.omega_time, 0, 2)
+                 << '\n';
+      log_stream << textline("Avg time per factorisation:")
+                 << sci(info_.factor_time / info_.factor_number, 0, 2) << '\n';
+      log_stream << textline("Avg time per solve:")
+                 << sci(info_.solve_time / info_.solve_number, 0, 2) << '\n';
+    }
   }
 
   logH_.print(log_stream);
