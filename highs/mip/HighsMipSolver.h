@@ -108,9 +108,10 @@ class HighsMipSolver {
   ~HighsMipSolver();
 
   template <class F>
-  void runTask(
-      F&& f, highs::parallel::TaskGroup& tg, bool parallel_lock,
-      const std::vector<HighsInt>& indices = std::vector<HighsInt>(1, 0));
+  void runTask(F&& f, highs::parallel::TaskGroup& tg, bool parallel_lock,
+               bool force_serial,
+               const std::vector<HighsInt>& indices = std::vector<HighsInt>(1,
+                                                                            0));
 
   void setModel(const HighsLp& model) {
     model_ = &model;

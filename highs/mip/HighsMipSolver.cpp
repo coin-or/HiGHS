@@ -73,12 +73,11 @@ HighsMipSolver::~HighsMipSolver() = default;
 
 template <class F>
 void HighsMipSolver::runTask(F&& f, highs::parallel::TaskGroup& tg,
-                             bool parallel_lock,
+                             bool parallel_lock, bool force_serial,
                              const std::vector<HighsInt>& indices) {
   if (indices.empty()) return;
   setParallelLock(parallel_lock);
-  const bool spawn_tasks = mipdata_->parallelLockActive() &&
-                           indices.size() > 1 &&
+  const bool spawn_tasks = !force_serial && indices.size() > 1 &&
                            !options_mip_->mip_search_simulate_concurrency;
   for (HighsInt i : indices) {
     if (spawn_tasks) {
@@ -396,6 +395,8 @@ restart:
 #endif
     worker.getGlobalDomain().setDomainChangeStack(
         std::vector<HighsDomainChange>());
+    // Warning: Resetting local domain cannot be done in parallel (changes
+    // propagationDomains of main pool)
     worker.search_ptr_->resetLocalDomain();
     worker.getGlobalDomain().clearChangedCols();
   };
@@ -412,7 +413,7 @@ restart:
         // Sync worker domains here. cleanupFixed might have found extra changes
         std::vector<HighsInt> indices(num_workers);
         std::iota(indices.begin(), indices.end(), 0);
-        runTask(doResetWorkerDomain, tg, false, indices);
+        runTask(doResetWorkerDomain, tg, false, true, indices);
       }
       for (const HighsInt col : mipdata_->domain.getChangedCols())
         mipdata_->implications.cleanupVarbounds(col);
@@ -448,7 +449,7 @@ restart:
     auto doResetWorkerPseudoCost = [&](HighsInt i) -> void {
       mipdata_->pseudocost.syncPseudoCost(mipdata_->workers[i].getPseudocost());
     };
-    runTask(doResetWorkerPseudoCost, tg, false, indices);
+    runTask(doResetWorkerPseudoCost, tg, false, false, indices);
   };
 
   destroyOldWorkers();
@@ -566,7 +567,7 @@ restart:
       search_results[i] = mipdata_->workers[i].search_ptr_->evaluateNode();
     };
     analysis_.mipTimerStart(kMipClockEvaluateNode1);
-    runTask(doEvaluateNode, tg, true, indices);
+    runTask(doEvaluateNode, tg, true, false, indices);
     analysis_.mipTimerStop(kMipClockEvaluateNode1);
     for (size_t i = 0; i != indices.size(); i++) {
       HighsInt worker_id = indices[i];
@@ -633,7 +634,7 @@ restart:
             mipdata_->upper_bound);
     };
     analysis_.mipTimerStart(kMipClockNodePrunedLoop);
-    runTask(doHandlePrunedNodes, tg, true, indices);
+    runTask(doHandlePrunedNodes, tg, true, false, indices);
     // Flush pruned nodes statistics that haven't yet been flushed
     for (HighsInt i : indices) {
       if (flush[i] == 1) {
@@ -697,7 +698,7 @@ restart:
           mipdata_->workers[i].search_ptr_->getLocalDomain());
     };
     analysis_.mipTimerStart(kMipClockNodeSearchSeparation);
-    runTask(doSeparate, tg, true, indices);
+    runTask(doSeparate, tg, true, false, indices);
     analysis_.mipTimerStop(kMipClockNodeSearchSeparation);
 
     auto syncSepaStats = [&](HighsMipWorker& worker) {
@@ -755,7 +756,7 @@ restart:
       }
     };
 
-    runTask(doStoreBasis, tg, false, indices);
+    runTask(doStoreBasis, tg, false, false, indices);
     return false;
   };
 
@@ -775,7 +776,7 @@ restart:
     };
 
     analysis_.mipTimerStart(kMipClockBacktrackPlunge);
-    runTask(doBacktrackPlunge, tg, true, indices);
+    runTask(doBacktrackPlunge, tg, true, false, indices);
     analysis_.mipTimerStop(kMipClockBacktrackPlunge);
 
     // Remove search indices that were not backtracked
@@ -819,6 +820,27 @@ restart:
         return;
       }
 
+      // TODO MT: ERORRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR
+      // When a domain is created (based on another existing domain)
+      // , e.g., in randomizedRounding (as an object
+      // that we can propagate and play around with) or in RINS (where one
+      // is created as part of the HighsSearch object), it is going to notify
+      // all cutpools / conflictpools that the original was propagating.
+      // This "notify" is going to append the domain to the vector of
+      // pools, which is going to be non-deterministic and error-prone.
+      // We therefore need to either make the vector robust to multiple changes,
+      // or consider not propagating the main pool if parallel lock is active?
+      // The first would be complicated, and the second would make
+      // heuristics take longer (potentially less effective?)
+      // For the second: iN THE HighsDomain constructor there is the line,
+      // cutpoolpropagation(other.cutpoolpropagation),
+      // This will call the line:
+      // HighsDomain::CutpoolPropagation::CutpoolPropagation()
+      // which will call this cutpool->addPropagationDomain(this);
+      // Consider checking at that stage and simply not notifying the cut pool!
+      // Information would be one way -> cutpool update wouldn't change
+      // the local domain, but that's not a problem in this case.
+
       // analysis_.mipTimerStart(kMipClockDivePrimalHeuristics);
       if (mipdata_->incumbent.empty()) {
         // analysis_.mipTimerStart(kMipClockDiveRandomizedRounding);
@@ -844,7 +866,7 @@ restart:
 
       // analysis_.mipTimerStop(kMipClockDivePrimalHeuristics);
     };
-    runTask(doRunHeuristics, tg, true, indices);
+    runTask(doRunHeuristics, tg, true, false, indices);
     for (const HighsInt i : indices) {
       if (suboptimal[i] == 0) {
         if (mipdata_->workers[i].search_ptr_->currentNodePruned()) {
@@ -886,7 +908,7 @@ restart:
         return;
       dive_results[i] = worker.search_ptr_->dive();
     };
-    runTask(doDiveSearch, tg, true, non_pruned_indices);
+    runTask(doDiveSearch, tg, true, false, non_pruned_indices);
     analysis_.mipTimerStop(kMipClockTheDive);
 
     for (const HighsInt i : non_pruned_indices) {
