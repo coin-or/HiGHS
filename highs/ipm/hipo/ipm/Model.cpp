@@ -2,48 +2,34 @@
 
 #include "Parameters.h"
 #include "Status.h"
+#include "ipm/IpxWrapper.h"
 #include "ipm/hipo/auxiliary/Log.h"
 
 namespace hipo {
 
-Int Model::init(const Int num_var, const Int num_con, std::vector<double>& obj,
-                std::vector<double>& rhs, std::vector<double>& lower,
-                std::vector<double>& upper, std::vector<Int>& A_ptr,
-                std::vector<Int>& A_rows, std::vector<double>& A_vals,
-                std::vector<char>& constraints, double offset) {
-  // copy the input into the model
+Int Model::init(const HighsLp& lp) {
+  // Transform problem to correct formulation
+  fillInIpxData(lp, n_orig_, m_orig_, offset_, c_, lower_, upper_, A_.start_,
+                A_.index_, A_.value_, b_, constraints_);
 
-  if (checkData(num_var, num_con, obj, rhs, lower, upper, A_ptr, A_rows, A_vals,
-                constraints))
+  if (checkData(n_orig_, m_orig_, c_, b_, lower_, upper_, A_.start_, A_.index_,
+                A_.value_, constraints_))
     return kStatusBadModel;
 
-  n_orig_ = num_var;
-  m_orig_ = num_con;
-  c_orig_ = obj;
-  b_orig_ = rhs;
-  lower_orig_ = lower;
-  upper_orig_ = upper;
-  A_ptr_orig_ = A_ptr;
-  A_rows_orig_ = A_rows;
-  A_vals_orig_ = A_vals;
-  constraints_orig_ = constraints;
-  offset_ = offset;
+  c_orig_ = c_;
+  b_orig_ = b_;
+  lower_orig_ = lower_;
+  upper_orig_ = upper_;
+  A_ptr_orig_ = A_.start_;
+  A_rows_orig_ = A_.index_;
+  A_vals_orig_ = A_.value_;
+  constraints_orig_ = constraints_;
 
-  n_ = num_var;
-  m_ = num_con;
-  c_ = std::move(obj);
-  b_ = std::move(rhs);
-  lower_ = std::move(lower);
-  upper_ = std::move(upper);
+  n_ = n_orig_;
+  m_ = m_orig_;
 
-  Int Annz = A_ptr[n_];
   A_.num_col_ = n_;
   A_.num_row_ = m_;
-  A_.start_ = std::move(A_ptr);
-  A_.index_ = std::move(A_rows);
-  A_.value_ = std::move(A_vals);
-
-  constraints_ = std::move(constraints);
 
   preprocess();
   scale();

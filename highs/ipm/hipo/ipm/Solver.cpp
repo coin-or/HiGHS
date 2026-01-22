@@ -4,25 +4,13 @@
 #include <cmath>
 #include <iostream>
 
-#include "ipm/IpxWrapper.h"
 #include "ipm/hipo/auxiliary/Log.h"
 #include "parallel/HighsParallel.h"
 
 namespace hipo {
 
 Int Solver::load(const HighsLp& lp) {
-  // Transform problem to correct formulation
-  hipo::Int num_var, num_con;
-  std::vector<double> obj, rhs, lower, upper, A_val;
-  std::vector<hipo::Int> A_ptr, A_row;
-  std::vector<char> constraints;
-  double offset;
-  fillInIpxData(lp, num_var, num_con, offset, obj, lower, upper, A_ptr, A_row,
-                A_val, rhs, constraints);
-
-  if (model_.init(num_var, num_con, obj, rhs, lower, upper, A_ptr, A_row, A_val,
-                  constraints, offset))
-    return kStatusBadModel;
+  if (model_.init(lp)) return kStatusBadModel;
 
   m_ = model_.m();
   n_ = model_.n();
@@ -30,8 +18,8 @@ Int Solver::load(const HighsLp& lp) {
   info_.ipx_used = false;
   info_.m_solver = m_;
   info_.n_solver = n_;
-  info_.m_original = num_con;
-  info_.n_original = num_var;
+  info_.m_original = model_.m_orig();
+  info_.n_original = model_.n_orig();
 
   return kStatusOk;
 }

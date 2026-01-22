@@ -87,11 +87,7 @@ class Model {
 
  public:
   // Initialise the model
-  Int init(const Int num_var, const Int num_con, std::vector<double>& obj,
-           std::vector<double>& rhs, std::vector<double>& lower,
-           std::vector<double>& upper, std::vector<Int>& A_ptr,
-           std::vector<Int>& A_rows, std::vector<double>& A_vals,
-           std::vector<char>& constraints, double offset);
+  Int init(const HighsLp& lp);
 
   // Print information of model
   void print(const LogHighs& log) const;
