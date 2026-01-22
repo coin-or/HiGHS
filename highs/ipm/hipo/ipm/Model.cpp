@@ -8,7 +8,6 @@
 namespace hipo {
 
 Int Model::init(const HighsLp& lp) {
-  // Transform problem to correct formulation
   fillInIpxData(lp, n_orig_, m_orig_, offset_, c_, lower_, upper_, A_.start_,
                 A_.index_, A_.value_, b_, constraints_);
 
@@ -16,18 +15,10 @@ Int Model::init(const HighsLp& lp) {
                 A_.value_, constraints_))
     return kStatusBadModel;
 
-  c_orig_ = c_;
-  b_orig_ = b_;
-  lower_orig_ = lower_;
-  upper_orig_ = upper_;
-  A_ptr_orig_ = A_.start_;
-  A_rows_orig_ = A_.index_;
-  A_vals_orig_ = A_.value_;
-  constraints_orig_ = constraints_;
+  lp_orig_ = &lp;
 
   n_ = n_orig_;
   m_ = m_orig_;
-
   A_.num_col_ = n_;
   A_.num_row_ = m_;
 
@@ -514,10 +505,20 @@ void Model::denseColumns() {
 }
 
 Int Model::loadIntoIpx(ipx::LpSolver& lps) const {
+  Int ipx_m, ipx_n;
+  std::vector<double> ipx_b, ipx_c, ipx_lower, ipx_upper, ipx_A_vals;
+  std::vector<Int> ipx_A_ptr, ipx_A_rows;
+  std::vector<char> ipx_constraints;
+  double ipx_offset;
+
+  fillInIpxData(*lp_orig_, ipx_n, ipx_m, ipx_offset, ipx_c, ipx_lower,
+                ipx_upper, ipx_A_ptr, ipx_A_rows, ipx_A_vals, ipx_b,
+                ipx_constraints);
+
   Int load_status = lps.LoadModel(
-      n_orig_, offset_, c_orig_.data(), lower_orig_.data(), upper_orig_.data(),
-      m_orig_, A_ptr_orig_.data(), A_rows_orig_.data(), A_vals_orig_.data(),
-      b_orig_.data(), constraints_orig_.data());
+      ipx_n, ipx_offset, ipx_c.data(), ipx_lower.data(), ipx_upper.data(),
+      ipx_m, ipx_A_ptr.data(), ipx_A_rows.data(), ipx_A_vals.data(),
+      ipx_b.data(), ipx_constraints.data());
 
   return load_status;
 }

@@ -32,14 +32,7 @@ class Model {
   // data of original problem
   Int n_orig_{};
   Int m_orig_{};
-  std::vector<double> c_orig_;
-  std::vector<double> b_orig_;
-  std::vector<double> lower_orig_;
-  std::vector<double> upper_orig_;
-  std::vector<Int> A_ptr_orig_;
-  std::vector<Int> A_rows_orig_;
-  std::vector<double> A_vals_orig_;
-  std::vector<char> constraints_orig_;
+  const HighsLp* lp_orig_ = nullptr;
   double offset_;
 
   // data of reformulated problem
