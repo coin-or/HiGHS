@@ -16,6 +16,8 @@
 #include <cusparse.h>
 #endif
 
+#define DEBUG_MODE 1
+
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -53,10 +55,11 @@ class PDLPSolver {
   int getnCol() const { return lp_.num_col_; }
   int getnRow() const { return lp_.num_row_; }
 
+#ifdef PDLP_DEBUG_LOG
   // --- Debugging ---
   FILE* debug_pdlp_log_file_ = nullptr;
   DebugPdlpData debug_pdlp_data_;
-
+#endif
   void reportHipdlpTimer();
   void closeDebugLog();
 
