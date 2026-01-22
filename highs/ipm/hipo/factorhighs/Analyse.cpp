@@ -1492,7 +1492,14 @@ Int Analyse::run(Symbolic& S) {
   S.relind_clique_ = std::move(relind_clique_);
   S.consecutive_sums_ = std::move(consecutive_sums_);
   S.clique_block_start_ = std::move(clique_block_start_);
-  S.tree_splitting_ = std::move(tree_splitting_);
+
+  // use the tree splitting only if it achieves a good relative reduction of the
+  // number of tasks
+  if (sn_count_ - tree_splitting_.tasks() > sn_count_ * kTaskReductionThresh) {
+    S.tree_splitting_ = std::move(tree_splitting_);
+    S.use_splitting_ = true;
+  } else
+    S.use_splitting_ = false;
 
   HIPO_CLOCK_STOP(1, data_, kTimeAnalyse);
 

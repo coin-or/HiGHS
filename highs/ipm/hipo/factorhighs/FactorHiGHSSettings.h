@@ -51,8 +51,9 @@ const double kDynamicDiagCoeff = 1e-24;
 const Int kMetisSeed = 42;
 
 // tree splitting
-const double kSmallThreshCoeff = 0.001;
+const double kSmallThreshCoeff = 0.001;  // 0.1%
 const double kSpopsWeightSplitting = 30.0;
+const double kTaskReductionThresh = 0.8;  // 80%
 
 struct Regul {
   double primal{};
