@@ -4,17 +4,24 @@
 #include <cmath>
 #include <iostream>
 
+#include "ipm/IpxWrapper.h"
 #include "ipm/hipo/auxiliary/Log.h"
 #include "parallel/HighsParallel.h"
 
 namespace hipo {
 
-Int Solver::load(const Int num_var, const Int num_con, const double* obj,
-                 const double* rhs, const double* lower, const double* upper,
-                 const Int* A_ptr, const Int* A_rows, const double* A_vals,
-                 const char* constraints, double offset) {
-  if (model_.init(num_var, num_con, obj, rhs, lower, upper, A_ptr, A_rows,
-                  A_vals, constraints, offset))
+Int Solver::load(const HighsLp& lp) {
+  // Transform problem to correct formulation
+  hipo::Int num_var, num_con;
+  std::vector<double> obj, rhs, lower, upper, A_val;
+  std::vector<hipo::Int> A_ptr, A_row;
+  std::vector<char> constraints;
+  double offset;
+  fillInIpxData(lp, num_var, num_con, offset, obj, lower, upper, A_ptr, A_row,
+                A_val, rhs, constraints);
+
+  if (model_.init(num_var, num_con, obj, rhs, lower, upper, A_ptr, A_row, A_val,
+                  constraints, offset))
     return kStatusBadModel;
 
   m_ = model_.m();
@@ -26,7 +33,7 @@ Int Solver::load(const Int num_var, const Int num_con, const double* obj,
   info_.m_original = num_con;
   info_.n_original = num_var;
 
-  return 0;
+  return kStatusOk;
 }
 
 void Solver::setOptions(const Options& options) {
@@ -1226,6 +1233,10 @@ void Solver::printSummary() const {
   logH_.print(log_stream);
 }
 
+void Solver::getOriginalDims(Int& num_row, Int& num_col) const {
+  num_row = model_.m_orig();
+  num_col = model_.n_orig();
+}
 const Info& Solver::getInfo() const { return info_; }
 void Solver::getInteriorSolution(
     std::vector<double>& x, std::vector<double>& xl, std::vector<double>& xu,

@@ -6,10 +6,11 @@
 
 namespace hipo {
 
-Int Model::init(const Int num_var, const Int num_con, const double* obj,
-                const double* rhs, const double* lower, const double* upper,
-                const Int* A_ptr, const Int* A_rows, const double* A_vals,
-                const char* constraints, double offset) {
+Int Model::init(const Int num_var, const Int num_con, std::vector<double>& obj,
+                std::vector<double>& rhs, std::vector<double>& lower,
+                std::vector<double>& upper, std::vector<Int>& A_ptr,
+                std::vector<Int>& A_rows, std::vector<double>& A_vals,
+                std::vector<char>& constraints, double offset) {
   // copy the input into the model
 
   if (checkData(num_var, num_con, obj, rhs, lower, upper, A_ptr, A_rows, A_vals,
@@ -30,19 +31,19 @@ Int Model::init(const Int num_var, const Int num_con, const double* obj,
 
   n_ = num_var;
   m_ = num_con;
-  c_ = std::vector<double>(obj, obj + n_);
-  b_ = std::vector<double>(rhs, rhs + m_);
-  lower_ = std::vector<double>(lower, lower + n_);
-  upper_ = std::vector<double>(upper, upper + n_);
+  c_ = std::move(obj);
+  b_ = std::move(rhs);
+  lower_ = std::move(lower);
+  upper_ = std::move(upper);
 
   Int Annz = A_ptr[n_];
   A_.num_col_ = n_;
   A_.num_row_ = m_;
-  A_.start_ = std::vector<Int>(A_ptr, A_ptr + n_ + 1);
-  A_.index_ = std::vector<Int>(A_rows, A_rows + Annz);
-  A_.value_ = std::vector<double>(A_vals, A_vals + Annz);
+  A_.start_ = std::move(A_ptr);
+  A_.index_ = std::move(A_rows);
+  A_.value_ = std::move(A_vals);
 
-  constraints_ = std::vector<char>(constraints, constraints + m_);
+  constraints_ = std::move(constraints);
 
   preprocess();
   scale();
@@ -59,17 +60,14 @@ Int Model::init(const Int num_var, const Int num_con, const double* obj,
   return 0;
 }
 
-Int Model::checkData(const Int num_var, const Int num_con, const double* obj,
-                     const double* rhs, const double* lower,
-                     const double* upper, const Int* A_ptr, const Int* A_rows,
-                     const double* A_vals, const char* constraints) const {
+Int Model::checkData(
+    const Int num_var, const Int num_con, const std::vector<double>& obj,
+    const std::vector<double>& rhs, const std::vector<double>& lower,
+    const std::vector<double>& upper, const std::vector<Int>& A_ptr,
+    const std::vector<Int>& A_rows, const std::vector<double>& A_vals,
+    const std::vector<char>& constraints) const {
   // Check if model provided by the user is ok.
   // Return kStatusBadModel if something is wrong.
-
-  // Pointers are valid
-  if (!obj || !rhs || !lower || !upper || !A_ptr || !A_rows || !A_vals ||
-      !constraints)
-    return kStatusBadModel;
 
   // Dimensions are valid
   if (num_var <= 0 || num_con < 0) return kStatusBadModel;
@@ -531,8 +529,9 @@ void Model::denseColumns() {
 
 Int Model::loadIntoIpx(ipx::LpSolver& lps) const {
   Int load_status = lps.LoadModel(
-      n_orig_, offset_, c_orig_, lower_orig_, upper_orig_, m_orig_, A_ptr_orig_,
-      A_rows_orig_, A_vals_orig_, b_orig_, constraints_orig_);
+      n_orig_, offset_, c_orig_.data(), lower_orig_.data(), upper_orig_.data(),
+      m_orig_, A_ptr_orig_.data(), A_rows_orig_.data(), A_vals_orig_.data(),
+      b_orig_.data(), constraints_orig_.data());
 
   return load_status;
 }

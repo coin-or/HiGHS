@@ -9,6 +9,7 @@
 #include "LogHighs.h"
 #include "ipm/hipo/auxiliary/IntConfig.h"
 #include "ipm/ipx/lp_solver.h"
+#include "lp_data/HighsLp.h"
 #include "util/HighsSparseMatrix.h"
 
 namespace hipo {
@@ -31,14 +32,14 @@ class Model {
   // data of original problem
   Int n_orig_{};
   Int m_orig_{};
-  const double* c_orig_;
-  const double* b_orig_;
-  const double* lower_orig_;
-  const double* upper_orig_;
-  const Int* A_ptr_orig_;
-  const Int* A_rows_orig_;
-  const double* A_vals_orig_;
-  const char* constraints_orig_;
+  std::vector<double> c_orig_;
+  std::vector<double> b_orig_;
+  std::vector<double> lower_orig_;
+  std::vector<double> upper_orig_;
+  std::vector<Int> A_ptr_orig_;
+  std::vector<Int> A_rows_orig_;
+  std::vector<double> A_vals_orig_;
+  std::vector<char> constraints_orig_;
   double offset_;
 
   // data of reformulated problem
@@ -75,18 +76,22 @@ class Model {
   void scale();
   void preprocess();
   void denseColumns();
-  Int checkData(const Int num_var, const Int num_con, const double* obj,
-                const double* rhs, const double* lower, const double* upper,
-                const Int* A_ptr, const Int* A_rows, const double* A_vals,
-                const char* constraints) const;
+  Int checkData(const Int num_var, const Int num_con,
+                const std::vector<double>& obj, const std::vector<double>& rhs,
+                const std::vector<double>& lower,
+                const std::vector<double>& upper, const std::vector<Int>& A_ptr,
+                const std::vector<Int>& A_rows,
+                const std::vector<double>& A_vals,
+                const std::vector<char>& constraints) const;
   void computeNorms();
 
  public:
   // Initialise the model
-  Int init(const Int num_var, const Int num_con, const double* obj,
-           const double* rhs, const double* lower, const double* upper,
-           const Int* A_ptr, const Int* A_rows, const double* A_vals,
-           const char* constraints, double offset);
+  Int init(const Int num_var, const Int num_con, std::vector<double>& obj,
+           std::vector<double>& rhs, std::vector<double>& lower,
+           std::vector<double>& upper, std::vector<Int>& A_ptr,
+           std::vector<Int>& A_rows, std::vector<double>& A_vals,
+           std::vector<char>& constraints, double offset);
 
   // Print information of model
   void print(const LogHighs& log) const;
@@ -117,6 +122,7 @@ class Model {
   Int m() const { return m_; }
   Int n() const { return n_; }
   Int n_orig() const { return n_orig_; }
+  Int m_orig() const { return m_orig_; }
   const HighsSparseMatrix& A() const { return A_; }
   const std::vector<double>& b() const { return b_; }
   const std::vector<double>& c() const { return c_; }
