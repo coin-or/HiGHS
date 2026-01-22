@@ -6,7 +6,7 @@
 #include "ipm/hipo/auxiliary/Log.h"
 
 namespace hipo {
-  
+
 void Symbolic::setParallel(bool par_tree, bool par_node) {
   parallel_tree_ = par_tree;
   parallel_node_ = par_node;
@@ -39,6 +39,7 @@ Int64 Symbolic::maxStackSize() const { return max_stack_size_; }
 bool Symbolic::parTree() const { return parallel_tree_; }
 bool Symbolic::parNode() const { return parallel_node_; }
 double Symbolic::storage() const { return serial_storage_; }
+bool Symbolic::useSplitting() const { return use_splitting_; }
 
 const std::vector<Int64>& Symbolic::ptr() const { return ptr_; }
 const std::vector<Int>& Symbolic::iperm() const { return iperm_; }
@@ -78,7 +79,8 @@ void Symbolic::print(const Log& log, bool verbose) const {
     log_stream << textline("Max tree speedup:") << fix(flops_ / critops_, 0, 2)
                << '\n';
     log_stream << textline("Number of tasks:")
-               << integer(tree_splitting_.tasks()) << '\n';
+               << integer(use_splitting_ ? tree_splitting_.tasks() : sn_)
+               << '\n';
     log_stream << textline("Artificial nz:") << sci(artificial_nz_, 0, 1)
                << '\n';
     log_stream << textline("Artificial ops:") << sci(artificial_ops_, 0, 1)

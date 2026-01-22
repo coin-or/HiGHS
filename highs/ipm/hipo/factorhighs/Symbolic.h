@@ -4,9 +4,9 @@
 #include <map>
 #include <vector>
 
+#include "TreeSplitting.h"
 #include "ipm/hipo/auxiliary/IntConfig.h"
 #include "ipm/hipo/auxiliary/Log.h"
-#include "TreeSplitting.h"
 
 namespace hipo {
 
@@ -102,6 +102,7 @@ class Symbolic {
   std::string ordering;
 
   TreeSplitting tree_splitting_;
+  bool use_splitting_ = false;
 
   friend class Analyse;
 
@@ -130,6 +131,7 @@ class Symbolic {
   bool parTree() const;
   bool parNode() const;
   double storage() const;
+  bool useSplitting() const;
   const std::vector<Int64>& ptr() const;
   const std::vector<Int>& iperm() const;
   const std::vector<Int>& snParent() const;

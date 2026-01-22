@@ -378,37 +378,47 @@ void Factorise::spawn(Int sn, const TaskGroupSpecial& tg, bool do_spawn) {
   // immediately. This avoids the overhead of spawning a task if a supernode has
   // a single child.
 
-  const NodeData* data = S_.treeSplitting().find(sn);
+  if (S_.useSplitting()) {
+    const NodeData* data = S_.treeSplitting().find(sn);
 
-  if (!data) {
-    // sn is head of small subtree, but not the first subtree in the group.
-    // It is processed in another task.
-    return;
-  }
+    if (!data) {
+      // sn is head of small subtree, but not the first subtree in the group.
+      // It is processed in another task.
+      return;
+    }
 
-  if (data->type == NodeType::single) {
-    // sn is single node; run only that
-    auto f = [this, sn]() { processSupernode(sn, true); };
+    if (data->type == NodeType::single) {
+      // sn is single node; run only that
+      auto f = [this, sn]() { processSupernode(sn, true); };
 
-    if (do_spawn)
-      tg.spawn(std::move(f));
-    else
-      f();
+      if (do_spawn)
+        tg.spawn(std::move(f));
+      else
+        f();
+
+    } else {
+      // sn is head of the first subtree in a group of small subtrees; run all
+      // of them
+
+      auto f = [this, data]() {
+        for (Int i = 0; i < data->group.size(); ++i) {
+          Int st_head = data->group[i];
+          Int start = data->firstdesc[i];
+          Int end = st_head + 1;
+          for (Int sn = start; sn < end; ++sn) {
+            processSupernode(sn, false);
+          }
+        }
+      };
+
+      if (do_spawn)
+        tg.spawn(std::move(f));
+      else
+        f();
+    }
 
   } else {
-    // sn is head of the first subtree in a group of small subtrees; run all
-    // of them
-
-    auto f = [this, data]() {
-      for (Int i = 0; i < data->group.size(); ++i) {
-        Int st_head = data->group[i];
-        Int start = data->firstdesc[i];
-        Int end = st_head + 1;
-        for (Int sn = start; sn < end; ++sn) {
-          processSupernode(sn, false);
-        }
-      }
-    };
+    auto f = [this, sn]() { processSupernode(sn, true); };
 
     if (do_spawn)
       tg.spawn(std::move(f));
@@ -420,7 +430,12 @@ void Factorise::spawn(Int sn, const TaskGroupSpecial& tg, bool do_spawn) {
 void Factorise::sync(Int sn, const TaskGroupSpecial& tg) {
   // If spawn(sn,tg) created a task, then sync it.
   // This happens only if sn is found in the treeSplitting data structure.
-  if (S_.treeSplitting().belong(sn)) tg.sync();
+
+  if (S_.useSplitting()) {
+    if (S_.treeSplitting().belong(sn)) tg.sync();
+  } else {
+    tg.sync();
+  }
 }
 
 bool Factorise::run(Numeric& num) {
