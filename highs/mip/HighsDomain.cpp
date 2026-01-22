@@ -143,7 +143,9 @@ HighsDomain::ConflictPoolPropagation::ConflictPoolPropagation(
       conflictFlag_(other.conflictFlag_),
       propagateConflictInds_(other.propagateConflictInds_),
       watchedLiterals_(other.watchedLiterals_) {
-  conflictpool_->addPropagationDomain(this);
+  if (!domain->mipsolver->mipdata_->parallelLockActive() ||
+      conflictpool_ != &domain->mipsolver->mipdata_->conflictPool)
+    conflictpool_->addPropagationDomain(this);
 }
 
 HighsDomain::ConflictPoolPropagation&
@@ -389,8 +391,23 @@ HighsDomain::CutpoolPropagation::CutpoolPropagation(
       propagatecutflags_(other.propagatecutflags_),
       propagatecutinds_(other.propagatecutinds_),
       capacityThreshold_(other.capacityThreshold_) {
-  cutpool->addPropagationDomain(this);
+  if (!domain->mipsolver->mipdata_->parallelLockActive() ||
+      cutpool != &domain->mipsolver->mipdata_->cutpool)
+    cutpool->addPropagationDomain(this);
 }
+
+// TODO MT: ERORRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR
+// When a domain is created (based on another existing domain)
+// , e.g., in randomizedRounding (as an object
+// that we can propagate and play around with) or in RINS (where one
+// is created as part of the HighsSearch object), it is going to notify
+// all cutpools / conflictpools that the original was propagating.
+// This "notify" is going to append the domain to the vector of
+// pools, which is going to be non-deterministic and error-prone.
+// We therefore shouldn't notify the global cut pool.
+// This is fine as the copied domain is likely temporary,
+// and will not be majorly affected by not being notified of new cuts.
+// Does this safety rail need to be added to the copy-assign code below???
 
 HighsDomain::CutpoolPropagation& HighsDomain::CutpoolPropagation::operator=(
     const CutpoolPropagation& other) {

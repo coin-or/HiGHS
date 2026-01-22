@@ -820,27 +820,6 @@ restart:
         return;
       }
 
-      // TODO MT: ERORRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR
-      // When a domain is created (based on another existing domain)
-      // , e.g., in randomizedRounding (as an object
-      // that we can propagate and play around with) or in RINS (where one
-      // is created as part of the HighsSearch object), it is going to notify
-      // all cutpools / conflictpools that the original was propagating.
-      // This "notify" is going to append the domain to the vector of
-      // pools, which is going to be non-deterministic and error-prone.
-      // We therefore need to either make the vector robust to multiple changes,
-      // or consider not propagating the main pool if parallel lock is active?
-      // The first would be complicated, and the second would make
-      // heuristics take longer (potentially less effective?)
-      // For the second: iN THE HighsDomain constructor there is the line,
-      // cutpoolpropagation(other.cutpoolpropagation),
-      // This will call the line:
-      // HighsDomain::CutpoolPropagation::CutpoolPropagation()
-      // which will call this cutpool->addPropagationDomain(this);
-      // Consider checking at that stage and simply not notifying the cut pool!
-      // Information would be one way -> cutpool update wouldn't change
-      // the local domain, but that's not a problem in this case.
-
       // analysis_.mipTimerStart(kMipClockDivePrimalHeuristics);
       if (mipdata_->incumbent.empty()) {
         // analysis_.mipTimerStart(kMipClockDiveRandomizedRounding);
