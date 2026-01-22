@@ -75,6 +75,7 @@ template <class F>
 void HighsMipSolver::runTask(F&& f, highs::parallel::TaskGroup& tg,
                              bool parallel_lock,
                              const std::vector<HighsInt>& indices) {
+  if (indices.empty()) return;
   setParallelLock(parallel_lock);
   const bool spawn_tasks = mipdata_->parallelLockActive() &&
                            indices.size() > 1 &&
@@ -248,7 +249,6 @@ restart:
     return;
   }
 
-  std::shared_ptr<const HighsBasis> basis;
   double prev_lower_bound = mipdata_->lower_bound;
   mipdata_->lower_bound = mipdata_->nodequeue.getBestLowerBound();
   bool bound_change = mipdata_->lower_bound != prev_lower_bound;
@@ -743,7 +743,8 @@ restart:
               HighsLpRelaxation::Status::kNotSet)
         mipdata_->workers[i].lp_->storeBasis();
 
-      basis = mipdata_->workers[i].lp_->getStoredBasis();
+      std::shared_ptr<const HighsBasis> basis =
+          mipdata_->workers[i].lp_->getStoredBasis();
       if (!basis ||
           !isBasisConsistent(mipdata_->workers[i].lp_->getLp(), *basis)) {
         HighsBasis b = mipdata_->firstrootbasis;
