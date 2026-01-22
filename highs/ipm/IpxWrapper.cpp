@@ -406,10 +406,10 @@ HighsStatus solveLpIpx(const HighsOptions& options, HighsTimer& timer,
 
 #ifdef HIPO
 HighsStatus solveLpHipo(HighsLpSolverObject& solver_object) {
-  return solveLpHipo(solver_object.options_, solver_object.timer_,
-                     solver_object.lp_, solver_object.basis_,
-                     solver_object.solution_, solver_object.model_status_,
-                     solver_object.highs_info_, solver_object.callback_);
+  return solveHipo(solver_object.options_, solver_object.timer_,
+                   solver_object.lp_, {}, solver_object.basis_,
+                   solver_object.solution_, solver_object.model_status_,
+                   solver_object.highs_info_, solver_object.callback_);
 }
 
 #ifdef HIPO_USES_OPENBLAS
@@ -419,11 +419,11 @@ void openblas_set_num_threads(int num_threads);
 }
 #endif
 
-HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
-                        const HighsLp& lp, HighsBasis& highs_basis,
-                        HighsSolution& highs_solution,
-                        HighsModelStatus& model_status, HighsInfo& highs_info,
-                        HighsCallback& callback) {
+HighsStatus solveHipo(const HighsOptions& options, HighsTimer& timer,
+                      const HighsLp& lp, const HighsHessian& H,
+                      HighsBasis& highs_basis, HighsSolution& highs_solution,
+                      HighsModelStatus& model_status, HighsInfo& highs_info,
+                      HighsCallback& callback) {
   // Use HiPO
   //
   // Can return HighsModelStatus (HighsStatus) values:
@@ -460,6 +460,11 @@ HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
   // force openblas to run in serial, for determinism and better performance
   openblas_set_num_threads(1);
 #endif
+
+  if (!H.empty()) {
+    printf("Using HiPO\n");
+    return HighsStatus::kError;
+  }
 
   // Create solver instance
   hipo::Solver hipo{};

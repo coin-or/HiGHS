@@ -226,3 +226,5 @@ HighsCDouble HighsHessian::objectiveCDoubleValue(
   }
   return objective_function_value;
 }
+
+bool HighsHessian::empty() const { return dim_ <= 0; }

@@ -20,6 +20,7 @@
 
 #include "io/Filereader.h"
 #include "io/LoadOptions.h"
+#include "ipm/IpxWrapper.h"
 #include "lp_data/HighsCallbackStruct.h"
 #include "lp_data/HighsInfoDebug.h"
 #include "lp_data/HighsLpSolverObject.h"
@@ -3980,8 +3981,9 @@ HighsStatus Highs::callSolveQp() {
   }
 
   if (use_hipo) {
-    printf("Using HiPO\n");
-    
+    solveHipo(options_, timer_, lp, hessian, basis_, solution_, model_status_,
+              info_, callback_);
+
   } else {
     //
     // Run the QP solver

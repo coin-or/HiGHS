@@ -34,11 +34,11 @@ HighsStatus solveLpIpx(const HighsOptions& options, HighsTimer& timer,
 #ifdef HIPO
 HighsStatus solveLpHipo(HighsLpSolverObject& solver_object);
 
-HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
-                        const HighsLp& lp, HighsBasis& highs_basis,
-                        HighsSolution& highs_solution,
-                        HighsModelStatus& model_status, HighsInfo& highs_info,
-                        HighsCallback& callback);
+HighsStatus solveHipo(const HighsOptions& options, HighsTimer& timer,
+                      const HighsLp& lp, const HighsHessian& H,
+                      HighsBasis& highs_basis, HighsSolution& highs_solution,
+                      HighsModelStatus& model_status, HighsInfo& highs_info,
+                      HighsCallback& callback);
 
 HighsStatus reportHipoStatus(const HighsOptions& options,
                              const hipo::Int status, const hipo::Solver& hipo);
