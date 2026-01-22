@@ -3981,8 +3981,13 @@ HighsStatus Highs::callSolveQp() {
   }
 
   if (use_hipo) {
+#ifdef HIPO
     solveHipo(options_, timer_, lp, hessian, basis_, solution_, model_status_,
               info_, callback_);
+#else
+    // shouldn't be possible to reach here
+    assert(1 == 0);
+#endif
 
   } else {
     //
