@@ -205,6 +205,7 @@ HighsStatus solveLpCupdlp(const HighsOptions& options, HighsTimer& timer,
       &pdlp_num_iter);
   highs_info.pdlp_iteration_count = pdlp_num_iter;
 
+#if PDLP_DEBUG_LOG
   // Print final solution using debugPdlpFinalSolutionLog
   debugPdlpFinalSolutionLog(w->debug_pdlp_log_file_,
                             highs_solution.col_value.data(), lp.num_col_,
@@ -214,6 +215,7 @@ HighsStatus solveLpCupdlp(const HighsOptions& options, HighsTimer& timer,
   // still be used
   //
   PDHG_Destroy(&w);
+#endif
 
   model_status = HighsModelStatus::kUnknown;
   highs_solution.value_valid = value_valid;

@@ -41,7 +41,7 @@ extern "C" {
 #define CUPDLP_DUMP_LINESEARCH_STATS (1)
 #define CUPDLP_INEXACT_EPS (1e-4)
 
-#define PDLP_DEBUG_LOG (0)
+#define PDLP_DEBUG_LOG (1)
 
 typedef struct CUPDLP_CUDA_DENSE_VEC CUPDLPvec;
 typedef struct CUPDLP_DENSE_MATRIX CUPDLPdense;
@@ -434,8 +434,11 @@ struct CUPDLP_WORK {
   // cusparseDnVecDescr_t vecbuffer;
   cublasHandle_t cublashandle;
 #endif
+
+#if PDLP_DEBUG_LOG 
   FILE* debug_pdlp_log_file_;
   struct DebugPdlpData debug_pdlp_data_;
+#endif
 };
 
 #ifdef __cplusplus

@@ -27,7 +27,9 @@ PDHG_restart_choice PDHG_Check_Restart_GPU(CUPDLPwork *work) {
   cupdlp_float muAverage = PDHG_Restart_Score_GPU(
       work->stepsize->dBeta, work->resobj->dPrimalFeasAverage,
       work->resobj->dDualFeasAverage, work->resobj->dDualityGapAverage);
+#if PDLP_DEBUG_LOG
   debugPdlpRestartLog(work->debug_pdlp_log_file_, timers->nIter, muCurrent, muAverage);
+#endif
   cupdlp_float muCandidate = 0.0;
   PDHG_restart_choice restart_choice = PDHG_RESTART_TO_AVERAGE;
   if (muCurrent < muAverage) {
