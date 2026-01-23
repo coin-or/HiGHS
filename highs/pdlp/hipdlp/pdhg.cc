@@ -567,7 +567,6 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
 #endif
 
   for (size_t iter = 0; iter < params_.max_iterations; ++iter) {
-    std::cout << "PDHG Iteration " << iter << std::endl;
 #if PDLP_DEBUG_LOG
     debugPdlpIterLog(debug_pdlp_log_file_, iter, &debug_pdlp_data_,
                      restart_scheme_.getBeta(), stepsize_.primal_step,
