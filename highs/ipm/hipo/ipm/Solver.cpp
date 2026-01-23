@@ -166,6 +166,8 @@ bool Solver::correctors() {
 bool Solver::prepareIpx() {
   // Return true if an error occurred;
 
+  assert(!model_.qp());
+
   ipx::Parameters ipx_param;
   ipx_param.display = options_.display_ipx;
   ipx_param.dualize = 0;
@@ -214,7 +216,7 @@ bool Solver::prepareIpx() {
 void Solver::refineWithIpx() {
   if (checkInterrupt()) return;
 
-  if (statusNeedsRefinement() && options_.refine_with_ipx) {
+  if (statusNeedsRefinement() && refinementIsOn()) {
     logH_.print("\nRestarting with IPX\n");
   } else if (statusAllowsCrossover() && crossoverIsOn()) {
     logH_.print("\nRunning crossover with IPX\n");
@@ -1054,8 +1056,7 @@ bool Solver::checkTermination() {
 
     info_.status = kStatusPDFeas;
 
-    if (options_.crossover == kOptionCrossoverOn ||
-        options_.crossover == kOptionCrossoverChoose) {
+    if (crossoverIsOn()) {
       bool ready_for_crossover =
           it_->infeasAfterDropping() < options_.crossover_tol;
       if (ready_for_crossover) {
@@ -1310,9 +1311,13 @@ bool Solver::statusAllowsCrossover() const {
 bool Solver::statusNeedsRefinement() const {
   return info_.status == kStatusNoProgress || info_.status == kStatusImprecise;
 }
+bool Solver::refinementIsOn() const {
+  return options_.refine_with_ipx && !model_.qp();
+}
 bool Solver::crossoverIsOn() const {
-  return options_.crossover == kOptionCrossoverOn ||
-         options_.crossover == kOptionCrossoverChoose;
+  return (options_.crossover == kOptionCrossoverOn ||
+          options_.crossover == kOptionCrossoverChoose) &&
+         !model_.qp();
 }
 bool Solver::solved() const { return statusIsSolved(); }
 bool Solver::stopped() const { return statusIsStopped(); }

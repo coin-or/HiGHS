@@ -320,6 +320,7 @@ class Solver {
   bool statusIsFailed() const;
   bool statusNeedsRefinement() const;
   bool statusAllowsCrossover() const;
+  bool refinementIsOn() const;
   bool crossoverIsOn() const;
 
   // ===================================================================================
