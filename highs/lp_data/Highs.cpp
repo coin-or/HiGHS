@@ -3984,15 +3984,20 @@ HighsStatus Highs::callSolveQp() {
              options_.solver == kHighsChooseString) {
     use_hipo = false;
   } else {
-    highsLogUser(options_.log_options, HighsLogType::kError,
-                 "Value \"%s\" for QP solver option is not one of \"%s\", "
+    highsLogUser(options_.log_options, HighsLogType::kWarning,
+                 "Value \"%s\" for QP solver option is not one of "
+#ifdef HIPO
+                 "\"%s\", "
+#endif
                  "\"%s\" or \"%s\"\n",
                  options_.solver.c_str(), kHighsChooseString.c_str(),
-                 kQpAsmString.c_str(), kQpHipoString.c_str());
-    model_status_ = HighsModelStatus::kModelError;
-    solution_.value_valid = false;
-    solution_.dual_valid = false;
-    return HighsStatus::kError;
+#ifdef HIPO
+                 kQpHipoString.c_str(),
+#endif
+                 kQpAsmString.c_str());
+    highsLogUser(options_.log_options, HighsLogType::kWarning,
+                 "Option \"solver\" changed to \"%s\"\n", kQpAsmString.c_str());
+    use_hipo = false;
   }
 
   if (use_hipo) {
