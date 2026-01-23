@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#if PDLP_DEBUG_LOG
+
 bool vecDiff(const std::vector<double>& x1, const std::vector<double>& x2,
              double tol, const std::string& func_name = "vecDiff") {
   if (x1.size() != x2.size()) {
@@ -54,5 +56,7 @@ bool vecDiff(const std::vector<double>& x1, const std::vector<double>& x2,
   //        func_name.c_str(), x1.size(), tol, max_diff);
   return true;
 }
+
+#endif
 
 #endif  // PDLP_GPU_DEBUG_HPP__
