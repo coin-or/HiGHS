@@ -518,6 +518,8 @@ Int Model::loadIntoIpx(ipx::LpSolver& lps) const {
   std::vector<char> ipx_constraints;
   double ipx_offset;
 
+  if (!lp_orig_) return kStatusError;
+
   fillInIpxData(*lp_orig_, ipx_n, ipx_m, ipx_offset, ipx_c, ipx_lower,
                 ipx_upper, ipx_A_ptr, ipx_A_rows, ipx_A_vals, ipx_b,
                 ipx_constraints);
