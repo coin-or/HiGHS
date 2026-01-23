@@ -582,7 +582,6 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
                      restart_scheme_.getBeta(), stepsize_.primal_step,
                      stepsize_.dual_step);
 #endif
-
     // Check time limit
     if (solver_timer.read() > params_.time_limit) {
       logger_.info("Time limit reached.");
@@ -596,17 +595,6 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
     bool_checking = (bool_checking || iter % PDHG_CHECK_INTERVAL == 0);
     if (bool_checking) {
 #ifdef CUPDLP_GPU
-      // **VERIFICATION**: Before checking, copy GPU state to host
-      /*
-            CUDA_CHECK(cudaMemcpy(x_current_.data(), d_x_current_, a_num_cols_ *
-         sizeof(double), cudaMemcpyDeviceToHost));
-            CUDA_CHECK(cudaMemcpy(y_current_.data(), d_y_current_, a_num_rows_ *
-         sizeof(double), cudaMemcpyDeviceToHost));
-            CUDA_CHECK(cudaMemcpy(Ax_cache_.data(), d_ax_current_, a_num_rows_ *
-         sizeof(double), cudaMemcpyDeviceToHost));
-            CUDA_CHECK(cudaMemcpy(ATy_cache_.data(), d_aty_current_, a_num_cols_
-         * sizeof(double), cudaMemcpyDeviceToHost));
-      */
       computeAverageIterateGpu();
 #else
 #if PDLP_PROFILE
@@ -636,9 +624,9 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
                               params_.tolerance, average_results, "[A-GPU]");
 #else
       // === CPU Convergence Check ===//
-#if PDLP_PROFILE
-      hipdlpTimerStart(kHipdlpClockConvergenceCheck);
-#endif
+  #if PDLP_PROFILE
+        hipdlpTimerStart(kHipdlpClockConvergenceCheck);
+  #endif
       // Compute residuals for current iterate
       bool current_converged = checkConvergence(
           iter, x_current_, y_current_, Ax_cache_, ATy_cache_,
@@ -648,10 +636,11 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
       bool average_converged = checkConvergence(
           iter, x_avg_, y_avg_, Ax_avg, ATy_avg, params_.tolerance,
           average_results, "[A]", dSlackPosAvg_, dSlackNegAvg_);
-#if PDLP_PROFILE
-      hipdlpTimerStop(kHipdlpClockConvergenceCheck);
+  #if PDLP_PROFILE
+        hipdlpTimerStop(kHipdlpClockConvergenceCheck);
+  #endif
 #endif
-#endif
+
 #if PDLP_DEBUG_LOG
       debugPdlpIterHeaderLog(debug_pdlp_log_file_);
 #endif
@@ -799,38 +788,21 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         linalgGpuAx(d_x_next_, d_ax_next_);
         launchKernelUpdateY(stepsize_.dual_step);
         linalgGpuATy(d_y_next_, d_aty_next_);
-
-        std::vector<double> x_next_gpu(a_num_cols_);
-        std::vector<double> y_next_gpu(a_num_rows_);
-        std::vector<double> ax_next_gpu(a_num_rows_);
-        std::vector<double> aty_next_gpu(a_num_cols_);
-        CUDA_CHECK(cudaMemcpy(x_next_gpu.data(), d_x_next_,
-                              a_num_cols_ * sizeof(double),
-                              cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(y_next_gpu.data(), d_y_next_,
-                              a_num_rows_ * sizeof(double),
-                              cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(ax_next_gpu.data(), d_ax_next_,
-                              a_num_rows_ * sizeof(double),
-                              cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(aty_next_gpu.data(), d_aty_next_,
-                              a_num_cols_ * sizeof(double),
-                              cudaMemcpyDeviceToHost));
 #else
-#if PDLP_PROFILE
-        hipdlpTimerStart(kHipdlpClockMatrixMultiply);
-#endif
+  #if PDLP_PROFILE
+          hipdlpTimerStart(kHipdlpClockMatrixMultiply);
+  #endif
         linalg::Ax(lp, x_current_, Ax_cache_);
-#if PDLP_PROFILE
-        hipdlpTimerStop(kHipdlpClockMatrixMultiply);
-#endif
-#if PDLP_PROFILE
-        hipdlpTimerStart(kHipdlpClockMatrixTransposeMultiply);
-#endif
+  #if PDLP_PROFILE
+          hipdlpTimerStop(kHipdlpClockMatrixMultiply);
+  #endif
+  #if PDLP_PROFILE
+          hipdlpTimerStart(kHipdlpClockMatrixTransposeMultiply);
+  #endif
         linalg::ATy(lp, y_current_, ATy_cache_);
-#if PDLP_PROFILE
-        hipdlpTimerStop(kHipdlpClockMatrixTransposeMultiply);
-#endif
+  #if PDLP_PROFILE
+          hipdlpTimerStop(kHipdlpClockMatrixTransposeMultiply);
+  #endif
 #endif
         restart_scheme_.SetLastRestartIter(iter);
       }
@@ -1753,31 +1725,6 @@ void PDLPSolver::updateIteratesFixed() {
     std::cerr << "Error2: d_x_next_ is null!" << std::endl;
     return;
   }
-
-  std::vector<double> x_next_gpu(a_num_cols_);
-  std::vector<double> y_next_gpu(a_num_rows_);
-  std::vector<double> ax_next_gpu(a_num_rows_);
-  std::vector<double> aty_next_gpu(a_num_cols_);
-  CUDA_CHECK(cudaMemcpy(x_next_gpu.data(), d_x_next_,
-                        a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
-  CUDA_CHECK(cudaMemcpy(y_next_gpu.data(), d_y_next_,
-                        a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
-  CUDA_CHECK(cudaMemcpy(ax_next_gpu.data(), d_ax_next_,
-                        a_num_rows_ * sizeof(double), cudaMemcpyDeviceToHost));
-  CUDA_CHECK(cudaMemcpy(aty_next_gpu.data(), d_aty_next_,
-                        a_num_cols_ * sizeof(double), cudaMemcpyDeviceToHost));
-
-#if PDLP_DEBUG_LOG
-  bool x_match = vecDiff(x_next_gpu, x_next_, 1e-10, "UpdateIteratesFixed x");
-  bool y_match = vecDiff(y_next_gpu, y_next_, 1e-10, "UpdateIteratesFixed y");
-  bool ax_match =
-      vecDiff(ax_next_gpu, Ax_next_, 1e-10, "UpdateIteratesFixed Ax");
-  bool aty_match =
-      vecDiff(aty_next_gpu, ATy_next_, 1e-10, "UpdateIteratesFixed ATy");
-#endif
-
-#else
-
 #endif
 }
 

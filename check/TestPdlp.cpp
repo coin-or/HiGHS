@@ -265,8 +265,8 @@ void pdlpRestart(const std::string& model) {
 
 TEST_CASE("pdlp-restart", "[pdlp]") {
   pdlpRestart("adlittle");
-  // pdlpRestart("shell");
-  // pdlpRestart("25fv47");
+  //  pdlpRestart("shell");
+  //  pdlpRestart("25fv47");
 }
 
 TEST_CASE("pdlp-restart-lp", "[pdlp]") {
@@ -342,11 +342,10 @@ TEST_CASE("pdlp-restart-add-row", "[pdlp]") {
 }
 
 TEST_CASE("hi-pdlp", "[pdlp]") {
-  std::string model =
-      "afiro";  //"adlittle";//"afiro";// shell// stair
-                ////25fv47 //fit2p //avgas //neso-2245 //neso-2005
+  std::string model = "neso-2005";  //"adlittle";//"afiro";// shell// stair
+                                 ////25fv47 //fit2p //avgas //neso-2245 //neso-2005
   std::string model_file =
-      // std::string(HIGHS_DIR) + "/srv/" + model + ".mps.gz";
+      //std::string(HIGHS_DIR) + "/srv/" + model + ".mps.gz";
       "/srv/mps_da/" + model + ".mps.gz";
   Highs h;
   // h.setOptionValue("output_flag", dev_run);
@@ -356,21 +355,22 @@ TEST_CASE("hi-pdlp", "[pdlp]") {
   h.setOptionValue("presolve", "off");
 
   HighsInt pdlp_features_off = 0
-                               //+kPdlpScalingOff
-                               //+kPdlpRestartOff
-                               + kPdlpAdaptiveStepSizeOff;
+      //+kPdlpScalingOff
+      //+kPdlpRestartOff
+      //+kPdlpAdaptiveStepSizeOff
+      ;
   h.setOptionValue("pdlp_features_off", pdlp_features_off);
 
   HighsInt pdlp_scaling =  // 0;
       kPdlpScalingRuiz
-      //+ kPdlpScalingL2
+      //+ kPdlpScalingL2cm
       + kPdlpScalingPC;
   h.setOptionValue("pdlp_scaling_mode", pdlp_scaling);
-  h.setOptionValue("pdlp_step_size_strategy", 0);
+  h.setOptionValue("pdlp_step_size_strategy", 1);
   h.setOptionValue("pdlp_restart_strategy", 2);
-  h.setOptionValue("pdlp_iteration_limit", 20);
-  // h.setOptionValue("pdlp_time_limit", 60);
-  //    h.setOptionValue("log_dev_level", kHighsLogDevLevelVerbose);
+  h.setOptionValue("pdlp_iteration_limit", 8000);
+  //h.setOptionValue("pdlp_time_limit", 60);
+  //   h.setOptionValue("log_dev_level", kHighsLogDevLevelVerbose);
   auto start_hipdlp = std::chrono::high_resolution_clock::now();
   HighsStatus run_status = h.run();
   auto end_hipdlp = std::chrono::high_resolution_clock::now();
