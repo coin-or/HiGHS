@@ -141,7 +141,7 @@ void HybridPackedFormatHandler::assembleChild(Int child_sn,
 
   bool parallel = S_->parTree() || S_->parNode();
 
-  if (parallel) {
+  if (parallel && child_clique_size > kParallelAssemblyThresh) {
     // The loop over the columns of the child clique has completely independent
     // iterations. The loop is split evenly among the available threads.
 

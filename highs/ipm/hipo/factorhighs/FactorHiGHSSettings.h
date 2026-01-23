@@ -50,6 +50,9 @@ const double kDynamicDiagCoeff = 1e-24;
 // metis
 const Int kMetisSeed = 42;
 
+// parallel assembly
+const Int kParallelAssemblyThresh = 100;
+
 struct Regul {
   double primal{};
   double dual{};
