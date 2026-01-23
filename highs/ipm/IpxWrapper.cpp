@@ -870,7 +870,6 @@ void fillInIpxData(const HighsLp& lp, ipx::Int& num_col, ipx::Int& num_row,
   for (HighsInt col = 0; col < lp.num_col_; col++) {
     obj[col] = (HighsInt)lp.sense_ * lp.col_cost_[col];
   }
-  obj.insert(obj.end(), num_slack, 0);
 }
 
 void fillInRhsAndConstraints(const HighsLp& lp, std::vector<double>& rhs,
