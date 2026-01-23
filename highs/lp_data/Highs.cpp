@@ -3972,12 +3972,30 @@ HighsStatus Highs::callSolveQp() {
 
   // Choose solver
   bool use_hipo = false;
-  if (options_.solver == kHipoString || options_.solver == kIpmString) {
+  if (options_.solver == kQpHipoString) {
 #ifdef HIPO
     use_hipo = true;
 #else
-    use_hipo = false;
+    highsLogUser(options_.log_options, HighsLogType::kError,
+                 "HiPO is not available in this build.\n");
+    model_status_ = HighsModelStatus::kModelError;
+    solution_.value_valid = false;
+    solution_.dual_valid = false;
+    return HighsStatus::kError;
 #endif
+  } else if (options_.solver == kQpAsmString ||
+             options_.solver == kHighsChooseString) {
+    use_hipo = false;
+  } else {
+    highsLogUser(options_.log_options, HighsLogType::kError,
+                 "Value \"%s\" for QP solver option is not one of \"%s\", "
+                 "\"%s\" or \"%s\"\n",
+                 options_.solver.c_str(), kHighsChooseString.c_str(),
+                 kQpAsmString.c_str(), kQpHipoString.c_str());
+    model_status_ = HighsModelStatus::kModelError;
+    solution_.value_valid = false;
+    solution_.dual_valid = false;
+    return HighsStatus::kError;
   }
 
   if (use_hipo) {

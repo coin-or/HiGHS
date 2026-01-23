@@ -266,8 +266,10 @@ const string kHighsRunLogFile = "Highs.log";
 const string kSimplexString = "simplex";
 const string kIpmString = "ipm";
 const string kHipoString = "hipo";
+const string kQpHipoString = "qphipo";
 const string kIpxString = "ipx";
 const string kPdlpString = "pdlp";
+const string kQpAsmString = "qpasm";
 
 const HighsInt kKeepNRowsDeleteRows = -1;
 const HighsInt kKeepNRowsDeleteEntries = 0;
@@ -717,11 +719,11 @@ class HighsOptions : public HighsOptionsStruct {
         advanced, &presolve, kHighsChooseString);
     records.push_back(record_string);
 
-    record_string =
-        new OptionRecordString(kSolverString,
-                               "LP solver option: \"choose\", \"simplex\", "
-                               "\"ipm\", \"ipx\", \"hipo\" or \"pdlp\"",
-                               advanced, &solver, kHighsChooseString);
+    record_string = new OptionRecordString(
+        kSolverString,
+        "LP solver option: \"choose\", \"simplex\", "
+        "\"ipm\", \"ipx\", \"hipo\", \"qphipo\", \"pdlp\" or \"qpasm\"",
+        advanced, &solver, kHighsChooseString);
     records.push_back(record_string);
 
     record_string = new OptionRecordString(

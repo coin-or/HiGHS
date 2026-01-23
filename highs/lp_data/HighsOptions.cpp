@@ -83,7 +83,7 @@ bool optionOffOnOk(const HighsLogOptions& report_log_options,
 bool optionSolverOk(const HighsLogOptions& report_log_options,
                     const string& value) {
 #ifndef HIPO
-  if (value == kHipoString) {
+  if (value == kHipoString || value == kQpHipoString) {
     highsLogUser(
         report_log_options, HighsLogType::kError,
         "The HiPO solver was requested via the \"%s\" option, but this build "
@@ -96,22 +96,22 @@ bool optionSolverOk(const HighsLogOptions& report_log_options,
   if (value == kHighsChooseString || value == kSimplexString ||
       value == kIpmString ||
 #ifdef HIPO
-      value == kHipoString ||
+      value == kHipoString || value == kQpHipoString ||
 #endif
-      value == kIpxString || value == kPdlpString)
+      value == kIpxString || value == kPdlpString || value == kQpAsmString)
     return true;
   highsLogUser(report_log_options, HighsLogType::kError,
                "Value \"%s\" for LP solver option (\"%s\") is not one of "
 #ifdef HIPO
-               "\"%s\", "
+               "\"%s\", \"%s\","
 #endif
-               "\"%s\", \"%s\", \"%s\", \"%s\" or \"%s\"\n",
+               "\"%s\", \"%s\", \"%s\", \"%s\", \"%s\" or \"%s\"\n",
                value.c_str(), kSolverString.c_str(), kHighsChooseString.c_str(),
                kSimplexString.c_str(), kIpmString.c_str(),
 #ifdef HIPO
-               kHipoString.c_str(),
+               kHipoString.c_str(), kQpHipoString.c_str(),
 #endif
-               kIpxString.c_str(), kPdlpString.c_str());
+               kIpxString.c_str(), kPdlpString.c_str(), kQpAsmString.c_str());
   return false;
 }
 

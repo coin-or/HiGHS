@@ -76,9 +76,11 @@ search is work in progress.
 
 ## QP
 
-The HiGHS solver for convex QP problems uses an established primal
-active set method. The new interior point solver HiPO will soon be able to
-solve convex QP problems.
+HiGHS has two solvers for convex QP:
+
+* A primal active set method. Setting the option [__solver__](@ref option-solver) to "qpasm" forces this solver to be used.
+
+* An interior point method. Setting the option [__solver__](@ref option-solver) to "qphipo" forces the HiPO solver to be used.
 
 
 
