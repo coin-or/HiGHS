@@ -558,7 +558,7 @@ HighsInt rcm(HighsInt root, HighsInt adj_num, const HighsInt adj_row[],
 }
 //****************************************************************************80
 
-void root_find(HighsInt* root, HighsInt adj_num, const HighsInt adj_row[],
+static void root_find(HighsInt* root, HighsInt adj_num, const HighsInt adj_row[],
                const HighsInt adj[], HighsInt mask[], HighsInt* level_num,
                HighsInt level_row[], HighsInt level[], HighsInt node_num)
 
