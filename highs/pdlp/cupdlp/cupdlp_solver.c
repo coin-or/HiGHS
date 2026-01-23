@@ -911,13 +911,9 @@ cupdlp_retcode PDHG_Solve(const cupdlp_int* has_variables, CUPDLPwork *pdhg) {
   timers->dSolvingBeg = getTimeStamp();
 
 #if PDLP_DEBUG_LOG
-  if (PDLP_DEBUG_LOG) {
-    pdhg->debug_pdlp_log_file_ = fopen("cuPDLP.log", "w");
-    assert(pdhg->debug_pdlp_log_file_);
-    debugPdlpDataInitialise(&pdhg->debug_pdlp_data_);
-  } else {
-    pdhg->debug_pdlp_log_file_ = NULL;
-  }
+  pdhg->debug_pdlp_log_file_ = fopen("cuPDLP.log", "w");
+  assert(pdhg->debug_pdlp_log_file_);
+  debugPdlpDataInitialise(&pdhg->debug_pdlp_data_);
 #endif
   // PDHG_Init_Data does nothing!
   PDHG_Init_Data(pdhg);
