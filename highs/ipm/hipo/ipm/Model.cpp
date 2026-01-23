@@ -412,6 +412,7 @@ void Model::scale() {
   // x -> C^-1 * x
   // y -> R^-1 * y
   // z -> C * z
+  // Q -> C * Q * C
   // where R is row scaling, C is col scaling.
 
   // Compute exponents for CR scaling of matrix A
@@ -448,6 +449,14 @@ void Model::scale() {
       Int row = A_.index_[el];
       A_.value_[el] *= rowscale_[row];
       A_.value_[el] *= colscale_[col];
+    }
+  }
+
+  for (Int col = 0; col < Q_.dim_; ++col) {
+    for (Int el = Q_.start_[col]; el < Q_.start_[col + 1]; ++el) {
+      Int row = Q_.index_[el];
+      Q_.value_[el] *= colscale_[row];
+      Q_.value_[el] *= colscale_[col];
     }
   }
 }
