@@ -469,19 +469,19 @@
 - Default: 1e-07
 
 ## qp\_iteration\_limit
-- Iteration limit for QP solver
+- Iteration limit for QP ASM solver
 - Type: integer
 - Range: {0, 2147483647}
 - Default: 2147483647
 
 ## qp\_nullspace\_limit
-- Nullspace limit for QP solver
+- Nullspace limit for QP ASM solver
 - Type: integer
 - Range: {0, 2147483647}
 - Default: 4000
 
 ## qp\_regularization\_value
-- Regularization value added to the Hessian
+- Regularization value added to the Hessian for QP ASM solver
 - Type: double
 - Range: [0, inf]
 - Default: 1e-07

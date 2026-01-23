@@ -82,5 +82,8 @@ HiGHS has two solvers for convex QP:
 
 * An interior point method. Setting the option [__solver__](@ref option-solver) to "qphipo" forces the HiPO solver to be used.
 
+Setting the option [__solver__](@ref option-solver) to "choose" selects the "qpasm" solver. 
+If the option [__solver__](@ref option-solver) is set to "simplex", "ipm", "ipx", "hipo" or "pdlp", its value is ignored and the default QP solver is used instead.
+
 
 
