@@ -4002,6 +4002,16 @@ HighsStatus Highs::callSolveQp() {
 
   if (use_hipo) {
 #ifdef HIPO
+    if (options_.run_crossover == kHighsOnString ||
+        options_.run_crossover == kHighsChooseString) {
+      highsLogUser(options_.log_options, HighsLogType::kWarning,
+                   "Crossover is not available for solver \"%s\"\n",
+                   kQpHipoString.c_str());
+      highsLogUser(options_.log_options, HighsLogType::kWarning,
+                   "Option \"run_crossover\" changed to \"off\"\n");
+    }
+    options_.run_crossover = kHighsOffString;
+
     sub_solver_call_time_.num_call[kSubSolverHipo]++;
     sub_solver_call_time_.run_time[kSubSolverHipo] = -timer_.read();
     return_status = solveHipo(options_, timer_, lp, hessian, basis_, solution_,
