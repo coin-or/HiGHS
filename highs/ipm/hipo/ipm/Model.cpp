@@ -198,6 +198,8 @@ void Model::reformulate() {
       if (scaled()) colscale_.push_back(1.0);
     }
   }
+
+  if (qp()) completeHessian(n_, Q_);
 }
 
 void Model::computeNorms() {

@@ -461,11 +461,6 @@ HighsStatus solveHipo(const HighsOptions& options, HighsTimer& timer,
   openblas_set_num_threads(1);
 #endif
 
-  if (!Q.empty()) {
-    printf("Using HiPO\n");
-    return HighsStatus::kError;
-  }
-
   // Create solver instance
   hipo::Solver hipo{};
   // This creates ipx::LpSolver ipx_lps_, in case HiPO has to switch
