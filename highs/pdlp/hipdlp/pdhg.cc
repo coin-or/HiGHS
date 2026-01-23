@@ -34,6 +34,7 @@ static constexpr double kDivergentMovement = 1e10;
 
 using namespace std;
 
+/*
 void vecPrint(const std::vector<double>& vec, const char* name) {
   std::cout << name << ": [";
   for (size_t i = 0; i < vec.size(); ++i) {
@@ -42,6 +43,7 @@ void vecPrint(const std::vector<double>& vec, const char* name) {
   }
   std::cout << "]" << std::endl;
 }
+*/
 
 void PDLPSolver::printConstraintInfo() {
   if (original_lp_ == nullptr) return;
@@ -369,7 +371,8 @@ PostSolveRetcode PDLPSolver::postprocess(HighsSolution& solution) {
     return PostSolveRetcode::INVALID_SOLUTION;
   }
 
-  if (x_current_.size() != lp_.num_col_ || y_current_.size() != lp_.num_row_) {
+  if (x_current_.size() != static_cast<size_t>(lp_.num_col_) ||
+      y_current_.size() != static_cast<size_t>(lp_.num_row_)) {
     logger_.info("Solution dimension mismatch: x_current size=" +
                  std::to_string(x_current_.size()) +
                  " vs expected=" + std::to_string(lp_.num_col_) +
@@ -563,7 +566,7 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
   debug_pdlp_data_.ax_norm = linalg::vector_norm(Ax_cache_);
 #endif
 
-  for (int iter = 0; iter < params_.max_iterations; ++iter) {
+  for (size_t iter = 0; iter < params_.max_iterations; ++iter) {
     std::cout << "PDHG Iteration " << iter << std::endl;
 #if PDLP_DEBUG_LOG
     debugPdlpIterLog(debug_pdlp_log_file_, iter, &debug_pdlp_data_,
@@ -1078,8 +1081,10 @@ void PDLPSolver::computeDualSlacks(const std::vector<double>& dualResidual,
                                    std::vector<double>& dSlackPos,
                                    std::vector<double>& dSlackNeg) {
   // Ensure vectors are correctly sized
-  if (dSlackPos.size() != lp_.num_col_) dSlackPos.resize(lp_.num_col_);
-  if (dSlackNeg.size() != lp_.num_col_) dSlackNeg.resize(lp_.num_col_);
+  if (dSlackPos.size() != static_cast<size_t>(lp_.num_col_))
+    dSlackPos.resize(lp_.num_col_);
+  if (dSlackNeg.size() != static_cast<size_t>(lp_.num_col_))
+    dSlackNeg.resize(lp_.num_col_);
 
   for (HighsInt i = 0; i < lp_.num_col_; ++i) {
     // Compute positive slack (for lower bounds)
@@ -2044,7 +2049,7 @@ void PDLPSolver::setupGpu() {
   CUDA_CHECK(cudaMemcpy(d_row_lower_, lp_.row_lower_.data(),
                         a_num_rows_ * sizeof(double), cudaMemcpyHostToDevice));
   std::vector<uint8_t> temp_equality(a_num_rows_);
-  for (size_t i = 0; i < a_num_rows_; ++i) {
+  for (int i = 0; i < a_num_rows_; ++i) {
     temp_equality[i] = is_equality_row_[i] ? 1 : 0;
   }
 
