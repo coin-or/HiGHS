@@ -79,7 +79,9 @@ HighsStatus solveLpHiPdlp(const HighsOptions& options, HighsTimer& timer,
 #endif
 
   // Report profiling
+#if PDLP_PROFILE
   pdlp.reportHipdlpTimer();
+#endif
 
   // --- Print Summary ---
   pdlp.logSummary();

@@ -16,7 +16,7 @@
 #include <cusparse.h>
 #endif
 
-#define DEBUG_MODE 1
+#define PDLP_PROFILE (0)
 
 #include <algorithm>
 #include <cmath>
@@ -26,10 +26,11 @@
 #include <tuple>
 #include <vector>
 
-// #include "Highs.h"
 #include "linalg.hpp"
 #include "logger.hpp"
+#if PDLP_PROFILE
 #include "pdlp/HiPdlpTimer.h"
+#endif
 #include "restart.hpp"
 #include "scaling.hpp"
 #include "solver_results.hpp"
@@ -61,7 +62,9 @@ class PDLPSolver {
   DebugPdlpData debug_pdlp_data_;
   void closeDebugLog();
 #endif
+#if PDLP_PROFILE
   void reportHipdlpTimer();
+#endif
 
  private:
   // --- Core Algorithm Logic ---
@@ -156,8 +159,10 @@ class PDLPSolver {
   std::vector<double> dSlackNegAvg_;
   Timer total_timer;
 
+#if PDLP_PROFILE
   HipdlpTimer hipdlp_timer_;
   HighsTimerClock hipdlp_clocks_;
+#endif
 
   // --- Scaling ---
   Scaling scaling_;
