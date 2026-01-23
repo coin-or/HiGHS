@@ -9,8 +9,8 @@
 
 namespace hipo {
 
-Int Solver::load(const HighsLp& lp) {
-  if (model_.init(lp)) return kStatusBadModel;
+Int Solver::load(const HighsLp& lp, const HighsHessian& Q) {
+  if (model_.init(lp, Q)) return kStatusBadModel;
 
   m_ = model_.m();
   n_ = model_.n();

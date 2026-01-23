@@ -10,6 +10,7 @@
 #include "ipm/hipo/auxiliary/IntConfig.h"
 #include "ipm/ipx/lp_solver.h"
 #include "lp_data/HighsLp.h"
+#include "model/HighsHessian.h"
 #include "util/HighsSparseMatrix.h"
 
 namespace hipo {
@@ -43,6 +44,7 @@ class Model {
   std::vector<double> lower_{};
   std::vector<double> upper_{};
   HighsSparseMatrix A_{};
+  HighsHessian Q_{};
   std::vector<char> constraints_{};
   Int num_dense_cols_{};
   double max_col_density_{};
@@ -69,18 +71,12 @@ class Model {
   void scale();
   void preprocess();
   void denseColumns();
-  Int checkData(const Int num_var, const Int num_con,
-                const std::vector<double>& obj, const std::vector<double>& rhs,
-                const std::vector<double>& lower,
-                const std::vector<double>& upper, const std::vector<Int>& A_ptr,
-                const std::vector<Int>& A_rows,
-                const std::vector<double>& A_vals,
-                const std::vector<char>& constraints) const;
+  Int checkData() const;
   void computeNorms();
 
  public:
   // Initialise the model
-  Int init(const HighsLp& lp);
+  Int init(const HighsLp& lp, const HighsHessian& Q);
 
   // Print information of model
   void print(const LogHighs& log) const;
@@ -112,6 +108,7 @@ class Model {
   Int n() const { return n_; }
   Int n_orig() const { return n_orig_; }
   Int m_orig() const { return m_orig_; }
+  bool qp() const { return !Q_.empty(); }
   const HighsSparseMatrix& A() const { return A_; }
   const std::vector<double>& b() const { return b_; }
   const std::vector<double>& c() const { return c_; }

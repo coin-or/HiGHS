@@ -4,16 +4,18 @@
 #include "Status.h"
 #include "ipm/IpxWrapper.h"
 #include "ipm/hipo/auxiliary/Log.h"
+#include "model/HighsHessianUtils.h"
 
 namespace hipo {
 
-Int Model::init(const HighsLp& lp) {
+Int Model::init(const HighsLp& lp, const HighsHessian& Q) {
   fillInIpxData(lp, n_orig_, m_orig_, offset_, c_, lower_, upper_, A_.start_,
                 A_.index_, A_.value_, b_, constraints_);
 
-  if (checkData(n_orig_, m_orig_, c_, b_, lower_, upper_, A_.start_, A_.index_,
-                A_.value_, constraints_))
-    return kStatusBadModel;
+  Q_ = Q;
+  if (qp()) completeHessian(n_orig_, Q_);
+
+  if (checkData()) return kStatusBadModel;
 
   lp_orig_ = &lp;
 
@@ -37,44 +39,45 @@ Int Model::init(const HighsLp& lp) {
   return 0;
 }
 
-Int Model::checkData(
-    const Int num_var, const Int num_con, const std::vector<double>& obj,
-    const std::vector<double>& rhs, const std::vector<double>& lower,
-    const std::vector<double>& upper, const std::vector<Int>& A_ptr,
-    const std::vector<Int>& A_rows, const std::vector<double>& A_vals,
-    const std::vector<char>& constraints) const {
+Int Model::checkData() const {
   // Check if model provided by the user is ok.
   // Return kStatusBadModel if something is wrong.
 
   // Dimensions are valid
-  if (num_var <= 0 || num_con < 0) return kStatusBadModel;
+  if (n_orig_ <= 0 || m_orig_ < 0) return kStatusBadModel;
 
   // Vectors are of correct size
-  if (obj.size() != num_var || rhs.size() != num_con ||
-      lower.size() != num_var || upper.size() != num_var ||
-      constraints.size() != num_con || A_ptr.size() != num_var + 1 ||
-      A_rows.size() != A_ptr.back() || A_vals.size() != A_ptr.back())
+  if (c_.size() != n_orig_ || b_.size() != m_orig_ ||
+      lower_.size() != n_orig_ || upper_.size() != n_orig_ ||
+      constraints_.size() != m_orig_ || A_.start_.size() != n_orig_ + 1 ||
+      A_.index_.size() != A_.start_.back() ||
+      A_.value_.size() != A_.start_.back())
+    return kStatusBadModel;
+
+  // Hessian is ok, for QPs only
+  if (qp() && (Q_.dim_ != n_orig_ || Q_.format_ != HessianFormat::kTriangular))
     return kStatusBadModel;
 
   // Vectors are valid
-  for (Int i = 0; i < num_var; ++i)
-    if (!std::isfinite(obj[i])) return kStatusBadModel;
-  for (Int i = 0; i < num_con; ++i)
-    if (!std::isfinite(rhs[i])) return kStatusBadModel;
-  for (Int i = 0; i < num_var; ++i) {
-    if (!std::isfinite(lower[i]) && lower[i] != -INFINITY)
+  for (Int i = 0; i < n_orig_; ++i)
+    if (!std::isfinite(c_[i])) return kStatusBadModel;
+  for (Int i = 0; i < m_orig_; ++i)
+    if (!std::isfinite(b_[i])) return kStatusBadModel;
+  for (Int i = 0; i < n_orig_; ++i) {
+    if (!std::isfinite(lower_[i]) && lower_[i] != -INFINITY)
       return kStatusBadModel;
-    if (!std::isfinite(upper[i]) && upper[i] != INFINITY)
+    if (!std::isfinite(upper_[i]) && upper_[i] != INFINITY)
       return kStatusBadModel;
-    if (lower[i] > upper[i]) return kStatusBadModel;
+    if (lower_[i] > upper_[i]) return kStatusBadModel;
   }
-  for (Int i = 0; i < num_con; ++i)
-    if (constraints[i] != '<' && constraints[i] != '=' && constraints[i] != '>')
+  for (Int i = 0; i < m_orig_; ++i)
+    if (constraints_[i] != '<' && constraints_[i] != '=' &&
+        constraints_[i] != '>')
       return kStatusBadModel;
 
   // Matrix is valid
-  for (Int i = 0; i < A_ptr[num_var]; ++i)
-    if (!std::isfinite(A_vals[i])) return kStatusBadModel;
+  for (Int i = 0; i < A_.start_[n_orig_]; ++i)
+    if (!std::isfinite(A_.value_[i])) return kStatusBadModel;
 
   return 0;
 }

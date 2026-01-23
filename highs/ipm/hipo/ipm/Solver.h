@@ -68,9 +68,9 @@ class Solver {
 
  public:
   // ===================================================================================
-  // Load an LP:
+  // Load an LP or QP:
   //
-  //  min   obj^T * x
+  //  min   obj^T * x + 1/2 * x^T * Q * x
   //  s.t.  Ax {<=,=,>=} rhs
   //        lower <= x <= upper
   //
@@ -78,7 +78,7 @@ class Solver {
   //  <= : add slack    0 <= s_i <= +inf
   //  >= : add slack -inf <= s_i <=    0
   // ===================================================================================
-  Int load(const HighsLp& lp);
+  Int load(const HighsLp& lp, const HighsHessian& Q);
 
   // ===================================================================================
   // Specify options, callback and timer.
