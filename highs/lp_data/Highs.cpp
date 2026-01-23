@@ -1216,10 +1216,7 @@ HighsStatus Highs::calledOptimizeModel() {
                    "Cannot solve non-convex QP problems with HiGHS\n");
       return returnFromOptimizeModel(HighsStatus::kError, undo_mods);
     }
-    sub_solver_call_time_.num_call[kSubSolverQpAsm]++;
-    sub_solver_call_time_.run_time[kSubSolverQpAsm] = -timer_.read();
     call_status = callSolveQp();
-    sub_solver_call_time_.run_time[kSubSolverQpAsm] += timer_.read();
     return_status = interpretCallStatus(options_.log_options, call_status,
                                         return_status, "callSolveQp");
     return returnFromOptimizeModel(return_status, undo_mods);
@@ -4000,8 +3997,12 @@ HighsStatus Highs::callSolveQp() {
 
   if (use_hipo) {
 #ifdef HIPO
-    solveHipo(options_, timer_, lp, hessian, basis_, solution_, model_status_,
-              info_, callback_);
+    sub_solver_call_time_.num_call[kSubSolverHipo]++;
+    sub_solver_call_time_.run_time[kSubSolverHipo] = -timer_.read();
+    return_status = solveHipo(options_, timer_, lp, hessian, basis_, solution_,
+                              model_status_, info_, callback_);
+    sub_solver_call_time_.run_time[kSubSolverHipo] += timer_.read();
+    if (return_status == HighsStatus::kError) return return_status;
 #else
     // shouldn't be possible to reach here
     assert(1 == 0);
@@ -4010,6 +4011,9 @@ HighsStatus Highs::callSolveQp() {
   } else {
     //
     // Run the QP solver
+    sub_solver_call_time_.num_call[kSubSolverQpAsm]++;
+    sub_solver_call_time_.run_time[kSubSolverQpAsm] = -timer_.read();
+
     Instance instance(lp.num_col_, lp.num_row_);
 
     instance.sense = HighsInt(lp.sense_);
@@ -4134,6 +4138,8 @@ HighsStatus Highs::callSolveQp() {
 
     QpAsmStatus status = solveqp(instance, settings, stats, model_status_,
                                  basis_, solution_, timer_);
+    sub_solver_call_time_.run_time[kSubSolverQpAsm] += timer_.read();
+
     // QP solver can fail, so should return something other than
     // QpAsmStatus::kOk
     if (status == QpAsmStatus::kError) return HighsStatus::kError;
