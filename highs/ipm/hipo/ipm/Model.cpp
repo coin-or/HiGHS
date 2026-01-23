@@ -49,6 +49,13 @@ Int Model::checkData(
   // Dimensions are valid
   if (num_var <= 0 || num_con < 0) return kStatusBadModel;
 
+  // Vectors are of correct size
+  if (obj.size() != num_var || rhs.size() != num_con ||
+      lower.size() != num_var || upper.size() != num_var ||
+      constraints.size() != num_con || A_ptr.size() != num_var + 1 ||
+      A_rows.size() != A_ptr.back() || A_vals.size() != A_ptr.back())
+    return kStatusBadModel;
+
   // Vectors are valid
   for (Int i = 0; i < num_var; ++i)
     if (!std::isfinite(obj[i])) return kStatusBadModel;
