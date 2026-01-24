@@ -10,7 +10,10 @@
 namespace hipo {
 
 Int Solver::load(const HighsLp& lp, const HighsHessian& Q) {
-  if (model_.init(lp, Q)) return kStatusBadModel;
+  if (model_.init(lp, Q)) {
+    logH_.printDevInfo("Error with model\n");
+    return kStatusBadModel;
+  }
 
   m_ = model_.m();
   n_ = model_.n();

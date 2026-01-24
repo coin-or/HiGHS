@@ -9,18 +9,15 @@
 namespace hipo {
 
 Int Model::init(const HighsLp& lp, const HighsHessian& Q) {
-  fillInIpxData(lp, n_orig_, m_orig_, offset_, c_, lower_, upper_, A_.start_,
-                A_.index_, A_.value_, b_, constraints_);
-
+  fillInIpxData(lp, n_, m_, offset_, c_, lower_, upper_, A_.start_, A_.index_,
+                A_.value_, b_, constraints_);
   Q_ = Q;
-  if (qp()) completeHessian(n_orig_, Q_);
-
+  if (qp()) completeHessian(n_, Q_);
   if (checkData()) return kStatusBadModel;
 
   lp_orig_ = &lp;
-
-  n_ = n_orig_;
-  m_ = m_orig_;
+  n_orig_ = n_;
+  m_orig_ = m_;
   A_.num_col_ = n_;
   A_.num_row_ = m_;
 
@@ -34,6 +31,8 @@ Int Model::init(const HighsLp& lp, const HighsHessian& Q) {
   A_.ensureRowwise();
   A_.ensureColwise();
 
+  if (checkData()) return kStatusBadModel;
+
   ready_ = true;
 
   return 0;
@@ -44,39 +43,38 @@ Int Model::checkData() const {
   // Return kStatusBadModel if something is wrong.
 
   // Dimensions are valid
-  if (n_orig_ <= 0 || m_orig_ < 0) return kStatusBadModel;
+  if (n_ <= 0 || m_ < 0) return kStatusBadModel;
 
   // Vectors are of correct size
-  if (c_.size() != n_orig_ || b_.size() != m_orig_ ||
-      lower_.size() != n_orig_ || upper_.size() != n_orig_ ||
-      constraints_.size() != m_orig_ || A_.start_.size() != n_orig_ + 1 ||
-      A_.index_.size() != A_.start_.back() ||
+  if (c_.size() != n_ || b_.size() != m_ || lower_.size() != n_ ||
+      upper_.size() != n_ || constraints_.size() != m_ ||
+      A_.start_.size() != n_ + 1 || A_.index_.size() != A_.start_.back() ||
       A_.value_.size() != A_.start_.back())
     return kStatusBadModel;
 
   // Hessian is ok, for QPs only
-  if (qp() && (Q_.dim_ != n_orig_ || Q_.format_ != HessianFormat::kTriangular))
+  if (qp() && (Q_.dim_ != n_ || Q_.format_ != HessianFormat::kTriangular))
     return kStatusBadModel;
 
   // Vectors are valid
-  for (Int i = 0; i < n_orig_; ++i)
+  for (Int i = 0; i < n_; ++i)
     if (!std::isfinite(c_[i])) return kStatusBadModel;
-  for (Int i = 0; i < m_orig_; ++i)
+  for (Int i = 0; i < m_; ++i)
     if (!std::isfinite(b_[i])) return kStatusBadModel;
-  for (Int i = 0; i < n_orig_; ++i) {
+  for (Int i = 0; i < n_; ++i) {
     if (!std::isfinite(lower_[i]) && lower_[i] != -INFINITY)
       return kStatusBadModel;
     if (!std::isfinite(upper_[i]) && upper_[i] != INFINITY)
       return kStatusBadModel;
     if (lower_[i] > upper_[i]) return kStatusBadModel;
   }
-  for (Int i = 0; i < m_orig_; ++i)
+  for (Int i = 0; i < m_; ++i)
     if (constraints_[i] != '<' && constraints_[i] != '=' &&
         constraints_[i] != '>')
       return kStatusBadModel;
 
   // Matrix is valid
-  for (Int i = 0; i < A_.start_[n_orig_]; ++i)
+  for (Int i = 0; i < A_.start_[n_]; ++i)
     if (!std::isfinite(A_.value_[i])) return kStatusBadModel;
 
   return 0;
