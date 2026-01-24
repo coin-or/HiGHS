@@ -3968,6 +3968,25 @@ HighsStatus Highs::callSolveQp() {
   HighsStatus return_status;
 
   // Choose solver
+  if (options_.solver != kHighsChooseString &&
+      options_.solver != kQpHipoString && options_.solver != kQpAsmString) {
+    highsLogUser(options_.log_options, HighsLogType::kWarning,
+                 "Value \"%s\" for QP solver option is not one of "
+#ifdef HIPO
+                 "\"%s\", "
+#endif
+                 "\"%s\" or \"%s\"\n",
+                 options_.solver.c_str(), kHighsChooseString.c_str(),
+#ifdef HIPO
+                 kQpHipoString.c_str(),
+#endif
+                 kQpAsmString.c_str());
+    highsLogUser(options_.log_options, HighsLogType::kWarning,
+                 "Option \"%s\" changed to \"%s\"\n", kSolverString.c_str(),
+                 kHighsChooseString.c_str());
+    options_.solver = kHighsChooseString;
+  }
+
   bool use_hipo = false;
   if (options_.solver == kQpHipoString) {
 #ifdef HIPO
@@ -3984,20 +4003,7 @@ HighsStatus Highs::callSolveQp() {
              options_.solver == kHighsChooseString) {
     use_hipo = false;
   } else {
-    highsLogUser(options_.log_options, HighsLogType::kWarning,
-                 "Value \"%s\" for QP solver option is not one of "
-#ifdef HIPO
-                 "\"%s\", "
-#endif
-                 "\"%s\" or \"%s\"\n",
-                 options_.solver.c_str(), kHighsChooseString.c_str(),
-#ifdef HIPO
-                 kQpHipoString.c_str(),
-#endif
-                 kQpAsmString.c_str());
-    highsLogUser(options_.log_options, HighsLogType::kWarning,
-                 "Option \"solver\" changed to \"%s\"\n", kQpAsmString.c_str());
-    use_hipo = false;
+    assert(1 == 0);
   }
 
   if (use_hipo) {
