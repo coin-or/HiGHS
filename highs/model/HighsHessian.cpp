@@ -228,3 +228,13 @@ HighsCDouble HighsHessian::objectiveCDoubleValue(
 }
 
 bool HighsHessian::empty() const { return dim_ <= 0; }
+bool HighsHessian::isDiagonal() const {
+  for (HighsInt iCol = 0; iCol < this->dim_; iCol++) {
+    for (HighsInt iEl = this->start_[iCol]; iEl < this->start_[iCol + 1];
+         iEl++) {
+      const HighsInt iRow = this->index_[iEl];
+      if (iRow != iCol) return false;
+    }
+  }
+  return true;
+}

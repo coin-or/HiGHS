@@ -4008,7 +4008,8 @@ HighsStatus Highs::callSolveQp() {
                    "Crossover is not available for solver \"%s\"\n",
                    kQpHipoString.c_str());
       highsLogUser(options_.log_options, HighsLogType::kWarning,
-                   "Option \"run_crossover\" changed to \"off\"\n");
+                   "Option \"%s\" changed to \"%s\"\n",
+                   kRunCrossoverString.c_str(), kHighsOffString.c_str());
     }
     options_.run_crossover = kHighsOffString;
 

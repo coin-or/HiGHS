@@ -43,6 +43,7 @@ class HighsHessian {
                const double large_matrix_value) const;
   HighsInt numNz() const;
   bool empty() const;
+  bool isDiagonal() const;
 
   void print() const;
 };

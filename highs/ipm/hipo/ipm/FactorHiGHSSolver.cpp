@@ -251,6 +251,8 @@ Int FactorHiGHSSolver::analyseNE(Symbolic& S, Int64 nz_limit) {
   // in object S and the status. If building the matrix failed, the status is
   // set to kStatusOverflow.
 
+  if (model_.nonSeparableQp()) return kStatusErrorAnalyse;
+
   Clock clock;
   if (Int status = buildNEstructure(nz_limit)) return status;
   info_.matrix_structure_time = clock.stop();
@@ -604,7 +606,10 @@ Int FactorHiGHSSolver::setNla() {
         log_.printe("NE requested, integer overflow\n");
         return kStatusOverflow;
       } else if (status) {
-        log_.printe("NE requested, failed analyse phase\n");
+        if (model_.nonSeparableQp())
+          log_.printe("Normal equations not available for non-separable QP\n");
+        else
+          log_.printe("NE requested, failed analyse phase\n");
         return kStatusErrorAnalyse;
       }
       log_stream << textline("Newton system:") << "NE requested\n";

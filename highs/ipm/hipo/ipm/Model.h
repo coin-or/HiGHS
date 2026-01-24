@@ -109,7 +109,9 @@ class Model {
   Int n_orig() const { return n_orig_; }
   Int m_orig() const { return m_orig_; }
   bool qp() const { return !Q_.empty(); }
+  bool nonSeparableQp() const { return qp() && !Q_.isDiagonal(); }
   const HighsSparseMatrix& A() const { return A_; }
+  const HighsHessian& Q() const { return Q_; }
   const std::vector<double>& b() const { return b_; }
   const std::vector<double>& c() const { return c_; }
   double lb(Int i) const { return lower_[i]; }
