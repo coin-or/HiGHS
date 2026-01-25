@@ -265,17 +265,15 @@ void Model::print(const LogHighs& log) const {
                << '\n';
   if (empty_rows_ > 0)
     log_stream << "Removed " << empty_rows_ << " empty rows\n";
+  if (qp()) log_stream << textline("Q nnz") << sci(Q_.numNz(), 0, 1) << '\n';
 
   // compute max and min entry of A in absolute value
   double Amin = kHighsInf;
   double Amax = 0.0;
-  for (Int col = 0; col < A_.num_col_; ++col) {
-    for (Int el = A_.start_[col]; el < A_.start_[col + 1]; ++el) {
-      double val = std::abs(A_.value_[el]);
-      if (val != 0.0) {
-        Amin = std::min(Amin, val);
-        Amax = std::max(Amax, val);
-      }
+  for (double val : A_.value_) {
+    if (val != 0.0) {
+      Amin = std::min(Amin, std::abs(val));
+      Amax = std::max(Amax, std::abs(val));
     }
   }
   if (std::isinf(Amin)) Amin = 0.0;
@@ -301,6 +299,17 @@ void Model::print(const LogHighs& log) const {
     }
   }
   if (std::isinf(bmin)) bmin = 0.0;
+
+  // compute max and min entry of Q in absolute value
+  double Qmin = kHighsInf;
+  double Qmax = 0.0;
+  for (double val : Q_.value_) {
+    if (val != 0.0) {
+      Qmin = std::min(Qmin, std::abs(val));
+      Qmax = std::max(Qmax, std::abs(val));
+    }
+  }
+  if (std::isinf(Qmin)) Qmin = 0.0;
 
   // compute max and min for bounds
   double boundmin = kHighsInf;
@@ -353,6 +362,15 @@ void Model::print(const LogHighs& log) const {
     log_stream << sci(cmax / cmin, 0, 1) << '\n';
   else
     log_stream << "-\n";
+
+  if (qp()) {
+    log_stream << textline("Range of Q:") << "[" << sci(Qmin, 5, 1) << ", "
+               << sci(Qmax, 5, 1) << "], ratio ";
+    if (Amin != 0.0)
+      log_stream << sci(Qmax / Qmin, 0, 1) << '\n';
+    else
+      log_stream << "-\n";
+  }
 
   log_stream << textline("Range of bounds:") << "[" << sci(boundmin, 5, 1)
              << ", " << sci(boundmax, 5, 1) << "], ratio ";

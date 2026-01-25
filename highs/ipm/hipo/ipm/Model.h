@@ -16,7 +16,7 @@
 namespace hipo {
 
 // Optimization problem:
-// min  c^T * x
+// min  c^T * x + 1/2 x^T * Q * x
 // s.t. A * x = b
 //      x - xl = lower
 //      x + xu = upper
