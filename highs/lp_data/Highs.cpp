@@ -1216,6 +1216,9 @@ HighsStatus Highs::calledOptimizeModel() {
                    "Cannot solve non-convex QP problems with HiGHS\n");
       return returnFromOptimizeModel(HighsStatus::kError, undo_mods);
     }
+    if (!solverIsQp(options_.solver))
+      changeAndWarnSolver(options_, "QP", kHighsChooseString);
+
     call_status = callSolveQp();
     return_status = interpretCallStatus(options_.log_options, call_status,
                                         return_status, "callSolveQp");
@@ -1231,6 +1234,7 @@ HighsStatus Highs::calledOptimizeModel() {
                    "Solving LP relaxation since solve_relaxation is true\n");
     } else {
       // Solve model as a MIP
+      if (!solverIsMip(options_.solver)) changeAndWarnSolver(options_, "MIP");
       sub_solver_call_time_.num_call[kSubSolverMip]++;
       sub_solver_call_time_.run_time[kSubSolverMip] = -timer_.read();
       call_status = callSolveMip();
@@ -1244,6 +1248,10 @@ HighsStatus Highs::calledOptimizeModel() {
   HighsLp& incumbent_lp = model_.lp_;
   HighsLogOptions& log_options = options_.log_options;
   bool no_incumbent_lp_solution_or_basis = false;
+
+  if (!solverIsLp(options_.solver))
+    changeAndWarnSolver(options_, "LP", kHighsChooseString);
+
   //
   // Record the initial time and set the component times and postsolve
   // iteration count to -1 to identify whether they are not required
@@ -3968,25 +3976,6 @@ HighsStatus Highs::callSolveQp() {
   HighsStatus return_status;
 
   // Choose solver
-  if (options_.solver != kHighsChooseString &&
-      options_.solver != kQpHipoString && options_.solver != kQpAsmString) {
-    highsLogUser(options_.log_options, HighsLogType::kWarning,
-                 "Value \"%s\" for QP solver option is not one of "
-#ifdef HIPO
-                 "\"%s\", "
-#endif
-                 "\"%s\" or \"%s\"\n",
-                 options_.solver.c_str(), kHighsChooseString.c_str(),
-#ifdef HIPO
-                 kQpHipoString.c_str(),
-#endif
-                 kQpAsmString.c_str());
-    highsLogUser(options_.log_options, HighsLogType::kWarning,
-                 "Option \"%s\" changed to \"%s\"\n", kSolverString.c_str(),
-                 kHighsChooseString.c_str());
-    options_.solver = kHighsChooseString;
-  }
-
   bool use_hipo = false;
   if (options_.solver == kQpHipoString) {
 #ifdef HIPO
@@ -4003,21 +3992,15 @@ HighsStatus Highs::callSolveQp() {
              options_.solver == kHighsChooseString) {
     use_hipo = false;
   } else {
+    // shouldn't be possible to choose an LP solver for a QP
     assert(1 == 0);
   }
 
   if (use_hipo) {
 #ifdef HIPO
     if (options_.run_crossover == kHighsOnString ||
-        options_.run_crossover == kHighsChooseString) {
-      highsLogUser(options_.log_options, HighsLogType::kWarning,
-                   "Crossover is not available for solver \"%s\"\n",
-                   kQpHipoString.c_str());
-      highsLogUser(options_.log_options, HighsLogType::kWarning,
-                   "Option \"%s\" changed to \"%s\"\n",
-                   kRunCrossoverString.c_str(), kHighsOffString.c_str());
-    }
-    options_.run_crossover = kHighsOffString;
+        options_.run_crossover == kHighsChooseString)
+      changeAndWarnCrossover(options_, kHighsOffString);
 
     sub_solver_call_time_.num_call[kSubSolverHipo]++;
     sub_solver_call_time_.run_time[kSubSolverHipo] = -timer_.read();

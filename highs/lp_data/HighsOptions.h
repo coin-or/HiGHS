@@ -1651,4 +1651,18 @@ class HighsOptions : public HighsOptionsStruct {
   void setLogOptions();
 };
 
+void warnOptionChanged(const HighsLogOptions& log_options,
+                       const std::string& option,
+                       const std::string& changed_to);
+void warnOptionIgnored(const HighsLogOptions& log_options,
+                       const std::string& option);
+void changeAndWarnSolver(HighsOptions& options, const std::string& problem_type,
+                         const std::string& change_to = "");
+void changeAndWarnCrossover(HighsOptions& options,
+                            const std::string& change_to);
+
+bool solverIsLp(const std::string& solver);
+bool solverIsMip(const std::string& solver);
+bool solverIsQp(const std::string& solver);
+
 #endif

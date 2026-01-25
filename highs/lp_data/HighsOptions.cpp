@@ -1092,3 +1092,52 @@ void HighsOptions::setLogOptions() {
   this->log_options.log_to_console = &this->log_to_console;
   this->log_options.log_dev_level = &this->log_dev_level;
 }
+
+void warnOptionChanged(const HighsLogOptions& log_options,
+                       const std::string& option,
+                       const std::string& change_to) {
+  highsLogUser(log_options, HighsLogType::kWarning,
+               "Option \"%s\" changed to \"%s\"\n", option.c_str(),
+               change_to.c_str());
+}
+
+void warnOptionIgnored(const HighsLogOptions& log_options,
+                       const std::string& option) {
+  highsLogUser(log_options, HighsLogType::kWarning, "Option \"%s\" ignored\n",
+               option.c_str());
+}
+
+void changeAndWarnSolver(HighsOptions& options, const std::string& problem_type,
+                         const std::string& change_to) {
+  highsLogUser(options.log_options, HighsLogType::kWarning,
+               "Solver \"%s\" is not available for %s\n",
+               options.solver.c_str(), problem_type.c_str());
+  if (change_to.empty())
+    warnOptionIgnored(options.log_options, kSolverString);
+  else {
+    warnOptionChanged(options.log_options, kSolverString, change_to);
+    options.solver = change_to;
+  }
+}
+
+void changeAndWarnCrossover(HighsOptions& options,
+                            const std::string& change_to) {
+  highsLogUser(options.log_options, HighsLogType::kWarning,
+               "Crossover is not available for solver \"%s\"\n",
+               options.solver.c_str());
+  warnOptionChanged(options.log_options, kRunCrossoverString, change_to);
+  options.run_crossover = change_to;
+}
+
+bool solverIsLp(const std::string& solver) {
+  return solver == kHighsChooseString || solver == kSimplexString ||
+         solver == kIpmString || solver == kIpxString ||
+         solver == kHipoString || solver == kPdlpString;
+}
+bool solverIsMip(const std::string& solver) {
+  return solver == kHighsChooseString;
+}
+bool solverIsQp(const std::string& solver) {
+  return solver == kHighsChooseString || solver == kQpAsmString ||
+         solver == kQpHipoString;
+}
