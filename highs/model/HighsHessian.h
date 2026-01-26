@@ -46,6 +46,7 @@ class HighsHessian {
   HighsInt numNz() const;
   bool empty() const;
   bool isDiagonal() const;
+  double diag(HighsInt i) const;
 
   void print() const;
 };

@@ -317,8 +317,12 @@ bool Solver::solve2x2(NewtonDir& delta, const Residuals& rhs) {
     model_.A().alphaProductPlusY(-1.0, delta.y, delta.x, true);
     vectorScale(delta.x, -1.0);
 
-    // Deltax = (Theta^-1+Rp)^-1 * Deltax
-    for (Int i = 0; i < n_; ++i) delta.x[i] /= theta_inv[i] + regul_.primal;
+    // Deltax = (Theta^-1+Rp+Q)^-1 * Deltax
+    for (Int i = 0; i < n_; ++i) {
+      double denom = theta_inv[i] + regul_.primal;
+      if (model_.qp()) denom += model_.Q().diag(i);
+      delta.x[i] /= denom;
+    }
 
   }
 
@@ -383,19 +387,21 @@ void Solver::recoverDirection(NewtonDir& delta, const Residuals& rhs) const {
   }
 
   // not sure if this has any effect, but IPX uses it
-  std::vector<double> Atdy(n_);
-  model_.A().alphaProductPlusY(1.0, delta.y, Atdy, true);
-  for (Int i = 0; i < n_; ++i) {
-    if (model_.hasLb(i) || model_.hasUb(i)) {
-      if (std::isfinite(xl[i]) && std::isfinite(xu[i])) {
-        if (zl[i] * xu[i] >= zu[i] * xl[i])
+  if (!model_.qp()) {
+    std::vector<double> Atdy(n_);
+    model_.A().alphaProductPlusY(1.0, delta.y, Atdy, true);
+    for (Int i = 0; i < n_; ++i) {
+      if (model_.hasLb(i) || model_.hasUb(i)) {
+        if (std::isfinite(xl[i]) && std::isfinite(xu[i])) {
+          if (zl[i] * xu[i] >= zu[i] * xl[i])
+            delta.zl[i] = res4[i] + delta.zu[i] - Atdy[i];
+          else
+            delta.zu[i] = -res4[i] + delta.zl[i] + Atdy[i];
+        } else if (std::isfinite(xl[i])) {
           delta.zl[i] = res4[i] + delta.zu[i] - Atdy[i];
-        else
+        } else {
           delta.zu[i] = -res4[i] + delta.zl[i] + Atdy[i];
-      } else if (std::isfinite(xl[i])) {
-        delta.zl[i] = res4[i] + delta.zu[i] - Atdy[i];
-      } else {
-        delta.zu[i] = -res4[i] + delta.zl[i] + Atdy[i];
+        }
       }
     }
   }

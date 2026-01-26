@@ -255,8 +255,12 @@ std::vector<double> Iterate::residual8(const Residuals& r,
   std::vector<double> res8(r.r1);
   std::vector<double> temp(res7);
 
-  // temp = (Theta^-1+Rp)^-1 * res7
-  for (Int i = 0; i < model.n(); ++i) temp[i] /= scaling[i] + regul.primal;
+  // temp = (Theta^-1+Rp+Q)^-1 * res7
+  for (Int i = 0; i < model.n(); ++i) {
+    double denom = scaling[i] + regul.primal;
+    if (model.qp()) denom += model.Q().diag(i);
+    temp[i] /= denom;
+  }
 
   // res8 += A * temp
   model.A().alphaProductPlusY(1.0, temp, res8);

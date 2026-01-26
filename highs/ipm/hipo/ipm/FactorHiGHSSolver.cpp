@@ -195,10 +195,11 @@ Int FactorHiGHSSolver::buildNEvalues(const std::vector<double>& scaling) {
       Int col = idxA_rw_[el];
       Int corr = corr_A_[el];
 
-      const double theta =
-          scaling.empty() ? 1.0 : 1.0 / (scaling[col] + regul_.primal);
+      double denom = scaling[col] + regul_.primal;
+      if (model_.qp()) denom += model_.Q().diag(col);
+      const double mult = scaling.empty() ? 1.0 : 1.0 / denom;
 
-      const double row_value = theta * A_.value_[corr];
+      const double row_value = mult * A_.value_[corr];
 
       // for each nonzero in the row, go down corresponding column, starting
       // from current position

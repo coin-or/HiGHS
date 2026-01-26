@@ -255,3 +255,8 @@ bool HighsHessian::isDiagonal() const {
   }
   return true;
 }
+double HighsHessian::diag(HighsInt i) const {
+  assert(i < dim_);
+  assert(index_[start_[i]] == i);
+  return value_[start_[i]];
+}

@@ -169,11 +169,13 @@ class Solver {
   //
   // ___Normal equations___
   //
-  //      A * Theta * A^T * Deltay = res8
-  //      Delta x = Theta * (A^T* Deltay - res7)
+  //      A * (Theta^{-1}+Q)^{-1} * A^T * Deltay = res8
+  //      Delta x = (Theta^{-1}+Q)^{-1} * (A^T* Deltay - res7)
   //
   // with:
-  //  res8 = res1 + A * Theta * res7
+  //  res8 = res1 + A * (Theta^{-1}+Q)^{-1} * res7
+  //
+  // NB: normal equations available only if Q is zero or diagonal.
   // ===================================================================================
   bool solveNewtonSystem(NewtonDir& delta);
   bool solve2x2(NewtonDir& delta, const Residuals& rhs);
