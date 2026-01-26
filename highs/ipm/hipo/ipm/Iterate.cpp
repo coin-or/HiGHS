@@ -138,13 +138,17 @@ void Iterate::indicators() {
   products();
 }
 
-void Iterate::primalObj() { pobj = model.offset() + dotProd(x, model.c()); }
+void Iterate::primalObj() {
+  pobj = model.offset() + dotProd(x, model.c());
+  if (model.qp()) pobj += model.Q().objectiveValue(x);
+}
 void Iterate::dualObj() {
   dobj = model.offset() + dotProd(y, model.b());
   for (Int i = 0; i < model.n(); ++i) {
     if (model.hasLb(i)) dobj += model.lb(i) * zl[i];
     if (model.hasUb(i)) dobj -= model.ub(i) * zu[i];
   }
+  if (model.qp()) dobj -= model.Q().objectiveValue(x);
 }
 void Iterate::pdGap() {
   // relative primal-dual gap
@@ -220,6 +224,7 @@ void Iterate::residual1234() {
     if (model.hasLb(i)) res.r4[i] -= zl[i];
     if (model.hasUb(i)) res.r4[i] += zu[i];
   }
+  if (model.qp()) model.Q().alphaProductPlusY(1.0, x, res.r4);
 }
 void Iterate::residual56(double sigma) {
   for (Int i = 0; i < model.n(); ++i) {
@@ -563,7 +568,7 @@ void Iterate::finalResiduals(Info& info) const {
 
     // res1 = b - slack - A*x
     std::vector<double> res1(m);
-    model.multWithoutSlack(-1.0, x_local, res1);
+    model.multAWithoutSlack(-1.0, x_local, res1);
     for (Int i = 0; i < m; ++i) {
       res1[i] = res1[i] - slack_local[i] + model.b()[i];
       if (model.scaled()) res1[i] /= model.rowScale(i);
@@ -583,15 +588,16 @@ void Iterate::finalResiduals(Info& info) const {
       if (model.scaled()) res3[i] *= model.colScale(i);
     }
 
-    // res4 = c - A^T * y - zl + zu
+    // res4 = c - A^T * y - zl + zu + Q * x
     std::vector<double> res4(n_orig);
-    model.multWithoutSlack(-1.0, y_local, res4, true);
+    model.multAWithoutSlack(-1.0, y_local, res4, true);
     for (Int i = 0; i < n_orig; ++i) {
       if (model.hasLb(i)) res4[i] -= zl_local[i];
       if (model.hasUb(i)) res4[i] += zu_local[i];
       res4[i] += model.c()[i];
       if (model.scaled()) res4[i] /= model.colScale(i);
     }
+    if (model.qp()) model.multQWithoutSlack(1.0, x_local, res4);
 
     info.p_res_abs = infNorm(res1);
     info.p_res_abs = std::max(info.p_res_abs, infNorm(res2));
@@ -673,7 +679,7 @@ void Iterate::residuals6x6(const NewtonDir& d) {
     else
       ires.r3[i] = 0.0;
 
-  // ires4 = res4 - A^T * dy - dzl + dzu + Rp * dx
+  // ires4 = res4 - A^T * dy - dzl + dzu + Q * dx + Rp * dx
   ires.r4 = res.r4;
   for (Int i = 0; i < n; ++i) {
     if (model.hasLb(i)) ires.r4[i] -= dzl[i];
@@ -684,6 +690,7 @@ void Iterate::residuals6x6(const NewtonDir& d) {
     double reg_p = Rp ? Rp[i] : regul.primal;
     ires.r4[i] += reg_p * dx[i];
   }
+  if (model.qp()) model.Q().alphaProductPlusY(1.0, dx, ires.r4);
 
   // ires5 = res5 - zl * dxl - xl * dzl
   for (Int i = 0; i < n; ++i) {

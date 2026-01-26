@@ -26,7 +26,6 @@
 namespace hipo {
 
 class Solver {
-  // LP model
   Model model_;
 
   // Linear solver interface
@@ -88,7 +87,7 @@ class Solver {
   void setTimer(const HighsTimer& timer);
 
   // ===================================================================================
-  // Solve the LP
+  // Solve the LP or QP
   // ===================================================================================
   void solve();
 
@@ -156,8 +155,8 @@ class Solver {
   //
   // ___Augmented system___
   //
-  //      [ -Theta^{-1}  A^T ] [ Deltax ] = [ res7 ]
-  //      [ A            0   ] [ Deltay ] = [ res1 ]
+  //      [ -Theta^{-1}-Q  A^T ] [ Deltax ] = [ res7 ]
+  //      [ A              0   ] [ Deltay ] = [ res1 ]
   //
   // with:
   //  res7 = res4 - Xl^{-1} * (res5 + Zl * res2) + Xu^{-1} * (res6 - Zu * res3)

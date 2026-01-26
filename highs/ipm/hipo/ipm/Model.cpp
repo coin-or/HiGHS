@@ -562,8 +562,8 @@ Int Model::loadIntoIpx(ipx::LpSolver& lps) const {
   return load_status;
 }
 
-void Model::multWithoutSlack(double alpha, const std::vector<double>& x,
-                             std::vector<double>& y, bool trans) const {
+void Model::multAWithoutSlack(double alpha, const std::vector<double>& x,
+                              std::vector<double>& y, bool trans) const {
   assert(x.size() == (trans ? m_ : n_orig_));
   assert(y.size() == (trans ? n_orig_ : m_));
 
@@ -578,6 +578,20 @@ void Model::multWithoutSlack(double alpha, const std::vector<double>& x,
       for (Int el = A_.start_[col]; el < A_.start_[col + 1]; ++el) {
         y[A_.index_[el]] += alpha * A_.value_[el] * x[col];
       }
+    }
+  }
+}
+
+void Model::multQWithoutSlack(double alpha, const std::vector<double>& x,
+                              std::vector<double>& y) const {
+  assert(x.size() == n_orig_);
+  assert(Q_.format_ == HessianFormat::kTriangular);
+
+  for (Int col = 0; col < n_orig_; ++col) {
+    for (Int el = Q_.start_[col]; el < Q_.start_[col + 1]; ++el) {
+      const Int row = Q_.index_[el];
+      y[row] += alpha * Q_.value_[el] * x[col];
+      if (row != col) y[col] += alpha * Q_.value_[el] * x[row];
     }
   }
 }

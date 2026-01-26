@@ -30,38 +30,20 @@ struct Residuals {
 };
 
 struct Iterate {
-  // lp model
   const Model& model;
-
-  // record of data at each iteration
   IpmData data;
-
-  // ipm point
   std::vector<double> x, xl, xu, y, zl, zu;
-
-  // residuals
   Residuals res;
-
-  // Newton direction
   NewtonDir delta;
-
-  // indicators
   double pobj, dobj, pinf, dinf, pdgap;
-
   double mu;
   std::vector<double> scaling;
-
-  // smallest value of mu seen so far
   double best_mu;
-
-  // regularisation values
   Regularisation& regul;
   std::vector<double> total_reg;
   double* Rp;
   double* Rd;
-
-  // residuals of linear system for iterative refinement
-  Residuals ires;
+  Residuals ires;  // residuals for iterative refinement
 
   // ===================================================================================
   // Functions to construct, clear and check for nan or inf
@@ -126,7 +108,7 @@ struct Iterate {
   //  res1 = rhs - A * x
   //  res2 = lower - x + xl
   //  res3 = upper - x - xu
-  //  res4 = c - A^T * y - zl + zu
+  //  res4 = c - A^T * y - zl + zu + Q * x
   // Components of residuals 2,3 are set to zero if the corresponding
   // upper/lower bound is not finite.
   // ===================================================================================

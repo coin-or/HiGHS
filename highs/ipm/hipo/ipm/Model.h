@@ -96,9 +96,11 @@ class Model {
   double normUnscaledObj() const { return norm_unscaled_obj_; }
   double normUnscaledRhs() const { return norm_unscaled_rhs_; }
 
-  // multiply by A or A^T without slacks
-  void multWithoutSlack(double alpha, const std::vector<double>& x,
-                        std::vector<double>& y, bool trans = false) const;
+  // multiply by A or A^T or Q without slacks
+  void multAWithoutSlack(double alpha, const std::vector<double>& x,
+                         std::vector<double>& y, bool trans = false) const;
+  void multQWithoutSlack(double alpha, const std::vector<double>& x,
+                         std::vector<double>& y) const;
 
   // Check if variable has finite lower/upper bound
   bool hasLb(Int j) const { return std::isfinite(lower_[j]); }
