@@ -44,7 +44,7 @@ HighsStatus reportHipoStatus(const HighsOptions& options,
                              const hipo::Int status, const hipo::Solver& hipo);
 
 HighsStatus reportHipoCrossoverStatus(const HighsOptions& options,
-                                      const ipx::Int status);
+                                      const ipx::Int status, bool is_qp);
 
 void reportHipoNoProgress(const HighsOptions& options,
                           const hipo::Info& hipo_info);

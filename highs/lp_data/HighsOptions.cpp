@@ -83,7 +83,7 @@ bool optionOffOnOk(const HighsLogOptions& report_log_options,
 bool optionSolverOk(const HighsLogOptions& report_log_options,
                     const string& value) {
 #ifndef HIPO
-  if (value == kHipoString || value == kQpHipoString) {
+  if (value == kHipoString) {
     highsLogUser(
         report_log_options, HighsLogType::kError,
         "The HiPO solver was requested via the \"%s\" option, but this build "
@@ -96,20 +96,20 @@ bool optionSolverOk(const HighsLogOptions& report_log_options,
   if (value == kHighsChooseString || value == kSimplexString ||
       value == kIpmString ||
 #ifdef HIPO
-      value == kHipoString || value == kQpHipoString ||
+      value == kHipoString ||
 #endif
       value == kIpxString || value == kPdlpString || value == kQpAsmString)
     return true;
   highsLogUser(report_log_options, HighsLogType::kError,
                "Value \"%s\" for LP solver option (\"%s\") is not one of "
 #ifdef HIPO
-               "\"%s\", \"%s\","
+               "\"%s\","
 #endif
                "\"%s\", \"%s\", \"%s\", \"%s\", \"%s\" or \"%s\"\n",
                value.c_str(), kSolverString.c_str(), kHighsChooseString.c_str(),
                kSimplexString.c_str(), kIpmString.c_str(),
 #ifdef HIPO
-               kHipoString.c_str(), kQpHipoString.c_str(),
+               kHipoString.c_str(),
 #endif
                kIpxString.c_str(), kPdlpString.c_str(), kQpAsmString.c_str());
   return false;
@@ -1093,51 +1093,22 @@ void HighsOptions::setLogOptions() {
   this->log_options.log_dev_level = &this->log_dev_level;
 }
 
-void warnOptionChanged(const HighsLogOptions& log_options,
-                       const std::string& option,
-                       const std::string& change_to) {
-  highsLogUser(log_options, HighsLogType::kWarning,
-               "Option \"%s\" changed to \"%s\"\n", option.c_str(),
-               change_to.c_str());
-}
-
-void warnOptionIgnored(const HighsLogOptions& log_options,
-                       const std::string& option) {
-  highsLogUser(log_options, HighsLogType::kWarning, "Option \"%s\" ignored\n",
-               option.c_str());
-}
-
-void changeAndWarnSolver(HighsOptions& options, const std::string& problem_type,
-                         const std::string& change_to) {
+void warnSolverInvalid(const HighsOptions& options,
+                       const std::string& problem_type) {
   highsLogUser(options.log_options, HighsLogType::kWarning,
-               "Solver \"%s\" is not available for %s\n",
-               options.solver.c_str(), problem_type.c_str());
-  if (change_to.empty())
-    warnOptionIgnored(options.log_options, kSolverString);
-  else {
-    warnOptionChanged(options.log_options, kSolverString, change_to);
-    options.solver = change_to;
-  }
+               "Solver \"%s\" is not available for %s. Option \"%s\" ignored\n",
+               options.solver.c_str(), problem_type.c_str(),
+               kSolverString.c_str());
 }
-
-void changeAndWarnCrossover(HighsOptions& options,
-                            const std::string& change_to) {
-  highsLogUser(options.log_options, HighsLogType::kWarning,
-               "Crossover is not available for solver \"%s\"\n",
-               options.solver.c_str());
-  warnOptionChanged(options.log_options, kRunCrossoverString, change_to);
-  options.run_crossover = change_to;
-}
-
-bool solverIsLp(const std::string& solver) {
+bool solverValidForLp(const std::string& solver) {
   return solver == kHighsChooseString || solver == kSimplexString ||
          solver == kIpmString || solver == kIpxString ||
          solver == kHipoString || solver == kPdlpString;
 }
-bool solverIsMip(const std::string& solver) {
+bool solverValidForMip(const std::string& solver) {
   return solver == kHighsChooseString;
 }
-bool solverIsQp(const std::string& solver) {
+bool solverValidForQp(const std::string& solver) {
   return solver == kHighsChooseString || solver == kQpAsmString ||
-         solver == kQpHipoString;
+         solver == kIpmString || solver == kHipoString;
 }

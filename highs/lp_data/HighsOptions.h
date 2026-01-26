@@ -266,7 +266,6 @@ const string kHighsRunLogFile = "Highs.log";
 const string kSimplexString = "simplex";
 const string kIpmString = "ipm";
 const string kHipoString = "hipo";
-const string kQpHipoString = "qphipo";
 const string kIpxString = "ipx";
 const string kPdlpString = "pdlp";
 const string kQpAsmString = "qpasm";
@@ -722,7 +721,7 @@ class HighsOptions : public HighsOptionsStruct {
     record_string = new OptionRecordString(
         kSolverString,
         "LP solver option: \"choose\", \"simplex\", "
-        "\"ipm\", \"ipx\", \"hipo\", \"qphipo\", \"pdlp\" or \"qpasm\"",
+        "\"ipm\", \"ipx\", \"hipo\", \"pdlp\" or \"qpasm\"",
         advanced, &solver, kHighsChooseString);
     records.push_back(record_string);
 
@@ -1651,18 +1650,11 @@ class HighsOptions : public HighsOptionsStruct {
   void setLogOptions();
 };
 
-void warnOptionChanged(const HighsLogOptions& log_options,
-                       const std::string& option,
-                       const std::string& changed_to);
-void warnOptionIgnored(const HighsLogOptions& log_options,
-                       const std::string& option);
-void changeAndWarnSolver(HighsOptions& options, const std::string& problem_type,
-                         const std::string& change_to = "");
-void changeAndWarnCrossover(HighsOptions& options,
-                            const std::string& change_to);
+void warnSolverInvalid(const HighsOptions& options,
+                       const std::string& problem_type);
 
-bool solverIsLp(const std::string& solver);
-bool solverIsMip(const std::string& solver);
-bool solverIsQp(const std::string& solver);
+bool solverValidForLp(const std::string& solver);
+bool solverValidForMip(const std::string& solver);
+bool solverValidForQp(const std::string& solver);
 
 #endif

@@ -1216,8 +1216,7 @@ HighsStatus Highs::calledOptimizeModel() {
                    "Cannot solve non-convex QP problems with HiGHS\n");
       return returnFromOptimizeModel(HighsStatus::kError, undo_mods);
     }
-    if (!solverIsQp(options_.solver))
-      changeAndWarnSolver(options_, "QP", kHighsChooseString);
+    if (!solverValidForQp(options_.solver)) warnSolverInvalid(options_, "QP");
 
     call_status = callSolveQp();
     return_status = interpretCallStatus(options_.log_options, call_status,
@@ -1234,7 +1233,8 @@ HighsStatus Highs::calledOptimizeModel() {
                    "Solving LP relaxation since solve_relaxation is true\n");
     } else {
       // Solve model as a MIP
-      if (!solverIsMip(options_.solver)) changeAndWarnSolver(options_, "MIP");
+      if (!solverValidForMip(options_.solver))
+        warnSolverInvalid(options_, "MIP");
       sub_solver_call_time_.num_call[kSubSolverMip]++;
       sub_solver_call_time_.run_time[kSubSolverMip] = -timer_.read();
       call_status = callSolveMip();
@@ -1249,8 +1249,7 @@ HighsStatus Highs::calledOptimizeModel() {
   HighsLogOptions& log_options = options_.log_options;
   bool no_incumbent_lp_solution_or_basis = false;
 
-  if (!solverIsLp(options_.solver))
-    changeAndWarnSolver(options_, "LP", kHighsChooseString);
+  if (!solverValidForLp(options_.solver)) warnSolverInvalid(options_, "LP");
 
   //
   // Record the initial time and set the component times and postsolve
@@ -3977,7 +3976,7 @@ HighsStatus Highs::callSolveQp() {
 
   // Choose solver
   bool use_hipo = false;
-  if (options_.solver == kQpHipoString) {
+  if (options_.solver == kHipoString || options_.solver == kIpmString) {
 #ifdef HIPO
     use_hipo = true;
 #else
@@ -3988,20 +3987,11 @@ HighsStatus Highs::callSolveQp() {
     solution_.dual_valid = false;
     return HighsStatus::kError;
 #endif
-  } else if (options_.solver == kQpAsmString ||
-             options_.solver == kHighsChooseString) {
+  } else
     use_hipo = false;
-  } else {
-    // shouldn't be possible to choose an LP solver for a QP
-    assert(1 == 0);
-  }
 
   if (use_hipo) {
 #ifdef HIPO
-    if (options_.run_crossover == kHighsOnString ||
-        options_.run_crossover == kHighsChooseString)
-      changeAndWarnCrossover(options_, kHighsOffString);
-
     sub_solver_call_time_.num_call[kSubSolverHipo]++;
     sub_solver_call_time_.run_time[kSubSolverHipo] = -timer_.read();
     return_status = solveHipo(options_, timer_, lp, hessian, basis_, solution_,

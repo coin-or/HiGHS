@@ -616,8 +616,8 @@ HighsStatus solveHipo(const HighsOptions& options, HighsTimer& timer,
   }
 
   // Report crossover status
-  const HighsStatus crossover_return_status =
-      reportHipoCrossoverStatus(options, hipo_info.ipx_info.status_crossover);
+  const HighsStatus crossover_return_status = reportHipoCrossoverStatus(
+      options, hipo_info.ipx_info.status_crossover, !Q.empty());
   if (crossover_return_status == HighsStatus::kError) {
     model_status = HighsModelStatus::kSolveError;
     return HighsStatus::kError;
@@ -1551,7 +1551,13 @@ HighsStatus reportHipoStatus(const HighsOptions& options,
 }
 
 HighsStatus reportHipoCrossoverStatus(const HighsOptions& options,
-                                      const ipx::Int status) {
+                                      const ipx::Int status, bool is_qp) {
+  if (is_qp && options.run_crossover == kHighsOnString) {
+    highsLogUser(options.log_options, HighsLogType::kWarning,
+                 "Hipo: Crossover not available for QP\n");
+    return HighsStatus::kWarning;
+  }
+
   if (status == IPX_STATUS_not_run) {
     if (options.run_crossover == kHighsOnString) {
       // Warn if crossover not run and run_crossover option is "on"
