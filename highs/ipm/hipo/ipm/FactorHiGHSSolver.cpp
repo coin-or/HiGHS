@@ -19,6 +19,7 @@ FactorHiGHSSolver::FactorHiGHSSolver(Options& options, const Model& model,
       log_{log},
       model_{model},
       A_{model.A()},
+      Q_{model.Q()},
       mA_{A_.num_row_},
       nA_{A_.num_col_},
       nzA_{A_.numNz()},
@@ -269,8 +270,7 @@ Int FactorHiGHSSolver::analyseNE(Symbolic& S, Int64 nz_limit) {
 // Factorise phase
 // =========================================================================
 
-Int FactorHiGHSSolver::factorAS(const HighsSparseMatrix& A,
-                                const std::vector<double>& scaling) {
+Int FactorHiGHSSolver::factorAS(const std::vector<double>& scaling) {
   // only execute factorisation if it has not been done yet
   assert(!this->valid_);
 
@@ -293,8 +293,7 @@ Int FactorHiGHSSolver::factorAS(const HighsSparseMatrix& A,
   return kStatusOk;
 }
 
-Int FactorHiGHSSolver::factorNE(const HighsSparseMatrix& A,
-                                const std::vector<double>& scaling) {
+Int FactorHiGHSSolver::factorNE(const std::vector<double>& scaling) {
   // only execute factorisation if it has not been done yet
   assert(!this->valid_);
 
@@ -392,8 +391,6 @@ Int FactorHiGHSSolver::setup() {
 
 Int FactorHiGHSSolver::chooseNla() {
   // Choose whether to use augmented system or normal equations.
-
-  assert(options_.nla == kOptionNlaChoose);
 
   Symbolic symb_NE{};
   Symbolic symb_AS{};
@@ -590,9 +587,19 @@ Int FactorHiGHSSolver::chooseOrdering(const std::vector<Int>& rows,
 Int FactorHiGHSSolver::setNla() {
   std::stringstream log_stream;
 
-  switch (options_.nla) {
+  hipo::OptionNla nla = options_.nla;
+  if (nla == kOptionNlaNormEq && model_.nonSeparableQp()) {
+    log_.printw("Normal equations not available for non-separable QP\n");
+    nla = kOptionNlaChoose;
+  }
+
+  switch (nla) {
     case kOptionNlaAugmented: {
-      if (analyseAS(S_)) {
+      Int status = analyseAS(S_);
+      if (status == kStatusOverflow) {
+        log_.printe("AS requested, integer overflow\n");
+        return kStatusOverflow;
+      } else if (status) {
         log_.printe("AS requested, failed analyse phase\n");
         return kStatusErrorAnalyse;
       }
@@ -606,10 +613,7 @@ Int FactorHiGHSSolver::setNla() {
         log_.printe("NE requested, integer overflow\n");
         return kStatusOverflow;
       } else if (status) {
-        if (model_.nonSeparableQp())
-          log_.printe("Normal equations not available for non-separable QP\n");
-        else
-          log_.printe("NE requested, failed analyse phase\n");
+        log_.printe("NE requested, failed analyse phase\n");
         return kStatusErrorAnalyse;
       }
       log_stream << textline("Newton system:") << "NE requested\n";

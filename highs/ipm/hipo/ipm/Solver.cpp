@@ -296,7 +296,7 @@ bool Solver::solve2x2(NewtonDir& delta, const Residuals& rhs) {
 
     // factorise normal equations, if not yet done
     if (!LS_->valid_) {
-      if (Int status = LS_->factorNE(model_.A(), theta_inv)) {
+      if (Int status = LS_->factorNE(theta_inv)) {
         logH_.printe("Error while factorising normal equations\n");
         info_.status = (Status)status;
         return true;
@@ -326,7 +326,7 @@ bool Solver::solve2x2(NewtonDir& delta, const Residuals& rhs) {
   else {
     // factorise augmented system, if not yet done
     if (!LS_->valid_) {
-      if (Int status = LS_->factorAS(model_.A(), theta_inv)) {
+      if (Int status = LS_->factorAS(theta_inv)) {
         logH_.printe("Error while factorising augmented system\n");
         info_.status = (Status)status;
         return true;
@@ -593,7 +593,7 @@ bool Solver::startingPoint() {
     // temp_m
 
     // factorise A*A^T
-    if (Int status = LS_->factorNE(model_.A(), temp_scaling)) {
+    if (Int status = LS_->factorNE(temp_scaling)) {
       logH_.printe("Error while factorising normal equations\n");
       info_.status = (Status)status;
       return true;
@@ -610,7 +610,7 @@ bool Solver::startingPoint() {
     // [ -I  A^T] [...] = [ -x]
     // [  A   0 ] [ dx] = [ b ]
 
-    if (Int status = LS_->factorAS(model_.A(), temp_scaling)) {
+    if (Int status = LS_->factorAS(temp_scaling)) {
       logH_.printe("Error while factorising augmented system\n");
       info_.status = (Status)status;
       return true;
