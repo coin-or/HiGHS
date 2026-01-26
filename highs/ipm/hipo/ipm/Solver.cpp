@@ -587,7 +587,7 @@ bool Solver::startingPoint() {
     x[i] = std::min(x[i], model_.ub(i));
   }
 
-  const std::vector<double> temp_scaling(n_, 1.0);
+  const std::vector<double> empty_scaling;
   std::vector<double> temp_m(m_);
 
   if (options_.nla == kOptionNlaNormEq) {
@@ -599,7 +599,7 @@ bool Solver::startingPoint() {
     // temp_m
 
     // factorise A*A^T
-    if (Int status = LS_->factorNE(temp_scaling)) {
+    if (Int status = LS_->factorNE(empty_scaling)) {
       logH_.printe("Error while factorising normal equations\n");
       info_.status = (Status)status;
       return true;
@@ -616,7 +616,7 @@ bool Solver::startingPoint() {
     // [ -I  A^T] [...] = [ -x]
     // [  A   0 ] [ dx] = [ b ]
 
-    if (Int status = LS_->factorAS(temp_scaling)) {
+    if (Int status = LS_->factorAS(empty_scaling)) {
       logH_.printe("Error while factorising augmented system\n");
       info_.status = (Status)status;
       return true;

@@ -80,7 +80,7 @@ Int FactorHiGHSSolver::buildASvalues(const std::vector<double>& scaling) {
   assert(!ptrAS_.empty() && !rowsAS_.empty());
 
   for (Int i = 0; i < nA_; ++i) {
-    valAS_[ptrAS_[i]] = -scaling[i];
+    valAS_[ptrAS_[i]] = scaling.empty() ? -1.0 : -scaling[i];
   }
 
   return kStatusOk;
@@ -195,9 +195,13 @@ Int FactorHiGHSSolver::buildNEvalues(const std::vector<double>& scaling) {
       Int col = idxA_rw_[el];
       Int corr = corr_A_[el];
 
-      double denom = scaling[col] + regul_.primal;
-      if (model_.qp()) denom += model_.Q().diag(col);
-      const double mult = scaling.empty() ? 1.0 : 1.0 / denom;
+      // use theta=Identity if scaling is empty
+      double mult = 1.0;
+      if (!scaling.empty()) {
+        double denom = scaling[col] + regul_.primal;
+        if (model_.qp()) denom += model_.Q().diag(col);
+        mult = 1.0 / denom;
+      }
 
       const double row_value = mult * A_.value_[corr];
 
