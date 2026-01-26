@@ -40,7 +40,7 @@ class FactorHiGHSSolver : public LinearSolver {
   const Model& model_;
   const HighsSparseMatrix& A_;
   const HighsHessian& Q_;
-  const Int mA_, nA_, nzA_;
+  const Int mA_, nA_, nzA_, nzQ_;
 
   Options& options_;
 

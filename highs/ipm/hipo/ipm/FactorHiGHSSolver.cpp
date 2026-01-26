@@ -23,6 +23,7 @@ FactorHiGHSSolver::FactorHiGHSSolver(Options& options, const Model& model,
       mA_{A_.num_row_},
       nA_{A_.num_col_},
       nzA_{A_.numNz()},
+      nzQ_{Q_.numNz()},
       options_{options} {}
 
 void FactorHiGHSSolver::clear() {
@@ -40,19 +41,31 @@ Int FactorHiGHSSolver::buildASstructure(Int64 nz_limit) {
 
   log_.printDevInfo("Building AS structure\n");
 
+  const Int nzBlock11 = model_.qp() ? nzQ_ : nA_;
+
   // AS matrix must fit into HighsInt
-  if ((Int64)nA_ + mA_ + nzA_ > nz_limit) return kStatusOverflow;
+  if ((Int64)nzBlock11 + mA_ + nzA_ > nz_limit) return kStatusOverflow;
 
   ptrAS_.resize(nA_ + mA_ + 1);
-  rowsAS_.resize(nA_ + nzA_ + mA_);
-  valAS_.resize(nA_ + nzA_ + mA_);
+  rowsAS_.resize(nzBlock11 + nzA_ + mA_);
+  valAS_.resize(nzBlock11 + nzA_ + mA_);
 
   Int next = 0;
 
   for (Int i = 0; i < nA_; ++i) {
     // diagonal element
     rowsAS_[next] = i;
-    ++next;
+    next++;
+
+    // column of Q
+    if (model_.qp()) {
+      assert(Q_.index_[Q_.start_[i]] == i);
+      for (Int el = Q_.start_[i] + 1; el < Q_.start_[i + 1]; ++el) {
+        rowsAS_[next] = Q_.index_[el];
+        valAS_[next] = -Q_.value_[el];  // values of AS that will not change
+        ++next;
+      }
+    }
 
     // column of A
     for (Int el = A_.start_[i]; el < A_.start_[i + 1]; ++el) {
@@ -80,7 +93,12 @@ Int FactorHiGHSSolver::buildASvalues(const std::vector<double>& scaling) {
   assert(!ptrAS_.empty() && !rowsAS_.empty());
 
   for (Int i = 0; i < nA_; ++i) {
-    valAS_[ptrAS_[i]] = scaling.empty() ? -1.0 : -scaling[i];
+    if (scaling.empty())
+      valAS_[ptrAS_[i]] = -1.0;
+    else {
+      valAS_[ptrAS_[i]] = -scaling[i];
+      if (model_.qp()) valAS_[ptrAS_[i]] -= model_.Q().diag(i);
+    }
   }
 
   return kStatusOk;
