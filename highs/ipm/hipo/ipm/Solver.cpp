@@ -674,10 +674,17 @@ bool Solver::startingPoint() {
   // y starting point
   // *********************************************************************
 
+  std::vector<double> cPlusQx(n_);
+  if (model_.qp()) model_.Q().product(x, cPlusQx);
+  vectorAdd(cPlusQx, model_.c());
+
+  double max_norm_x = std::max(infNorm(x), std::max(infNorm(xl), infNorm(xu)));
+  if (infNorm(cPlusQx) > max_norm_x * 1e3) cPlusQx = model_.c();
+
   if (options_.nla == kOptionNlaNormEq) {
-    // compute A*c
+    // compute A*(c+Qx)
     std::fill(temp_m.begin(), temp_m.end(), 0.0);
-    model_.A().alphaProductPlusY(1.0, model_.c(), temp_m);
+    model_.A().alphaProductPlusY(1.0, cPlusQx, temp_m);
 
     if (Int status = LS_->solveNE(temp_m, y)) {
       logH_.printe("Error while solvingF normal equations\n");
@@ -686,14 +693,14 @@ bool Solver::startingPoint() {
     }
 
   } else if (options_.nla == kOptionNlaAugmented) {
-    // obtain solution of A*A^T * y = A*c by solving
-    // [ -I  A^T] [...] = [ c ]
-    // [  A   0 ] [ y ] = [ 0 ]
+    // obtain solution of A*A^T * y = A*(c+Qx) by solving
+    // [ -I  A^T] [...] = [ c+Qx ]
+    // [  A   0 ] [ y ] = [   0  ]
 
     std::vector<double> rhs_y(m_, 0.0);
     std::vector<double> lhs_x(n_);
 
-    if (Int status = LS_->solveAS(model_.c(), rhs_y, lhs_x, y)) {
+    if (Int status = LS_->solveAS(cPlusQx, rhs_y, lhs_x, y)) {
       logH_.printe("Error while solving augmented system\n");
       info_.status = (Status)status;
       return true;
@@ -704,8 +711,8 @@ bool Solver::startingPoint() {
   // *********************************************************************
   // zl, zu starting point
   // *********************************************************************
-  // compute c - A^T * y and store in zl
-  zl = model_.c();
+  // compute c + Q * x - A^T * y and store in zl
+  zl = cPlusQx;
   model_.A().alphaProductPlusY(-1.0, y, zl, true);
 
   // split result between zl and zu
