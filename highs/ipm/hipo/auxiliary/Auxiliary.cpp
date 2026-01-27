@@ -208,6 +208,26 @@ Int64 getDiagStart(Int n, Int k, Int nb, Int n_blocks,
   return result;
 }
 
+Int maxDepthTree(const std::vector<Int>& parent) {
+  Int max_depth = 0;
+  std::vector<Int> depth(parent.size(), -1);
+  for (Int i = 0; i < parent.size(); ++i) {
+    Int node = i;
+    Int value = 1;
+    while (node != -1) {
+      if (value > depth[node]) {
+        depth[node] = value;
+      } else
+        break;
+
+      ++value;
+      node = parent[node];
+    }
+    if (parent[i] == -1) max_depth = std::max(max_depth, depth[i]);
+  }
+  return max_depth;
+}
+
 Clock::Clock() { start(); }
 void Clock::start() { t0 = std::chrono::high_resolution_clock::now(); }
 double Clock::stop() const {

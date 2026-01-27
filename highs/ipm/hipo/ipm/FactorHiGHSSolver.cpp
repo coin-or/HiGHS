@@ -711,6 +711,9 @@ void FactorHiGHSSolver::setParallel() {
         parallel_tree = false;
       }
 
+      // switch off tree parallelism if depth of recursion is too large
+      if (S_.depth() > kMaxTreeDepth) parallel_tree = false;
+
       if (parallel_tree && parallel_node) {
         options_.parallel = kOptionParallelOn;
         log_stream << "Full preferred\n";
