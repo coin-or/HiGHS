@@ -56,6 +56,7 @@ class Solver {
 
   // Run-time options
   Options options_{};
+  Options options_orig_{};
 
   // Interface to ipx
   ipx::LpSolver ipx_lps_;

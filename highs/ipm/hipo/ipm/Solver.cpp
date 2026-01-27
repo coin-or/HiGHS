@@ -27,11 +27,7 @@ Int Solver::load(const HighsLp& lp, const HighsHessian& Q) {
   return kStatusOk;
 }
 
-void Solver::setOptions(const Options& options) {
-  options_ = options;
-  if (options_.display) logH_.setOptions(options_.log_options);
-  control_.setOptions(options_);
-}
+void Solver::setOptions(const Options& options) { options_orig_ = options; }
 void Solver::setCallback(HighsCallback& callback) {
   control_.setCallback(callback);
 }
@@ -42,6 +38,12 @@ void Solver::solve() {
     info_.status = kStatusBadModel;
     return;
   }
+
+  // options_ may change during solve, so reset it to options_orig_ each time
+  // solve is called
+  options_ = options_orig_;
+  if (options_.display) logH_.setOptions(options_.log_options);
+  control_.setOptions(options_);
 
   // iterate object needs to be initialised before potentially interrupting
   it_.reset(new Iterate(model_, regul_));
