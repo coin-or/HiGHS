@@ -563,7 +563,7 @@ void testNames() {
   HighsInt return_status;
 
   const HighsInt num_col = 2;
-  const HighsInt num_row = 2;
+  const HighsInt num_row = 3;
   assert(num_col == Highs_getNumCols(highs));
   assert(num_row == Highs_getNumRows(highs));
 
