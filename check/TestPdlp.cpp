@@ -342,7 +342,7 @@ TEST_CASE("pdlp-restart-add-row", "[pdlp]") {
 }
 
 TEST_CASE("hi-pdlp", "[pdlp]") {
-  std::string model = "neso-2005";  //"adlittle";//"afiro";// shell// stair
+  std::string model = "neso-2245 ";  //"adlittle";//"afiro";// shell// stair
                                  ////25fv47 //fit2p //avgas //neso-2245 //neso-2005
   std::string model_file =
       //std::string(HIGHS_DIR) + "/srv/" + model + ".mps.gz";
