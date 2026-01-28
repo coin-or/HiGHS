@@ -98,23 +98,21 @@ bool optionSolverOk(const HighsLogOptions& report_log_options,
 #ifdef HIPO
       value == kHipoString ||
 #endif
-      value == kIpxString || value == kPdlpString || value == kCuPdlpString ||
-      value == kHiPdlpString)
+      value == kIpxString || value == kPdlpString || value == kHiPdlpString)
     return true;
   highsLogUser(report_log_options, HighsLogType::kWarning,
                "Value \"%s\" for solver option is not one of \"%s\", \"%s\", "
-               "\"%s\", \"%s\", \"%s\", "
+               "\"%s\", \"%s\", \"%s\""
 #ifdef HIPO
-               "\"%s\", "
+               "\"%s\""
 #endif
-               "\"%s\" or \"%s\"\n",
+               "or \"%s\"\n",
                value.c_str(), kSimplexString.c_str(),
                kHighsChooseString.c_str(), kIpmString.c_str(),
 #ifdef HIPO
                kHipoString.c_str(),
 #endif
-               kIpxString.c_str(), kPdlpString.c_str(), kCuPdlpString.c_str(),
-               kHiPdlpString.c_str());
+               kIpxString.c_str(), kPdlpString.c_str(), kHiPdlpString.c_str());
   return false;
 }
 

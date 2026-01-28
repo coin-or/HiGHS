@@ -116,7 +116,7 @@ HighsStatus solveLp(HighsLpSolverObject& solver_object, const string message) {
       sub_solver_call_time.num_call[kSubSolverPdlp]++;
       sub_solver_call_time.run_time[kSubSolverPdlp] =
           -solver_object.timer_.read();
-      if (options.solver == kPdlpString || options.solver == kCuPdlpString) {
+      if (options.solver == kPdlpString) {
         try {
           call_status = solveLpCupdlp(solver_object);
         } catch (const std::exception& exception) {
@@ -136,7 +136,7 @@ HighsStatus solveLp(HighsLpSolverObject& solver_object, const string message) {
       sub_solver_call_time.run_time[kSubSolverPdlp] +=
           solver_object.timer_.read();
       return_status = interpretCallStatus(options.log_options, call_status,
-                                          return_status, "solveLpCupdlp");
+                                          return_status, "solveLp-Pdlp");
     }
     // Check for error return
     if (return_status == HighsStatus::kError) return return_status;
@@ -707,8 +707,7 @@ bool useIpm(const std::string& solver) {
 }
 
 bool usePdlp(const std::string& solver) {
-  return solver == kPdlpString || solver == kHiPdlpString ||
-         solver == kCuPdlpString;
+  return solver == kPdlpString || solver == kHiPdlpString;
 }
 
 // Decide whether to use the HiPO IPM solver

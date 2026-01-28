@@ -268,7 +268,6 @@ const string kIpmString = "ipm";
 const string kHipoString = "hipo";
 const string kIpxString = "ipx";
 const string kPdlpString = "pdlp";
-const string kCuPdlpString = "cupdlp";
 const string kHiPdlpString = "hipdlp";
 
 const HighsInt kKeepNRowsDeleteRows = -1;
@@ -730,7 +729,7 @@ class HighsOptions : public HighsOptionsStruct {
     record_string = new OptionRecordString(
         kSolverString,
         "LP solver option: \"choose\", \"simplex\", "
-        "\"ipm\", \"ipx\", \"hipo\", \"pdlp\", \"cupdlp\" or \"hipdlp\"",
+        "\"ipm\", \"ipx\", \"hipo\", \"pdlp\" or \"hipdlp\"",
         advanced, &solver, kHighsChooseString);
     records.push_back(record_string);
 
