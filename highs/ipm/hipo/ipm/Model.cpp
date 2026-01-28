@@ -598,6 +598,7 @@ void Model::multQWithoutSlack(double alpha, const std::vector<double>& x,
   for (Int col = 0; col < n_orig_; ++col) {
     for (Int el = Q_.start_[col]; el < Q_.start_[col + 1]; ++el) {
       const Int row = Q_.index_[el];
+      if (row >= n_orig_) continue;
       y[row] += alpha * Q_.value_[el] * x[col];
       if (row != col) y[col] += alpha * Q_.value_[el] * x[row];
     }

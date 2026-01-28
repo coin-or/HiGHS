@@ -595,13 +595,13 @@ void Iterate::finalResiduals(Info& info) const {
     // res4 = c - A^T * y - zl + zu + Q * x
     std::vector<double> res4(n_orig);
     model.multAWithoutSlack(-1.0, y_local, res4, true);
+    if (model.qp()) model.multQWithoutSlack(1.0, x_local, res4);
     for (Int i = 0; i < n_orig; ++i) {
       if (model.hasLb(i)) res4[i] -= zl_local[i];
       if (model.hasUb(i)) res4[i] += zu_local[i];
       res4[i] += model.c()[i];
       if (model.scaled()) res4[i] /= model.colScale(i);
     }
-    if (model.qp()) model.multQWithoutSlack(1.0, x_local, res4);
 
     info.p_res_abs = infNorm(res1);
     info.p_res_abs = std::max(info.p_res_abs, infNorm(res2));
