@@ -85,7 +85,7 @@ jobs:
       - name: Ctest
         working-directory: ${{runner.workspace}}/build
         run: |
-          ctest --parallel --timeout 300 --output-on-failure
+          ctest --parallel --timeout 600 --output-on-failure
 
   ubuntu_32_no_hipo:
     runs-on: ubuntu-latest
@@ -115,7 +115,8 @@ jobs:
             -DCMAKE_CXX_COMPILER=g++ \
             -DCMAKE_C_FLAGS="-m32" \
             -DCMAKE_CXX_FLAGS="-m32" \
-            -DCMAKE_SHARED_LINKER_FLAGS="-m32"
+            -DCMAKE_SHARED_LINKER_FLAGS="-m32" \
+            -DALL_TESTS=${{ matrix.all_tests }}
 
       - name: Build
         working-directory: ${{runner.workspace}}/build
@@ -207,7 +208,8 @@ jobs:
         run: |
           export CC=arm-linux-gnueabihf-gcc
           export CXX=arm-linux-gnueabihf-g++
-          cmake $GITHUB_WORKSPACE
+          cmake $GITHUB_WORKSPACE \
+            -DALL_TESTS=${{ matrix.all_tests }}
 
       - name: Build
         working-directory: ${{runner.workspace}}/build

@@ -66,6 +66,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
   find_package(IntelSYCL REQUIRED)
 endif()
 
+# MSVC
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 message(STATUS "Git hash: " ${GITHASH})
 # By default only build the C++ library.
