@@ -274,7 +274,8 @@ class PDLPSolver {
   bool checkConvergenceGpu(const int iter, const double* d_x, const double* d_y,
                            const double* d_ax, const double* d_aty,
                            double epsilon, SolverResults& results,
-                           const char* type);
+                           const char* type, double* d_slackPos_out,
+                                     double* d_slackNeg_out);
 
   // Temporary buffer for SpMV
   void* d_spmv_buffer_ax_ = nullptr;

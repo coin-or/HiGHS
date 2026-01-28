@@ -616,12 +616,14 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
 #ifdef CUPDLP_GPU
       //=== GPU Convergence Check ===//
       bool current_converged_gpu = checkConvergenceGpu(
-          iter, d_x_current_, d_y_current_, d_ax_current_, d_aty_current_,
-          params_.tolerance, current_results, "[L-GPU]");
+        iter, d_x_current_, d_y_current_, d_ax_current_, d_aty_current_,
+        params_.tolerance, current_results, "[L-GPU]",
+        d_dSlackPos_, d_dSlackNeg_);
 
-      bool average_converged_gpu =
-          checkConvergenceGpu(iter, d_x_avg_, d_y_avg_, d_ax_avg_, d_aty_avg_,
-                              params_.tolerance, average_results, "[A-GPU]");
+      bool average_converged_gpu = checkConvergenceGpu(
+        iter, d_x_avg_, d_y_avg_, d_ax_avg_, d_aty_avg_,
+        params_.tolerance, average_results, "[A-GPU]",
+        d_dSlackPosAvg_, d_dSlackNegAvg_);
 #else
       // === CPU Convergence Check ===//
 #if PDLP_PROFILE
@@ -2294,9 +2296,11 @@ void PDLPSolver::launchKernelScaleVector(double* d_out, const double* d_in,
 bool PDLPSolver::checkConvergenceGpu(const int iter, const double* d_x,
                                      const double* d_y, const double* d_ax,
                                      const double* d_aty, double epsilon,
-                                     SolverResults& results, const char* type) {
+                                     SolverResults& results, const char* type,
+                                     double* d_slackPos_out,
+                                     double* d_slackNeg_out) {
   launchCheckConvergenceKernels_wrapper(
-      d_convergence_results_, d_dSlackPos_, d_dSlackNeg_, d_x, d_y, d_ax, d_aty,
+      d_convergence_results_, d_slackPos_out, d_slackNeg_out, d_x, d_y, d_ax, d_aty,
       d_col_cost_, d_row_lower_, d_col_lower_, d_col_upper_, d_is_equality_row_,
       d_col_scale_, d_row_scale_, lp_.num_col_, lp_.num_row_);
 
