@@ -677,10 +677,10 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
                               cudaMemcpyDeviceToHost));
         CUDA_CHECK(cudaMemcpy(y.data(), d_y_avg_, a_num_rows_ * sizeof(double),
                               cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(dSlackPosAvg_.data(), d_dSlackPosAvg_,
+        CUDA_CHECK(cudaMemcpy(dSlackPos_.data(), d_dSlackPosAvg_,
                               a_num_cols_ * sizeof(double),
                               cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(dSlackNegAvg_.data(), d_dSlackNegAvg_,
+        CUDA_CHECK(cudaMemcpy(dSlackNeg_.data(), d_dSlackNegAvg_,
                               a_num_cols_ * sizeof(double),
                               cudaMemcpyDeviceToHost));
         results_ = average_results;
@@ -2333,8 +2333,7 @@ bool PDLPSolver::checkConvergenceGpu(const int iter, const double* d_x,
       results.primal_feasibility < epsilon * (1.0 + unscaled_rhs_norm_);
   bool dual_feasible =
       results.dual_feasibility < epsilon * (1.0 + unscaled_c_norm_);
-  //bool gap_small = results.relative_obj_gap < epsilon;
-  bool gap_small = results.duality_gap < epsilon;
+  bool gap_small = results.relative_obj_gap < epsilon;
   return primal_feasible && dual_feasible && gap_small;
 }
 
