@@ -27,7 +27,15 @@ Int Solver::load(const HighsLp& lp, const HighsHessian& Q) {
   return kStatusOk;
 }
 
-void Solver::setOptions(const Options& options) { options_orig_ = options; }
+void Solver::setOptions(const Options& options) {
+  options_orig_ = options;
+  resetOptions();
+}
+void Solver::resetOptions() {
+  options_ = options_orig_;
+  if (options_.display) logH_.setOptions(options_.log_options);
+  control_.setOptions(options_);
+}
 void Solver::setCallback(HighsCallback& callback) {
   control_.setCallback(callback);
 }
@@ -41,9 +49,7 @@ void Solver::solve() {
 
   // options_ may change during solve, so reset it to options_orig_ each time
   // solve is called
-  options_ = options_orig_;
-  if (options_.display) logH_.setOptions(options_.log_options);
-  control_.setOptions(options_);
+  resetOptions();
 
   // iterate object needs to be initialised before potentially interrupting
   it_.reset(new Iterate(model_, regul_));
