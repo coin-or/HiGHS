@@ -443,6 +443,14 @@ void Model::scale() {
   for (Int i = 0; i < n_; ++i) colscale_[i] = std::ldexp(1.0, colexp[i]);
   for (Int i = 0; i < m_; ++i) rowscale_[i] = std::ldexp(1.0, rowexp[i]);
 
+  bool scaling_failed = isInfVector(colscale_) || isNanVector(colscale_) ||
+                        isInfVector(rowscale_) || isNanVector(rowscale_);
+  if (scaling_failed) {
+    colscale_.clear();
+    rowscale_.clear();
+    return;
+  }
+
   // *********************************************************************
   // Apply scaling
   // *********************************************************************
