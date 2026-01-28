@@ -624,9 +624,9 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
                               params_.tolerance, average_results, "[A-GPU]");
 #else
       // === CPU Convergence Check ===//
-  #if PDLP_PROFILE
-        hipdlpTimerStart(kHipdlpClockConvergenceCheck);
-  #endif
+#if PDLP_PROFILE
+      hipdlpTimerStart(kHipdlpClockConvergenceCheck);
+#endif
       // Compute residuals for current iterate
       bool current_converged = checkConvergence(
           iter, x_current_, y_current_, Ax_cache_, ATy_cache_,
@@ -636,9 +636,9 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
       bool average_converged = checkConvergence(
           iter, x_avg_, y_avg_, Ax_avg, ATy_avg, params_.tolerance,
           average_results, "[A]", dSlackPosAvg_, dSlackNegAvg_);
-  #if PDLP_PROFILE
-        hipdlpTimerStop(kHipdlpClockConvergenceCheck);
-  #endif
+#if PDLP_PROFILE
+      hipdlpTimerStop(kHipdlpClockConvergenceCheck);
+#endif
 #endif
 
 #if PDLP_DEBUG_LOG
@@ -789,20 +789,20 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         launchKernelUpdateY(stepsize_.dual_step);
         linalgGpuATy(d_y_next_, d_aty_next_);
 #else
-  #if PDLP_PROFILE
-          hipdlpTimerStart(kHipdlpClockMatrixMultiply);
-  #endif
+#if PDLP_PROFILE
+        hipdlpTimerStart(kHipdlpClockMatrixMultiply);
+#endif
         linalg::Ax(lp, x_current_, Ax_cache_);
-  #if PDLP_PROFILE
-          hipdlpTimerStop(kHipdlpClockMatrixMultiply);
-  #endif
-  #if PDLP_PROFILE
-          hipdlpTimerStart(kHipdlpClockMatrixTransposeMultiply);
-  #endif
+#if PDLP_PROFILE
+        hipdlpTimerStop(kHipdlpClockMatrixMultiply);
+#endif
+#if PDLP_PROFILE
+        hipdlpTimerStart(kHipdlpClockMatrixTransposeMultiply);
+#endif
         linalg::ATy(lp, y_current_, ATy_cache_);
-  #if PDLP_PROFILE
-          hipdlpTimerStop(kHipdlpClockMatrixTransposeMultiply);
-  #endif
+#if PDLP_PROFILE
+        hipdlpTimerStop(kHipdlpClockMatrixTransposeMultiply);
+#endif
 #endif
         restart_scheme_.SetLastRestartIter(iter);
       }
