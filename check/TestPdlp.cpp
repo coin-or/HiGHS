@@ -342,10 +342,10 @@ TEST_CASE("pdlp-restart-add-row", "[pdlp]") {
 }
 
 TEST_CASE("hi-pdlp", "[pdlp]") {
-  std::string model = "neso-2005";  //"adlittle";//"afiro";// shell// stair
-                                 ////25fv47 //fit2p //avgas //neso-2245 //neso-2005
+  std::string model = "adlittle";  //"afiro";
+  // shell //stair //25fv47 //fit2p //avgas //neso-2245 //neso-2005
   std::string model_file =
-      //std::string(HIGHS_DIR) + "/srv/" + model + ".mps.gz";
+      // std::string(HIGHS_DIR) + "/srv/" + model + ".mps.gz";
       "/srv/mps_da/" + model + ".mps.gz";
   Highs h;
   // h.setOptionValue("output_flag", dev_run);
@@ -369,8 +369,8 @@ TEST_CASE("hi-pdlp", "[pdlp]") {
   h.setOptionValue("pdlp_step_size_strategy", 1);
   h.setOptionValue("pdlp_restart_strategy", 2);
   h.setOptionValue("pdlp_iteration_limit", 8000);
-  //h.setOptionValue("pdlp_time_limit", 60);
-  //   h.setOptionValue("log_dev_level", kHighsLogDevLevelVerbose);
+  // h.setOptionValue("pdlp_time_limit", 60);
+  //    h.setOptionValue("log_dev_level", kHighsLogDevLevelVerbose);
   auto start_hipdlp = std::chrono::high_resolution_clock::now();
   HighsStatus run_status = h.run();
   auto end_hipdlp = std::chrono::high_resolution_clock::now();
@@ -393,7 +393,7 @@ TEST_CASE("hi-pdlp", "[pdlp]") {
   const bool cupdlp_test = true;
   if (cupdlp_test) {
     h.clearSolver();
-    h.setOptionValue("solver", kCuPdlpString);
+    h.setOptionValue("solver", kPdlpString);
     h.setOptionValue("pdlp_log_level", 2);
     auto start_cupdlp = std::chrono::high_resolution_clock::now();
     run_status = h.run();

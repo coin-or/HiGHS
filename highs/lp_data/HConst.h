@@ -413,7 +413,8 @@ enum PdlpRestartStrategy {
   kPdlpRestartStrategyMin = kPdlpRestartStrategyOff,
   kPdlpRestartStrategyFixed,
   kPdlpRestartStrategyAdaptive,
-  kPdlpRestartStrategyMax = kPdlpRestartStrategyAdaptive
+  kPdlpRestartStrategyHalpern,
+  kPdlpRestartStrategyMax = kPdlpRestartStrategyHalpern
 };
 
 #endif /* LP_DATA_HCONST_H_ */

@@ -1322,7 +1322,7 @@ class HighsOptions : public HighsOptionsStruct {
     record_int = new OptionRecordInt(
         "pdlp_restart_strategy",
         "Restart strategy for PDLP solver: 0 => off; "
-        "1 => fixed; 2 => adaptive",
+        "1 => fixed; 2 => adaptive; 3 => Halpern",
         advanced, &pdlp_restart_strategy, kPdlpRestartStrategyMin,
         kPdlpRestartStrategyAdaptive, kPdlpRestartStrategyMax);
     records.push_back(record_int);
