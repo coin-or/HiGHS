@@ -66,7 +66,7 @@ that can be run on an NVIDIA [GPU](@ref gpu) if CUDA is installed. On
 a CPU, it is unlikely to be competitive with the HiGHS interior point
 or simplex solvers.
 
-## QP
+Setting the option [__solver__](@ref option-solver) to "pdlp" forces the PDLP solver to be used
 
 The HiGHS solver for convex QP problems uses an established primal
 active set method. The new interior point solver HiPO will soon be able to
@@ -78,17 +78,29 @@ The HiGHS MIP solver uses established branch-and-cut techniques. It is
 largely single-threaded, although implementing a multi-threaded tree
 search is work in progress.
 
-## [Solver option](@id solver-option)
+## QP
 
-The [__solver__](@ref option-solver) 
+HiGHS has two solvers for convex QP:
+
+* A primal active set method. Setting the option [__solver__](@ref option-solver) to "qpasm" forces this solver to be used.
+
+* An interior point method. Setting the option [__solver__](@ref option-solver) to "hipo" forces the HiPO solver to be used.
+
+Setting the option [__solver__](@ref option-solver) to "choose" selects the "qpasm" solver. 
 
 
-  Setting the option [__solver__](@ref option-solver) to "ipx" forces the IPX solver to be used
-  Setting the option [__solver__](@ref option-solver) to "hipo" forces the HiPO solver to be used.
-Setting the option [__solver__](@ref option-solver) to "ipm" selects the HiPO solver, if the build supports it, otherwise it selects the IPX solver.
 
+The option [__solver__](@ref option-solver) can be set to:
+* "simplex", which selects the simplex solver.
+* "ipm", which selects the HiPO solver (or IPX if HiPO is not available in the build).
+* "ipx", which selects the IPX solver.
+* "hipo", which selects the HiPO solver, for both LP and QP.
+* "pdlp", which selects the PDLP solver.
+* "qpasm", which selects the QP active-set method.
+* "choose", which selects the default solver for the given problem ("simplex" for LP, "qpasm" for QP).
 
-
-
-Setting the option [__solver__](@ref option-solver) to "pdlp" forces the PDLP solver to be used
+The option [__solver__](@ref option-solver) is ignored and the default solver is used if:
+* The problem is an LP and solver is set to "qpasm".
+* The problem is a QP and solver is set to "simplex", "ipx" or "pdlp".
+* The problem is a MIP and solver is not set to "choose".
 
