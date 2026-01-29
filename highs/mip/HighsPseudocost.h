@@ -523,6 +523,13 @@ class HighsPseudocost {
     pseudocost.ninferencestotal = ninferencestotal;
     pseudocost.ncutoffstotal = ncutoffstotal;
   }
+
+  void removeChanged() {
+    for (HighsInt col : indschanged) {
+      changed[col] = false;
+    }
+    indschanged.clear();
+  }
 };
 
 #endif

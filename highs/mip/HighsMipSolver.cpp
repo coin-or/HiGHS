@@ -259,11 +259,12 @@ restart:
 
   // Calculate maximum number of workers
   const HighsInt mip_search_concurrency = options_mip_->mip_search_concurrency;
-  const HighsInt num_workers =
+  const HighsInt max_num_workers =
       highs::parallel::num_threads() == 1 || mip_search_concurrency <= 0 ||
               submip
           ? 1
           : mip_search_concurrency * highs::parallel::num_threads();
+  HighsInt num_workers = 1;
   highs::parallel::TaskGroup tg;
 
   auto destroyOldWorkers = [&]() {
@@ -453,25 +454,15 @@ restart:
   };
 
   destroyOldWorkers();
-  // TODO: Is this reset actually needed? Is copying over all
-  // the current domain changes actually going to cause an error?
-  if (num_workers > 1) {
-    resetGlobalDomain(true, false);
-    constructAdditionalWorkerData(master_worker);
-  } else {
-    master_worker.search_ptr_->resetLocalDomain();
-    master_worker.nodequeue.clear();
-    master_worker.nodequeue.setNumCol(numCol());
-    // TODO: This is only done to match seed from v1.12
-    master_worker.resetSepa();
-  }
+  master_worker.resetSearch();
+  // master_worker.search_ptr_->resetLocalDomain();
+  // TODO: This is only done to match seed from v1.12
+  master_worker.resetSepa();
+  master_worker.nodequeue.clear();
+  master_worker.nodequeue.setNumCol(numCol());
   master_worker.upper_bound = mipdata_->upper_bound;
   master_worker.upper_limit = mipdata_->upper_limit;
   master_worker.optimality_limit = mipdata_->optimality_limit;
-  assert(master_worker.solutions_.empty());
-  for (HighsInt i = 1; i != num_workers; ++i) {
-    createNewWorker(i);
-  }
 
   HighsSearch& search = *master_worker.search_ptr_;
   mipdata_->debugSolution.registerDomain(search.getLocalDomain());
@@ -1138,6 +1129,23 @@ restart:
 
     // remove the iteration limit when installing a new node
     // mipdata_->lp.setIterationLimit();
+
+    // Create new workers if there's sufficient nodes
+    if (num_workers < max_num_workers &&
+        mipdata_->nodequeue.numNodes() > num_workers) {
+      HighsInt new_max_num_workers =
+          std::min(static_cast<HighsInt>(mipdata_->nodequeue.numNodes()),
+                   max_num_workers);
+      mipdata_->pseudocost.removeChanged();
+      resetGlobalDomain(true, false);
+      if (num_workers == 1) {
+        constructAdditionalWorkerData(master_worker);
+      }
+      for (HighsInt i = num_workers; i != new_max_num_workers; i++) {
+        createNewWorker(i);
+        num_workers++;
+      }
+    }
 
     // loop to install the next node for the search
     double this_node_search_time = -analysis_.mipTimerRead(kMipClockNodeSearch);
