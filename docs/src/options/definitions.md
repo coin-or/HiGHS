@@ -402,12 +402,12 @@
 - Range: [0, inf]
 - Default: 5
 
-## mip\_lp\_solver
+## [mip\_lp\_solver](@id option-mip-lp-solver)
 - MIP LP solver option: "choose", "simplex", "ipm", "ipx" or "hipo"
 - Type: string
 - Default: "choose"
 
-## mip\_ipm\_solver
+## [mip\_ipm\_solver](@id option-mip-ipm-solver)
 - MIP IPM solver option: "choose", "ipx" or "hipo"
 - Type: string
 - Default: "choose"

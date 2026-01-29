@@ -3,14 +3,17 @@
 ## Introduction
 
 HiGHS has implementations of the three main solution techniques for LP
-(simplex, interior point and primal-dual hybrid gradient), and two
-solution techniques for QP (active set and interior point). By default HiGHS will
-choose the most appropriate technique for a given problem, but this
-can be over-ridden by setting the option [__solver__](@ref
-option-solver), with a discussion of its interpretation given
-[below](@ref solver-option). HiGHS has just one MIP solver, and the
-options to define which LP solver is used to solve the sub-problems
-that it generates are discussed [below](@ref solver-option).
+(simplex, interior point and primal-dual hybrid gradient), two
+solution techniques for QP (active set and interior point), and one
+MIP solver. By default HiGHS will choose the most appropriate
+technique for a given problem, but this can be over-ridden by setting
+the option [__solver__](@ref option-solver).
+
+What follows below is an overview of all the solvers and key
+[options](@ref option-definitions) that define their algorithmic
+features. The relevant [__solver__](@ref option-solver) settings for
+each problem type, and their interpretation when incompatible with the
+problem type, are then [summarised](@ref solver-option).
 
 ## LP
 
@@ -18,7 +21,9 @@ that it generates are discussed [below](@ref solver-option).
 
 HiGHS has efficient implementations of both the primal and dual
 simplex methods, although the dual simplex solver is likely to be
-faster and is more robust, so is used by default. The novel features
+faster and is more robust, so is used by default. Similarly, for
+reasons discussed in the [parallelism](@ref) section, the parallel
+dual simplex solver is unlikely to be worth using. The novel features
 of the dual simplex solver are described in
 
 _Parallelizing the dual revised simplex method_, Q. Huangfu and
@@ -37,47 +42,83 @@ HiGHS has two interior point (IPM) solvers:
 * IPX is based on the preconditioned conjugate gradient method, as discussed in
 
   _Implementation of an interior point method with basis
-  preconditioning_, Mathematical Programming Computation, 12, 603-635, 2020. [DOI:
+  preconditioning_, Mathematical Programming Computation, 12, 603-635,
+  2020. [DOI:
   10.1007/s12532-020-00181-8](https://link.springer.com/article/10.1007/s12532-020-00181-8).
 
   This solver is serial.
 
 * HiPO is based on a direct factorisation, as discussed in 
 
-  _A factorisation-based regularised interior point method using the augmented system_, F. Zanetti and J. Gondzio, 2025, 
-  [available on arxiv](https://arxiv.org/abs/2508.04370)
+  _A factorisation-based regularised interior point method using the
+  augmented system_, F. Zanetti and J. Gondzio, 2025, [available on
+  arxiv](https://arxiv.org/abs/2508.04370)
 
   This solver is parallel.
 
-  The [hipo\_system](@ref option-hipo-system) option can be used to select the approach to use when solving the Newton systems 
-  within the interior point solver: select "augmented" to force the solver to use the augmented system, "normaleq" for normal 
-  equations, or "choose" to leave the choice to the solver.
+  The [hipo\_system](@ref option-hipo-system) option can be used to
+  select the approach to use when solving the Newton systems within
+  the interior point solver: select "augmented" to force the solver to
+  use the augmented system, "normaleq" for normal equations, or
+  "choose" to leave the choice to the solver.
 
-  The option [hipo\_ordering](@ref option-hipo-ordering) can be used to select the fill-reducing heuristic to use during the factorisation:
-  * Nested dissection, obtained setting the option [hipo\_ordering](@ref option-hipo-ordering) to "metis".
-  * Approximate mininum degree, obtained setting the option [hipo\_ordering](@ref option-hipo-ordering) to "amd".
-  * Reverse Cuthill-McKee, obtained setting the option [hipo\_ordering](@ref option-hipo-ordering) to "rcm".
+  The option [hipo\_ordering](@ref option-hipo-ordering) can be used
+  to select the fill-reducing heuristic to use during the
+  factorisation:
+  
+  * Nested dissection, obtained setting the option
+    [hipo\_ordering](@ref option-hipo-ordering) to "metis".
+  
+  * Approximate minimum degree, obtained setting the option
+    [hipo\_ordering](@ref option-hipo-ordering) to "amd".
+  
+  * Reverse Cuthill-McKee, obtained setting the option
+    [hipo\_ordering](@ref option-hipo-ordering) to "rcm".
+
+For small LPs, IPX is often faster than HiPO. However, as problem size
+grows, HiPO becomes more efficient, and its advantage can be more
+than an order of magnitude.
 
 #### Primal-dual hybrid gradient method
 
 HiGHS has a primal-dual hybrid gradient implementation for LP (PDLP)
-that can be run on an NVIDIA [GPU](@ref gpu) if CUDA is installed. On
-a CPU, it is unlikely to be competitive with the HiGHS interior point
-or simplex solvers.
+that is run on an NVIDIA [GPU](@ref gpu) if CUDA is installed. If this
+is not possible, the PDLP solver is run on a CPU, but it is unlikely
+to be competitive with the HiGHS interior point or simplex solvers.
 
 ## QP
 
 HiGHS has two solvers for convex QP:
 
-Setting the option [__solver__](@ref option-solver) to "pdlp" forces the PDLP solver to be used
-* A primal active set method. Setting the option [__solver__](@ref option-solver) to "qpasm" forces this solver to be used.
+* A primal active set method. Setting the option [__solver__](@ref
+  option-solver) to "qpasm" forces this solver to be used.
 
-* An interior point method. Setting the option [__solver__](@ref option-solver) to "hipo" forces the HiPO solver to be used.
+* An interior point method. Setting the option [__solver__](@ref
+  option-solver) to "hipo" forces the HiPO solver to be used.
 
-Setting the option [__solver__](@ref option-solver) to "choose" selects the "qpasm" solver. 
+## MIP
 
+MIPs are solved using a sophisticated branch-and-cut solver that is
+still largely single-threaded. Users can choose the solver for LP
+sub-problems as follows
 
-* Setting the option [__solver__](@ref option-solver) to "simplex" forces the simplex solver to be used
+* LPs where an advanced basis is not known. This is generally the case
+  at the root node of the branch-and-bound tree, but can occur at
+  other times in the MIP solution process. By default the simplex
+  solver is used, but the [__mip\_lp\_solver__](@ref
+  option-mip-lp-solver) option allows the user to determine whether
+  one of the IPM solvers is used.
+
+* LPs where an interior point solver must be used. This is generally
+  when computing the analytic centre of the constraints for the
+  centralised rounding heuristic. By default IPX is used, but the
+  [__mip\_ipm\_solver__](@ref option-mip-ipm-solver) option allows the
+  user to determine whether HiPO is used.
+
+Otherwise, for LPs where an advanced basis is known, only the simplex
+solver can be used.
+
+## [Summary](@id solver-option)
 
 The option [__solver__](@ref option-solver) can be set to:
 * "simplex", which selects the simplex solver.
