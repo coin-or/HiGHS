@@ -78,6 +78,9 @@ are not robust. Hence the availability of a PDLP solver for LP is
 unlikely to be used to enhance other solvers in HiGHS in the short or
 medium term.
 
+## Alternative
 
-
-
+Given the limited scope for parallelisation in HiGHS, if you have
+multiple independent instances to solve, then assign one instance per
+worker (cpu core, thread or machine) so that multiple instances are
+solved concurrently.
