@@ -4,7 +4,7 @@
 
 HiGHS has implementations of the three main solution techniques for LP
 (simplex, interior point and primal-dual hybrid gradient), and two
-solution techniques for QP (active set and interior point). HiGHS will
+solution techniques for QP (active set and interior point). By default HiGHS will
 choose the most appropriate technique for a given problem, but this
 can be over-ridden by setting the option [__solver__](@ref
 option-solver), with a discussion of its interpretation given
@@ -26,7 +26,6 @@ J. A. J. Hall, Mathematical Programming Computation, 10 (1), 119-142,
 2018 [DOI:
 10.1007/s12532-017-0130-5](https://link.springer.com/article/10.1007/s12532-017-0130-5).
 
-* Setting the option [__solver__](@ref option-solver) to "simplex" forces the simplex solver to be used
 * The option [__simplex\_strategy__](@ref option-simplex_strategy)
   determines whether the primal solver or one of the parallel solvers is
   to be used.
@@ -66,22 +65,11 @@ that can be run on an NVIDIA [GPU](@ref gpu) if CUDA is installed. On
 a CPU, it is unlikely to be competitive with the HiGHS interior point
 or simplex solvers.
 
-Setting the option [__solver__](@ref option-solver) to "pdlp" forces the PDLP solver to be used
-
-The HiGHS solver for convex QP problems uses an established primal
-active set method. The new interior point solver HiPO will soon be able to
-solve convex QP problems.
-
-## [MIP](@id mip-solver)
-
-The HiGHS MIP solver uses established branch-and-cut techniques. It is
-largely single-threaded, although implementing a multi-threaded tree
-search is work in progress.
-
 ## QP
 
 HiGHS has two solvers for convex QP:
 
+Setting the option [__solver__](@ref option-solver) to "pdlp" forces the PDLP solver to be used
 * A primal active set method. Setting the option [__solver__](@ref option-solver) to "qpasm" forces this solver to be used.
 
 * An interior point method. Setting the option [__solver__](@ref option-solver) to "hipo" forces the HiPO solver to be used.
@@ -89,6 +77,7 @@ HiGHS has two solvers for convex QP:
 Setting the option [__solver__](@ref option-solver) to "choose" selects the "qpasm" solver. 
 
 
+* Setting the option [__solver__](@ref option-solver) to "simplex" forces the simplex solver to be used
 
 The option [__solver__](@ref option-solver) can be set to:
 * "simplex", which selects the simplex solver.
