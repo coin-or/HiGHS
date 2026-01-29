@@ -611,8 +611,16 @@ void Iterate::finalResiduals(Info& info) const {
     info.d_res_abs = infNorm(res4);
     info.d_res_rel = info.d_res_abs / (1.0 + model.normUnscaledObj());
 
+    double quad_term_local = 0.0;
+    if (model.qp()) {
+      std::vector<double> Qx_local(n_orig);
+      model.multQWithoutSlack(0.5, x_local, Qx_local);
+      quad_term_local = dotProd(x_local, Qx_local);
+    }
+
     double pobj = model.offset();
     for (Int i = 0; i < n_orig; ++i) pobj += model.c()[i] * x_local[i];
+    pobj += quad_term_local;
 
     double dobj = model.offset();
     dobj += dotProd(y_local, model.b());
@@ -620,6 +628,7 @@ void Iterate::finalResiduals(Info& info) const {
       if (model.hasLb(i)) dobj += model.lb(i) * zl_local[i];
       if (model.hasUb(i)) dobj -= model.ub(i) * zu_local[i];
     }
+    dobj -= quad_term_local;
 
     info.p_obj = pobj;
     info.d_obj = dobj;
