@@ -44,14 +44,34 @@ jobs:
             fun:cblas_dgemm
           }
           {
-            BLAS_AVX512_invalid_read
-            Memcheck:Addr*
+            BLAS_AVX512_invalid_read_1
+            Memcheck:Addr1
             fun:cblas_dgemm
           }
           {
-            BLAS_AVX512_invalid_write
-            Memcheck:Addr*
-            fun:cblas_*
+            BLAS_AVX512_invalid_read_2
+            Memcheck:Addr2
+            fun:cblas_dgemm
+          }
+          {
+            BLAS_AVX512_invalid_read_4
+            Memcheck:Addr4
+            fun:cblas_dgemm
+          }
+          {
+            BLAS_AVX512_invalid_read_8
+            Memcheck:Addr8
+            fun:cblas_dgemm
+          }
+          {
+            BLAS_AVX512_invalid_read_16
+            Memcheck:Addr16
+            fun:cblas_dgemm
+          }
+          {
+            BLAS_AVX512_value
+            Memcheck:Value8
+            fun:cblas_dgemm
           }
           EOF
             SUPP_FLAG="--suppressions=blas.supp"
@@ -68,6 +88,7 @@ jobs:
           $SUPP_FLAG \
           ./bin/unit_tests \
           2>&1 | tee logfile
+
 
       - name: Check log for Errors
         working-directory: ${{runner.workspace}}/build
