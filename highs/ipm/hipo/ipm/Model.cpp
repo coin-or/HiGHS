@@ -259,13 +259,19 @@ void Model::print(const LogHighs& log) const {
 
   log_stream << textline("Rows:") << sci(m_, 0, 1) << '\n';
   log_stream << textline("Cols:") << sci(n_, 0, 1) << '\n';
-  log_stream << textline("Nnz:") << sci(A_.numNz(), 0, 1) << '\n';
+  log_stream << textline("Nnz A:") << sci(A_.numNz(), 0, 1) << '\n';
   if (num_dense_cols_ > 0)
     log_stream << textline("Dense cols:") << integer(num_dense_cols_, 0)
                << '\n';
   if (empty_rows_ > 0)
     log_stream << "Removed " << empty_rows_ << " empty rows\n";
-  if (qp()) log_stream << textline("Q nnz") << sci(Q_.numNz(), 0, 1) << '\n';
+  if (qp()) {
+    log_stream << textline("Nnz Q:") << sci(Q_.numNz(), 0, 1);
+    if (nonSeparableQp())
+      log_stream << ", non-separable\n";
+    else
+      log_stream << ", separable\n";
+  }
 
   // compute max and min entry of A in absolute value
   double Amin = kHighsInf;
