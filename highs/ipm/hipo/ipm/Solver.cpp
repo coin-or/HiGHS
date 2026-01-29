@@ -598,10 +598,12 @@ bool Solver::startingPoint() {
   const std::vector<double> empty_scaling;
   std::vector<double> temp_m(m_);
 
+  // store b in y
+  y = model_.b();
+  if (norm2(y) < 1e-6) vectorAdd(y, 1e-3);
+
   if (options_.nla == kOptionNlaNormEq) {
     // use y to store b-A*x
-    y = model_.b();
-    if (norm2(y) < 1e-6) vectorAdd(y, 1e-3);
     model_.A().alphaProductPlusY(-1.0, x, y);
 
     // solve A*A^T * dx = b-A*x with factorisation and store the result in
@@ -634,7 +636,7 @@ bool Solver::startingPoint() {
     std::vector<double> rhs_x(n_);
     for (Int i = 0; i < n_; ++i) rhs_x[i] = -x[i];
     std::vector<double> lhs_x(n_);
-    if (Int status = LS_->solveAS(rhs_x, model_.b(), lhs_x, temp_m)) {
+    if (Int status = LS_->solveAS(rhs_x, y, lhs_x, temp_m)) {
       logH_.printe("Error while solving augmented system\n");
       info_.status = (Status)status;
       return true;

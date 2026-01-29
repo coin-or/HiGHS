@@ -93,13 +93,8 @@ Int FactorHiGHSSolver::buildASvalues(const std::vector<double>& scaling) {
   assert(!ptrAS_.empty() && !rowsAS_.empty());
 
   for (Int i = 0; i < nA_; ++i) {
-    // if scaling is empty, ignore Q term, for starting point
-    if (scaling.empty())
-      valAS_[ptrAS_[i]] = -1.0;
-    else {
-      valAS_[ptrAS_[i]] = -scaling[i];
-      if (model_.qp()) valAS_[ptrAS_[i]] -= model_.Q().diag(i);
-    }
+    valAS_[ptrAS_[i]] = scaling.empty() ? -1.0 : -scaling[i];
+    if (model_.qp()) valAS_[ptrAS_[i]] -= model_.Q().diag(i);
   }
 
   return kStatusOk;
@@ -214,15 +209,11 @@ Int FactorHiGHSSolver::buildNEvalues(const std::vector<double>& scaling) {
       Int col = idxA_rw_[el];
       Int corr = corr_A_[el];
 
-      // if scaling is empty, use identity, for starting point
-      double denom = 0.0;
-      if (!scaling.empty()) {
-        denom = scaling[col];
-        if (model_.qp()) denom += model_.Q().diag(col);
-      } else
-        denom = 1.0;
+      double denom = scaling.empty() ? 1.0 : scaling[col];
+      denom += regul_.primal;
+      if (model_.qp()) denom += model_.Q().diag(col);
 
-      const double mult = 1.0 / (denom + regul_.primal);
+      const double mult = 1.0 / denom;
       const double row_value = mult * A_.value_[corr];
 
       // for each nonzero in the row, go down corresponding column, starting
