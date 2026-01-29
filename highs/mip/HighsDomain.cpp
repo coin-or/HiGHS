@@ -1230,7 +1230,7 @@ void HighsDomain::ObjectivePropagation::propagate() {
       if (domain->infeasible_) break;
 
       double newLb = double(objectiveLower);
-      if (newLb == currLb) break;
+      if (std::abs(newLb - currLb) < 1e-8) break;
       currLb = newLb;
       capacity = upperLimit - objectiveLower;
     }
