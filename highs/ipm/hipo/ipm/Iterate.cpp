@@ -635,7 +635,7 @@ void Iterate::finalResiduals(Info& info) const {
   }
 }
 
-void Iterate::setReg(LinearSolver& LS, OptionNla opt) {
+void Iterate::getReg(LinearSolver& LS, OptionNla opt) {
   // extract regularisation
   LS.getReg(total_reg);
 

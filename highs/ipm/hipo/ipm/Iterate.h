@@ -39,7 +39,7 @@ struct Iterate {
   double mu;
   std::vector<double> scaling;
   double best_mu;
-  Regularisation& regul;
+  const Regularisation& regul;
   std::vector<double> total_reg;
   double* Rp;
   double* Rd;
@@ -178,7 +178,7 @@ struct Iterate {
   // ===================================================================================
   void residuals6x6(const NewtonDir& d);
 
-  void setReg(LinearSolver& LS, OptionNla opt);
+  void getReg(LinearSolver& LS, OptionNla opt);
 };
 
 }  // namespace hipo

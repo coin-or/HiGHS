@@ -309,7 +309,7 @@ bool Solver::solve2x2(NewtonDir& delta, const Residuals& rhs) {
         info_.status = (Status)status;
         return true;
       }
-      it_->setReg(*LS_, options_.nla);
+      it_->getReg(*LS_, options_.nla);
     }
 
     // solve with normal equations
@@ -343,7 +343,7 @@ bool Solver::solve2x2(NewtonDir& delta, const Residuals& rhs) {
         info_.status = (Status)status;
         return true;
       }
-      it_->setReg(*LS_, options_.nla);
+      it_->getReg(*LS_, options_.nla);
     }
 
     // solve with augmented system
@@ -601,6 +601,7 @@ bool Solver::startingPoint() {
   if (options_.nla == kOptionNlaNormEq) {
     // use y to store b-A*x
     y = model_.b();
+    if (norm2(y) < 1e-6) vectorAdd(y, 1e-3);
     model_.A().alphaProductPlusY(-1.0, x, y);
 
     // solve A*A^T * dx = b-A*x with factorisation and store the result in
@@ -680,9 +681,9 @@ bool Solver::startingPoint() {
   // y starting point
   // *********************************************************************
 
-  std::vector<double> cPlusQx(n_);
-  if (model_.qp()) model_.Q().product(x, cPlusQx);
-  vectorAdd(cPlusQx, model_.c());
+  std::vector<double> cPlusQx = model_.c();
+  if (norm2(cPlusQx) < 1e-6) vectorAdd(cPlusQx, 1e-3);
+  if (model_.qp()) model_.Q().alphaProductPlusY(1.0, x, cPlusQx);
 
   double max_norm_x = std::max(infNorm(x), std::max(infNorm(xl), infNorm(xu)));
   if (infNorm(cPlusQx) > max_norm_x * 1e3) cPlusQx = model_.c();
