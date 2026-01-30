@@ -119,7 +119,7 @@ if (BUILD_OPENBLAS)
             ERROR_QUIET
         )
 
-        if(SKYLAKE_CHECK EQUAL 0 )
+        if(SKYLAKE_CHECK EQUAL 0)
             message(STATUS "Skylake detected - adjusting OpenBLAS target to avoid register spills")
             set(OPENBLAS_TARGET "HASWELL" CACHE STRING "OpenBLAS target architecture" FORCE)
             set(NO_AVX512 ON CACHE BOOL "Disable AVX512" FORCE)
