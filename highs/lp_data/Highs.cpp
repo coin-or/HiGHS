@@ -374,8 +374,8 @@ HighsStatus Highs::passModel(HighsModel model) {
   // Ensure that any non-zero Hessian of dimension less than the
   // number of columns in the model is completed
   if (hessian.dim_) completeHessian(this->model_.lp_.num_col_, hessian);
-  if (model_.lp_.num_row_>0 && model_.lp_.num_col_>0)
-    writeLpMatrixPicToFile(options_, "LpMatrix", model_.lp_);
+  // if (model_.lp_.num_row_>0 && model_.lp_.num_col_>0)
+  //    writeLpMatrixPicToFile(options_, "LpMatrix", model_.lp_);
 
   // Clear solver status, solution, basis and info associated with any
   // previous model; clear any HiGHS model object; create a HiGHS
