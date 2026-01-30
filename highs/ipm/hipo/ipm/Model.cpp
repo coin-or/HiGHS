@@ -149,7 +149,7 @@ void Model::preprocess() {
     if (lower_[i] == upper_[i]) ++fixed_vars_;
 
   if (fixed_vars_ > 0) {
-    fixed_at_.assign(n_, 0.0);
+    fixed_at_.assign(n_, kHighsInf);
     std::vector<Int> index_to_remove{};
     for (Int j = 0; j < n_; ++j) {
       if (lower_[j] == upper_[j]) {
@@ -213,29 +213,70 @@ void Model::postprocess(std::vector<double>& x, std::vector<double>& xl,
                         std::vector<double>& xu, std::vector<double>& slack,
                         std::vector<double>& y, std::vector<double>& zl,
                         std::vector<double>& zu) const {
-  // Add Lagrange multiplier for empty rows that were removed
-  // Add slack for constraints that were removed
+  if (fixed_vars_ > 0) {
+    // Add primal and dual variables for fixed variables
 
-  if (empty_rows_ == 0) return;
+    std::vector<double> new_x(fixed_at_.size(), 0.0);
+    std::vector<double> new_xl(fixed_at_.size(), 0.0);
+    std::vector<double> new_xu(fixed_at_.size(), 0.0);
+    std::vector<double> new_zl(fixed_at_.size(), 0.0);
+    std::vector<double> new_zu(fixed_at_.size(), 0.0);
 
-  std::vector<double> new_y(rows_shift_.size(), 0.0);
-  std::vector<double> new_slack(rows_shift_.size(), 0.0);
+    // compute c-A^T*y+Q*x
+    std::vector<double> temp = c_;
 
-  // position to read from y and slack
-  Int pos{};
 
-  for (Int i = 0; i < rows_shift_.size(); ++i) {
-    // ignore shift of empty rows, they will receive a value of 0
-    if (rows_shift_[i] == -1) continue;
 
-    // re-align value of y and slack, considering empty rows
-    new_y[pos + rows_shift_[i]] = y[pos];
-    new_slack[pos + rows_shift_[i]] = slack[pos];
-    ++pos;
+
+    Int pos{};
+    for (Int i = 0; i < fixed_at_.size(); ++i) {
+      if (std::isfinite(fixed_at_[i])) {
+        new_x[i] = fixed_at_[i];
+        new_xl[i] = 0.0;
+        new_xu[i] = 0.0;
+        new_zl[i] = kHighsInf;
+        new_zu[i] = kHighsInf;
+
+      } else {
+        new_x[i] = x[pos];
+        new_xl[i] = xl[pos];
+        new_xu[i] = xu[pos];
+        new_zl[i] = zl[pos];
+        new_zu[i] = zu[pos];
+        ++pos;
+      }
+    }
+
+    x = std::move(new_x);
+    xl = std::move(new_xl);
+    xu = std::move(new_xu);
+    zl = std::move(new_zl);
+    zu = std::move(new_zu);
   }
 
-  y = std::move(new_y);
-  slack = std::move(new_slack);
+  if (empty_rows_ > 0) {
+    // Add Lagrange multiplier for empty rows that were removed
+    // Add slack for constraints that were removed
+
+    std::vector<double> new_y(rows_shift_.size(), 0.0);
+    std::vector<double> new_slack(rows_shift_.size(), 0.0);
+
+    // position to read from y and slack
+    Int pos = 0;
+
+    for (Int i = 0; i < rows_shift_.size(); ++i) {
+      // ignore shift of empty rows, they will receive a value of 0
+      if (rows_shift_[i] == -1) continue;
+
+      // re-align value of y and slack, considering empty rows
+      new_y[pos + rows_shift_[i]] = y[pos];
+      new_slack[pos + rows_shift_[i]] = slack[pos];
+      ++pos;
+    }
+
+    y = std::move(new_y);
+    slack = std::move(new_slack);
+  }
 }
 
 void Model::reformulate() {
