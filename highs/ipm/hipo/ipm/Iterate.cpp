@@ -302,14 +302,14 @@ void Iterate::extract(std::vector<double>& x_user, std::vector<double>& xl_user,
   // Extract solution with internal format
 
   // Copy x, xl, xu, zl, zu without slacks
-  x_user = std::vector<double>(x.begin(), x.begin() + model.n_orig());
-  xl_user = std::vector<double>(xl.begin(), xl.begin() + model.n_orig());
-  xu_user = std::vector<double>(xu.begin(), xu.begin() + model.n_orig());
-  zl_user = std::vector<double>(zl.begin(), zl.begin() + model.n_orig());
-  zu_user = std::vector<double>(zu.begin(), zu.begin() + model.n_orig());
+  x_user = std::vector<double>(x.begin(), x.begin() + model.n_pre());
+  xl_user = std::vector<double>(xl.begin(), xl.begin() + model.n_pre());
+  xu_user = std::vector<double>(xu.begin(), xu.begin() + model.n_pre());
+  zl_user = std::vector<double>(zl.begin(), zl.begin() + model.n_pre());
+  zu_user = std::vector<double>(zu.begin(), zu.begin() + model.n_pre());
 
   // force unused entries to have correct value
-  for (int i = 0; i < model.n_orig(); ++i) {
+  for (int i = 0; i < model.n_pre(); ++i) {
     if (!model.hasLb(i)) {
       xl_user[i] = kHighsInf;
       zl_user[i] = 0.0;
@@ -330,11 +330,11 @@ void Iterate::extract(std::vector<double>& x_user, std::vector<double>& xl_user,
         y_user[i] = y[i];
         break;
       case '>':
-        y_user[i] = zu[model.n_orig() + slack_pos];
+        y_user[i] = zu[model.n_pre() + slack_pos];
         ++slack_pos;
         break;
       case '<':
-        y_user[i] = -zl[model.n_orig() + slack_pos];
+        y_user[i] = -zl[model.n_pre() + slack_pos];
         ++slack_pos;
         break;
     }
@@ -350,11 +350,11 @@ void Iterate::extract(std::vector<double>& x_user, std::vector<double>& xl_user,
         slack_user[i] = 0.0;
         break;
       case '>':
-        slack_user[i] = -xu[model.n_orig() + slack_pos];
+        slack_user[i] = -xu[model.n_pre() + slack_pos];
         ++slack_pos;
         break;
       case '<':
-        slack_user[i] = xl[model.n_orig() + slack_pos];
+        slack_user[i] = xl[model.n_pre() + slack_pos];
         ++slack_pos;
         break;
     }
@@ -375,8 +375,8 @@ void Iterate::extract(std::vector<double>& x_user,
   // They are removed from x and z, but they are used to compute slack and y.
 
   // Remove slacks from x and z
-  x_user = std::vector<double>(x_temp.begin(), x_temp.begin() + model.n_orig());
-  z_user = std::vector<double>(z_temp.begin(), z_temp.begin() + model.n_orig());
+  x_user = std::vector<double>(x_temp.begin(), x_temp.begin() + model.n_pre());
+  z_user = std::vector<double>(z_temp.begin(), z_temp.begin() + model.n_pre());
 
   // For inequality constraints, the corresponding z-slack may have been dropped
   // to zero, so build y from z-slacks.
@@ -390,7 +390,7 @@ void Iterate::extract(std::vector<double>& x_user,
         break;
       case '>':
       case '<':
-        y_user[i] = -z_temp[model.n_orig() + slack_pos];
+        y_user[i] = -z_temp[model.n_pre() + slack_pos];
         ++slack_pos;
         break;
     }
@@ -407,7 +407,7 @@ void Iterate::extract(std::vector<double>& x_user,
         break;
       case '>':
       case '<':
-        slack_user[i] = x_temp[model.n_orig() + slack_pos];
+        slack_user[i] = x_temp[model.n_pre() + slack_pos];
         ++slack_pos;
         break;
     }
@@ -568,7 +568,7 @@ void Iterate::finalResiduals(Info& info) const {
             zu_local);
 
     const Int m = model.m();
-    const Int n_orig = model.n_orig();
+    const Int n_pre = model.n_pre();
 
     // res1 = b - slack - A*x
     std::vector<double> res1(m);
@@ -579,24 +579,24 @@ void Iterate::finalResiduals(Info& info) const {
     }
 
     // res2 = lower - x + xl
-    std::vector<double> res2(n_orig);
-    for (Int i = 0; i < n_orig; ++i) {
+    std::vector<double> res2(n_pre);
+    for (Int i = 0; i < n_pre; ++i) {
       if (model.hasLb(i)) res2[i] = model.lb(i) - x_local[i] + xl_local[i];
       if (model.scaled()) res2[i] *= model.colScale(i);
     }
 
     // res3 = upper - x - xu
-    std::vector<double> res3(n_orig);
-    for (Int i = 0; i < n_orig; ++i) {
+    std::vector<double> res3(n_pre);
+    for (Int i = 0; i < n_pre; ++i) {
       if (model.hasUb(i)) res3[i] = model.ub(i) - x_local[i] - xu_local[i];
       if (model.scaled()) res3[i] *= model.colScale(i);
     }
 
     // res4 = c - A^T * y - zl + zu + Q * x
-    std::vector<double> res4(n_orig);
+    std::vector<double> res4(n_pre);
     model.multAWithoutSlack(-1.0, y_local, res4, true);
     if (model.qp()) model.multQWithoutSlack(1.0, x_local, res4);
-    for (Int i = 0; i < n_orig; ++i) {
+    for (Int i = 0; i < n_pre; ++i) {
       if (model.hasLb(i)) res4[i] -= zl_local[i];
       if (model.hasUb(i)) res4[i] += zu_local[i];
       res4[i] += model.c()[i];
@@ -613,18 +613,18 @@ void Iterate::finalResiduals(Info& info) const {
 
     double quad_term_local = 0.0;
     if (model.qp()) {
-      std::vector<double> Qx_local(n_orig);
+      std::vector<double> Qx_local(n_pre);
       model.multQWithoutSlack(0.5, x_local, Qx_local);
       quad_term_local = dotProd(x_local, Qx_local);
     }
 
     double pobj = model.offset();
-    for (Int i = 0; i < n_orig; ++i) pobj += model.c()[i] * x_local[i];
+    for (Int i = 0; i < n_pre; ++i) pobj += model.c()[i] * x_local[i];
     pobj += quad_term_local;
 
     double dobj = model.offset();
     dobj += dotProd(y_local, model.b());
-    for (Int i = 0; i < n_orig; ++i) {
+    for (Int i = 0; i < n_pre; ++i) {
       if (model.hasLb(i)) dobj += model.lb(i) * zl_local[i];
       if (model.hasUb(i)) dobj -= model.ub(i) * zu_local[i];
     }

@@ -37,6 +37,9 @@ class Model {
   double offset_;
   ObjSense sense_ = ObjSense::kMinimize;
 
+  Int n_preproc_{};
+  Int m_preproc_{};
+
   // data of reformulated problem
   Int n_{};
   Int m_{};
@@ -60,9 +63,11 @@ class Model {
   std::vector<double> rowscale_{};
   Int CG_iter_scaling_{};
 
-  // information about empty rows, for postprocessing
-  std::vector<Int> rows_shift_{};
+  // information about postprocessing
   Int empty_rows_{};
+  Int fixed_vars_{};
+  std::vector<Int> rows_shift_{};
+  std::vector<double> fixed_at_{};
 
   // norms of rows and cols of A
   std::vector<double> one_norm_cols_, one_norm_rows_, inf_norm_cols_,
@@ -82,7 +87,12 @@ class Model {
   // Print information of model
   void print(const LogHighs& log) const;
 
-  void postprocess(std::vector<double>& slack, std::vector<double>& y) const;
+  void printDense() const;
+
+  void postprocess(std::vector<double>& x, std::vector<double>& xl,
+                   std::vector<double>& xu, std::vector<double>& slack,
+                   std::vector<double>& y, std::vector<double>& zl,
+                   std::vector<double>& zu) const;
 
   // Unscale a given solution
   void unscale(std::vector<double>& x, std::vector<double>& xl,
@@ -111,6 +121,8 @@ class Model {
   Int n() const { return n_; }
   Int n_orig() const { return n_orig_; }
   Int m_orig() const { return m_orig_; }
+  Int n_pre() const { return n_preproc_; }
+  Int m_pre() const { return m_preproc_; }
   bool qp() const { return !Q_.empty(); }
   bool nonSeparableQp() const { return qp() && !Q_.isDiagonal(); }
   double sense() const {return (double)sense_;}

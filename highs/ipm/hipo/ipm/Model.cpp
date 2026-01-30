@@ -24,6 +24,9 @@ Int Model::init(const HighsLp& lp, const HighsHessian& Q) {
   A_.num_row_ = m_;
 
   preprocess();
+  n_preproc_ = n_;
+  m_preproc_ = m_;
+
   scale();
   reformulate();
   denseColumns();
@@ -99,21 +102,20 @@ void Model::preprocess() {
     }
   }
 
-  rows_shift_.assign(m_, 0);
   empty_rows_ = 0;
-  for (Int i = 0; i < m_; ++i) {
-    if (entries_per_row[i] == 0) {
-      // count number of empty rows
-      ++empty_rows_;
-
-      // count how many empty rows there are before a given row
-      for (Int j = i + 1; j < m_; ++j) ++rows_shift_[j];
-
-      rows_shift_[i] = -1;
-    }
-  }
+  for (Int i : entries_per_row)
+    if (i == 0) ++empty_rows_;
 
   if (empty_rows_ > 0) {
+    rows_shift_.assign(m_, 0);
+    for (Int i = 0; i < m_; ++i) {
+      if (entries_per_row[i] == 0) {
+        // count how many empty rows there are before a given row
+        for (Int j = i + 1; j < m_; ++j) ++rows_shift_[j];
+        rows_shift_[i] = -1;
+      }
+    }
+
     // shift each row index by the number of empty rows before it
     for (Int col = 0; col < n_; ++col) {
       for (Int el = A_.start_[col]; el < A_.start_[col + 1]; ++el) {
@@ -137,10 +139,80 @@ void Model::preprocess() {
 
     m_ = A_.num_row_;
   }
+
+  // ==========================================
+  // Remove fixed variables
+  // ==========================================
+  // See "Preprocessing for quadratic programming", Gould, Toint, Math Program
+  fixed_vars_ = 0;
+  for (Int i = 0; i < n_; ++i)
+    if (lower_[i] == upper_[i]) ++fixed_vars_;
+
+  if (fixed_vars_ > 0) {
+    fixed_at_.assign(n_, 0.0);
+    std::vector<Int> index_to_remove{};
+    for (Int j = 0; j < n_; ++j) {
+      if (lower_[j] == upper_[j]) {
+        fixed_at_[j] = lower_[j];
+        index_to_remove.push_back(j);
+        const double xcol = fixed_at_[j];
+
+        offset_ += c_[j] * xcol + 0.5 * Q_.diag(j) * xcol * xcol;
+
+        for (Int el = A_.start_[j]; el < A_.start_[j + 1]; ++el) {
+          const Int row = A_.index_[el];
+          const double val = A_.value_[el];
+          b_[row] -= val * xcol;
+        }
+
+        for (Int colQ = 0; colQ < j; ++colQ) {
+          for (Int el = Q_.start_[colQ]; el < Q_.start_[colQ + 1]; ++el) {
+            const Int rowQ = Q_.index_[el];
+            if (rowQ == j) {
+              c_[colQ] += Q_.value_[el] * xcol;
+            }
+          }
+        }
+        for (Int el = Q_.start_[j]; el < Q_.start_[j + 1]; ++el) {
+          const Int rowQ = Q_.index_[el];
+          c_[rowQ] += Q_.value_[el] * xcol;
+        }
+      }
+    }
+
+    HighsIndexCollection index_collection;
+    create(index_collection, index_to_remove.size(), index_to_remove.data(),
+           n_);
+    A_.deleteCols(index_collection);
+    Q_.deleteCols(index_collection);
+
+    Int next = 0;
+    Int copy_to = 0;
+    for (Int i = 0; i < n_; ++i) {
+      if (next < index_to_remove.size() && i == index_to_remove[next]) {
+        ++next;
+        continue;
+      } else {
+        c_[copy_to] = c_[i];
+        lower_[copy_to] = lower_[i];
+        upper_[copy_to] = upper_[i];
+        copy_to++;
+      }
+    }
+
+    n_ -= fixed_vars_;
+    assert(A_.num_col_ == n_);
+    assert(Q_.dim_ == n_);
+    c_.resize(n_);
+    lower_.resize(n_);
+    upper_.resize(n_);
+  }
 }
 
-void Model::postprocess(std::vector<double>& slack,
-                        std::vector<double>& y) const {
+void Model::postprocess(std::vector<double>& x, std::vector<double>& xl,
+                        std::vector<double>& xu, std::vector<double>& slack,
+                        std::vector<double>& y, std::vector<double>& zl,
+                        std::vector<double>& zu) const {
   // Add Lagrange multiplier for empty rows that were removed
   // Add slack for constraints that were removed
 
@@ -267,6 +339,8 @@ void Model::print(const LogHighs& log) const {
                << '\n';
   if (empty_rows_ > 0)
     log_stream << "Removed " << empty_rows_ << " empty rows\n";
+  if (fixed_vars_ > 0)
+    log_stream << "Removed " << fixed_vars_ << " fixed variables\n";
   if (qp()) {
     log_stream << textline("Nnz Q:") << sci(Q_.numNz(), 0, 1);
     if (nonSeparableQp())
@@ -500,21 +574,21 @@ void Model::unscale(std::vector<double>& x, std::vector<double>& xl,
   // Undo the scaling with internal format
 
   if (scaled()) {
-    for (Int i = 0; i < n_orig_; ++i) {
+    for (Int i = 0; i < n_preproc_; ++i) {
       x[i] *= colscale_[i];
       xl[i] *= colscale_[i];
       xu[i] *= colscale_[i];
       zl[i] /= colscale_[i];
       zu[i] /= colscale_[i];
     }
-    for (Int i = 0; i < m_; ++i) {
+    for (Int i = 0; i < m_preproc_; ++i) {
       y[i] *= rowscale_[i];
       slack[i] /= rowscale_[i];
     }
   }
 
   // set variables that were ignored
-  for (Int i = 0; i < n_orig_; ++i) {
+  for (Int i = 0; i < n_preproc_; ++i) {
     if (!hasLb(i)) {
       xl[i] = kHighsInf;
       zl[i] = 0.0;
@@ -531,11 +605,11 @@ void Model::unscale(std::vector<double>& x, std::vector<double>& slack,
   // Undo the scaling with format for crossover
 
   if (scaled()) {
-    for (Int i = 0; i < n_orig_; ++i) {
+    for (Int i = 0; i < n_preproc_; ++i) {
       x[i] *= colscale_[i];
       z[i] /= colscale_[i];
     }
-    for (Int i = 0; i < m_; ++i) {
+    for (Int i = 0; i < m_preproc_; ++i) {
       y[i] *= rowscale_[i];
       slack[i] /= rowscale_[i];
     }
@@ -580,17 +654,17 @@ Int Model::loadIntoIpx(ipx::LpSolver& lps) const {
 
 void Model::multAWithoutSlack(double alpha, const std::vector<double>& x,
                               std::vector<double>& y, bool trans) const {
-  assert(x.size() == (trans ? m_ : n_orig_));
-  assert(y.size() == (trans ? n_orig_ : m_));
+  assert(x.size() == (trans ? m_preproc_ : n_preproc_));
+  assert(y.size() == (trans ? n_preproc_ : m_preproc_));
 
   if (trans) {
-    for (Int col = 0; col < n_orig_; ++col) {
+    for (Int col = 0; col < n_preproc_; ++col) {
       for (Int el = A_.start_[col]; el < A_.start_[col + 1]; ++el) {
         y[col] += alpha * A_.value_[el] * x[A_.index_[el]];
       }
     }
   } else {
-    for (Int col = 0; col < n_orig_; ++col) {
+    for (Int col = 0; col < n_preproc_; ++col) {
       for (Int el = A_.start_[col]; el < A_.start_[col + 1]; ++el) {
         y[A_.index_[el]] += alpha * A_.value_[el] * x[col];
       }
@@ -600,17 +674,61 @@ void Model::multAWithoutSlack(double alpha, const std::vector<double>& x,
 
 void Model::multQWithoutSlack(double alpha, const std::vector<double>& x,
                               std::vector<double>& y) const {
-  assert(x.size() == n_orig_);
+  assert(x.size() == n_preproc_);
   assert(Q_.format_ == HessianFormat::kTriangular);
 
-  for (Int col = 0; col < n_orig_; ++col) {
+  for (Int col = 0; col < n_preproc_; ++col) {
     for (Int el = Q_.start_[col]; el < Q_.start_[col + 1]; ++el) {
       const Int row = Q_.index_[el];
-      if (row >= n_orig_) continue;
+      if (row >= n_preproc_) continue;
       y[row] += alpha * Q_.value_[el] * x[col];
       if (row != col) y[col] += alpha * Q_.value_[el] * x[row];
     }
   }
+}
+
+void Model::printDense() const {
+  std::vector<std::vector<double>> Adense(m_, std::vector<double>(n_, 0.0));
+  std::vector<std::vector<double>> Qdense(n_, std::vector<double>(n_, 0.0));
+
+  for (Int col = 0; col < n_; ++col) {
+    for (Int el = A_.start_[col]; el < A_.start_[col + 1]; ++el) {
+      const Int row = A_.index_[el];
+      const double val = A_.value_[el];
+      Adense[row][col] = val;
+    }
+  }
+  for (Int col = 0; col < n_; ++col) {
+    for (Int el = Q_.start_[col]; el < Q_.start_[col + 1]; ++el) {
+      const Int row = Q_.index_[el];
+      const double val = Q_.value_[el];
+      Qdense[row][col] = val;
+    }
+  }
+
+  printf("\nA\n");
+  for (Int i = 0; i < m_; ++i) {
+    for (Int j = 0; j < n_; ++j) printf("%6.2f ", Adense[i][j]);
+    printf("\n");
+  }
+  printf("b\n");
+  for (Int i = 0; i < m_; ++i) printf("%6.2f ", b_[i]);
+  printf("\n");
+  printf("c\n");
+  for (Int i = 0; i < n_; ++i) printf("%6.2f ", c_[i]);
+  printf("\n");
+  printf("lb\n");
+  for (Int i = 0; i < n_; ++i) printf("%6.2f ", lower_[i]);
+  printf("\n");
+  printf("ub\n");
+  for (Int i = 0; i < n_; ++i) printf("%6.2f ", upper_[i]);
+  printf("\n");
+  printf("Q\n");
+  for (Int i = 0; i < n_; ++i) {
+    for (Int j = 0; j < n_; ++j) printf("%6.2f ", Qdense[i][j]);
+    printf("\n");
+  }
+  printf("offset %6.2f\n", offset_);
 }
 
 }  // namespace hipo
