@@ -1047,7 +1047,9 @@ restart:
     if (mipdata_->nodequeue.empty()) break;
 
     // reset global domain and sync worker's global domains
-    resetGlobalDomain(false, mipdata_->hasMultipleWorkers());
+    bool spawn_more_workers = num_workers < max_num_workers &&
+                              mipdata_->nodequeue.numNodes() > num_workers;
+    resetGlobalDomain(spawn_more_workers, mipdata_->hasMultipleWorkers());
 
     if (!submip && mipdata_->num_nodes >= nextCheck) {
       auto nTreeRestarts = mipdata_->numRestarts - mipdata_->numRestartsRoot;
@@ -1131,13 +1133,11 @@ restart:
     // mipdata_->lp.setIterationLimit();
 
     // Create new workers if there's sufficient nodes
-    if (num_workers < max_num_workers &&
-        mipdata_->nodequeue.numNodes() > num_workers) {
+    if (spawn_more_workers) {
       HighsInt new_max_num_workers =
           std::min(static_cast<HighsInt>(mipdata_->nodequeue.numNodes()),
                    max_num_workers);
       mipdata_->pseudocost.removeChanged();
-      resetGlobalDomain(true, false);
       if (num_workers == 1) {
         constructAdditionalWorkerData(master_worker);
       }
