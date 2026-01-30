@@ -35,7 +35,7 @@ J. A. J. Hall, Mathematical Programming Computation, 10 (1), 119-142,
   determines whether the primal solver or one of the parallel solvers is
   to be used.
 
-#### Interior point
+#### [Interior point](@id solvers-lp-ipm)
 
 HiGHS has two interior point (IPM) solvers:
 
@@ -48,7 +48,7 @@ HiGHS has two interior point (IPM) solvers:
 
   This solver is serial.
 
-* [HiPO](@id solvers-hipo) is based on a direct factorisation, as discussed in 
+* HiPO is based on a direct factorisation, as discussed in 
 
   _A factorisation-based regularised interior point method using the
   augmented system_, F. Zanetti and J. Gondzio, 2025, [available on
@@ -93,7 +93,7 @@ an interior point method. The active set implementation uses a dense
 Cholesky factorization of the reduced Hessian, and the the limit on
 its dimension is determined by the option
 [__qp\_nullspace\_limit__](@ref option-qp-nullspace-limit). The
-interior point solver is HiPO, so see [above](@ref solvers-hipo) for
+interior point solver is HiPO, so see [above](@ref solvers-lp-ipm) for
 the key algorithmic options.
 
 ## MIP
