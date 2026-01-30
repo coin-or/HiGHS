@@ -6,7 +6,7 @@
 - Default: "choose"
 
 ## [solver](@id option-solver)
-- LP solver option: "choose", "simplex", "ipm", "ipx", "hipo", "pdlp", "hipdlp", "qpasm"
+- LP solver option: "choose", "simplex", "ipm", "ipx", "hipo", "pdlp", "qpasm"
 - Type: string
 - Default: "choose"
 
@@ -457,9 +457,9 @@
 - Default: 2147483647
 
 ## pdlp\_e\_restart\_method
-- Restart mode for PDLP solver: 0 => none; 1 => GPU (default); 2 => CPU 
+- Restart mode for PDLP solver: 0 => none; 1 => GPU (default); 2 => CPU; 2 => Halpern 
 - Type: integer
-- Range: {0, 2}
+- Range: {0, 3}
 - Default: 1
 
 ## [pdlp\_optimality\_tolerance](@id option-pdlp-optimality-tolerance)
@@ -474,7 +474,7 @@
 - Range: {0, 2147483647}
 - Default: 2147483647
 
-## qp\_nullspace\_limit
+## [qp\_nullspace\_limit](@id option-qp-nullspace-limit)
 - Nullspace limit for QP solver
 - Type: integer
 - Range: {0, 2147483647}

@@ -48,7 +48,7 @@ HiGHS has two interior point (IPM) solvers:
 
   This solver is serial.
 
-* HiPO is based on a direct factorisation, as discussed in 
+* [HiPO](@id solvers-hipo) is based on a direct factorisation, as discussed in 
 
   _A factorisation-based regularised interior point method using the
   augmented system_, F. Zanetti and J. Gondzio, 2025, [available on
@@ -56,24 +56,24 @@ HiGHS has two interior point (IPM) solvers:
 
   This solver is parallel.
 
-  The [hipo\_system](@ref option-hipo-system) option can be used to
+  The [__hipo\_system__](@ref option-hipo-system) option can be used to
   select the approach to use when solving the Newton systems within
   the interior point solver: select "augmented" to force the solver to
   use the augmented system, "normaleq" for normal equations, or
   "choose" to leave the choice to the solver.
 
-  The option [hipo\_ordering](@ref option-hipo-ordering) can be used
+  The option [__hipo\_ordering__](@ref option-hipo-ordering) can be used
   to select the fill-reducing heuristic to use during the
   factorisation:
   
   * Nested dissection, obtained setting the option
-    [hipo\_ordering](@ref option-hipo-ordering) to "metis".
+    [__hipo\_ordering__](@ref option-hipo-ordering) to "metis".
   
   * Approximate minimum degree, obtained setting the option
-    [hipo\_ordering](@ref option-hipo-ordering) to "amd".
+    [__hipo\_ordering__](@ref option-hipo-ordering) to "amd".
   
   * Reverse Cuthill-McKee, obtained setting the option
-    [hipo\_ordering](@ref option-hipo-ordering) to "rcm".
+    [__hipo\_ordering__](@ref option-hipo-ordering) to "rcm".
 
 For small LPs, IPX is often faster than HiPO. However, as problem size
 grows, HiPO becomes more efficient, and its advantage can be more
@@ -88,13 +88,13 @@ to be competitive with the HiGHS interior point or simplex solvers.
 
 ## QP
 
-HiGHS has two solvers for convex QP:
-
-* A primal active set method. Setting the option [__solver__](@ref
-  option-solver) to "qpasm" forces this solver to be used.
-
-* An interior point method. Setting the option [__solver__](@ref
-  option-solver) to "hipo" forces the HiPO solver to be used.
+HiGHS has two solvers for convex QP: a primal active set method, and
+an interior point method. The active set implementation uses a dense
+Cholesky factorization of the reduced Hessian, and the the limit on
+its dimension is determined by the option
+[__qp\_nullspace\_limit__](@ref option-qp-nullspace-limit). The
+interior point solver is HiPO, so see [above](@ref solvers-hipo) for
+the key algorithmic options.
 
 ## MIP
 
