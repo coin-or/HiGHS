@@ -76,28 +76,9 @@ search is work in progress.
 
 ## QP
 
-HiGHS has two solvers for convex QP:
-
-* A primal active set method. Setting the option [__solver__](@ref option-solver) to "qpasm" forces this solver to be used.
-
-* An interior point method. Setting the option [__solver__](@ref option-solver) to "hipo" forces the HiPO solver to be used.
-
-Setting the option [__solver__](@ref option-solver) to "choose" selects the "qpasm" solver. 
+The HiGHS solver for convex QP problems uses an established primal
+active set method. The new interior point solver HiPO will soon be able to
+solve convex QP problems.
 
 
-## [Solver](@ref option-solver) option
-
-The option [__solver__](@ref option-solver) can be set to:
-* "simplex", which selects the simplex solver.
-* "ipm", which selects the HiPO solver (or IPX if HiPO is not available in the build).
-* "ipx", which selects the IPX solver.
-* "hipo", which selects the HiPO solver, for both LP and QP.
-* "pdlp", which selects the PDLP solver.
-* "qpasm", which selects the QP active-set method.
-* "choose", which selects the default solver for the given problem ("simplex" for LP, "qpasm" for QP).
-
-The option [__solver__](@ref option-solver) is ignored and the default solver is used if:
-* The problem is an LP and solver is set to "qpasm".
-* The problem is a QP and solver is set to "simplex", "ipx" or "pdlp".
-* The problem is a MIP and solver is not set to "choose".
 

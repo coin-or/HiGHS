@@ -6,7 +6,7 @@
 - Default: "choose"
 
 ## [solver](@id option-solver)
-- LP solver option: "choose", "simplex", "ipm", "ipx", "hipo", "pdlp" or "qpasm"
+- LP solver option: "choose", "simplex", "ipm", "ipx", "hipo" or "pdlp"
 - Type: string
 - Default: "choose"
 
@@ -469,19 +469,19 @@
 - Default: 1e-07
 
 ## qp\_iteration\_limit
-- Iteration limit for QP ASM solver
+- Iteration limit for QP solver
 - Type: integer
 - Range: {0, 2147483647}
 - Default: 2147483647
 
 ## qp\_nullspace\_limit
-- Nullspace limit for QP ASM solver
+- Nullspace limit for QP solver
 - Type: integer
 - Range: {0, 2147483647}
 - Default: 4000
 
 ## qp\_regularization\_value
-- Regularization value added to the Hessian for QP ASM solver
+- Regularization value added to the Hessian
 - Type: double
 - Range: [0, inf]
 - Default: 1e-07
