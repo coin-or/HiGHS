@@ -9,7 +9,7 @@
 #define MIP_HIGHS_MIP_SOLVER_H_
 
 #include "Highs.h"
-#include "HighsParallel.h"
+#include "parallel/HighsParallel.h"
 #include "lp_data/HighsCallback.h"
 #include "lp_data/HighsOptions.h"
 #include "mip/HighsMipAnalysis.h"

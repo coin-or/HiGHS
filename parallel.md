@@ -152,5 +152,3 @@ stored in std::deque objects in HighsMipSolverData. This is done for two reasons
 - Is the code in a reviewable state? Answer: I've cleaned up everything, although there's still some lingering WARNINGS
   and TODOS that I've left in case the design changes, e.g., for cut management. So it should be readable and relatively
   clean.
-- Do all workers need to be initialised at the start? Answer: I think the design is robust and we can create workers
-  dynamically. I will be trying to implement this and see if it's beneficial for performance.
