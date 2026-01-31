@@ -139,27 +139,6 @@ struct Iterate {
                                 const std::vector<double>& res7) const;
 
   // ===================================================================================
-  // Extract solution to be returned to user:
-  // - remove extra slacks from x, xl, xu, zl, zu
-  // - adjust sign of y for inequality constraints
-  // - compute and adjust sign of slacks
-  // ===================================================================================
-  void extract(std::vector<double>& x_user, std::vector<double>& xl_user,
-               std::vector<double>& xu_user, std::vector<double>& slack_user,
-               std::vector<double>& y_user, std::vector<double>& zl_user,
-               std::vector<double>& zu_user) const;
-
-  // ===================================================================================
-  // Extract complementary solution to be used for crossover with IPX:
-  // - drop variables to obtain complementary (x,y,z)
-  // - adjust y based on z-slacks
-  // - compute slacks
-  // - remove extra slacks from x, z
-  // ===================================================================================
-  void extract(std::vector<double>& x_user, std::vector<double>& slack_user,
-               std::vector<double>& y_user, std::vector<double>& z_user) const;
-
-  // ===================================================================================
   // Construct a complementary point (x,y,z), such that for each j, either xj is
   // at one of the bounds (lower or upper), or zj is zero.
   // ===================================================================================

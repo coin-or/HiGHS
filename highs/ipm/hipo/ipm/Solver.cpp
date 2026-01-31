@@ -1265,9 +1265,7 @@ void Solver::getInteriorSolution(
   // prepare and return solution with internal format
 
   if (!info_.ipx_used) {
-    it_->extract(x, xl, xu, slack, y, zl, zu);
-    model_.unscale(x, xl, xu, slack, y, zl, zu);
-    model_.postprocess(x, xl, xu, slack, y, zl, zu);
+    model_.postprocess(x, xl, xu, slack, y, zl, zu, *it_);
   } else {
     ipx_lps_.GetInteriorSolution(x.data(), xl.data(), xu.data(), slack.data(),
                                  y.data(), zl.data(), zu.data());
@@ -1285,9 +1283,9 @@ Int Solver::getBasicSolution(std::vector<double>& x, std::vector<double>& slack,
 void Solver::getSolution(std::vector<double>& x, std::vector<double>& slack,
                          std::vector<double>& y, std::vector<double>& z) const {
   // prepare and return solution with format for crossover
-  it_->extract(x, slack, y, z);
-  model_.unscale(x, slack, y, z);
-  //model_.postprocess(slack, y);
+  // it_->extract(x, slack, y, z);
+  // model_.unscale(x, slack, y, z);
+  // model_.postprocess(slack, y);
 }
 
 void Solver::maxCorrectors() {

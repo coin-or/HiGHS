@@ -294,126 +294,6 @@ void Iterate::clearIres() {
   ires.r6.assign(model.n(), 0.0);
 }
 
-void Iterate::extract(std::vector<double>& x_user, std::vector<double>& xl_user,
-                      std::vector<double>& xu_user,
-                      std::vector<double>& slack_user,
-                      std::vector<double>& y_user, std::vector<double>& zl_user,
-                      std::vector<double>& zu_user) const {
-  // Extract solution with internal format
-
-  // Copy x, xl, xu, zl, zu without slacks
-  x_user = std::vector<double>(x.begin(), x.begin() + model.n_pre());
-  xl_user = std::vector<double>(xl.begin(), xl.begin() + model.n_pre());
-  xu_user = std::vector<double>(xu.begin(), xu.begin() + model.n_pre());
-  zl_user = std::vector<double>(zl.begin(), zl.begin() + model.n_pre());
-  zu_user = std::vector<double>(zu.begin(), zu.begin() + model.n_pre());
-
-  // force unused entries to have correct value
-  for (int i = 0; i < model.n_pre(); ++i) {
-    if (!model.hasLb(i)) {
-      xl_user[i] = kHighsInf;
-      zl_user[i] = 0.0;
-    }
-    if (!model.hasUb(i)) {
-      xu_user[i] = kHighsInf;
-      zu_user[i] = 0.0;
-    }
-  }
-
-  // For the Lagrange multipliers, use slacks from zl and zu, to get correct
-  // sign. NB: there is no explicit slack stored for equality constraints.
-  y_user.resize(model.m());
-  Int slack_pos = 0;
-  for (Int i = 0; i < model.m(); ++i) {
-    switch (model.constraint(i)) {
-      case '=':
-        y_user[i] = y[i];
-        break;
-      case '>':
-        y_user[i] = zu[model.n_pre() + slack_pos];
-        ++slack_pos;
-        break;
-      case '<':
-        y_user[i] = -zl[model.n_pre() + slack_pos];
-        ++slack_pos;
-        break;
-    }
-  }
-
-  // For x-slacks, use slacks from xl and xu, to get correct sign.
-  // NB: there is no explicit slack stored for equality constraints.
-  slack_user.resize(model.m());
-  slack_pos = 0;
-  for (Int i = 0; i < model.m(); ++i) {
-    switch (model.constraint(i)) {
-      case '=':
-        slack_user[i] = 0.0;
-        break;
-      case '>':
-        slack_user[i] = -xu[model.n_pre() + slack_pos];
-        ++slack_pos;
-        break;
-      case '<':
-        slack_user[i] = xl[model.n_pre() + slack_pos];
-        ++slack_pos;
-        break;
-    }
-  }
-}
-
-void Iterate::extract(std::vector<double>& x_user,
-                      std::vector<double>& slack_user,
-                      std::vector<double>& y_user,
-                      std::vector<double>& z_user) const {
-  // Extract solution with format for crossover
-
-  // Construct complementary point (x_temp, y_temp, z_temp)
-  std::vector<double> x_temp, y_temp, z_temp;
-  dropToComplementarity(x_temp, y_temp, z_temp);
-
-  // Both x_temp and z_temp include slacks.
-  // They are removed from x and z, but they are used to compute slack and y.
-
-  // Remove slacks from x and z
-  x_user = std::vector<double>(x_temp.begin(), x_temp.begin() + model.n_pre());
-  z_user = std::vector<double>(z_temp.begin(), z_temp.begin() + model.n_pre());
-
-  // For inequality constraints, the corresponding z-slack may have been dropped
-  // to zero, so build y from z-slacks.
-  // NB: there is no explicit slack stored for equality constraints.
-  y_user.resize(model.m());
-  Int slack_pos = 0;
-  for (Int i = 0; i < model.m(); ++i) {
-    switch (model.constraint(i)) {
-      case '=':
-        y_user[i] = y_temp[i];
-        break;
-      case '>':
-      case '<':
-        y_user[i] = -z_temp[model.n_pre() + slack_pos];
-        ++slack_pos;
-        break;
-    }
-  }
-
-  // Use slacks from x_temp and add slack for equality constraints.
-  // NB: there is no explicit slack stored for equality constraints.
-  slack_user.resize(model.m());
-  slack_pos = 0;
-  for (Int i = 0; i < model.m(); ++i) {
-    switch (model.constraint(i)) {
-      case '=':
-        slack_user[i] = 0.0;
-        break;
-      case '>':
-      case '<':
-        slack_user[i] = x_temp[model.n_pre() + slack_pos];
-        ++slack_pos;
-        break;
-    }
-  }
-}
-
 void Iterate::dropToComplementarity(std::vector<double>& x_cmp,
                                     std::vector<double>& y_cmp,
                                     std::vector<double>& z_cmp) const {
@@ -561,7 +441,7 @@ void Iterate::finalResiduals(Info& info) const {
   // compute it.
 
   if (!info.ipx_used) {
-    std::vector<double> x_local, xl_local, xu_local, y_local, zl_local,
+    /*std::vector<double> x_local, xl_local, xu_local, y_local, zl_local,
         zu_local, slack_local;
 
     extract(x_local, xl_local, xu_local, slack_local, y_local, zl_local,
@@ -633,6 +513,7 @@ void Iterate::finalResiduals(Info& info) const {
     info.p_obj = pobj;
     info.d_obj = dobj;
     info.pd_gap = std::abs(pobj - dobj) / (1.0 + 0.5 * std::abs(pobj + dobj));
+    */
   } else {
     info.p_res_abs = info.ipx_info.abs_presidual;
     info.p_res_rel = info.ipx_info.rel_presidual;
