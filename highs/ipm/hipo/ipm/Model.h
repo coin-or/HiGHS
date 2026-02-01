@@ -50,6 +50,8 @@ class Model {
   Int num_dense_cols_{};
   double max_col_density_{};
 
+  std::vector<double> colscale_, rowscale_;
+
   double norm_unscaled_rhs_, norm_scaled_rhs_, norm_unscaled_obj_,
       norm_scaled_obj_;
 
@@ -105,10 +107,10 @@ class Model {
   double lb(Int i) const { return lower_[i]; }
   double ub(Int i) const { return upper_[i]; }
   char constraint(Int i) const { return constraints_[i]; }
-  double colScale(Int i) const { return prePostProcess.S.colscale[i]; }
-  double rowScale(Int i) const { return prePostProcess.S.rowscale[i]; }
+  double colScale(Int i) const { return scaled() ? colscale_[i] : 1.0; }
+  double rowScale(Int i) const { return scaled() ? rowscale_[i] : 1.0; }
   bool ready() const { return ready_; }
-  bool scaled() const { return prePostProcess.S.scaled(); }
+  bool scaled() const { return !colscale_.empty(); }
   double offset() const { return offset_; }
   double maxColDensity() const { return max_col_density_; }
   Int numDenseCols() const { return num_dense_cols_; }

@@ -43,12 +43,10 @@ struct RemoveFixedVars {
 
 struct Scale {
   Int n_pre, m_pre, n_post, m_post;
-  std::vector<double> colscale, rowscale;
   Int CG_iter_scaling;
 
   void apply(Model& model);
   void undo(PrePostProcessPoint& point, const Model& model) const;
-  bool scaled() const { return !colscale.empty(); }
 };
 
 struct Reformulate {

@@ -241,6 +241,9 @@ void Scale::apply(Model& model) {
   std::vector<double>& upper = model.upper_;
   HighsHessian& Q = model.Q_;
 
+  std::vector<double>& colscale = model.colscale_;
+  std::vector<double>& rowscale = model.rowscale_;
+
   n_pre = n;
   m_pre = m;
   n_post = n;
@@ -328,7 +331,10 @@ void Scale::apply(Model& model) {
 
 void Scale::undo(PrePostProcessPoint& point, const Model& model) const {
   point.assertConsistency(n_post, m_post);
-  if (scaled()) {
+  if (model.scaled()) {
+    const std::vector<double>& colscale = model.colscale_;
+    const std::vector<double>& rowscale = model.rowscale_;
+
     for (Int i = 0; i < n_post; ++i) {
       point.x[i] *= colscale[i];
       point.xl[i] *= colscale[i];
@@ -396,7 +402,7 @@ void Reformulate::apply(Model& model, Scale& S) {
       A.addVec(1, temp_ind.data(), temp_val.data());
 
       // set scaling to 1
-      if (S.scaled()) S.colscale.push_back(1.0);
+      if (model.scaled()) model.colscale_.push_back(1.0);
     }
   }
 
