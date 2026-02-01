@@ -603,4 +603,13 @@ void Iterate::residuals6x6(const NewtonDir& d) {
   }
 }
 
+void Iterate::assertConsistency(Int n, Int m) const {
+  assert(x.size() == n);
+  assert(xl.size() == n);
+  assert(xu.size() == n);
+  assert(y.size() == m);
+  assert(zl.size() == n);
+  assert(zu.size() == n);
+}
+
 }  // namespace hipo

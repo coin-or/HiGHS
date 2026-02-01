@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "LogHighs.h"
-#include "PrePostProcess.h"
+#include "PreProcess.h"
 #include "ipm/hipo/auxiliary/IntConfig.h"
 #include "ipm/ipx/lp_solver.h"
 #include "lp_data/HighsLp.h"
@@ -57,9 +57,7 @@ class Model {
 
   bool ready_ = false;
 
-  PrePostProcess prePostProcess;
-
-  // information about postprocessing
+  Preprocessor preprocessor_;
 
   // norms of rows and cols of A
   std::vector<double> one_norm_cols_, one_norm_rows_, inf_norm_cols_,
@@ -122,10 +120,10 @@ class Model {
   Int loadIntoIpx(ipx::LpSolver& lps) const;
 
   // classes for preprocessing
-  friend class RemoveEmptyRows;
-  friend class RemoveFixedVars;
-  friend class Scale;
-  friend class Reformulate;
+  friend class PreprocessEmptyRows;
+  friend class PreprocessFixedVars;
+  friend class PreprocessScaling;
+  friend class PreprocessFormulation;
 };
 
 }  // namespace hipo

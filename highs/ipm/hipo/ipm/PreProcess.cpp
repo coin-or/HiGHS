@@ -1,4 +1,4 @@
-#include "PrePostProcess.h"
+#include "PreProcess.h"
 
 #include "CurtisReidScaling.h"
 #include "Iterate.h"
@@ -7,7 +7,7 @@
 
 namespace hipo {
 
-void PrePostProcessPoint::assertConsistency(Int n, Int m) const {
+void PreprocessorPoint::assertConsistency(Int n, Int m) const {
   assert(x.size() == n);
   assert(xl.size() == n);
   assert(xu.size() == n);
@@ -17,7 +17,7 @@ void PrePostProcessPoint::assertConsistency(Int n, Int m) const {
   assert(zu.size() == n);
 }
 
-void RemoveEmptyRows::apply(Model& model) {
+void PreprocessEmptyRows::apply(Model& model) {
   Int& n = model.n_;
   Int& m = model.m_;
   HighsSparseMatrix& A = model.A_;
@@ -78,7 +78,8 @@ void RemoveEmptyRows::apply(Model& model) {
   m_post = m;
 }
 
-void RemoveEmptyRows::undo(PrePostProcessPoint& point) const {
+void PreprocessEmptyRows::undo(PreprocessorPoint& point, const Model& model,
+                               const Iterate& it) const {
   point.assertConsistency(n_post, m_post);
   if (empty_rows > 0) {
     // Add Lagrange multiplier for empty rows that were removed
@@ -106,7 +107,7 @@ void RemoveEmptyRows::undo(PrePostProcessPoint& point) const {
   point.assertConsistency(n_pre, m_pre);
 }
 
-void RemoveFixedVars::apply(Model& model) {
+void PreprocessFixedVars::apply(Model& model) {
   Int& n = model.n_;
   Int& m = model.m_;
   HighsSparseMatrix& A = model.A_;
@@ -125,6 +126,9 @@ void RemoveFixedVars::apply(Model& model) {
   for (Int i = 0; i < n; ++i)
     if (lower[i] == upper[i]) ++fixed_vars_;
 
+  // cannot remove all variables
+  if (fixed_vars_ == n) fixed_vars_ = 0;
+
   if (fixed_vars_ > 0) {
     fixed_at_.assign(n, kHighsInf);
     std::vector<Int> index_to_remove{};
@@ -134,7 +138,8 @@ void RemoveFixedVars::apply(Model& model) {
         index_to_remove.push_back(j);
         const double xcol = fixed_at_[j];
 
-        offset += c[j] * xcol + 0.5 * Q.diag(j) * xcol * xcol;
+        offset += c[j] * xcol;
+        if (model.qp()) offset += 0.5 * Q.diag(j) * xcol * xcol;
 
         for (Int el = A.start_[j]; el < A.start_[j + 1]; ++el) {
           const Int row = A.index_[el];
@@ -142,17 +147,19 @@ void RemoveFixedVars::apply(Model& model) {
           b[row] -= val * xcol;
         }
 
-        for (Int colQ = 0; colQ < j; ++colQ) {
-          for (Int el = Q.start_[colQ]; el < Q.start_[colQ + 1]; ++el) {
-            const Int rowQ = Q.index_[el];
-            if (rowQ == j) {
-              c[colQ] += Q.value_[el] * xcol;
+        if (model.qp()) {
+          for (Int colQ = 0; colQ < j; ++colQ) {
+            for (Int el = Q.start_[colQ]; el < Q.start_[colQ + 1]; ++el) {
+              const Int rowQ = Q.index_[el];
+              if (rowQ == j) {
+                c[colQ] += Q.value_[el] * xcol;
+              }
             }
           }
-        }
-        for (Int el = Q.start_[j]; el < Q.start_[j + 1]; ++el) {
-          const Int rowQ = Q.index_[el];
-          c[rowQ] += Q.value_[el] * xcol;
+          for (Int el = Q.start_[j]; el < Q.start_[j + 1]; ++el) {
+            const Int rowQ = Q.index_[el];
+            c[rowQ] += Q.value_[el] * xcol;
+          }
         }
       }
     }
@@ -160,7 +167,7 @@ void RemoveFixedVars::apply(Model& model) {
     HighsIndexCollection index_collection;
     create(index_collection, index_to_remove.size(), index_to_remove.data(), n);
     A.deleteCols(index_collection);
-    Q.deleteCols(index_collection);
+    if (model.qp()) Q.deleteCols(index_collection);
 
     Int next = 0;
     Int copy_to = 0;
@@ -178,7 +185,7 @@ void RemoveFixedVars::apply(Model& model) {
 
     n -= fixed_vars_;
     assert(A.num_col_ == n);
-    assert(Q.dim_ == n);
+    assert(!model.qp() || Q.dim_ == n);
     c.resize(n);
     lower.resize(n);
     upper.resize(n);
@@ -188,7 +195,8 @@ void RemoveFixedVars::apply(Model& model) {
   m_post = m;
 }
 
-void RemoveFixedVars::undo(PrePostProcessPoint& point) const {
+void PreprocessFixedVars::undo(PreprocessorPoint& point, const Model& model,
+                               const Iterate& it) const {
   point.assertConsistency(n_post, m_post);
 
   if (fixed_vars_ > 0) {
@@ -229,7 +237,7 @@ void RemoveFixedVars::undo(PrePostProcessPoint& point) const {
   point.assertConsistency(n_pre, m_pre);
 }
 
-void Scale::apply(Model& model) {
+void PreprocessScaling::apply(Model& model) {
   // Apply Curtis-Reid scaling and scale the problem accordingly
 
   Int& n = model.n_;
@@ -320,16 +328,19 @@ void Scale::apply(Model& model) {
     }
   }
 
-  for (Int col = 0; col < Q.dim_; ++col) {
-    for (Int el = Q.start_[col]; el < Q.start_[col + 1]; ++el) {
-      Int row = Q.index_[el];
-      Q.value_[el] *= colscale[row];
-      Q.value_[el] *= colscale[col];
+  if (model.qp()) {
+    for (Int col = 0; col < Q.dim_; ++col) {
+      for (Int el = Q.start_[col]; el < Q.start_[col + 1]; ++el) {
+        Int row = Q.index_[el];
+        Q.value_[el] *= colscale[row];
+        Q.value_[el] *= colscale[col];
+      }
     }
   }
 }
 
-void Scale::undo(PrePostProcessPoint& point, const Model& model) const {
+void PreprocessScaling::undo(PreprocessorPoint& point, const Model& model,
+                             const Iterate& it) const {
   point.assertConsistency(n_post, m_post);
   if (model.scaled()) {
     const std::vector<double>& colscale = model.colscale_;
@@ -362,7 +373,7 @@ void Scale::undo(PrePostProcessPoint& point, const Model& model) const {
   point.assertConsistency(n_pre, m_pre);
 }
 
-void Reformulate::apply(Model& model, Scale& S) {
+void PreprocessFormulation::apply(Model& model) {
   Int& n = model.n_;
   Int& m = model.m_;
   HighsSparseMatrix& A = model.A_;
@@ -412,8 +423,10 @@ void Reformulate::apply(Model& model, Scale& S) {
   m_post = m;
 }
 
-void Reformulate::undo(PrePostProcessPoint& point, const Model& model,
-                       const Iterate& it) const {
+void PreprocessFormulation::undo(PreprocessorPoint& point, const Model& model,
+                                 const Iterate& it) const {
+  it.assertConsistency(n_post, m_post);
+
   // Copy x, xl, xu, zl, zu without slacks
   point.x = std::vector<double>(it.x.begin(), it.x.begin() + n_pre);
   point.xl = std::vector<double>(it.xl.begin(), it.xl.begin() + n_pre);
@@ -475,38 +488,24 @@ void Reformulate::undo(PrePostProcessPoint& point, const Model& model,
   point.assertConsistency(n_pre, m_pre);
 }
 
-void PrePostProcess::apply(Model& model) {
-  RER.apply(model);
-  stack.push(typeRemoveEmptyRows);
+#define applyAction(T)                                  \
+  stack.push(std::unique_ptr<PreprocessAction>(new T)); \
+  stack.top()->apply(model);
 
-  RFV.apply(model);
-  stack.push(typeRemoveFixedVars);
+void Preprocessor::apply(Model& model) {
+  // Remove fixed variables before removing empty rows, because removing columns
+  // may create empty rows
 
-  S.apply(model);
-  stack.push(typeScale);
-
-  Ref.apply(model, S);
-  stack.push(typeReformulate);
+  applyAction(PreprocessFixedVars);
+  applyAction(PreprocessEmptyRows);
+  applyAction(PreprocessScaling);
+  applyAction(PreprocessFormulation);
 }
-void PrePostProcess::undo(PrePostProcessPoint& point, const Model& model,
-                          const Iterate& it) const {
+void Preprocessor::undo(PreprocessorPoint& point, const Model& model,
+                        const Iterate& it) const {
   while (!stack.empty()) {
-    Type type = stack.top();
+    stack.top()->undo(point, model, it);
     stack.pop();
-    switch (type) {
-      case typeRemoveEmptyRows:
-        RER.undo(point);
-        break;
-      case typeRemoveFixedVars:
-        RFV.undo(point);
-        break;
-      case typeScale:
-        S.undo(point, model);
-        break;
-      case typeReformulate:
-        Ref.undo(point, model, it);
-        break;
-    }
   }
 }
 }  // namespace hipo

@@ -81,14 +81,14 @@ Int Model::checkData() const {
   return 0;
 }
 
-void Model::preprocess() { prePostProcess.apply(*this); }
+void Model::preprocess() { preprocessor_.apply(*this); }
 
 void Model::postprocess(std::vector<double>& x, std::vector<double>& xl,
                         std::vector<double>& xu, std::vector<double>& slack,
                         std::vector<double>& y, std::vector<double>& zl,
                         std::vector<double>& zu, const Iterate& it) const {
-  PrePostProcessPoint point{x, xl, xu, slack, y, zl, zu};
-  prePostProcess.undo(point, *this, it);
+  PreprocessorPoint point{x, xl, xu, slack, y, zl, zu};
+  preprocessor_.undo(point, *this, it);
 }
 
 void Model::computeNorms() {

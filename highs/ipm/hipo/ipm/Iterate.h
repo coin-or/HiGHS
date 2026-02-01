@@ -158,6 +158,8 @@ struct Iterate {
   void residuals6x6(const NewtonDir& d);
 
   void getReg(LinearSolver& LS, OptionNla opt);
+
+  void assertConsistency(Int n,Int m)const;
 };
 
 }  // namespace hipo
