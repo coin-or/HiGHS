@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <memory>
+#include <sstream>
 #include <stack>
 #include <vector>
 
@@ -30,6 +31,7 @@ struct PreprocessAction {
   virtual void apply(Model& model) = 0;
   virtual void undo(PreprocessorPoint& point, const Model& model,
                     const Iterate& it) const = 0;
+  virtual void print(std::stringstream& stream) const = 0;
 };
 
 struct PreprocessEmptyRows : public PreprocessAction {
@@ -40,25 +42,29 @@ struct PreprocessEmptyRows : public PreprocessAction {
   void apply(Model& model) override;
   void undo(PreprocessorPoint& point, const Model& model,
             const Iterate& it) const override;
+  void print(std::stringstream& stream) const override;
 };
 
 struct PreprocessFixedVars : public PreprocessAction {
   Int n_pre, m_pre, n_post, m_post;
-  Int fixed_vars_{};
-  std::vector<double> fixed_at_;
+  Int fixed_vars{};
+  std::vector<double> fixed_at;
 
   void apply(Model& model) override;
   void undo(PreprocessorPoint& point, const Model& model,
             const Iterate& it) const override;
+  void print(std::stringstream& stream) const override;
 };
 
 struct PreprocessScaling : public PreprocessAction {
   Int n_pre, m_pre, n_post, m_post;
   Int CG_iter_scaling;
+  bool scaled = false;
 
   void apply(Model& model) override;
   void undo(PreprocessorPoint& point, const Model& model,
             const Iterate& it) const override;
+  void print(std::stringstream& stream) const override;
 };
 
 struct PreprocessFormulation : public PreprocessAction {
@@ -67,14 +73,17 @@ struct PreprocessFormulation : public PreprocessAction {
   void apply(Model& model) override;
   void undo(PreprocessorPoint& point, const Model& model,
             const Iterate& it) const override;
+  void print(std::stringstream& stream) const override {}
 };
 
 struct Preprocessor {
   mutable std::stack<std::unique_ptr<PreprocessAction>> stack;
+  std::stringstream log_stream;
 
   void apply(Model& model);
   void undo(PreprocessorPoint& point, const Model& model,
             const Iterate& it) const;
+  std::string print() const;
 };
 
 }  // namespace hipo

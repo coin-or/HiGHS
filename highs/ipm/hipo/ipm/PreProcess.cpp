@@ -107,6 +107,10 @@ void PreprocessEmptyRows::undo(PreprocessorPoint& point, const Model& model,
   point.assertConsistency(n_pre, m_pre);
 }
 
+void PreprocessEmptyRows::print(std::stringstream& stream) const {
+  if (empty_rows > 0) stream << "Removed " << empty_rows << " empty rows\n";
+}
+
 void PreprocessFixedVars::apply(Model& model) {
   Int& n = model.n_;
   Int& m = model.m_;
@@ -122,21 +126,21 @@ void PreprocessFixedVars::apply(Model& model) {
   m_pre = m;
 
   // See "Preprocessing for quadratic programming", Gould, Toint, Math Program
-  fixed_vars_ = 0;
+  fixed_vars = 0;
   for (Int i = 0; i < n; ++i)
-    if (lower[i] == upper[i]) ++fixed_vars_;
+    if (lower[i] == upper[i]) ++fixed_vars;
 
   // cannot remove all variables
-  if (fixed_vars_ == n) fixed_vars_ = 0;
+  if (fixed_vars == n) fixed_vars = 0;
 
-  if (fixed_vars_ > 0) {
-    fixed_at_.assign(n, kHighsInf);
+  if (fixed_vars > 0) {
+    fixed_at.assign(n, kHighsInf);
     std::vector<Int> index_to_remove{};
     for (Int j = 0; j < n; ++j) {
       if (lower[j] == upper[j]) {
-        fixed_at_[j] = lower[j];
+        fixed_at[j] = lower[j];
         index_to_remove.push_back(j);
-        const double xcol = fixed_at_[j];
+        const double xcol = fixed_at[j];
 
         offset += c[j] * xcol;
         if (model.qp()) offset += 0.5 * Q.diag(j) * xcol * xcol;
@@ -183,7 +187,7 @@ void PreprocessFixedVars::apply(Model& model) {
       }
     }
 
-    n -= fixed_vars_;
+    n -= fixed_vars;
     assert(A.num_col_ == n);
     assert(!model.qp() || Q.dim_ == n);
     c.resize(n);
@@ -199,7 +203,7 @@ void PreprocessFixedVars::undo(PreprocessorPoint& point, const Model& model,
                                const Iterate& it) const {
   point.assertConsistency(n_post, m_post);
 
-  if (fixed_vars_ > 0) {
+  if (fixed_vars > 0) {
     // Add primal and dual variables for fixed variables
 
     std::vector<double> new_x(n_pre, 0.0);
@@ -210,12 +214,12 @@ void PreprocessFixedVars::undo(PreprocessorPoint& point, const Model& model,
 
     Int pos{};
     for (Int i = 0; i < n_pre; ++i) {
-      if (std::isfinite(fixed_at_[i])) {
-        new_x[i] = fixed_at_[i];
+      if (std::isfinite(fixed_at[i])) {
+        new_x[i] = fixed_at[i];
         new_xl[i] = 0.0;
         new_xu[i] = 0.0;
-        new_zl[i] = kHighsInf;
-        new_zu[i] = kHighsInf;
+        new_zl[i] = 0.0;  // to do
+        new_zu[i] = 0.0;  // to do
 
       } else {
         new_x[i] = point.x[pos];
@@ -235,6 +239,11 @@ void PreprocessFixedVars::undo(PreprocessorPoint& point, const Model& model,
   }
 
   point.assertConsistency(n_pre, m_pre);
+}
+
+void PreprocessFixedVars::print(std::stringstream& stream) const {
+  if (fixed_vars > 0)
+    stream << "Removed " << fixed_vars << " fixed variables\n";
 }
 
 void PreprocessScaling::apply(Model& model) {
@@ -302,6 +311,8 @@ void PreprocessScaling::apply(Model& model) {
     rowscale.clear();
     return;
   }
+
+  scaled = true;
 
   // *********************************************************************
   // Apply scaling
@@ -371,6 +382,11 @@ void PreprocessScaling::undo(PreprocessorPoint& point, const Model& model,
     }
   }
   point.assertConsistency(n_pre, m_pre);
+}
+
+void PreprocessScaling::print(std::stringstream& stream) const {
+  if (scaled)
+    stream << "Scaling required " << CG_iter_scaling << " CG iterations\n";
 }
 
 void PreprocessFormulation::apply(Model& model) {
@@ -490,7 +506,8 @@ void PreprocessFormulation::undo(PreprocessorPoint& point, const Model& model,
 
 #define applyAction(T)                                  \
   stack.push(std::unique_ptr<PreprocessAction>(new T)); \
-  stack.top()->apply(model);
+  stack.top()->apply(model);                            \
+  stack.top()->print(log_stream);
 
 void Preprocessor::apply(Model& model) {
   // Remove fixed variables before removing empty rows, because removing columns
@@ -508,4 +525,7 @@ void Preprocessor::undo(PreprocessorPoint& point, const Model& model,
     stack.pop();
   }
 }
+
+std::string Preprocessor::print() const { return log_stream.str(); }
+
 }  // namespace hipo

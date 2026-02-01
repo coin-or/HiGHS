@@ -295,6 +295,7 @@ void Model::print(const LogHighs& log) const {
   }
 
   log.print(log_stream);
+  log.printDevInfo(preprocessor_.print().c_str());
 }
 
 void Model::denseColumns() {
