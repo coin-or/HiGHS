@@ -569,7 +569,9 @@ void HighsDomain::CutpoolPropagation::updateActivityLbChange(
           activitycuts_[row] += computeDelta(val, oldbound, newbound,
                                              -kHighsInf, activitycutsinf_[row]);
 
-          if (domain->infeasible_reason.index == row) return false;
+          if (domain->infeasible_reason.index == row &&
+              domain->infeasible_reason.type == cutpoolindex)
+            return false;
 
           return true;
         });
@@ -635,7 +637,9 @@ void HighsDomain::CutpoolPropagation::updateActivityUbChange(
           activitycuts_[row] += computeDelta(val, oldbound, newbound, kHighsInf,
                                              activitycutsinf_[row]);
 
-          if (domain->infeasible_reason.index == row) return false;
+          if (domain->infeasible_reason.index == row &&
+              domain->infeasible_reason.type == cutpoolindex)
+            return false;
 
           return true;
         });
