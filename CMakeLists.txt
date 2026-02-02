@@ -562,7 +562,7 @@ if(ZLIB AND NOT TARGET ZLIB::ZLIB)
   find_package(ZLIB 1.2.3)
 endif()
 
-install(FILES README.md LICENSE.txt DESTINATION .)
+install(FILES README.md LICENSE.txt THIRD_PARTY_NOTICES.md DESTINATION .)
 
 # Set default generator based on platform
 if(WIN32)
@@ -878,6 +878,10 @@ else(FAST_BUILD)
   endif()
 
 endif()
+
+# Prevent nested directory structure in the archive
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
+set(CPACK_COMPONENT_INCLUDE_TOPLEVEL_DIRECTORY OFF)
 
 # Detect system information
 if(UNIX AND NOT APPLE)
