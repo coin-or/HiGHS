@@ -1124,8 +1124,8 @@ void HighsDomain::ObjectivePropagation::propagate() {
     }
   } else {
     HighsInt numPartitions = objFunc->getNumCliquePartitions();
-    double currLb = double(objectiveLower);
     while (true) {
+      HighsInt numBoundChanges = 0;
       for (HighsInt i = 0; i < numPartitions; ++i) {
         ObjectiveContributionTree contributionTree(this, i);
         HighsInt worst = contributionTree.first();
@@ -1142,12 +1142,14 @@ void HighsDomain::ObjectivePropagation::propagate() {
           HighsInt col = objectiveLowerContributions[worst].col;
           if (cost[col] > 0) {
             if (domain->col_upper_[col] > 0.0) {
+              numBoundChanges++;
               domain->changeBound(HighsBoundType::kUpper, col, 0.0,
                                   Reason::objective());
               if (domain->infeasible_) break;
             }
           } else {
             if (domain->col_lower_[col] < 1.0) {
+              numBoundChanges++;
               domain->changeBound(HighsBoundType::kLower, col, 1.0,
                                   Reason::objective());
               if (domain->infeasible_) break;
@@ -1171,11 +1173,13 @@ void HighsDomain::ObjectivePropagation::propagate() {
               HighsInt col = objectiveLowerContributions[best].col;
               if (cost[col] > 0) {
                 assert(domain->col_lower_[col] < 1.0);
+                numBoundChanges++;
                 domain->changeBound(HighsBoundType::kLower, col, 1.0,
                                     Reason::objective());
                 if (domain->infeasible_) break;
               } else {
                 assert(domain->col_upper_[col] > 0.0);
+                numBoundChanges++;
                 domain->changeBound(HighsBoundType::kUpper, col, 0.0,
                                     Reason::objective());
                 if (domain->infeasible_) break;
@@ -1207,6 +1211,7 @@ void HighsDomain::ObjectivePropagation::propagate() {
 
           double bound = domain->adjustedUb(col, boundVal, accept);
           if (accept) {
+            numBoundChanges++;
             domain->changeBound(HighsBoundType::kUpper, col, bound,
                                 Reason::objective());
             if (domain->infeasible_) break;
@@ -1221,6 +1226,7 @@ void HighsDomain::ObjectivePropagation::propagate() {
 
           double bound = domain->adjustedLb(col, boundVal, accept);
           if (accept) {
+            numBoundChanges++;
             domain->changeBound(HighsBoundType::kLower, col, bound,
                                 Reason::objective());
             if (domain->infeasible_) break;
@@ -1229,9 +1235,7 @@ void HighsDomain::ObjectivePropagation::propagate() {
       }
       if (domain->infeasible_) break;
 
-      double newLb = double(objectiveLower);
-      if (newLb == currLb) break;
-      currLb = newLb;
+      if (numBoundChanges == 0) break;
       capacity = upperLimit - objectiveLower;
     }
   }
