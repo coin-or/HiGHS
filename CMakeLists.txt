@@ -879,6 +879,10 @@ else(FAST_BUILD)
 
 endif()
 
+# Prevent nested directory structure in the archive
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
+set(CPACK_COMPONENT_INCLUDE_TOPLEVEL_DIRECTORY OFF)
+
 # Detect system information
 if(UNIX AND NOT APPLE)
   set(OS_NAME "linux")
