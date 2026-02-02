@@ -142,6 +142,9 @@ void PreprocessFixedVars::apply(Model& model) {
         index_to_remove.push_back(j);
         const double xcol = fixed_at[j];
 
+        FixedVarsData& dataj = data[j];
+        dataj.c = c[j];
+
         offset += c[j] * xcol;
         if (model.qp()) offset += 0.5 * Q.diag(j) * xcol * xcol;
 
@@ -149,6 +152,9 @@ void PreprocessFixedVars::apply(Model& model) {
           const Int row = A.index_[el];
           const double val = A.value_[el];
           b[row] -= val * xcol;
+
+          dataj.indA.push_back(row);
+          dataj.valA.push_back(val);
         }
 
         if (model.qp()) {
@@ -157,12 +163,18 @@ void PreprocessFixedVars::apply(Model& model) {
               const Int rowQ = Q.index_[el];
               if (rowQ == j) {
                 c[colQ] += Q.value_[el] * xcol;
+
+                dataj.indQ.push_back(colQ);
+                dataj.valQ.push_back(Q.value_[el]);
               }
             }
           }
           for (Int el = Q.start_[j]; el < Q.start_[j + 1]; ++el) {
             const Int rowQ = Q.index_[el];
             c[rowQ] += Q.value_[el] * xcol;
+
+            dataj.indQ.push_back(rowQ);
+            dataj.valQ.push_back(Q.value_[el]);
           }
         }
       }
@@ -213,21 +225,48 @@ void PreprocessFixedVars::undo(PreprocessorPoint& point, const Model& model,
     std::vector<double> new_zu(n_pre, 0.0);
 
     Int pos{};
-    for (Int i = 0; i < n_pre; ++i) {
-      if (std::isfinite(fixed_at[i])) {
-        new_x[i] = fixed_at[i];
-        new_xl[i] = 0.0;
-        new_xu[i] = 0.0;
-        new_zl[i] = 0.0;  // to do
-        new_zu[i] = 0.0;  // to do
-
+    for (Int j = 0; j < n_pre; ++j) {
+      if (std::isfinite(fixed_at[j])) {
+        new_x[j] = fixed_at[j];
+        new_xl[j] = 0.0;
+        new_xu[j] = 0.0;
       } else {
-        new_x[i] = point.x[pos];
-        new_xl[i] = point.xl[pos];
-        new_xu[i] = point.xu[pos];
-        new_zl[i] = point.zl[pos];
-        new_zu[i] = point.zu[pos];
+        new_x[j] = point.x[pos];
+        new_xl[j] = point.xl[pos];
+        new_xu[j] = point.xu[pos];
+        new_zl[j] = point.zl[pos];
+        new_zu[j] = point.zu[pos];
         ++pos;
+      }
+    }
+
+    for (Int j = 0; j < n_pre; ++j) {
+      if (std::isfinite(fixed_at[j])) {
+        // compute dual variables so that they are dual feasible
+        // z = c - A^T * y + Q * x
+        // need to do this after all x have been computed, due to Q*x term
+        const auto& datai = data.at(j);
+        double z = datai.c;
+        for (Int i = 0; i < datai.indA.size(); ++i) {
+          const Int row = datai.indA[i];
+          const double val = datai.valA[i];
+          z -= val * point.y[row];
+        }
+        if (model.qp()) {
+          for (Int i = 0; i < datai.indQ.size(); ++i) {
+            const Int row = datai.indQ[i];
+            const double val = datai.valQ[i];
+            z += val * new_x[row];
+          }
+        }
+
+        if (z >= 0.0) {
+          new_zl[j] = z;
+          new_zu[j] = 0.0;
+        } else {
+          new_zl[j] = 0.0;
+          new_zu[j] = -z;
+        }
       }
     }
 

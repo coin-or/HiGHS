@@ -2,6 +2,7 @@
 #define HIPO_PRE_POST_PROCESS
 
 #include <cassert>
+#include <map>
 #include <memory>
 #include <sstream>
 #include <stack>
@@ -49,6 +50,14 @@ struct PreprocessFixedVars : public PreprocessAction {
   Int n_pre, m_pre, n_post, m_post;
   Int fixed_vars{};
   std::vector<double> fixed_at;
+
+  // information about the columns that get removed
+  struct FixedVarsData {
+    double c;
+    std::vector<Int> indA, indQ;
+    std::vector<double> valA, valQ;
+  };
+  std::map<Int, FixedVarsData> data;
 
   void apply(Model& model) override;
   void undo(PreprocessorPoint& point, const Model& model,
