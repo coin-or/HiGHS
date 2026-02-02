@@ -825,8 +825,6 @@ HighsStatus HighsIis::compute(const HighsLp& lp, const HighsOptions& options,
   return HighsStatus::kOk;
 }
 
-bool indexStatusOkReturn(const bool return_value) { return return_value; }
-
 bool HighsIis::indexStatusOk(const HighsLp& lp) const {
   HighsInt num_col = lp.num_col_;
   HighsInt num_row = lp.num_row_;
@@ -887,8 +885,6 @@ bool HighsIis::indexStatusOk(const HighsLp& lp) const {
   }
   return indexStatusOkReturn(true);
 }
-
-bool lpDataOkReturn(const bool return_value) { return return_value; }
 
 bool HighsIis::lpDataOk(const HighsLp& lp, const HighsOptions& options) const {
   const HighsLp& iis_lp = this->model_.lp_;
@@ -1046,8 +1042,6 @@ bool HighsIis::lpDataOk(const HighsLp& lp, const HighsOptions& options) const {
   }
   return lpDataOkReturn(true);
 }
-
-bool lpOkReturn(const bool return_value) { return return_value; }
 
 bool HighsIis::lpOk(const HighsOptions& options) const {
   // Check that the IIS LP is OK (infeasible and optimal if
