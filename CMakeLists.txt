@@ -562,7 +562,7 @@ if(ZLIB AND NOT TARGET ZLIB::ZLIB)
   find_package(ZLIB 1.2.3)
 endif()
 
-install(FILES README.md LICENSE.txt DESTINATION .)
+install(FILES README.md LICENSE.txt THIRD_PARTY_NOTICES.md DESTINATION .)
 
 # Set default generator based on platform
 if(WIN32)

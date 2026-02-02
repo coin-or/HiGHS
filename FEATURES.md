@@ -11,3 +11,15 @@ The HiPO release exposed various issues flagged up via GitHub and email.
 Added singleton column stuffing to MIP presolve - see Gamrath et al., Progress in presolving for mixed integer programming. Math. Prog. Comp. 7, 367–398 (2015).
 
 ## Build changes
+
+Added Python 3.14 support.
+
+Added a CMake option BUILD_OPENBLAS for Windows and Linux, when HIPO is ON and BUILD_OPENBLAS is ON, OpenBLAS is downloaded and built as a subproject. The default value is OFF.
+
+Update rules_cuda for the bazel build.
+
+Filereader is now in highs/ rather than extern/.
+
+Metis, amd and rcm are now in extern/. Metis is no longer an external dependency.
+
+Binaries are now available. Standard HiGHS binaries are MIT-licensed and HiGHS with HiPO are Apache-licensed.
