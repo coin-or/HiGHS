@@ -67,7 +67,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
 endif()
 
 # MSVC
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+# set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 message(STATUS "Git hash: " ${GITHASH})
 # By default only build the C++ library.
@@ -217,9 +217,9 @@ if(BUILD_STATIC_EXE)
   endif()
 
   # Windows: link runtime statically
-  if(MSVC)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  endif()
+  # if(MSVC)
+  #   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  # endif()
 endif()
 
 
