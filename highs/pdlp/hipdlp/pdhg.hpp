@@ -83,7 +83,7 @@ class PDLPSolver {
                              const std::vector<double>& y,
                              const PrimalDualParams& params, int inner_iter);
   void computeAverageIterate(std::vector<double>& ax_avg,
-                             std::vector<double>& aty_avg);
+                             std::vector<double>& aty_avg);                         
   double PowerMethod();
 
   // --- Step update Methods (previously in Step) ---
@@ -124,6 +124,8 @@ class PDLPSolver {
       const std::vector<double>& x, const std::vector<double>& y,
       const std::vector<double>& lambda);
   void computeStepSizeRatio(PrimalDualParams& working_params);
+  void applyHalpernAveraging(std::vector<double>& x, std::vector<double>& y,
+                             std::vector<double>& ax, std::vector<double>& aty);
   void hipdlpTimerStart(const HighsInt hipdlp_clock);
   void hipdlpTimerStop(const HighsInt hipdlp_clock);
 
@@ -173,6 +175,11 @@ class PDLPSolver {
   RestartScheme restart_scheme_;
   std::vector<double> x_at_last_restart_;
   std::vector<double> y_at_last_restart_;
+
+  // --- Halpern Restart State ---
+  std::vector<double> x_anchor_;
+  std::vector<double> y_anchor_;
+  int halpern_iteration_ = 0;
 
   // --- Caching for Matrix-Vector Products ---
   std::vector<double> Ax_cache_;
@@ -250,6 +257,8 @@ class PDLPSolver {
   double* d_y_next_ = nullptr;
   double* d_x_at_last_restart_ = nullptr;
   double* d_y_at_last_restart_ = nullptr;
+  double* d_x_anchor_ = nullptr;
+  double* d_y_anchor_ = nullptr;
   double* d_x_temp_diff_norm_result_ = nullptr;
   double* d_y_temp_diff_norm_result_ =
       nullptr;                       // Temporary buffer for reduction result
@@ -293,6 +302,7 @@ class PDLPSolver {
   void computeStepSizeRatioGpu(PrimalDualParams& working_params);
   void updateAverageIteratesGpu(int inner_iter);
   void computeAverageIterateGpu();
+  void applyHalpernAveragingGpu();
   double computeMovementGpu(const double* d_x_new, const double* d_x_old,
                             const double* d_y_new, const double* d_y_old);
 

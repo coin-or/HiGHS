@@ -549,6 +549,24 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
                         cudaMemcpyDeviceToDevice));
   linalgGpuAx(d_x_current_, d_ax_current_);
 #endif
+
+// Initialize Halpern anchors
+  if (params_.use_halpern_restart) {
+    x_anchor_ = x_current_;
+    y_anchor_ = y_current_;
+    halpern_iteration_ = 0;
+#ifdef CUPDLP_GPU
+    CUDA_CHECK(cudaMemcpy(d_x_anchor_, d_x_current_,
+                          a_num_cols_ * sizeof(double),
+                          cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_y_anchor_, d_y_current_,
+                          a_num_rows_ * sizeof(double),
+                          cudaMemcpyDeviceToDevice));
+#endif
+    highsLogUser(params_.log_options_, HighsLogType::kInfo,
+                "Halpern restart enabled: anchors initialized\n");
+  }
+
   linalg::project_bounds(lp_, x_current_);
   linalg::project_bounds(lp_, x_sum_);
   linalg::project_bounds(lp_, x_avg_);
@@ -773,6 +791,16 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         CUDA_CHECK(cudaMemset(d_x_sum_, 0, a_num_cols_ * sizeof(double)));
         CUDA_CHECK(cudaMemset(d_y_sum_, 0, a_num_rows_ * sizeof(double)));
         sum_weights_gpu_ = 0.0;
+        // Reset Halpern anchors on GPU
+        if (params_.use_halpern_restart) {
+          CUDA_CHECK(cudaMemcpy(d_x_anchor_, d_x_current_,
+                                a_num_cols_ * sizeof(double),
+                                cudaMemcpyDeviceToDevice));
+          CUDA_CHECK(cudaMemcpy(d_y_anchor_, d_y_current_,
+                                a_num_rows_ * sizeof(double),
+                                cudaMemcpyDeviceToDevice));
+          halpern_iteration_ = 0;
+        }
 #else
         x_at_last_restart_ = x_current_;  // Current becomes the new last
         y_at_last_restart_ = y_current_;
@@ -780,6 +808,13 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
         std::fill(x_sum_.begin(), x_sum_.end(), 0.0);
         std::fill(y_sum_.begin(), y_sum_.end(), 0.0);
         sum_weights_ = 0.0;
+
+        // Reset Halpern anchors on CPU
+        if (params_.use_halpern_restart) {
+          x_anchor_ = x_current_;
+          y_anchor_ = y_current_;
+          halpern_iteration_ = 0;
+        }
 #endif
 
         restart_scheme_.last_restart_iter_ = iter;
@@ -873,6 +908,15 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
     Ax_cache_ = Ax_next_;
     ATy_cache_ = ATy_next_;
 
+    // --- 5b. Apply Halpern averaging if enabled ---
+    if (params_.use_halpern_restart) {
+#ifdef CUPDLP_GPU
+      applyHalpernAveragingGpu();
+#else
+      applyHalpernAveraging(x_next_, y_next_, Ax_next_, ATy_next_);
+#endif
+    }
+
 #if PDLP_PROFILE
     hipdlpTimerStop(kHipdlpClockIterateUpdate);
 #endif
@@ -948,6 +992,10 @@ void PDLPSolver::initialize() {
   x_avg_.resize(lp_.num_col_, 0.0);
   y_avg_.resize(lp_.num_row_, 0.0);
 
+  x_anchor_.resize(lp_.num_col_, 0.0);
+  y_anchor_.resize(lp_.num_row_, 0.0);
+  halpern_iteration_ = 0;
+
   Ax_cache_.resize(lp_.num_row_, 0.0);
   ATy_cache_.resize(lp_.num_col_, 0.0);
   Ax_next_.resize(lp_.num_row_, 0.0);
@@ -983,6 +1031,41 @@ void PDLPSolver::computeStepSizeRatio(PrimalDualParams& working_params) {
   working_params.eta = std::sqrt(stepsize_.primal_step * stepsize_.dual_step);
   working_params.omega = std::sqrt(stepsize_.beta);
   restart_scheme_.UpdateBeta(stepsize_.beta);
+}
+
+/* Halpern iteration: z_{k+1} = (1 - alpha_k) * z_0 + alpha_k * T(z_k)
+where z_0 is the anchor point and T is the PDHG operator
+alpha_k = k / (k + 2) gives O(1/k) convergence for the last iterate
+*/
+void PDLPSolver::applyHalpernAveraging(std::vector<double>& x,
+                                        std::vector<double>& y,
+                                        std::vector<double>& ax,
+                                        std::vector<double>& aty) {
+  halpern_iteration_ += 1;
+  double k = static_cast<double>(halpern_iteration_);
+  double alpha = k / (k + 2.0);
+  double one_minus_alpha = 1.0 - alpha;
+
+  for (size_t i = 0; i < x.size(); ++i) {
+    x[i] = one_minus_alpha * x_anchor_[i] + alpha * x[i];
+  }
+
+  for (size_t i = 0; i < y.size(); ++i) {
+    y[i] = one_minus_alpha * y_anchor_[i] + alpha * y[i];
+  }
+
+  linalg::project_bounds(lp_, x);
+  
+  for (HighsInt j = 0; j < lp_.num_row_; ++j) {
+    bool is_equality = is_equality_row_[j];
+    if (!is_equality) {
+      y[j] = std::max(0.0, y[j]);
+    }
+  }
+
+  linalg::Ax(lp_, x, ax);
+  linalg::ATy(lp_, y, aty);
+
 }
 
 void PDLPSolver::updateAverageIterates(const std::vector<double>& x,
@@ -2060,6 +2143,8 @@ void PDLPSolver::setupGpu() {
   CUDA_CHECK(cudaMalloc(&d_y_next_, a_num_rows_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_x_at_last_restart_, a_num_cols_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_y_at_last_restart_, a_num_rows_ * sizeof(double)));
+  CUDA_CHECK(cudaMalloc(&d_x_anchor_, a_num_cols_ * sizeof(double)))
+  CUDA_CHECK(cudaMalloc(&d_y_anchor_, a_num_rows_ * sizeof(double)));
   CUDA_CHECK(
       cudaMalloc(&d_x_temp_diff_norm_result_, a_num_cols_ * sizeof(double)));
   CUDA_CHECK(
@@ -2195,6 +2280,8 @@ void PDLPSolver::cleanupGpu() {
   CUDA_CHECK(cudaFree(d_is_equality_row_));
   CUDA_CHECK(cudaFree(d_x_at_last_restart_));
   CUDA_CHECK(cudaFree(d_y_at_last_restart_));
+  CUDA_CHECK(cudaFree(d_x_anchor_));
+  CUDA_CHECK(cudaFree(d_y_anchor_));
   CUDA_CHECK(cudaFree(d_x_temp_diff_norm_result_));
   CUDA_CHECK(cudaFree(d_y_temp_diff_norm_result_));
   CUDA_CHECK(cudaFree(d_x_current_));
