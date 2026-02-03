@@ -99,7 +99,7 @@ TEST_CASE("test-1966", "[highs_ipm]") {
   // Takehome: make sure HiGHS unit tests include what failed in unit
   // tests elsewhere!
   Highs highs;
-  //  highs.setOptionValue("output_flag", dev_run);
+  highs.setOptionValue("output_flag", dev_run);
   const HighsInfo& info = highs.getInfo();
   HighsLp lp;
   lp.sense_ = ObjSense::kMaximize;
