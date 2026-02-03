@@ -623,7 +623,7 @@ HighsStatus solveHipo(const HighsOptions& options, HighsTimer& timer,
     return HighsStatus::kError;
   }
 
-  // Failures should have been handled. Status should be stopper or solved.
+  // Failures should have been handled. Status should be stopped or solved.
   if (ipxStatusError(!hipo.solved() && !hipo.stopped(), options, "Hipo",
                      "status should be solved or stopped but value is",
                      solve_status))

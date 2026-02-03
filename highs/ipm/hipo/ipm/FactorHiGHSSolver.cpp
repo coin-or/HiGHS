@@ -94,7 +94,7 @@ Int FactorHiGHSSolver::buildASvalues(const std::vector<double>& scaling) {
 
   for (Int i = 0; i < nA_; ++i) {
     valAS_[ptrAS_[i]] = scaling.empty() ? -1.0 : -scaling[i];
-    if (model_.qp()) valAS_[ptrAS_[i]] -= model_.Q().diag(i);
+    if (model_.qp()) valAS_[ptrAS_[i]] -= model_.sense() * model_.Q().diag(i);
   }
 
   return kStatusOk;
@@ -211,7 +211,7 @@ Int FactorHiGHSSolver::buildNEvalues(const std::vector<double>& scaling) {
 
       double denom = scaling.empty() ? 1.0 : scaling[col];
       denom += regul_.primal;
-      if (model_.qp()) denom += model_.Q().diag(col);
+      if (model_.qp()) denom += model_.sense() * model_.Q().diag(col);
 
       const double mult = 1.0 / denom;
       const double row_value = mult * A_.value_[corr];
@@ -269,6 +269,7 @@ Int FactorHiGHSSolver::analyseNE(Symbolic& S, Int64 nz_limit) {
   // set to kStatusOverflow.
 
   if (model_.nonSeparableQp()) return kStatusErrorAnalyse;
+  if (model_.m() == 0) return kStatusErrorAnalyse;
 
   Clock clock;
   if (Int status = buildNEstructure(nz_limit)) return status;

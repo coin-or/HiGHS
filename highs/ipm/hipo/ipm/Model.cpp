@@ -13,6 +13,8 @@ Int Model::init(const HighsLp& lp, const HighsHessian& Q) {
                 A_.value_, b_, constraints_);
   Q_ = Q;
   if (qp()) completeHessian(n_, Q_);
+  sense_ = lp.sense_;
+
   if (checkData()) return kStatusBadModel;
 
   lp_orig_ = &lp;
