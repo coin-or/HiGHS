@@ -1928,7 +1928,8 @@ HighsStatus Highs::getIisInterface() {
   bool ray_option =
       // kIisStrategyFromRay & options.iis_strategy;
       false;
-  const bool lp_option = kIisStrategyFromLp & options_.iis_strategy;
+  // Use the LP strategy if any higher bits are set
+  const bool lp_option = options_.iis_strategy >= kIisStrategyFromLp;
   if (this->model_status_ == HighsModelStatus::kInfeasible && ray_option &&
       !ekk_instance_.status_.has_invert) {
     // Model is known to be infeasible, and a dual ray option is
