@@ -1008,6 +1008,7 @@ restart:
     // sync global domain changes and cut + conflict pools from parallel dives
     syncPools(search_indices);
     syncGlobalDomain(search_indices);
+    syncSolutions();
     mipdata_->domain.propagate();
     analysis_.mipTimerStop(kMipClockDomainPropgate);
 
