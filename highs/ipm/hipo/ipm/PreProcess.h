@@ -5,7 +5,6 @@
 #include <map>
 #include <memory>
 #include <sstream>
-#include <stack>
 #include <vector>
 
 #include "ipm/hipo/auxiliary/IntConfig.h"
@@ -86,13 +85,12 @@ struct PreprocessFormulation : public PreprocessAction {
 };
 
 struct Preprocessor {
-  mutable std::stack<std::unique_ptr<PreprocessAction>> stack;
-  std::stringstream log_stream;
+  std::vector<std::unique_ptr<PreprocessAction>> stack;
 
   void apply(Model& model);
   void undo(PreprocessorPoint& point, const Model& model,
             const Iterate& it) const;
-  std::string print() const;
+  void print(std::stringstream& log_stream) const;
 };
 
 }  // namespace hipo

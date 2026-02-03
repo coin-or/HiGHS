@@ -543,10 +543,9 @@ void PreprocessFormulation::undo(PreprocessorPoint& point, const Model& model,
   point.assertConsistency(n_pre, m_pre);
 }
 
-#define applyAction(T)                                  \
-  stack.push(std::unique_ptr<PreprocessAction>(new T)); \
-  stack.top()->apply(model);                            \
-  stack.top()->print(log_stream);
+#define applyAction(T)                                       \
+  stack.push_back(std::unique_ptr<PreprocessAction>(new T)); \
+  stack.back()->apply(model);
 
 void Preprocessor::apply(Model& model) {
   // Remove fixed variables before removing empty rows, because removing columns
@@ -559,12 +558,15 @@ void Preprocessor::apply(Model& model) {
 }
 void Preprocessor::undo(PreprocessorPoint& point, const Model& model,
                         const Iterate& it) const {
-  while (!stack.empty()) {
-    stack.top()->undo(point, model, it);
-    stack.pop();
+  for (auto iterator = stack.rbegin(); iterator != stack.rend(); ++iterator) {
+    (*iterator)->undo(point, model, it);
   }
 }
 
-std::string Preprocessor::print() const { return log_stream.str(); }
+void Preprocessor::print(std::stringstream& log_stream) const {
+  for (auto iterator = stack.begin(); iterator != stack.end(); ++iterator) {
+    (*iterator)->print(log_stream);
+  }
+}
 
 }  // namespace hipo
