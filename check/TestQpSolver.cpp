@@ -1148,6 +1148,7 @@ TEST_CASE("test-qp-terminations", "[qpsolver]") {
   REQUIRE(highs.getModelStatus() == HighsModelStatus::kSolveError);
   highs.setOptionValue("qp_nullspace_limit", 4000);
 
+#ifdef HIPO
   highs.setOptionValue("solver", kHipoString);
 
   highs.setOptionValue("ipm_iteration_limit", 1);
@@ -1160,6 +1161,7 @@ TEST_CASE("test-qp-terminations", "[qpsolver]") {
   REQUIRE(highs.run() == HighsStatus::kWarning);
   REQUIRE(highs.getModelStatus() == HighsModelStatus::kTimeLimit);
   highs.setOptionValue("time_limit", kHighsInf);
+#endif
 
   highs.resetGlobalScheduler(true);
 }
