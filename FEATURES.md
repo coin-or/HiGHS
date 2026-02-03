@@ -4,11 +4,9 @@ The HiPO release exposed various issues flagged up via GitHub and email.
 - Fix some overflows when computing statistics of analyse phase.
 - Free memory used for normal equations, if augmented system is preferred.
 - Fix bug in supernode amalgamation.
-- Printing of BLAS library moved to HiGHS header, so it is printed when using HiPO without logging.
-- Recommend to install Metis branch `521-ts` due to better ordering quality on many problems. Update workflows and documentation accordingly.
-- Add option `hipo_metis_no2hop` to control option `no2hop` of Metis and add warning if the fill-in is large.
+- Print the BLAS library used in the HiGHS header, so it is visible when using HiPO without logging.
 - Add the ability to use AMD and RCM rather than Metis
-- Add the facility to use 64-bit integers if necessary
+- Use 64-bit integers
 - Fixed the time limit
 
 Following PR [#2623](https://github.com/ERGO-Code/HiGHS/pull/2623),
@@ -49,7 +47,7 @@ refactored and is much more robust. Rather than have
 `HighsOption::iis_strategy` be one from an enum of "strategy
 scenarios" it is now a bit map
 
-- 0 => "light strategy", which is always performed when Highs::getIis is called.
+- 0 => "light strategy", which is always performed when `Highs::getIis` is called.
 - 1 => From dual ray, which is currently unavailable.
 - 2 => From the whole LP (solving an elasticity LP repeatedly (fixing positive elastic variables at zero) until no more elastic variables are positive, and using the fixed elastic variables to determine a set of infeasible rows, for which there is a corresponding set of columns with nonzeros in those rows that form an infeasibility set (IS).
 - 4 => Attempt to reduce the IS to an IIS.
