@@ -111,8 +111,8 @@ int main(int argc, char** argv) {
   highs.writeOptions("", true);
 
   // Lines to write out documentation of HighsOptions and HighsInfo
-  // highs.writeOptions("Options.md");
-  // highs.writeInfo("Info.md");
+   highs.writeOptions("Options.md");
+   //   highs.writeInfo("Info.md");
 
   // Load the model from model_file
   HighsStatus read_status = highs.readModel(cmd_options.model_file);
