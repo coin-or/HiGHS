@@ -2548,15 +2548,16 @@ HighsStatus Highs::elasticityFilter(const double global_lower_penalty,
       HighsInt iCol = col_of_ecol[eCol];
       if (lp.col_upper_[col_ecol_offset + eCol] == 0) {
         num_enforced_col_ecol++;
-        printf(
-            "Col e-col %2d (column %2d) corresponds to column %2d with %s "
-            "bound "
-            "%11.4g "
-            "and is enforced\n",
-            int(eCol), int(col_ecol_offset + eCol), int(iCol),
-            bound_of_col_of_ecol_is_lower[eCol] ? "lower" : "upper",
-            bound_of_col_of_ecol_is_lower[eCol] ? lp.col_lower_[iCol]
-                                                : lp.col_upper_[iCol]);
+        if (kIisDevReport)
+          printf(
+              "Col e-col %2d (column %2d) corresponds to column %2d with %s "
+              "bound "
+              "%11.4g "
+              "and is enforced\n",
+              int(eCol), int(col_ecol_offset + eCol), int(iCol),
+              bound_of_col_of_ecol_is_lower[eCol] ? "lower" : "upper",
+              bound_of_col_of_ecol_is_lower[eCol] ? lp.col_lower_[iCol]
+                                                  : lp.col_upper_[iCol]);
       }
     }
   }
