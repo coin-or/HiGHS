@@ -490,7 +490,8 @@ Int Iterate::finalResiduals(Info& info) const {
     // res4 = c - A^T * y - zl + zu + Q * x
     std::vector<double> res4(n);
     A.alphaProductPlusY(-1.0, y_local, res4, true);
-    if (model.qp()) model.QOrig()->alphaProductPlusY(1.0, x_local, res4);
+    if (model.qp())
+      model.QOrig()->alphaProductPlusY(model.sense(), x_local, res4);
     for (Int i = 0; i < n; ++i) {
       if (std::isfinite(lower[i])) res4[i] -= zl_local[i];
       if (std::isfinite(upper[i])) res4[i] += zu_local[i];
@@ -514,7 +515,8 @@ Int Iterate::finalResiduals(Info& info) const {
     info.d_res_rel = info.d_res_abs / (1.0 + infNorm(c));
 
     const double quad_term_local =
-        model.qp() ? model.QOrig()->objectiveValue(x_local) : 0.0;
+        model.qp() ? model.sense() * model.QOrig()->objectiveValue(x_local)
+                   : 0.0;
 
     double pobj = offset;
     pobj += dotProd(c, x_local);
