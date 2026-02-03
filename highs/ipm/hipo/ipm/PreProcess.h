@@ -81,7 +81,7 @@ struct PreprocessFormulation : public PreprocessAction {
   void apply(Model& model) override;
   void undo(PreprocessorPoint& point, const Model& model,
             const Iterate& it) const override;
-  void print(std::stringstream& stream) const override {}
+  void print(std::stringstream& stream) const override;
 };
 
 struct Preprocessor {

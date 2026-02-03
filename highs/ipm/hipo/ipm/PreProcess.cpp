@@ -543,6 +543,10 @@ void PreprocessFormulation::undo(PreprocessorPoint& point, const Model& model,
   point.assertConsistency(n_pre, m_pre);
 }
 
+void PreprocessFormulation::print(std::stringstream& stream) const {
+  stream << "Added " << n_post - n_pre << " slacks\n";
+}
+
 #define applyAction(T)                                       \
   stack.push_back(std::unique_ptr<PreprocessAction>(new T)); \
   stack.back()->apply(model);

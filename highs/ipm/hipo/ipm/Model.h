@@ -34,6 +34,7 @@ class Model {
   Int n_orig_{};
   Int m_orig_{};
   const HighsLp* lp_orig_ = nullptr;
+  const HighsHessian* Q_orig_ = nullptr;
   double offset_;
   ObjSense sense_ = ObjSense::kMinimize;
 
@@ -95,6 +96,8 @@ class Model {
   Int n() const { return n_; }
   Int n_orig() const { return n_orig_; }
   Int m_orig() const { return m_orig_; }
+  const HighsLp* lpOrig() const { return lp_orig_; }
+  const HighsHessian* QOrig() const { return Q_orig_; }
   bool qp() const { return !Q_.empty(); }
   bool nonSeparableQp() const { return qp() && !Q_.isDiagonal(); }
   double sense() const {return (double)sense_;}

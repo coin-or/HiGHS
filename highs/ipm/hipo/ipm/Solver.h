@@ -102,8 +102,6 @@ class Solver {
   Int getBasicSolution(std::vector<double>& x, std::vector<double>& slack,
                        std::vector<double>& y, std::vector<double>& z,
                        Int* cbasis, Int* vbasis) const;
-  void getSolution(std::vector<double>& x, std::vector<double>& slack,
-                   std::vector<double>& y, std::vector<double>& z) const;
   const Info& getInfo() const;
   void getOriginalDims(Int& num_row, Int& num_col) const;
 
@@ -137,12 +135,6 @@ class Solver {
   // If solution is precise and crossover is requested, run ipx.
   // ===================================================================================
   void refineWithIpx();
-
-  // ===================================================================================
-  // Run crossover with ipx directly from the last iterate, without refining it
-  // with ipx.
-  // ===================================================================================
-  void runCrossover();
 
   // ===================================================================================
   // Determine the maximum number of correctors to use, based on the relative

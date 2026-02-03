@@ -259,22 +259,6 @@ void Solver::refineWithIpx() {
   }
 }
 
-void Solver::runCrossover() {
-  // run crossover directly, without refining with ipx.
-  // not used for now.
-
-  prepareIpx();
-
-  std::vector<double> x, slack, y, z;
-  getSolution(x, slack, y, z);
-
-  ipx_lps_.CrossoverFromStartingPoint(x.data(), slack.data(), y.data(),
-                                      z.data());
-
-  info_.ipx_info = ipx_lps_.GetInfo();
-  info_.ipx_used = true;
-}
-
 bool Solver::solveNewtonSystem(NewtonDir& delta) {
   solve6x6(delta, it_->res);
   refine(delta);
@@ -1278,14 +1262,6 @@ Int Solver::getBasicSolution(std::vector<double>& x, std::vector<double>& slack,
   // interface to ipx getBasicSolution
   return ipx_lps_.GetBasicSolution(x.data(), slack.data(), y.data(), z.data(),
                                    cbasis, vbasis);
-}
-
-void Solver::getSolution(std::vector<double>& x, std::vector<double>& slack,
-                         std::vector<double>& y, std::vector<double>& z) const {
-  // prepare and return solution with format for crossover
-  // it_->extract(x, slack, y, z);
-  // model_.unscale(x, slack, y, z);
-  // model_.postprocess(slack, y);
 }
 
 void Solver::maxCorrectors() {

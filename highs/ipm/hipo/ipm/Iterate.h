@@ -150,7 +150,7 @@ struct Iterate {
   // Compute residuals after solution has been found, postprocessed and
   // unscaled.
   // ===================================================================================
-  void finalResiduals(Info& info) const;
+  Int finalResiduals(Info& info) const;
 
   // ===================================================================================
   // Compute residual of 6x6 linear system for iterative refinement.
@@ -159,7 +159,7 @@ struct Iterate {
 
   void getReg(LinearSolver& LS, OptionNla opt);
 
-  void assertConsistency(Int n,Int m)const;
+  void assertConsistency(Int n, Int m) const;
 };
 
 }  // namespace hipo

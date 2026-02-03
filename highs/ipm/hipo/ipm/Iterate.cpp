@@ -1,7 +1,9 @@
 #include "Iterate.h"
 
 #include "Parameters.h"
+#include "ipm/IpxWrapper.h"
 #include "ipm/hipo/factorhighs/FactorHiGHSSettings.h"
+#include "model/HighsHessianUtils.h"
 
 namespace hipo {
 
@@ -436,84 +438,100 @@ double Iterate::infeasAfterDropping() const {
   return std::max(pinf_max, dinf_max);
 }
 
-void Iterate::finalResiduals(Info& info) const {
+Int Iterate::finalResiduals(Info& info) const {
   // If ipx has been used, the information is already available, otherwise,
   // compute it.
 
   if (!info.ipx_used) {
-    /*std::vector<double> x_local, xl_local, xu_local, y_local, zl_local,
+    std::vector<double> x_local, xl_local, xu_local, y_local, zl_local,
         zu_local, slack_local;
 
-    extract(x_local, xl_local, xu_local, slack_local, y_local, zl_local,
-            zu_local);
+    model.postprocess(x_local, xl_local, xu_local, slack_local, y_local,
+                      zl_local, zu_local, *this);
 
-    const Int m = model.m();
-    const Int n_pre = model.n_pre();
+    Int m, n;
+    HighsSparseMatrix A;
+    std::vector<double> b, c, lower, upper;
+    std::vector<char> constraints;
+    double offset;
 
-    // res1 = b - slack - A*x
-    std::vector<double> res1(m);
-    model.multAWithoutSlack(-1.0, x_local, res1);
-    for (Int i = 0; i < m; ++i) {
-      res1[i] = res1[i] - slack_local[i] + model.b()[i];
-      if (model.scaled()) res1[i] /= model.rowScale(i);
+    if (!model.lpOrig()) return kStatusError;
+    fillInIpxData(*model.lpOrig(), n, m, offset, c, lower, upper, A.start_,
+                  A.index_, A.value_, b, constraints);
+    A.num_col_ = n;
+    A.num_row_ = m;
+
+    if (model.qp()) {
+      if (!model.QOrig()) return kStatusError;
     }
 
+    assert(x_local.size() == c.size());
+    assert(y_local.size() == b.size());
+
+    // res1 = b - slack - A*x
+    std::vector<double> res1 = b;
+    vectorAdd(res1, slack_local, -1.0);
+    A.alphaProductPlusY(-1.0, x_local, res1);
+
     // res2 = lower - x + xl
-    std::vector<double> res2(n_pre);
-    for (Int i = 0; i < n_pre; ++i) {
-      if (model.hasLb(i)) res2[i] = model.lb(i) - x_local[i] + xl_local[i];
-      if (model.scaled()) res2[i] *= model.colScale(i);
+    std::vector<double> res2(n);
+    for (Int i = 0; i < n; ++i) {
+      if (std::isfinite(lower[i]))
+        res2[i] = lower[i] - x_local[i] + xl_local[i];
     }
 
     // res3 = upper - x - xu
-    std::vector<double> res3(n_pre);
-    for (Int i = 0; i < n_pre; ++i) {
-      if (model.hasUb(i)) res3[i] = model.ub(i) - x_local[i] - xu_local[i];
-      if (model.scaled()) res3[i] *= model.colScale(i);
+    std::vector<double> res3(n);
+    for (Int i = 0; i < n; ++i) {
+      if (std::isfinite(upper[i]))
+        res3[i] = upper[i] - x_local[i] - xu_local[i];
     }
 
     // res4 = c - A^T * y - zl + zu + Q * x
-    std::vector<double> res4(n_pre);
-    model.multAWithoutSlack(-1.0, y_local, res4, true);
-    if (model.qp()) model.multQWithoutSlack(1.0, x_local, res4);
-    for (Int i = 0; i < n_pre; ++i) {
-      if (model.hasLb(i)) res4[i] -= zl_local[i];
-      if (model.hasUb(i)) res4[i] += zu_local[i];
-      res4[i] += model.c()[i];
-      if (model.scaled()) res4[i] /= model.colScale(i);
+    std::vector<double> res4(n);
+    A.alphaProductPlusY(-1.0, y_local, res4, true);
+    if (model.qp()) model.QOrig()->alphaProductPlusY(1.0, x_local, res4);
+    for (Int i = 0; i < n; ++i) {
+      if (std::isfinite(lower[i])) res4[i] -= zl_local[i];
+      if (std::isfinite(upper[i])) res4[i] += zu_local[i];
+      res4[i] += c[i];
+    }
+
+    double norm_rhs = infNorm(b);
+    for (Int i = 0; i < n; ++i) {
+      if (std::isfinite(lower[i]))
+        norm_rhs = std::max(norm_rhs, std::abs(lower[i]));
+      if (std::isfinite(upper[i]))
+        norm_rhs = std::max(norm_rhs, std::abs(upper[i]));
     }
 
     info.p_res_abs = infNorm(res1);
     info.p_res_abs = std::max(info.p_res_abs, infNorm(res2));
     info.p_res_abs = std::max(info.p_res_abs, infNorm(res3));
-    info.p_res_rel = info.p_res_abs / (1.0 + model.normUnscaledRhs());
+    info.p_res_rel = info.p_res_abs / (1.0 + norm_rhs);
 
     info.d_res_abs = infNorm(res4);
-    info.d_res_rel = info.d_res_abs / (1.0 + model.normUnscaledObj());
+    info.d_res_rel = info.d_res_abs / (1.0 + infNorm(c));
 
-    double quad_term_local = 0.0;
-    if (model.qp()) {
-      std::vector<double> Qx_local(n_pre);
-      model.multQWithoutSlack(0.5, x_local, Qx_local);
-      quad_term_local = dotProd(x_local, Qx_local);
-    }
+    const double quad_term_local =
+        model.qp() ? model.QOrig()->objectiveValue(x_local) : 0.0;
 
-    double pobj = model.offset();
-    for (Int i = 0; i < n_pre; ++i) pobj += model.c()[i] * x_local[i];
+    double pobj = offset;
+    pobj += dotProd(c, x_local);
     pobj += quad_term_local;
 
-    double dobj = model.offset();
-    dobj += dotProd(y_local, model.b());
-    for (Int i = 0; i < n_pre; ++i) {
-      if (model.hasLb(i)) dobj += model.lb(i) * zl_local[i];
-      if (model.hasUb(i)) dobj -= model.ub(i) * zu_local[i];
+    double dobj = offset;
+    dobj += dotProd(y_local, b);
+    for (Int i = 0; i < n; ++i) {
+      if (std::isfinite(lower[i])) dobj += lower[i] * zl_local[i];
+      if (std::isfinite(upper[i])) dobj -= upper[i] * zu_local[i];
     }
     dobj -= quad_term_local;
 
     info.p_obj = pobj;
     info.d_obj = dobj;
     info.pd_gap = std::abs(pobj - dobj) / (1.0 + 0.5 * std::abs(pobj + dobj));
-    */
+
   } else {
     info.p_res_abs = info.ipx_info.abs_presidual;
     info.p_res_rel = info.ipx_info.rel_presidual;
@@ -521,8 +539,10 @@ void Iterate::finalResiduals(Info& info) const {
     info.d_res_rel = info.ipx_info.rel_dresidual;
     info.p_obj = info.ipx_info.pobjval;
     info.d_obj = info.ipx_info.dobjval;
-    info.pd_gap = info.ipx_info.rel_objgap;
+    info.pd_gap = std::abs(info.ipx_info.rel_objgap);
   }
+
+  return kStatusOk;
 }
 
 void Iterate::getReg(LinearSolver& LS, OptionNla opt) {
