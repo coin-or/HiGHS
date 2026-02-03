@@ -492,9 +492,9 @@
 - Default: 1e-07
 
 ## [iis\_strategy](@id option-iis-strategy)
-- Strategy for IIS calculation: 0 => Light test; 4 => Prioritise columns; 8 => Find true IIS
+- Strategy for IIS calculation: 0 => Light test; 4 => Prioritise columns; 8 => Find true IIS; 16 => Find relaxation IIS for MIP
 - Type: integer
-- Range: {0, 15}
+- Range: {0, 31}
 - Default: 0
 
 ## blend\_multi\_objectives
