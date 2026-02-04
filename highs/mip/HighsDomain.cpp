@@ -1088,17 +1088,13 @@ void HighsDomain::ObjectivePropagation::propagate() {
     HighsInt numCol = objNonzeros.size();
     for (HighsInt i = objFunc->getNumBinariesInObjective(); i < numCol; ++i) {
       HighsInt col = objNonzeros[i];
-      if (cost[col] > 0) {
-        if (domain->col_lower_[col] > -kHighsInf) continue;
-        domain->checkChangeBound(HighsBoundType::kUpper, col,
-                                 capacity / cost[col], Reason::objective());
-        break;
-      } else {
-        if (domain->col_upper_[col] < kHighsInf) continue;
-        domain->checkChangeBound(HighsBoundType::kLower, col,
-                                 capacity / cost[col], Reason::objective());
-        break;
-      }
+      if ((cost[col] > 0 && domain->col_lower_[col] != -kHighsInf) ||
+          (cost[col] < 0 && domain->col_upper_[col] != kHighsInf))
+        continue;
+      domain->checkChangeBound(
+          cost[col] > 0 ? HighsBoundType::kUpper : HighsBoundType::kLower, col,
+          capacity / cost[col], Reason::objective());
+      break;
     }
   } else {
     HighsInt numPartitions = objFunc->getNumCliquePartitions();
