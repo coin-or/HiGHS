@@ -20,7 +20,7 @@ enum class Device { CPU, GPU };
 
 enum class ScalingMethod { NONE, RUIZ, POCK_CHAMBOLLE, L2_NORM, COMBINED };
 
-enum class RestartStrategy { NO_RESTART, FIXED_RESTART, ADAPTIVE_RESTART };
+enum class RestartStrategy { NO_RESTART, FIXED_RESTART, ADAPTIVE_RESTART, HALPERN_RESTART};
 
 enum class StepSizeStrategy { FIXED, ADAPTIVE, MALITSKY_POCK };
 
@@ -67,6 +67,7 @@ struct PrimalDualParams {
   int fixed_restart_interval;
 
   bool use_halpern_restart = false;
+  double halpern_gamma = 1.0; // 0: standard Halpern, 1: full reflection, in between: over relaxation
 
   // Scaling parameters
   bool use_ruiz_scaling = false;

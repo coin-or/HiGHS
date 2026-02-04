@@ -1041,17 +1041,23 @@ void PDLPSolver::applyHalpernAveraging(std::vector<double>& x,
                                         std::vector<double>& y,
                                         std::vector<double>& ax,
                                         std::vector<double>& aty) {
-  halpern_iteration_ += 1;
+  halpern_iteration_++;
+  const double gamma = params_.halpern_gamma;
+
   double k = static_cast<double>(halpern_iteration_);
-  double alpha = k / (k + 2.0);
-  double one_minus_alpha = 1.0 - alpha;
+  double alpha = (k + 1.0) / (k + 2.0);
+  double one_minus_alpha = 1.0 - alpha; // 1/(k+2) = 1 - alpha
+  double alpha_one_plus_gamma = alpha * (1.0 + gamma);
+  double alpha_gamma = alpha * gamma;
 
   for (size_t i = 0; i < x.size(); ++i) {
-    x[i] = one_minus_alpha * x_anchor_[i] + alpha * x[i];
+    double T_x = x[i]; 
+    x[i] = one_minus_alpha * x_anchor_[i] + alpha_one_plus_gamma * T_x - alpha_gamma * x_current_[i];
   }
 
   for (size_t i = 0; i < y.size(); ++i) {
-    y[i] = one_minus_alpha * y_anchor_[i] + alpha * y[i];
+    double T_y = y[i];
+    y[i] = one_minus_alpha * y_anchor_[i] + alpha_one_plus_gamma * T_y - alpha_gamma * y_current_[i];
   }
 
   linalg::project_bounds(lp_, x);
@@ -1652,6 +1658,7 @@ void PrimalDualParams::initialise() {
   this->restart_strategy = RestartStrategy::NO_RESTART;
   this->fixed_restart_interval = 0;
   this->use_halpern_restart = false;
+  this->halpern_gamma = 1.0;
   this->use_ruiz_scaling = false;
   this->use_pc_scaling = false;
   this->use_l2_scaling = false;
@@ -2490,27 +2497,41 @@ void PDLPSolver::computeAverageIterateGpu() {
 void PDLPSolver::applyHalpernAveragingGpu(){
   halpern_iteration_++;
 
-  double k = static_cast<double>(halpern_iteration_);
-  double alpha = k / (k + 2.0);
-  double one_minus_alpha = 1.0 - alpha;
+  const double gamma = params_.halpern_gamma;
 
-  //scale x_next by alpha
-  CUBLAS_CHECK(cublasDscal(cublas_handle_, a_num_cols_, &alpha,
-                             d_x_current_, 1));
-  // add (1 - alpha) * x_anchor to x_next                           
+  double k = static_cast<double>(halpern_iteration_);
+  double alpha = (k + 1.0) / (k + 2.0);
+  double one_minus_alpha = 1.0 - alpha;
+  double t1 = alpha * (1.0 + gamma); 
+  double t2 = -alpha * gamma; 
+
+  // Step 1: d_x_next = alpha*(1+gamma) * d_x_next (scale T(x))
+  CUBLAS_CHECK(cublasDscal(cublas_handle_, a_num_cols_, &t1,
+                             d_x_next_, 1));
+  // Step 2: d_x_next = d_x_next - alpha * gamma * d_x_current 
+  if (gamma > 0.0) {                      
+  CUBLAS_CHECK(cublasDaxpy(cublas_handle_, a_num_cols_, &t2,
+                             d_x_current_, 1, d_x_next_, 1));
+  }
+
+  // Step 3: d_x_next = d_x_next + (1 - alpha) * x_anchor
   CUBLAS_CHECK(cublasDaxpy(cublas_handle_, a_num_cols_, &one_minus_alpha,
                              d_x_anchor_, 1, d_x_next_, 1));
 
-  // scale y_next by alpha
-  CUBLAS_CHECK(cublasDscal(cublas_handle_, a_num_rows_, &alpha,
-                             d_y_current_, 1));
-  // add (1 - alpha) * y_anchor to y_next                           
-  CUBLAS_CHECK(cublasDaxpy(cublas_handle_, a_num_rows, &one_minus_alpha,
+
+  CUBLAS_CHECK(cublasDscal(cublas_handle_, a_num_rows_, &t1,
+                             d_y_next_, 1));
+  if (gamma > 0.0) {                                                  
+  CUBLAS_CHECK(cublasDaxpy(cublas_handle_, a_num_rows, &t2,
+                             d_y_anchor_, 1, d_y_next_, 1));
+  }
+
+  CUBLAS_CHECK(cublasDaxpy(cublas_handle_, a_num_rows_, &one_minus_alpha,
                              d_y_anchor_, 1, d_y_next_, 1));
 
   launchKernelUpdateX(0.0); //project x_next
   // to determine
-  //launchKernelUpdateY(0.0); //project y_next
+  launchKernelUpdateY(0.0); //project y_next
 
   linalgGpuAx(d_x_next_, d_ax_next_); 
   linalgGpuATy(d_y_next_, d_aty_next_);
