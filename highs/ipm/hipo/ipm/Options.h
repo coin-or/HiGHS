@@ -40,6 +40,7 @@ struct Options {
   OptionNla nla = kOptionNlaDefault;
   OptionCrossover crossover = kOptionCrossoverDefault;
   OptionParallel parallel = kOptionParallelDefault;
+  std::string ordering = kHighsChooseString;
 
   // Ipm parameters
   Int max_iter = kMaxIterDefault;

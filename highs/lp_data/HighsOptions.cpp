@@ -82,6 +82,17 @@ bool optionOffOnOk(const HighsLogOptions& report_log_options,
 
 bool optionSolverOk(const HighsLogOptions& report_log_options,
                     const string& value) {
+#ifndef HIPO
+  if (value == kHipoString) {
+    highsLogUser(
+        report_log_options, HighsLogType::kError,
+        "The HiPO solver was requested via the \"%s\" option, but this build "
+        "was compiled without HiPO support. Reconfigure with FAST_BUILD=ON "
+        "and -DHIPO=ON to enable HiPO.\n",
+        kSolverString.c_str());
+    return false;
+  }
+#endif
   if (value == kHighsChooseString || value == kSimplexString ||
       value == kIpmString ||
 #ifdef HIPO
@@ -106,6 +117,17 @@ bool optionSolverOk(const HighsLogOptions& report_log_options,
 
 bool optionMipLpSolverOk(const HighsLogOptions& report_log_options,
                          const string& value) {
+#ifndef HIPO
+  if (value == kHipoString) {
+    highsLogUser(
+        report_log_options, HighsLogType::kError,
+        "The HiPO solver was requested via the \"%s\" option, but this build "
+        "was compiled without HiPO support. Reconfigure with FAST_BUILD=ON "
+        "and -DHIPO=ON to enable HiPO.\n",
+        kMipLpSolverString.c_str());
+    return false;
+  }
+#endif
   if (value == kHighsChooseString || value == kSimplexString ||
       value == kIpmString ||
 #ifdef HIPO
@@ -131,6 +153,17 @@ bool optionMipLpSolverOk(const HighsLogOptions& report_log_options,
 
 bool optionMipIpmSolverOk(const HighsLogOptions& report_log_options,
                           const string& value) {
+#ifndef HIPO
+  if (value == kHipoString) {
+    highsLogUser(
+        report_log_options, HighsLogType::kError,
+        "The HiPO solver was requested via the \"%s\" option, but this build "
+        "was compiled without HiPO support. Reconfigure with FAST_BUILD=ON "
+        "and -DHIPO=ON to enable HiPO.\n",
+        kMipIpmSolverString.c_str());
+    return false;
+  }
+#endif
   if (value == kHighsChooseString || value == kIpmString ||
 #ifdef HIPO
       value == kHipoString ||
@@ -889,6 +922,16 @@ void reportOptions(FILE* file, const HighsLogOptions& log_options,
   HighsInt num_options = option_records.size();
   for (HighsInt index = 0; index < num_options; index++) {
     HighsOptionType type = option_records[index]->type;
+    if (option_records[index]->name == kLogFileString) {
+      // Default HiGHS log file name is "" so that deviations from it
+      // trigger opening the log file. However, it's unnecessary to
+      // report the deviation to kLogFileString, which is the default
+      // non-empty log file name in HighsRun.cpp
+      if (*((OptionRecordString*)option_records[index])[0].value ==
+          kHighsRunLogFile)
+        continue;
+    }
+
     // Only report non-advanced options
     if (option_records[index]->advanced) {
       // Possibly skip the advanced options when creating Md file
