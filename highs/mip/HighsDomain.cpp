@@ -1090,35 +1090,13 @@ void HighsDomain::ObjectivePropagation::propagate() {
       HighsInt col = objNonzeros[i];
       if (cost[col] > 0) {
         if (domain->col_lower_[col] > -kHighsInf) continue;
-
-        HighsCDouble boundVal = capacity / cost[col];
-        if (std::fabs(double(boundVal) * kHighsTiny) > domain->feastol())
-          continue;
-
-        bool accept;
-        double bound = domain->adjustedUb(col, boundVal, accept);
-        if (accept) {
-          domain->changeBound(HighsBoundType::kUpper, col, bound,
-                              Reason::objective());
-          if (domain->infeasible_) break;
-        }
-
+        domain->checkChangeBound(HighsBoundType::kUpper, col,
+                                 capacity / cost[col], Reason::objective());
         break;
       } else {
         if (domain->col_upper_[col] < kHighsInf) continue;
-
-        HighsCDouble boundVal = capacity / cost[col];
-        if (std::fabs(double(boundVal) * kHighsTiny) > domain->feastol())
-          continue;
-
-        bool accept;
-        double bound = domain->adjustedLb(col, boundVal, accept);
-        if (accept) {
-          domain->changeBound(HighsBoundType::kLower, col, bound,
-                              Reason::objective());
-          if (domain->infeasible_) break;
-        }
-
+        domain->checkChangeBound(HighsBoundType::kLower, col,
+                                 capacity / cost[col], Reason::objective());
         break;
       }
     }
@@ -1202,36 +1180,19 @@ void HighsDomain::ObjectivePropagation::propagate() {
         HighsInt col = objNonzeros[i];
 
         if (cost[col] > 0) {
-          bool accept;
-
-          HighsCDouble boundVal =
-              (capacity + domain->col_lower_[col] * cost[col]) / cost[col];
-          if (std::fabs(double(boundVal) * kHighsTiny) > domain->feastol())
-            continue;
-
-          double bound = domain->adjustedUb(col, boundVal, accept);
-          if (accept) {
+          if (domain->checkChangeBound(
+                  HighsBoundType::kUpper, col,
+                  (capacity + domain->col_lower_[col] * cost[col]) / cost[col],
+                  Reason::objective()))
             numBoundChanges++;
-            domain->changeBound(HighsBoundType::kUpper, col, bound,
-                                Reason::objective());
-            if (domain->infeasible_) break;
-          }
         } else {
-          bool accept;
-
-          HighsCDouble boundVal =
-              (capacity + domain->col_upper_[col] * cost[col]) / cost[col];
-          if (std::fabs(double(boundVal) * kHighsTiny) > domain->feastol())
-            continue;
-
-          double bound = domain->adjustedLb(col, boundVal, accept);
-          if (accept) {
+          if (domain->checkChangeBound(
+                  HighsBoundType::kLower, col,
+                  (capacity + domain->col_upper_[col] * cost[col]) / cost[col],
+                  Reason::objective()))
             numBoundChanges++;
-            domain->changeBound(HighsBoundType::kLower, col, bound,
-                                Reason::objective());
-            if (domain->infeasible_) break;
-          }
         }
+        if (domain->infeasible_) break;
       }
       if (domain->infeasible_) break;
 
@@ -2053,6 +2014,19 @@ void HighsDomain::changeBound(HighsDomainChange boundchg, Reason reason) {
           *this, boundchg.column, col_lower_[boundchg.column] > 0.5);
     }
   }
+}
+
+bool HighsDomain::checkChangeBound(HighsBoundType boundtype, HighsInt col,
+                                   HighsCDouble boundval, Reason reason) {
+  if (std::abs(static_cast<double>(boundval * kHighsTiny)) > feastol())
+    return false;
+  bool accept;
+  double bound = boundtype == HighsBoundType::kLower
+                     ? adjustedLb(col, boundval, accept)
+                     : adjustedUb(col, boundval, accept);
+  if (!accept) return false;
+  changeBound(boundtype, col, bound, reason);
+  return true;
 }
 
 void HighsDomain::setDomainChangeStack(
