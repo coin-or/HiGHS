@@ -357,7 +357,7 @@ TEST_CASE("hi-pdlp", "[pdlp]") {
   HighsInt pdlp_features_off = 0
       //+kPdlpScalingOff
       //+kPdlpRestartOff
-      //+kPdlpAdaptiveStepSizeOff
+      //+kPdlpAdaptiveStepSizeOff 
       ;
   h.setOptionValue("pdlp_features_off", pdlp_features_off);
 
@@ -472,3 +472,50 @@ TEST_CASE("cuda-sandbox", "[pdlp]") {
   printf("cuSparse     version %d\n", v_cusparse);
 }
 #endif
+
+TEST_CASE("hi-pdlp-halpern", "[pdlp]") {
+  std::string model = "neso-2005";  //"afiro";
+  // shell //stair //25fv47 //fit2p //avgas //neso-2245 //neso-2005
+  std::string model_file =
+      // std::string(HIGHS_DIR) + "/srv/" + model + ".mps.gz";
+      "/srv/mps_da/" + model + ".mps.gz";
+  Highs h;
+  // h.setOptionValue("output_flag", dev_run);
+  REQUIRE(h.readModel(model_file) != HighsStatus::kError);
+  h.setOptionValue("solver", kHiPdlpString);
+  h.setOptionValue("kkt_tolerance", kkt_tolerance);
+  h.setOptionValue("presolve", "off");
+
+  HighsInt pdlp_features_off = 0
+      //+kPdlpScalingOff
+      //+kPdlpRestartOff
+      //+kPdlpAdaptiveStepSizeOff 
+      ;
+  h.setOptionValue("pdlp_features_off", pdlp_features_off);
+
+  HighsInt pdlp_scaling =  // 0;
+      kPdlpScalingRuiz
+      //+ kPdlpScalingL2cm
+      + kPdlpScalingPC;
+  h.setOptionValue("pdlp_scaling_mode", pdlp_scaling);
+  h.setOptionValue("pdlp_step_size_strategy", 1);
+  h.setOptionValue("pdlp_restart_strategy", kPdlpRestartStrategyHalpern);
+  h.setOptionValue("pdlp_iteration_limit", 8000);
+  // h.setOptionValue("pdlp_time_limit", 60);
+  //    h.setOptionValue("log_dev_level", kHighsLogDevLevelVerbose);
+  auto start_hipdlp = std::chrono::high_resolution_clock::now();
+  HighsStatus run_status = h.run();
+  auto end_hipdlp = std::chrono::high_resolution_clock::now();
+  auto duration_hipdlp = std::chrono::duration_cast<std::chrono::milliseconds>(
+      end_hipdlp - start_hipdlp);
+  std::cout << "\n--- HiPDLP Results ---" << std::endl;
+  std::cout << "Status: " << h.modelStatusToString(h.getModelStatus())
+            << std::endl;
+  std::cout << "Iterations: " << h.getInfo().pdlp_iteration_count << std::endl;
+  std::cout << "Wall time: " << duration_hipdlp.count() / 1000.0 << " seconds"
+            << std::endl;
+  std::cout << "Objective: " << h.getInfo().objective_function_value
+            << std::endl;
+
+  int hipdlp_iteration_count = h.getInfo().pdlp_iteration_count;
+}

@@ -1065,7 +1065,6 @@ void PDLPSolver::applyHalpernAveraging(std::vector<double>& x,
 
   linalg::Ax(lp_, x, ax);
   linalg::ATy(lp_, y, aty);
-
 }
 
 void PDLPSolver::updateAverageIterates(const std::vector<double>& x,
@@ -1581,16 +1580,19 @@ void PDLPSolver::setup(const HighsOptions& options, HighsTimer& timer) {
 
   // Restart strategy maps 0/1/2 to RestartStrategy
   params_.restart_strategy = RestartStrategy::NO_RESTART;
+  params_.use_halpern_restart = false;
   if ((options.pdlp_features_off & kPdlpRestartOff) == 0) {
     // Use restart: now see which
     if (options.pdlp_restart_strategy == kPdlpRestartStrategyFixed) {
       params_.restart_strategy = RestartStrategy::FIXED_RESTART;
     } else if (options.pdlp_restart_strategy == kPdlpRestartStrategyAdaptive) {
       params_.restart_strategy = RestartStrategy::ADAPTIVE_RESTART;
+    } else if (options.pdlp_restart_strategy == kPdlpRestartStrategyHalpern) {
+      params_.restart_strategy = RestartStrategy::ADAPTIVE_RESTART;
+      params_.use_halpern_restart = true;
     }
   }
   //  params_.fixed_restart_interval = 0; Not set in parse_options_file
-  //  params_.use_halpern_restart = false; Not set in parse_options_file
 
   params_.step_size_strategy = StepSizeStrategy::FIXED;
   if ((options.pdlp_features_off & kPdlpAdaptiveStepSizeOff) == 0) {
@@ -2143,7 +2145,7 @@ void PDLPSolver::setupGpu() {
   CUDA_CHECK(cudaMalloc(&d_y_next_, a_num_rows_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_x_at_last_restart_, a_num_cols_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_y_at_last_restart_, a_num_rows_ * sizeof(double)));
-  CUDA_CHECK(cudaMalloc(&d_x_anchor_, a_num_cols_ * sizeof(double)))
+  CUDA_CHECK(cudaMalloc(&d_x_anchor_, a_num_cols_ * sizeof(double)));
   CUDA_CHECK(cudaMalloc(&d_y_anchor_, a_num_rows_ * sizeof(double)));
   CUDA_CHECK(
       cudaMalloc(&d_x_temp_diff_norm_result_, a_num_cols_ * sizeof(double)));
@@ -2280,8 +2282,8 @@ void PDLPSolver::cleanupGpu() {
   CUDA_CHECK(cudaFree(d_is_equality_row_));
   CUDA_CHECK(cudaFree(d_x_at_last_restart_));
   CUDA_CHECK(cudaFree(d_y_at_last_restart_));
-  CUDA_CHECK(cudaFree(d_x_anchor_));
-  CUDA_CHECK(cudaFree(d_y_anchor_));
+  if (d_x_anchor_) CUDA_CHECK(cudaFree(d_x_anchor_));
+  if (d_y_anchor_) CUDA_CHECK(cudaFree(d_y_anchor_));
   CUDA_CHECK(cudaFree(d_x_temp_diff_norm_result_));
   CUDA_CHECK(cudaFree(d_y_temp_diff_norm_result_));
   CUDA_CHECK(cudaFree(d_x_current_));
@@ -2483,6 +2485,35 @@ void PDLPSolver::computeAverageIterateGpu() {
                         cudaMemcpyDeviceToHost));
   debug_pdlp_data_.x_average_norm = linalg::vector_norm_squared(x_avg_);
 #endif
+}
+
+void PDLPSolver::applyHalpernAveragingGpu(){
+  halpern_iteration_++;
+
+  double k = static_cast<double>(halpern_iteration_);
+  double alpha = k / (k + 2.0);
+  double one_minus_alpha = 1.0 - alpha;
+
+  //scale x_next by alpha
+  CUBLAS_CHECK(cublasDscal(cublas_handle_, a_num_cols_, &alpha,
+                             d_x_current_, 1));
+  // add (1 - alpha) * x_anchor to x_next                           
+  CUBLAS_CHECK(cublasDaxpy(cublas_handle_, a_num_cols_, &one_minus_alpha,
+                             d_x_anchor_, 1, d_x_next_, 1));
+
+  // scale y_next by alpha
+  CUBLAS_CHECK(cublasDscal(cublas_handle_, a_num_rows_, &alpha,
+                             d_y_current_, 1));
+  // add (1 - alpha) * y_anchor to y_next                           
+  CUBLAS_CHECK(cublasDaxpy(cublas_handle_, a_num_rows, &one_minus_alpha,
+                             d_y_anchor_, 1, d_y_next_, 1));
+
+  launchKernelUpdateX(0.0); //project x_next
+  // to determine
+  //launchKernelUpdateY(0.0); //project y_next
+
+  linalgGpuAx(d_x_next_, d_ax_next_); 
+  linalgGpuATy(d_y_next_, d_aty_next_);
 }
 
 double PDLPSolver::computeMovementGpu(const double* d_x_new,
