@@ -50,12 +50,3 @@ target_include_directories(cudalin PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CUDA_PATH}/include>"
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../hipdlp>"  # Add this for pdhg_kernels.hpp
 )
-
-
-# Not needed, PUBLIC above propagates OK. The issue was elsewhere.
-# If include cuda_runtime.h is called from pdhg.hpp add cuda include dir to highs too.
-# if (NOT FAST_BUILD)
-#   message(FATAL_ERROR "For hipdlp FAST_BUILD should be ON")
-# endif()
-
-# target_include_directories(highs PUBLIC "$<BUILD_INTERFACE:${CMAKE_CUDA_PATH}/include>")
