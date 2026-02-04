@@ -1590,6 +1590,295 @@ void HighsPrimalHeuristics::centralRounding() {
                        kSolutionSourceCentralRounding);
 }
 
+bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
+                                     std::vector<double>& intsol) {
+  // Don't run heuristic unless problem is majority integer columns
+  if (mipsolver.mipdata_->integral_cols.size() < mipsolver.numCol() / 4) {
+    return false;
+  }
+  double feastol = mipsolver.mipdata_->feastol;
+  const HighsSparseMatrix& a_matrix = mipsolver.model_->a_matrix_;
+  HighsSparseMatrix a_matrix_row;
+  a_matrix_row.createRowwise(a_matrix);
+
+  // Create initial solution
+  HighsCDouble bestobj = kHighsInf;
+  HighsCDouble obj = 0;
+  std::vector<HighsInt> cols_with_obj;
+  cols_with_obj.reserve(mipsolver.numCol());
+  std::vector<double> sol(mipsolver.numCol());
+  std::vector<HighsInt> locks(mipsolver.numCol(), 0);
+  for (HighsInt row = 0; row < mipsolver.numRow(); ++row) {
+    HighsInt start = a_matrix_row.start_[row];
+    HighsInt end = a_matrix_row.start_[row + 1];
+    for (HighsInt i = start; i < end; ++i) {
+      HighsInt j = a_matrix_row.index_[i];
+      if (mipsolver.model_->row_lower_[row] != -kHighsInf) {
+        if (a_matrix_row.value_[i] > 0) {
+          locks[j] -= 1;
+        } else {
+          locks[j] += 1;
+        }
+      }
+      if (mipsolver.model_->row_upper_[row] != kHighsInf) {
+        if (a_matrix_row.value_[i] > 0) {
+          locks[j] += 1;
+        } else {
+          locks[j] -= 1;
+        }
+      }
+    }
+  }
+  for (HighsInt col = 0; col != mipsolver.numCol(); ++col) {
+    if (locks[col] > 0) {
+      sol[col] = globaldom.col_lower_[col];
+    } else if (locks[col] < 0) {
+      sol[col] = globaldom.col_upper_[col];
+    } else {
+      sol[col] = std::max(std::min(0.0, globaldom.col_upper_[col]),
+                          globaldom.col_lower_[col]);
+    }
+    if (mipsolver.colCost(col) != 0) cols_with_obj.push_back(col);
+  }
+
+  auto is_violated = [&](const HighsCDouble& act, HighsInt r) {
+    if (act < mipsolver.model_->row_lower_[r]) return false;
+    if (act > mipsolver.model_->row_upper_[r]) return false;
+    return true;
+  };
+
+  struct Violated {
+    std::vector<std::pair<bool, HighsInt>> viol;
+    std::vector<HighsInt> viol_index;
+
+    explicit Violated(const HighsInt n) : viol(n, {false, -1}) {
+      viol_index.reserve(n);
+    }
+  };
+
+  auto add_entry = [&](Violated& v, HighsInt r) {
+    if (!v.viol[r].first) {
+      v.viol[r].first = true;
+      assert(v.viol[r].second == -1);
+      v.viol[r].second = static_cast<HighsInt>(v.viol_index.size());
+      v.viol_index.push_back(r);
+    }
+  };
+
+  auto remove_entry = [&](Violated& v, HighsInt r) {
+    if (v.viol[r].first) {
+      v.viol[r].first = false;
+      v.viol_index[v.viol[r].second] = v.viol_index.back();
+      v.viol_index.pop_back();
+      v.viol[r].second = -1;
+    }
+  };
+
+  std::vector<HighsInt> weights(mipsolver.numRow());
+  Violated viol(mipsolver.numRow());
+  Violated satisfied(mipsolver.numRow());
+  std::vector<HighsCDouble> activities(mipsolver.numRow());
+
+  auto calc_activites = [&](bool reset_violated) {
+    activities.clear();
+    if (reset_violated) {
+      viol.viol_index.clear();
+      viol.viol.assign(mipsolver.numRow(), {false, -1});
+      satisfied.viol_index.clear();
+      satisfied.viol.assign(mipsolver.numRow(), {false, -1});
+    }
+    for (HighsInt row = 0; row < mipsolver.numRow(); ++row) {
+      HighsInt start = a_matrix_row.start_[row];
+      HighsInt end = a_matrix_row.start_[row + 1];
+      for (HighsInt i = start; i < end; ++i) {
+        activities[row] += a_matrix_row.value_[i] * sol[a_matrix_row.index_[i]];
+      }
+      if (is_violated(activities[row], row)) {
+        add_entry(viol, row);
+      } else {
+        add_entry(satisfied, row);
+      }
+    }
+  };
+
+  auto apply_move = [&](HighsInt c, double delta) {
+    delta = std::max(std::min(delta, globaldom.col_upper_[c] - sol[c]),
+                     sol[c] - globaldom.col_lower_[c]);
+    sol[c] += delta;
+    HighsInt start = a_matrix.start_[c];
+    HighsInt end = a_matrix.start_[c + 1];
+    for (HighsInt i = start; i < end; ++i) {
+      HighsInt r = a_matrix.index_[i];
+      double val = a_matrix.value_[i];
+      bool was_violated = viol.viol[r].first;
+      activities[r] += val * delta;
+      bool now_violated = is_violated(activities[r], r);
+      if (was_violated && !now_violated) {
+        remove_entry(viol, r);
+        add_entry(satisfied, r);
+      }
+      if (!was_violated && now_violated) {
+        remove_entry(satisfied, r);
+        add_entry(viol, r);
+      }
+    }
+  };
+
+  auto lift_move_op = [&](HighsInt c) {
+    // Only check lower bound delta if positive column cost, likewise for neg.
+    const HighsInt dir = mipsolver.colCost(c) > 0 ? -1 : 1;
+    bool integral = mipsolver.isColIntegral(c);
+    double delta = dir == -1 ? sol[c] - globaldom.col_lower_[c]
+                             : globaldom.col_upper_[c] - sol[c];
+    if (std::abs(delta) < feastol) return 0;
+    HighsInt start = a_matrix.start_[c];
+    HighsInt end = a_matrix.start_[c + 1];
+    for (HighsInt i = start; i < end; ++i) {
+      HighsInt r = a_matrix.index_[i];
+      double val = a_matrix.value_[i];
+      if (mipsolver.model_->row_lower_[r] != -kHighsInf) {
+        double gap = activities[r] - mipsolver.model_->row_lower_[r];
+        if ((val > 0 && dir == -1) || (val < 0 && dir == 1)) {
+          delta = std::min(delta, std::abs(gap / val));
+        }
+      }
+      if (mipsolver.model_->row_upper_[r] != kHighsInf) {
+        double gap = mipsolver.model_->row_upper_[r] - activities[r];
+        if ((val > 0 && dir == 1) || (val < 0 && dir == -1)) {
+          delta = std::min(delta, std::abs(gap / val));
+        }
+      }
+      if (integral && delta < 1 - feastol) return 0;
+      if (delta < feastol) return 0;
+    }
+    if (integral) delta = std::floor(delta + feastol);
+    return delta * dir;
+  };
+
+  std::vector<double> lift_move_delta(mipsolver.numCol());
+  std::vector<double> scores(mipsolver.numCol());
+  std::vector<double> ages(mipsolver.numCol());
+  auto lift_move = [&](bool recalc) {
+    if (recalc) {
+      for (const HighsInt c : cols_with_obj) {
+        lift_move_delta[c] = lift_move_op(c);
+      }
+    }
+    HighsInt best_col = -1;
+    for (HighsInt c : cols_with_obj) {
+      scores[c] = mipsolver.colCost(c) * lift_move_delta[c];
+      if (scores[c] == 0) continue;
+      if (best_col == -1 || scores[c] + 1e-4 < scores[best_col] ||
+          (scores[c] <= scores[best_col] && ages[c] < ages[best_col])) {
+        best_col = c;
+      }
+    }
+    if (best_col == -1) return false;
+    apply_move(best_col, lift_move_delta[best_col]);
+    lift_move_delta[best_col] = lift_move_op(best_col);
+    HighsInt start = a_matrix.start_[best_col];
+    HighsInt end = a_matrix.start_[best_col + 1];
+    for (HighsInt i = start; i < end; ++i) {
+      HighsInt r = a_matrix.index_[i];
+      HighsInt rstart = a_matrix_row.start_[r];
+      HighsInt rend = a_matrix_row.start_[r + 1];
+      for (HighsInt j = rstart; j < rend; ++j) {
+        HighsInt c = a_matrix_row.index_[j];
+        if (mipsolver.colCost(c) != 0) {
+          lift_move_delta[c] = lift_move_op(c);
+        }
+      }
+    }
+    return true;
+  };
+
+  auto one_opt_feas_op = [&](HighsInt c, HighsInt r) {
+
+  };
+
+  auto sample_indices = [&](std::vector<HighsInt>& indices,
+                            HighsInt max_samples, size_t& n) {
+    n = indices.size();
+    if (n <= max_samples) {
+      return indices;
+    }
+    std::vector<HighsInt> sampled_indices;
+    sampled_indices.reserve(max_samples);
+    n = max_samples;
+    std::unordered_map<HighsInt, HighsInt> remap;
+    HighsInt available = static_cast<HighsInt>(indices.size());
+    for (HighsInt i = 0; i != n; ++i) {
+      HighsInt random_i = randgen.integer(available - 1);
+      HighsInt actual_i = random_i;
+      auto it = remap.find(actual_i);
+      if (it != remap.end()) {
+        actual_i = it->second;
+      }
+      HighsInt last_i = available - 1;
+      HighsInt mapped_last = last_i;
+      auto last_it = remap.find(last_i);
+      if (last_it != remap.end()) {
+        mapped_last = last_it->second;
+      }
+      remap[random_i] = mapped_last;
+      sampled_indices.push_back(indices[actual_i]);
+      --available;
+    }
+    return sampled_indices;
+  };
+
+  auto explore_viol_mtm = [&]() {
+    // TODO
+  };
+
+  auto explore_satisfied_mtm = [&]() {
+    // TODO
+  };
+
+  auto recalc_objective = [&]() {
+    obj = 0;
+    for (HighsInt c = 0; c != mipsolver.numCol(); ++c) {
+      obj += mipsolver.colCost(c) * sol[c];
+    }
+  };
+
+  auto save_sol = [&]() {
+    for (HighsInt c = 0; c != mipsolver.numCol(); ++c) {
+      intsol[c] = sol[c];
+    }
+  };
+
+  auto terminate = [&]() { return false; };
+
+  calc_activites(false);
+  HighsInt iters = 0;
+  bool last_iter_feas = false;
+  // Main solving loop
+  while (!terminate()) {
+    // No rows are violated, so check the solution
+    if (viol.viol_index.empty()) {
+      recalc_objective();
+      // Check if solution is feasible in original space (true placeholder) TODO
+      if (obj + 1e-8 < bestobj && true) {
+        save_sol();
+        if (cols_with_obj.empty()) break;
+      }
+      // Perform a lift-move
+      if (lift_move(!last_iter_feas)) {
+        iters++;
+        last_iter_feas = true;
+        continue;
+      }
+    }
+    // Explore neighbourhood
+    best_col, best_delta = explore_neighbourhood(); // TODO
+    // Update weight of all unsatisfied constraints
+    for (HighsInt r : viol.viol_index) {
+      weights[r]++;
+    }
+  }
+}
+
 #if 0
 void HighsPrimalHeuristics::clique() {
   HighsHashTable<HighsInt, double> entries;
