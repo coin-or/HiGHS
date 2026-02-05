@@ -10,6 +10,7 @@
 
 #include <vector>
 
+#include "HighsDomain.h"
 #include "lp_data/HStruct.h"
 #include "lp_data/HighsLp.h"
 #include "util/HighsRandom.h"
@@ -55,6 +56,8 @@ class HighsPrimalHeuristics {
   void feasibilityPump();
 
   void centralRounding();
+
+  bool localMip(HighsDomain& globaldom, std::vector<double>& intsol);
 
   void flushStatistics();
 

@@ -1592,20 +1592,25 @@ void HighsPrimalHeuristics::centralRounding() {
 
 bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
                                      std::vector<double>& intsol) {
-  // Don't run heuristic unless problem is majority integer columns
-  if (mipsolver.mipdata_->integral_cols.size() < mipsolver.numCol() / 4) {
-    return false;
-  }
+  bool found_feas_before = false;
   double feastol = mipsolver.mipdata_->feastol;
   const HighsSparseMatrix& a_matrix = mipsolver.model_->a_matrix_;
   HighsSparseMatrix a_matrix_row;
   a_matrix_row.createRowwise(a_matrix);
 
-  // Create initial solution
+  // Create global objects used in lambda expressions
+  HighsInt num_violated_rows_sample = 250;
+  HighsInt num_satisfied_rows_sample = 20;
+  HighsInt iters = 0;
   HighsCDouble bestobj = kHighsInf;
   HighsCDouble obj = 0;
   std::vector<HighsInt> cols_with_obj;
   cols_with_obj.reserve(mipsolver.numCol());
+  std::vector<HighsInt> extra_sample_indices;
+  extra_sample_indices.reserve(
+      std::max(num_satisfied_rows_sample, num_violated_rows_sample));
+
+  // Create initial solution
   std::vector<double> sol(mipsolver.numCol());
   std::vector<HighsInt> locks(mipsolver.numCol(), 0);
   for (HighsInt row = 0; row < mipsolver.numRow(); ++row) {
@@ -1638,43 +1643,43 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
       sol[col] = std::max(std::min(0.0, globaldom.col_upper_[col]),
                           globaldom.col_lower_[col]);
     }
-    if (mipsolver.colCost(col) != 0) cols_with_obj.push_back(col);
+    if (mipsolver.colCost(col) != 0) {
+      cols_with_obj.push_back(col);
+      obj += mipsolver.colCost(col) * sol[col];
+    }
   }
 
   auto is_violated = [&](const HighsCDouble& act, HighsInt r) {
-    if (act < mipsolver.model_->row_lower_[r]) return false;
-    if (act > mipsolver.model_->row_upper_[r]) return false;
+    if (act < mipsolver.model_->row_lower_[r] - feastol) return false;
+    if (act > mipsolver.model_->row_upper_[r] + feastol) return false;
     return true;
   };
 
   struct Violated {
-    std::vector<std::pair<bool, HighsInt>> viol;
+    std::vector<HighsInt> viol;
     std::vector<HighsInt> viol_index;
 
-    explicit Violated(const HighsInt n) : viol(n, {false, -1}) {
-      viol_index.reserve(n);
-    }
+    explicit Violated(const HighsInt n) : viol(n, -1) { viol_index.reserve(n); }
   };
 
   auto add_entry = [&](Violated& v, HighsInt r) {
-    if (!v.viol[r].first) {
-      v.viol[r].first = true;
-      assert(v.viol[r].second == -1);
-      v.viol[r].second = static_cast<HighsInt>(v.viol_index.size());
-      v.viol_index.push_back(r);
-    }
+    assert(v.viol[r] == -1);
+    v.viol[r] = static_cast<HighsInt>(v.viol_index.size());
+    v.viol_index.push_back(r);
   };
 
   auto remove_entry = [&](Violated& v, HighsInt r) {
-    if (v.viol[r].first) {
-      v.viol[r].first = false;
-      v.viol_index[v.viol[r].second] = v.viol_index.back();
-      v.viol_index.pop_back();
-      v.viol[r].second = -1;
-    }
+    assert(v.viol[r] != -1);
+    v.viol_index[v.viol[r]] = v.viol_index.back();
+    v.viol[v.viol_index.back()] = v.viol[r];
+    v.viol_index.pop_back();
+    v.viol[r] = -1;
   };
 
   std::vector<HighsInt> weights(mipsolver.numRow());
+  HighsInt obj_weight = 0;
+  std::vector<HighsInt> allow_neg_delta(mipsolver.numCol());
+  std::vector<HighsInt> allow_pos_delta(mipsolver.numCol());
   Violated viol(mipsolver.numRow());
   Violated satisfied(mipsolver.numRow());
   std::vector<HighsCDouble> activities(mipsolver.numRow());
@@ -1683,9 +1688,9 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
     activities.clear();
     if (reset_violated) {
       viol.viol_index.clear();
-      viol.viol.assign(mipsolver.numRow(), {false, -1});
+      viol.viol.assign(mipsolver.numRow(), -1);
       satisfied.viol_index.clear();
-      satisfied.viol.assign(mipsolver.numRow(), {false, -1});
+      satisfied.viol.assign(mipsolver.numRow(), -1);
     }
     for (HighsInt row = 0; row < mipsolver.numRow(); ++row) {
       HighsInt start = a_matrix_row.start_[row];
@@ -1701,6 +1706,13 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
     }
   };
 
+  auto tabu = [&](HighsInt c, double delta) {
+    assert(delta != 0);
+    if (delta < 0 && allow_neg_delta[c] > iters) return false;
+    if (delta > 0 && allow_pos_delta[c] > iters) return false;
+    return true;
+  };
+
   auto apply_move = [&](HighsInt c, double delta) {
     delta = std::max(std::min(delta, globaldom.col_upper_[c] - sol[c]),
                      sol[c] - globaldom.col_lower_[c]);
@@ -1710,7 +1722,7 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
     for (HighsInt i = start; i < end; ++i) {
       HighsInt r = a_matrix.index_[i];
       double val = a_matrix.value_[i];
-      bool was_violated = viol.viol[r].first;
+      bool was_violated = viol.viol[r] == -1;
       activities[r] += val * delta;
       bool now_violated = is_violated(activities[r], r);
       if (was_violated && !now_violated) {
@@ -1722,9 +1734,15 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
         add_entry(viol, r);
       }
     }
+    obj += delta * mipsolver.colCost(c);
+    if (delta > 0) {
+      allow_neg_delta[c] = iters + 5;
+    } else {
+      allow_pos_delta[c] = iters + 5;
+    }
   };
 
-  auto lift_move_op = [&](HighsInt c) {
+  auto one_opt_calc_delta = [&](HighsInt c) -> double {
     // Only check lower bound delta if positive column cost, likewise for neg.
     const HighsInt dir = mipsolver.colCost(c) > 0 ? -1 : 1;
     bool integral = mipsolver.isColIntegral(c);
@@ -1737,15 +1755,17 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
       HighsInt r = a_matrix.index_[i];
       double val = a_matrix.value_[i];
       if (mipsolver.model_->row_lower_[r] != -kHighsInf) {
-        double gap = activities[r] - mipsolver.model_->row_lower_[r];
         if ((val > 0 && dir == -1) || (val < 0 && dir == 1)) {
-          delta = std::min(delta, std::abs(gap / val));
+          double row_slack = static_cast<double>(
+              activities[r] - mipsolver.model_->row_lower_[r]);
+          delta = std::min(delta, std::abs(row_slack / val));
         }
       }
       if (mipsolver.model_->row_upper_[r] != kHighsInf) {
-        double gap = mipsolver.model_->row_upper_[r] - activities[r];
         if ((val > 0 && dir == 1) || (val < 0 && dir == -1)) {
-          delta = std::min(delta, std::abs(gap / val));
+          double row_slack = static_cast<double>(
+              mipsolver.model_->row_upper_[r] - activities[r]);
+          delta = std::min(delta, std::abs(row_slack / val));
         }
       }
       if (integral && delta < 1 - feastol) return 0;
@@ -1755,27 +1775,26 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
     return delta * dir;
   };
 
-  std::vector<double> lift_move_delta(mipsolver.numCol());
-  std::vector<double> scores(mipsolver.numCol());
-  std::vector<double> ages(mipsolver.numCol());
-  auto lift_move = [&](bool recalc) {
+  std::vector<double> one_opt_deltas(mipsolver.numCol());
+  auto one_opt = [&](bool recalc) -> bool {
+    std::vector<double> one_opt_scores(mipsolver.numCol());
     if (recalc) {
       for (const HighsInt c : cols_with_obj) {
-        lift_move_delta[c] = lift_move_op(c);
+        one_opt_deltas[c] = one_opt_calc_delta(c);
       }
     }
     HighsInt best_col = -1;
     for (HighsInt c : cols_with_obj) {
-      scores[c] = mipsolver.colCost(c) * lift_move_delta[c];
-      if (scores[c] == 0) continue;
-      if (best_col == -1 || scores[c] + 1e-4 < scores[best_col] ||
-          (scores[c] <= scores[best_col] && ages[c] < ages[best_col])) {
+      one_opt_scores[c] = mipsolver.colCost(c) * one_opt_deltas[c];
+      if (one_opt_scores[c] == 0) continue;
+      if (best_col == -1 ||
+          one_opt_scores[c] + 1e-4 < one_opt_scores[best_col]) {
         best_col = c;
       }
     }
     if (best_col == -1) return false;
-    apply_move(best_col, lift_move_delta[best_col]);
-    lift_move_delta[best_col] = lift_move_op(best_col);
+    apply_move(best_col, one_opt_deltas[best_col]);
+    one_opt_deltas[best_col] = one_opt_calc_delta(best_col);
     HighsInt start = a_matrix.start_[best_col];
     HighsInt end = a_matrix.start_[best_col + 1];
     for (HighsInt i = start; i < end; ++i) {
@@ -1785,25 +1804,45 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
       for (HighsInt j = rstart; j < rend; ++j) {
         HighsInt c = a_matrix_row.index_[j];
         if (mipsolver.colCost(c) != 0) {
-          lift_move_delta[c] = lift_move_op(c);
+          one_opt_deltas[c] = one_opt_calc_delta(c);
         }
       }
     }
     return true;
   };
 
-  auto one_opt_feas_op = [&](HighsInt c, HighsInt r) {
-
+  auto feas_one_opt = [&](HighsInt c, HighsInt r, double coef,
+                          std::vector<std::pair<HighsInt, double>>& moves) {
+    // Get direction column can be moved to maximise constraint feasibility
+    double row_lower = mipsolver.model_->row_lower_[r];
+    double row_upper = mipsolver.model_->row_upper_[r];
+    double slack_lower =
+        std::abs(static_cast<double>(activities[r]) - row_lower);
+    double slack_upper =
+        std::abs(row_upper - static_cast<double>(activities[r]));
+    HighsInt dir = slack_lower > slack_upper ? -1 : 1;
+    double delta = dir == -1 ? std::abs(sol[c] - globaldom.col_lower_[c])
+                             : std::abs(globaldom.col_upper_[c] - sol[c]);
+    delta = dir == -1 ? std::min(delta, std::abs(slack_lower / coef))
+                      : std::min(delta, std::abs(slack_upper / coef));
+    if (mipsolver.isColIntegral(c)) {
+      delta = std::floor(delta + feastol);
+    }
+    if (delta < feastol) return;
+    if (coef < 0) dir *= -1;
+    if (!tabu(c, dir * delta)) return;
+    moves.emplace_back(c, dir * delta);
   };
 
   auto sample_indices = [&](std::vector<HighsInt>& indices,
-                            HighsInt max_samples, size_t& n) {
-    n = indices.size();
+                            HighsInt max_samples,
+                            HighsInt& n) -> std::vector<HighsInt>& {
+    n = static_cast<HighsInt>(indices.size());
     if (n <= max_samples) {
       return indices;
     }
-    std::vector<HighsInt> sampled_indices;
-    sampled_indices.reserve(max_samples);
+    std::vector<HighsInt>& sampled_indices = extra_sample_indices;
+    sampled_indices.clear();
     n = max_samples;
     std::unordered_map<HighsInt, HighsInt> remap;
     HighsInt available = static_cast<HighsInt>(indices.size());
@@ -1827,12 +1866,144 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
     return sampled_indices;
   };
 
-  auto explore_viol_mtm = [&]() {
-    // TODO
+  auto sample_operations = [&](std::vector<std::pair<HighsInt, double>>& moves,
+                               HighsInt max_samples, HighsInt& n) {
+    HighsInt available = static_cast<HighsInt>(moves.size());
+    n = available;
+    if (available == 0 || max_samples == 0) return;
+    if (available <= max_samples) return;
+    n = max_samples;
+    for (HighsInt i = 0; i < max_samples; ++i) {
+      HighsInt remaining = available - i;
+      HighsInt random_i = randgen.integer(remaining - 1) + i;
+      std::swap(moves[random_i], moves[i]);
+    }
   };
 
-  auto explore_satisfied_mtm = [&]() {
-    // TODO
+  auto explore_breakthrough =
+      [&](std::vector<std::pair<HighsInt, double>>& moves) {
+        for (HighsInt c : cols_with_obj) {
+          double obj_coef = mipsolver.colCost(c);
+          if (std::abs(obj_coef) < feastol) continue;
+          const double obj_change = static_cast<double>(obj - bestobj);
+          assert(obj_change > 0);
+          HighsInt dir = obj_coef < 0 ? 1 : -1;
+          double delta = obj_change / std::abs(obj_coef);
+          if (mipsolver.isColIntegral(c)) {
+            delta = std::floor(delta + feastol);
+          }
+          delta =
+              dir == -1
+                  ? std::min(delta, std::abs(sol[c] - globaldom.col_lower_[c]))
+                  : std::min(delta, std::abs(globaldom.col_upper_[c] - sol[c]));
+          if (delta < feastol) return;
+          moves.emplace_back(c, delta * dir);
+        }
+      };
+
+  auto explore_violated = [&](std::vector<std::pair<HighsInt, double>>& moves,
+                              HighsInt& n) {
+    if (!viol.viol_index.empty()) {
+      HighsInt n_samples;
+      std::vector<HighsInt> samples =
+          sample_indices(viol.viol_index, num_violated_rows_sample, n_samples);
+      for (HighsInt r : samples) {
+        HighsInt start = a_matrix_row.start_[r];
+        HighsInt end = a_matrix_row.start_[r + 1];
+        for (HighsInt i = start; i < end; ++i) {
+          HighsInt c = a_matrix_row.index_[i];
+          double val = a_matrix_row.value_[i];
+          feas_one_opt(c, r, val, moves);
+        }
+      }
+    }
+    if (found_feas_before && obj > bestobj + feastol) {
+      explore_breakthrough(moves);
+    }
+    sample_operations(moves, num_violated_rows_sample, n);
+  };
+
+  auto explore_satisfied = [&](std::vector<std::pair<HighsInt, double>>& moves,
+                               HighsInt& n) {
+    if (!satisfied.viol_index.empty()) {
+      HighsInt n_samples;
+      std::vector<HighsInt> samples = sample_indices(
+          satisfied.viol_index, num_satisfied_rows_sample, n_samples);
+      for (HighsInt r : samples) {
+        HighsInt start = a_matrix_row.start_[r];
+        HighsInt end = a_matrix_row.start_[r + 1];
+        for (HighsInt i = start; i < end; ++i) {
+          HighsInt c = a_matrix_row.index_[i];
+          double val = a_matrix_row.value_[i];
+          feas_one_opt(c, r, val, moves);
+        }
+      }
+    }
+    sample_operations(moves, num_satisfied_rows_sample, n);
+  };
+
+  auto score_moves = [&](std::vector<std::pair<HighsInt, double>>& moves,
+                         HighsInt n) {
+    HighsInt best_i = 0;
+    double best_score = -kHighsInf;
+    for (HighsInt i = 0; i < n; ++i) {
+      HighsInt score = 0;
+      HighsInt c = moves[i].first;
+      double delta = moves[i].second;
+      double obj_coef = mipsolver.colCost(c);
+      if ((obj_coef > 0 && delta < 0) || (obj_coef < 0 && delta > 0)) {
+        score += obj_weight;
+      } else if (obj_coef != 0) {
+        score -= obj_weight;
+      }
+      HighsInt start = a_matrix.start_[c];
+      HighsInt end = a_matrix.start_[c + 1];
+      for (HighsInt j = start; j < end; ++j) {
+        HighsInt r = a_matrix.index_[j];
+        double val = a_matrix.value_[j];
+        double new_act = static_cast<double>(activities[r] + val * delta);
+        double old_violation =
+            std::min(std::abs(static_cast<double>(
+                         activities[r] - mipsolver.model_->row_lower_[r])),
+                     std::abs(static_cast<double>(
+                         mipsolver.model_->row_upper_[r] - activities[r])));
+        double new_violation =
+            std::min(std::abs(new_act - mipsolver.model_->row_lower_[r]),
+                     std::abs(mipsolver.model_->row_upper_[r] - new_act));
+        bool was_satisfied = old_violation < feastol;
+        bool now_satisfied = new_violation < feastol;
+        if (!was_satisfied && now_satisfied) {
+          score += 2 * weights[r];
+        } else if (was_satisfied && !now_satisfied) {
+          score -= 2 * weights[r];
+        } else if (!now_satisfied && !was_satisfied) {
+          if (old_violation > new_violation) {
+            score += weights[r];
+          } else {
+            score -= weights[r];
+          }
+        }
+      }
+      if (score > best_score) {
+        best_score = score;
+        best_i = i;
+      }
+    }
+    return best_i;
+  };
+
+  auto explore_neighbourhood =
+      [&](std::vector<std::pair<HighsInt, double>>& moves) -> HighsInt {
+    HighsInt n = 0;
+    explore_violated(moves, n);
+    if (n > 0) {
+      HighsInt best_candidate = score_moves(moves, n);
+      if (best_candidate > 0) return best_candidate;
+      moves.clear();
+    }
+    explore_satisfied(moves, n);
+    if (n <= 0) return -1;
+    return score_moves(moves, n);
   };
 
   auto recalc_objective = [&]() {
@@ -1848,35 +2019,48 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
     }
   };
 
-  auto terminate = [&]() { return false; };
+  auto terminate = [&]() { return iters > 5000; };
 
   calc_activites(false);
-  HighsInt iters = 0;
   bool last_iter_feas = false;
+  std::vector<std::pair<HighsInt, double>> candidate_moves;
+  candidate_moves.reserve(5000);
   // Main solving loop
   while (!terminate()) {
     // No rows are violated, so check the solution
     if (viol.viol_index.empty()) {
+      // Update object weight
+      if (viol.viol_index.empty()) {
+        obj_weight++;
+      }
       recalc_objective();
-      // Check if solution is feasible in original space (true placeholder) TODO
-      if (obj + 1e-8 < bestobj && true) {
+      // If solution is improving then store it
+      // TODO: Should we undo the transformation here??
+      if (obj + feastol < bestobj) {
+        found_feas_before = true;
         save_sol();
         if (cols_with_obj.empty()) break;
       }
-      // Perform a lift-move
-      if (lift_move(!last_iter_feas)) {
+      // Perform one-opt ("lift move")
+      if (one_opt(!last_iter_feas)) {
         iters++;
         last_iter_feas = true;
         continue;
       }
     }
     // Explore neighbourhood
-    best_col, best_delta = explore_neighbourhood(); // TODO
+    HighsInt candidate = explore_neighbourhood(candidate_moves);
+    apply_move(candidate_moves[candidate].first,
+               candidate_moves[candidate].second);
+    candidate_moves.clear();
     // Update weight of all unsatisfied constraints
     for (HighsInt r : viol.viol_index) {
       weights[r]++;
     }
+    iters++;
   }
+  if (found_feas_before) return true;
+  return false;
 }
 
 #if 0
