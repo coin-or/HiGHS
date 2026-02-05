@@ -127,8 +127,10 @@ void PreprocessFixedVars::apply(Model& model) {
 
   // See "Preprocessing for quadratic programming", Gould, Toint, Math Program
   fixed_vars = 0;
-  for (Int i = 0; i < n; ++i)
-    if (lower[i] == upper[i]) ++fixed_vars;
+  for (Int j = 0; j < n; ++j) {
+    if (lower[j] == upper[j]) ++fixed_vars;
+    data[j].c = c[j];
+  }
 
   // cannot remove all variables
   if (fixed_vars == n) fixed_vars = 0;
@@ -143,9 +145,8 @@ void PreprocessFixedVars::apply(Model& model) {
         const double xcol = fixed_at[j];
 
         FixedVarsData& dataj = data[j];
-        dataj.c = c[j];
 
-        offset += c[j] * xcol;
+        offset += dataj.c * xcol;
         if (model.qp()) offset += 0.5 * Q.diag(j) * xcol * xcol;
 
         for (Int el = A.start_[j]; el < A.start_[j + 1]; ++el) {
@@ -245,17 +246,17 @@ void PreprocessFixedVars::undo(PreprocessorPoint& point, const Model& model,
         // compute dual variables so that they are dual feasible
         // z = c - A^T * y + Q * x
         // need to do this after all x have been computed, due to Q*x term
-        const auto& datai = data.at(j);
-        double z = datai.c;
-        for (Int i = 0; i < datai.indA.size(); ++i) {
-          const Int row = datai.indA[i];
-          const double val = datai.valA[i];
+        const auto& dataj = data.at(j);
+        double z = dataj.c;
+        for (Int i = 0; i < dataj.indA.size(); ++i) {
+          const Int row = dataj.indA[i];
+          const double val = dataj.valA[i];
           z -= val * point.y[row];
         }
         if (model.qp()) {
-          for (Int i = 0; i < datai.indQ.size(); ++i) {
-            const Int row = datai.indQ[i];
-            const double val = datai.valQ[i];
+          for (Int i = 0; i < dataj.indQ.size(); ++i) {
+            const Int row = dataj.indQ[i];
+            const double val = dataj.valQ[i];
             z += val * new_x[row];
           }
         }
