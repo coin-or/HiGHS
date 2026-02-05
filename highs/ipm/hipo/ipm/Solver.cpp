@@ -67,6 +67,8 @@ void Solver::solve() {
 void Solver::runIpm() {
   if (initialise()) return;
 
+  printf("Start main loop\n");
+
   while (iter_ < options_.max_iter) {
     if (prepareIter()) break;
     if (predictor()) break;
@@ -131,6 +133,8 @@ bool Solver::prepareIter() {
   if (checkTermination()) return true;
   if (checkInterrupt()) return true;
 
+  printf("Checked iter\n");
+
   ++iter_;
 
   // Clear Newton direction
@@ -143,6 +147,8 @@ bool Solver::prepareIter() {
 
   // compute theta inverse
   it_->computeScaling();
+
+  printf("Finish preparing\n");
 
   return false;
 }
@@ -157,7 +163,11 @@ bool Solver::predictor() {
   sigmaAffine();
   it_->residual56(sigma_);
 
+  printf("start solve system\n");
+
   if (solveNewtonSystem(it_->delta)) return true;
+
+  printf("finish solve system\n");
 
   return false;
 }
@@ -168,8 +178,12 @@ bool Solver::correctors() {
 
   if (checkInterrupt()) return true;
 
+  printf("start correctors\n");
+
   sigmaCorrectors();
   if (centralityCorrectors()) return true;
+
+  printf("finish correctors\n");
 
   return false;
 }
@@ -551,6 +565,9 @@ void Solver::stepSizes() {
 }
 
 void Solver::makeStep() {
+
+printf("start step\n");
+
   stepSizes();
 
   // keep track of iterations with small stepsizes
@@ -567,10 +584,14 @@ void Solver::makeStep() {
   vectorAdd(it_->zl, it_->delta.zl, alpha_dual_);
   vectorAdd(it_->zu, it_->delta.zu, alpha_dual_);
 
+  printf("step done\n");
+
   // compute new quantities
   it_->residual1234();
   it_->computeMu();
   it_->indicators();
+
+  printf("iter done\n");
 
   printOutput();
 }
