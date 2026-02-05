@@ -123,10 +123,10 @@ class Model {
   Int loadIntoIpx(ipx::LpSolver& lps) const;
 
   // classes for preprocessing
-  friend class PreprocessEmptyRows;
-  friend class PreprocessFixedVars;
-  friend class PreprocessScaling;
-  friend class PreprocessFormulation;
+  friend struct PreprocessEmptyRows;
+  friend struct PreprocessFixedVars;
+  friend struct PreprocessScaling;
+  friend struct PreprocessFormulation;
 };
 
 }  // namespace hipo
