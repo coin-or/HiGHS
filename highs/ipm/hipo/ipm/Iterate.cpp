@@ -654,7 +654,7 @@ void Iterate::getReg(LinearSolver& LS, OptionNla opt) {
     Rd = total_reg.data();
   } else {
     Rp = total_reg.data();
-    Rd = &total_reg[model.n()];
+    Rd = model.m() > 0 ? &total_reg[model.n()] : nullptr;
   }
 }
 
@@ -667,7 +667,7 @@ void Iterate::residuals6x6(const NewtonDir& d) {
   const std::vector<double>& dzu = d.zu;
   const Int m = model.m();
   const Int n = model.n();
-  assert(Rd);
+  assert(Rd || m == 0);
 
   // res1,2,3,4,5,6 contain the rhs of the linear system
 
