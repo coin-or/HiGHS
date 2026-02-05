@@ -384,6 +384,11 @@
 - Type: boolean
 - Default: "false"
 
+## mip\_allow\_cut\_separation\_at\_nodes
+- Whether cut separation at nodes is permitted
+- Type: boolean
+- Default: "true"
+
 ## mip\_rel\_gap
 - Tolerance on relative gap, |ub-lb|/|ub|, to determine whether optimality has been reached for a MIP instance
 - Type: double
@@ -403,12 +408,12 @@
 - Default: 5
 
 ## [mip\_lp\_solver](@id option-mip-lp-solver)
-- MIP LP solver option: "choose", "simplex", "ipm", "ipx" or "hipo"
+- MIP LP solver: "choose", "simplex", "ipm", "ipx" or "hipo"
 - Type: string
 - Default: "choose"
 
 ## [mip\_ipm\_solver](@id option-mip-ipm-solver)
-- MIP IPM solver option: "choose", "ipx" or "hipo"
+- MIP IPM solver: "choose", "ipx" or "hipo"
 - Type: string
 - Default: "choose"
 
@@ -425,17 +430,17 @@
 - Default: 2147483647
 
 ## [hipo\_system](@id option-hipo-system)
-- HiPO Newton system option: "augmented", "normaleq" or "choose"
+- HiPO Newton system: "choose", "augmented" or "normaleq"
 - Type: string
 - Default: "choose"
 
 ## [hipo\_parallel\_type](@id option-hipo-parallel)
-- HiPO parallel option: "tree", "node" or "both"
+- HiPO parallelism: "tree", "node" or "both"
 - Type: string
 - Default: "both"
 
 ## [hipo\_ordering](@id option-hipo-ordering)
-- HiPO matrix reordering: "metis", "amd", "rcm" or "choose"
+- HiPO matrix reordering: "choose", "metis", "amd" or "rcm"
 - Type: string
 - Default: "choose"
 
@@ -469,27 +474,27 @@
 - Default: 1e-07
 
 ## qp\_iteration\_limit
-- Iteration limit for QP solver
+- Iteration limit for the active set QP solver
 - Type: integer
 - Range: {0, 2147483647}
 - Default: 2147483647
 
 ## [qp\_nullspace\_limit](@id option-qp-nullspace-limit)
-- Nullspace limit for QP solver
+- Nullspace limit for the active set QP solver
 - Type: integer
 - Range: {0, 2147483647}
 - Default: 4000
 
 ## qp\_regularization\_value
-- Regularization value added to the Hessian
+- Regularization value added to the Hessian in the active set QP solver
 - Type: double
 - Range: [0, inf]
 - Default: 1e-07
 
 ## [iis\_strategy](@id option-iis-strategy)
-- Strategy for IIS calculation: Light test / Full and prioritise rows / Full and prioritise columns (0/1/2)
+- Strategy for IIS calculation: 0 => Light test; 4 => Prioritise columns; 8 => Find true IIS; 16 => Find relaxation IIS for MIP
 - Type: integer
-- Range: {0, 2}
+- Range: {0, 31}
 - Default: 0
 
 ## blend\_multi\_objectives

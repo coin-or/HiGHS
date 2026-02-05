@@ -1268,21 +1268,21 @@ class HighsOptions : public HighsOptionsStruct {
 
     record_string = new OptionRecordString(
         kHipoSystemString,
-        "HiPO Newton system option: \"augmented\", \"normaleq\" or \"choose\".",
+        "HiPO Newton system: \"choose\", \"augmented\" or \"normaleq\"",
         advanced, &hipo_system, kHighsChooseString);
     records.push_back(record_string);
 
     record_string =
         new OptionRecordString(kHipoParallelString,
-                               "HiPO parallel option: \"tree\", "
-                               "\"node\" or \"both\".",
+                               "HiPO parallelism: \"tree\", "
+                               "\"node\" or \"both\"",
                                advanced, &hipo_parallel_type, kHipoBothString);
     records.push_back(record_string);
 
     record_string =
         new OptionRecordString(kHipoOrderingString,
-                               "HiPO matrix reordering option: \"metis\", "
-                               "\"amd\", \"rcm\" or \"choose\".",
+                               "HiPO matrix reordering: \"choose\", \"metis\", "
+                               "\"amd\" or \"rcm\"",
                                advanced, &hipo_ordering, kHighsChooseString);
     records.push_back(record_string);
 
@@ -1313,17 +1313,18 @@ class HighsOptions : public HighsOptionsStruct {
     records.push_back(record_double);
 
     record_int = new OptionRecordInt(
-        "qp_iteration_limit", "Iteration limit for QP solver", advanced,
-        &qp_iteration_limit, 0, kHighsIInf, kHighsIInf);
+        "qp_iteration_limit", "Iteration limit for the active set QP solver",
+        advanced, &qp_iteration_limit, 0, kHighsIInf, kHighsIInf);
     records.push_back(record_int);
 
-    record_int = new OptionRecordInt("qp_nullspace_limit",
-                                     "Nullspace limit for QP solver", advanced,
-                                     &qp_nullspace_limit, 0, 4000, kHighsIInf);
+    record_int = new OptionRecordInt(
+        "qp_nullspace_limit", "Nullspace limit for the active set QP solver",
+        advanced, &qp_nullspace_limit, 0, 4000, kHighsIInf);
     records.push_back(record_int);
 
     record_double = new OptionRecordDouble(
-        "qp_regularization_value", "Regularization value added to the Hessian",
+        "qp_regularization_value",
+        "Regularization value added to the Hessian in the active set QP solver",
         advanced, &qp_regularization_value, 0, kHessianRegularizationValue,
         kHighsInf);
     records.push_back(record_double);
