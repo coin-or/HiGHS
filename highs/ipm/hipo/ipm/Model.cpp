@@ -35,6 +35,9 @@ Int Model::init(const HighsLp& lp, const HighsHessian& Q) {
 
   if (checkData()) return kStatusBadModel;
 
+  for (Int i : A_.start_) printf("%d ",i);
+  printf("\n");
+
   ready_ = true;
 
   return 0;

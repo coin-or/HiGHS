@@ -290,8 +290,11 @@ void Solver::runCrossover() {
 }
 
 bool Solver::solveNewtonSystem(NewtonDir& delta) {
+  printf("\tstart solve 6x6\n");
   solve6x6(delta, it_->res);
+  printf("\tstart refine\n");
   refine(delta);
+  printf("\tdone refine\n");
 
   // Check for NaN of Inf
   if (it_->isDirNan(delta)) {
@@ -350,6 +353,7 @@ bool Solver::solve2x2(NewtonDir& delta, const Residuals& rhs) {
 
   // AUGMENTED SYSTEM
   else {
+    printf("\tstart factorisation\n");
     // factorise augmented system, if not yet done
     if (!LS_->valid_) {
       if (Int status = LS_->factorAS(theta_inv)) {
@@ -359,6 +363,7 @@ bool Solver::solve2x2(NewtonDir& delta, const Residuals& rhs) {
       }
       it_->getReg(*LS_, options_.nla);
     }
+    printf("\tdone factorisation\n");
 
     // solve with augmented system
     if (Int status = LS_->solveAS(res7, rhs.r1, delta.x, delta.y)) {
@@ -366,6 +371,8 @@ bool Solver::solve2x2(NewtonDir& delta, const Residuals& rhs) {
       info_.status = (Status)status;
       return true;
     }
+
+    printf("\tdone solve\n");
   }
 
   return false;
@@ -373,7 +380,10 @@ bool Solver::solve2x2(NewtonDir& delta, const Residuals& rhs) {
 
 bool Solver::solve6x6(NewtonDir& delta, const Residuals& rhs) {
   if (solve2x2(delta, rhs)) return true;
+
+  printf("\tdone solve 2x2\n");
   recoverDirection(delta, rhs);
+  printf("\tdone recover dir\n");
   return false;
 }
 
