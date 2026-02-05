@@ -12,7 +12,7 @@
 namespace hipo {
 
 class Model;
-class Iterate;
+struct Iterate;
 
 struct PreprocessorPoint {
   std::vector<double>& x;
