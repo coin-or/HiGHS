@@ -1010,11 +1010,71 @@ bool Solver::checkIterate() {
   return false;
 }
 
+bool Solver::checkStagnation() {
+  // too many iterations in a row with small stepsize
+  bool stagnation = (bad_iter_ >= kMaxBadIter);
+
+  // the next tests are aimed at problems where things are going
+  // catastrophically bad, which may continue iterating forever otherwise.
+
+  // dx / x or dy / y becoming way too small
+  const double thresh_dxy_xy = 1e-30;
+  if (iter_ > 0) {
+    std::vector<double> temp = it_->delta.x;
+    vectorDivide(temp, it_->x);
+    const double dx_x_max = infNorm(temp);
+
+    temp = it_->delta.y;
+    vectorDivide(temp, it_->y);
+    const double dy_y_max = infNorm(temp);
+
+    largest_dx_x_ = std::max(largest_dx_x_, dx_x_max);
+    largest_dy_y_ = std::max(largest_dy_y_, dy_y_max);
+
+    if (dx_x_max < largest_dx_x_ * thresh_dxy_xy ||
+        dy_y_max < largest_dy_y_ * thresh_dxy_xy) {
+      stagnation = true;
+      std::stringstream log_stream;
+      log_stream << "Bad direction ratios, dx_x " << sci(dx_x_max, 0, 1)
+                 << " (max " << sci(largest_dx_x_, 0, 1) << "), dy_y "
+                 << sci(dy_y_max, 0, 1) << " (max " << sci(largest_dy_y_, 0, 1)
+                 << ")\n";
+      logH_.printDevInfo(log_stream);
+    }
+
+  } else {
+    largest_dx_x_ = std::numeric_limits<double>::lowest();
+    largest_dy_y_ = std::numeric_limits<double>::lowest();
+  }
+
+  // infeasibilities jumping back up
+  const double thresh_inf_to_best = 1e12;
+  if (iter_ > 0) {
+    best_pinf_ = std::min(best_pinf_, it_->pinf);
+    best_dinf_ = std::min(best_dinf_, it_->dinf);
+
+    if (it_->pinf > thresh_inf_to_best * best_pinf_ ||
+        it_->dinf > thresh_inf_to_best * best_dinf_) {
+      stagnation = true;
+      std::stringstream log_stream;
+      log_stream << "Bad infeasibility, pinf " << sci(it_->pinf, 0, 1)
+                 << " (best " << sci(best_pinf_, 0, 1) << "), dinf "
+                 << sci(it_->dinf, 0, 1) << " (best " << sci(best_dinf_, 0, 1)
+                 << ")\n";
+      logH_.printDevInfo(log_stream);
+    }
+
+  } else {
+    best_pinf_ = kHighsInf;
+    best_dinf_ = kHighsInf;
+  }
+
+  return stagnation;
+}
+
 bool Solver::checkBadIter() {
   bool terminate = false;
-
-  // check for bad iterations
-  bool too_many_bad_iter = bad_iter_ >= kMaxBadIter;
+  bool stagnation = checkStagnation();
 
   // check for infeasibility
   bool mu_is_large =
@@ -1028,7 +1088,7 @@ bool Solver::checkBadIter() {
   bool clearly_infeasible =
       iter_ > 5 && (pobj_is_very_large || dobj_is_very_large);
 
-  if (too_many_bad_iter || mu_is_large || clearly_infeasible) {
+  if (stagnation || mu_is_large || clearly_infeasible) {
     bool pobj_is_larger =
         it_->pobj < -std::max(std::abs(it_->dobj) * kDivergeTol, 1.0);
     bool dobj_is_larger =
@@ -1044,8 +1104,8 @@ bool Solver::checkBadIter() {
       logH_.print("=== Primal infeasible\n");
       info_.status = kStatusPrimalInfeasible;
       terminate = true;
-    } else if (too_many_bad_iter) {
-      // Too many bad iterations in a row, abort the solver
+    } else if (stagnation) {
+      // stagnation detected, abort the solver
       info_.status = kStatusNoProgress;
       terminate = true;
     }

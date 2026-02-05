@@ -66,6 +66,10 @@ class Solver {
 
   double start_time_;
 
+  // statistics of previous iterations
+  double largest_dx_x_, largest_dy_y_;
+  double best_pinf_, best_dinf_;
+
  public:
   // ===================================================================================
   // Load an LP or QP:
@@ -288,9 +292,10 @@ class Solver {
   bool checkIterate();
 
   // ===================================================================================
-  // If too many bad iterations happened consecutively, abort the iterations.
-  // Also, detect if the problem is primal or dual infeasible.
+  // Stop if detection is detected, or if the problem is primal or dual
+  // infeasible.
   // ===================================================================================
+  bool checkStagnation();
   bool checkBadIter();
 
   // ===================================================================================
