@@ -887,11 +887,6 @@ bool Solver::centralityCorrectors() {
   double alpha_p_old, alpha_d_old;
   stepsToBoundary(alpha_p_old, alpha_d_old, it_->delta);
 
-  std::stringstream log_stream;
-
-  log_stream << " * Pred " << fix(alpha_p_old, 0, 2) << " "
-             << fix(alpha_d_old, 0, 2) << "\n";
-
   Int cor;
   for (cor = 0; cor < info_.correctors; ++cor) {
     // compute rhs for corrector
@@ -906,13 +901,9 @@ bool Solver::centralityCorrectors() {
     double wd = wp;
     bestWeight(it_->delta, corr, wp, wd, alpha_p, alpha_d);
 
-    log_stream << " * Corr " << fix(alpha_p, 0, 2) << " " << fix(alpha_d, 0, 2)
-               << ", weight " << fix(wp, 0, 2) << " " << fix(wd, 0, 2) << "\n";
-
     if (alpha_p < alpha_p_old + kMccIncreaseAlpha * kMccIncreaseMin &&
         alpha_d < alpha_d_old + kMccIncreaseAlpha * kMccIncreaseMin) {
       // reject corrector
-      log_stream << "  ** Rejected\n";
       break;
     }
 
@@ -922,7 +913,6 @@ bool Solver::centralityCorrectors() {
       vectorAdd(it_->delta.xl, corr.xl, wp);
       vectorAdd(it_->delta.xu, corr.xu, wp);
       alpha_p_old = alpha_p;
-      log_stream << "  ** Primal accepted\n";
     }
     if (alpha_d >= alpha_d_old + kMccIncreaseAlpha * kMccIncreaseMin) {
       // accept dual corrector
@@ -930,7 +920,6 @@ bool Solver::centralityCorrectors() {
       vectorAdd(it_->delta.zl, corr.zl, wd);
       vectorAdd(it_->delta.zu, corr.zu, wd);
       alpha_d_old = alpha_d;
-      log_stream << "  ** Dual accepted\n";
     }
 
     if (alpha_p > 0.95 && alpha_d > 0.95) {
@@ -943,8 +932,6 @@ bool Solver::centralityCorrectors() {
   }
 
   it_->data.back().correctors = cor;
-
-  logH_.printDevDetailed(log_stream);
 
   return false;
 }
