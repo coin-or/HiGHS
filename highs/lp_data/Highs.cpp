@@ -1824,6 +1824,15 @@ HighsStatus Highs::calledOptimizeModel() {
   // HiGHS info is valid
   if (!no_incumbent_lp_solution_or_basis) {
     this->lpKktCheck(this->model_.lp_);
+    HighsModelStatus local_model_status = this->model_status_;
+    HighsInfo local_info = this->info_;
+    userLpKktCheck(local_model_status,
+		   local_info,
+		   this->model_.lp_,
+		   this->solution_,
+		   this->basis_,
+		   this->options_,		 
+		   "userLpKktCheck");
     info_.valid = true;
   }
 
