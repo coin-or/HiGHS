@@ -1833,6 +1833,8 @@ HighsStatus Highs::calledOptimizeModel() {
 		   this->basis_,
 		   this->options_,		 
 		   "userLpKktCheck");
+    assert(local_model_status == this->model_status_);
+    assert(this->info_.equal(local_info));
     info_.valid = true;
   }
 
