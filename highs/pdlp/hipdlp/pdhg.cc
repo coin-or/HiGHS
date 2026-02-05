@@ -742,6 +742,15 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
           restart_scheme_.duality_gap_last_restart_ =
               average_results.duality_gap;
 
+              // --- 5b. Apply Halpern averaging if enabled ---
+    if (params_.use_halpern_restart) {
+    #ifdef CUPDLP_GPU
+          applyHalpernAveragingGpu();
+    #else
+          applyHalpernAveraging(x_next_, y_next_, Ax_next_, ATy_next_);
+    #endif
+        } else {
+
 #ifdef CUPDLP_GPU
           CUDA_CHECK(cudaMemcpy(d_x_current_, d_x_avg_,
                                 a_num_cols_ * sizeof(double),
@@ -758,6 +767,7 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
           Ax_cache_ = Ax_avg;
           ATy_cache_ = ATy_avg;
 #endif
+          }
         } else {
           restart_scheme_.primal_feas_last_restart_ =
               current_results.primal_feasibility;
@@ -907,15 +917,6 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
     // Compute ATy for the new iterate
     Ax_cache_ = Ax_next_;
     ATy_cache_ = ATy_next_;
-
-    // --- 5b. Apply Halpern averaging if enabled ---
-    if (params_.use_halpern_restart) {
-#ifdef CUPDLP_GPU
-      applyHalpernAveragingGpu();
-#else
-      applyHalpernAveraging(x_next_, y_next_, Ax_next_, ATy_next_);
-#endif
-    }
 
 #if PDLP_PROFILE
     hipdlpTimerStop(kHipdlpClockIterateUpdate);
@@ -2523,7 +2524,7 @@ void PDLPSolver::applyHalpernAveragingGpu(){
                              d_y_next_, 1));
   if (gamma > 0.0) {                                                  
   CUBLAS_CHECK(cublasDaxpy(cublas_handle_, a_num_rows, &t2,
-                             d_y_anchor_, 1, d_y_next_, 1));
+                             d_y_current_, 1, d_y_next_, 1));
   }
 
   CUBLAS_CHECK(cublasDaxpy(cublas_handle_, a_num_rows_, &one_minus_alpha,
