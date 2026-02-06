@@ -1219,8 +1219,8 @@ class HighsOptions : public HighsOptionsStruct {
 
     record_bool = new OptionRecordBool(
         "mip_allow_cut_separation_at_nodes",
-        "Whether cut separation at nodes (after root) is permitted", advanced,
-        &mip_allow_cut_separation_at_nodes, true);
+        "Whether cut separation at nodes other than the root node is permitted",
+        advanced, &mip_allow_cut_separation_at_nodes, true);
     records.push_back(record_bool);
 
     record_double = new OptionRecordDouble(
