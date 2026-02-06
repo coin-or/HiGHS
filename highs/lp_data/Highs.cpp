@@ -1664,20 +1664,8 @@ HighsStatus Highs::calledOptimizeModel() {
       presolve_.data_.recovered_solution_ = solution_;
       presolve_.data_.recovered_basis_ = basis_;
 
-      if (model_presolve_status_ == HighsPresolveStatus::kReduced) {
-        this->lpKktCheck(presolve_.getReducedProblem(), "Before postsolve");
-	HighsModelStatus local_model_status = this->model_status_;
-	HighsInfo local_info = this->info_;
-	userLpKktCheck(local_model_status,
-		       local_info,
-		       presolve_.getReducedProblem(),
-		       this->solution_,
-		       this->basis_,
-		       this->options_,		 
-		       "userLpKktCheck: Before postsolve");
-	assert(local_model_status == this->model_status_);
-	assert(this->info_.equal(local_info));
-      }
+      if (model_presolve_status_ == HighsPresolveStatus::kReduced)
+        this->callLpKktCheck(presolve_.getReducedProblem(), "Before postsolve");
 
       this_postsolve_time = -timer_.read(timer_.postsolve_clock);
       timer_.start(timer_.postsolve_clock);
@@ -1835,18 +1823,7 @@ HighsStatus Highs::calledOptimizeModel() {
   // Unless the model status was determined using the strictly reduced LP, the
   // HiGHS info is valid
   if (!no_incumbent_lp_solution_or_basis) {
-    this->lpKktCheck(this->model_.lp_);
-    HighsModelStatus local_model_status = this->model_status_;
-    HighsInfo local_info = this->info_;
-    userLpKktCheck(local_model_status,
-		   local_info,
-		   this->model_.lp_,
-		   this->solution_,
-		   this->basis_,
-		   this->options_,		 
-		   "userLpKktCheck");
-    assert(local_model_status == this->model_status_);
-    assert(this->info_.equal(local_info));
+    this->callLpKktCheck(this->model_.lp_);
     info_.valid = true;
   }
 

@@ -520,7 +520,7 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
   // is claimed when there are residual errors, or denied when PDLP or
   // IPX without crossover are used, since they are deemed feasible
   // according to relative tolerances. This will be cleaned up in
-  // Highs::lpKktCheck, when the existence of a basis determines
+  // Highs::callLpKktCheck, when the existence of a basis determines
   // whether absolute or relative measures are used.
 
   if (num_primal_infeasibility) {
@@ -986,27 +986,22 @@ bool getComplementarityViolations(const HighsLp& lp,
   return true;
 }
 
-void userLpNoBasisKktCheck(HighsModelStatus& model_status,
-			   HighsInfo& info,
-			   const HighsLp& lp,
-			   const HighsSolution& solution,
-			   const HighsOptions& options,
-			   const std::string& message) {
+void lpNoBasisKktCheck(HighsModelStatus& model_status, HighsInfo& info,
+                       const HighsLp& lp, const HighsSolution& solution,
+                       const HighsOptions& options,
+                       const std::string& message) {
   HighsBasis basis;
-  userLpKktCheck(model_status, info, lp, solution, basis, options, message);
+  lpKktCheck(model_status, info, lp, solution, basis, options, message);
 }
 
-void userLpKktCheck(HighsModelStatus& model_status,
-		    HighsInfo& info,
-		    const HighsLp& lp,
-		    const HighsSolution& solution,
-		    const HighsBasis& basis,
-		    const HighsOptions& options,
-		    const std::string& message) {
+void lpKktCheck(HighsModelStatus& model_status, HighsInfo& info,
+                const HighsLp& lp, const HighsSolution& solution,
+                const HighsBasis& basis, const HighsOptions& options,
+                const std::string& message) {
   if (!solution.value_valid) return;
   // Must have dual values for an LP if there are primal values
   assert(solution.dual_valid);
-  
+
   const HighsLogOptions& log_options = options.log_options;
   double primal_feasibility_tolerance = options.primal_feasibility_tolerance;
   double dual_feasibility_tolerance = options.dual_feasibility_tolerance;
