@@ -1670,7 +1670,7 @@ HighsStatus Highs::calledOptimizeModel() {
 	HighsInfo local_info = this->info_;
 	userLpKktCheck(local_model_status,
 		       local_info,
-		       this->model_.lp_,
+		       presolve_.getReducedProblem(),
 		       this->solution_,
 		       this->basis_,
 		       this->options_,		 
