@@ -55,6 +55,8 @@ enum class RawTokenType {
   ASTERISK
 };
 
+/*
+  // Useful for debugging
 static std::string tokenTypeToString(const RawTokenType& type) {
   switch (type) {
   case RawTokenType::NONE:
@@ -93,6 +95,7 @@ static std::string tokenTypeToString(const RawTokenType& type) {
     return "Unknown";
   }
 }
+*/
 
 struct RawToken {
   RawTokenType type = RawTokenType::NONE;
@@ -283,7 +286,7 @@ class Reader {
                        std::vector<ProcessedToken>::iterator end,
                        std::shared_ptr<Expression> expr, bool isobj);
 
-  void printRawTokens();
+  //  void printRawTokens();
  public:
   Reader(std::string filename) {
 #ifdef ZLIB_FOUND
@@ -1357,6 +1360,8 @@ bool Reader::readnexttoken(RawToken& t) {
   return false;
 }
 
+/*
+  // Useful for debugging
 void Reader::printRawTokens() {
   for(int iToken=0; iToken < NRAWTOKEN; iToken++) {
     const RawToken& rawtoken = rawtokens[iToken];
@@ -1367,3 +1372,4 @@ void Reader::printRawTokens() {
   }
   printf("\n");
 }
+*/
