@@ -48,6 +48,9 @@ std::string HighsMipSolverData::solutionSourceToString(
   } else if (solution_source == kSolutionSourceSubMip) {
     if (code) return "L";
     return "Sub-MIP";
+  } else if (solution_source == kSolutionSourceLocalMip) {
+    if (code) return "M";
+    return "Local MIP";
   } else if (solution_source == kSolutionSourceEmptyMip) {
     if (code) return "P";
     return "Empty MIP";
@@ -2034,6 +2037,8 @@ restart:
   analysis.mipTimerStop(kMipClockRandomizedRounding);
   if (mipsolver.options_mip_->mip_heuristic_run_shifting)
     heuristics.shifting(firstlpsol);
+
+  heuristics.localMip();
 
   heuristics.flushStatistics();
 

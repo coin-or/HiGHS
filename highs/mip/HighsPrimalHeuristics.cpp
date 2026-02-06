@@ -1590,8 +1590,9 @@ void HighsPrimalHeuristics::centralRounding() {
                        kSolutionSourceCentralRounding);
 }
 
-bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
-                                     std::vector<double>& intsol) {
+bool HighsPrimalHeuristics::localMip() {
+  const HighsDomain& globaldom = mipsolver.mipdata_->domain;
+  std::vector<double> intsol(mipsolver.numCol());
   bool found_feas_before = false;
   double feastol = mipsolver.mipdata_->feastol;
   const HighsSparseMatrix& a_matrix = mipsolver.model_->a_matrix_;
@@ -1650,9 +1651,9 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
   }
 
   auto is_violated = [&](const HighsCDouble& act, HighsInt r) {
-    if (act < mipsolver.model_->row_lower_[r] - feastol) return false;
-    if (act > mipsolver.model_->row_upper_[r] + feastol) return false;
-    return true;
+    if (act < mipsolver.model_->row_lower_[r] - feastol) return true;
+    if (act > mipsolver.model_->row_upper_[r] + feastol) return true;
+    return false;
   };
 
   struct Violated {
@@ -1685,7 +1686,7 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
   std::vector<HighsCDouble> activities(mipsolver.numRow());
 
   auto calc_activites = [&](bool reset_violated) {
-    activities.clear();
+    std::fill(activities.begin(), activities.end(), 0.0);
     if (reset_violated) {
       viol.viol_index.clear();
       viol.viol.assign(mipsolver.numRow(), -1);
@@ -1714,15 +1715,19 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
   };
 
   auto apply_move = [&](HighsInt c, double delta) {
-    delta = std::max(std::min(delta, globaldom.col_upper_[c] - sol[c]),
-                     sol[c] - globaldom.col_lower_[c]);
+    assert(sol[c] + delta > globaldom.col_lower_[c] - feastol);
+    assert(sol[c] + delta < globaldom.col_upper_[c] + feastol);
+    printf(
+        "Applying move col %d with delta %g. Current obj %g. Num viol rows "
+        "%lu\n",
+        c, delta, static_cast<double>(obj), viol.viol_index.size());
     sol[c] += delta;
     HighsInt start = a_matrix.start_[c];
     HighsInt end = a_matrix.start_[c + 1];
     for (HighsInt i = start; i < end; ++i) {
       HighsInt r = a_matrix.index_[i];
       double val = a_matrix.value_[i];
-      bool was_violated = viol.viol[r] == -1;
+      bool was_violated = viol.viol[r] != -1;
       activities[r] += val * delta;
       bool now_violated = is_violated(activities[r], r);
       if (was_violated && !now_violated) {
@@ -1735,6 +1740,10 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
       }
     }
     obj += delta * mipsolver.colCost(c);
+    printf(
+        "Applied move col %d with delta %g. Current obj %g. Num viol rows "
+        "%lu\n",
+        c, delta, static_cast<double>(obj), viol.viol_index.size());
     if (delta > 0) {
       allow_neg_delta[c] = iters + 5;
     } else {
@@ -1820,17 +1829,20 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
         std::abs(static_cast<double>(activities[r]) - row_lower);
     double slack_upper =
         std::abs(row_upper - static_cast<double>(activities[r]));
-    HighsInt dir = slack_lower > slack_upper ? -1 : 1;
-    double delta = dir == -1 ? std::abs(sol[c] - globaldom.col_lower_[c])
-                             : std::abs(globaldom.col_upper_[c] - sol[c]);
-    delta = dir == -1 ? std::min(delta, std::abs(slack_lower / coef))
-                      : std::min(delta, std::abs(slack_upper / coef));
+    HighsInt row_dir = slack_lower > slack_upper ? -1 : 1;
+    double delta = row_dir == -1 ? std::abs(slack_lower / coef)
+                                 : std::abs(slack_upper / coef);
+    HighsInt dir = coef < 0 ? -1 * row_dir : 1 * row_dir;
+    delta = dir == -1
+                ? std::min(std::abs(sol[c] - globaldom.col_lower_[c]), delta)
+                : std::min(std::abs(globaldom.col_upper_[c] - sol[c]), delta);
     if (mipsolver.isColIntegral(c)) {
       delta = std::floor(delta + feastol);
     }
     if (delta < feastol) return;
-    if (coef < 0) dir *= -1;
     if (!tabu(c, dir * delta)) return;
+    assert(sol[c] + delta * dir > globaldom.col_lower_[c] - feastol);
+    assert(sol[c] + delta * dir < globaldom.col_upper_[c] + feastol);
     moves.emplace_back(c, dir * delta);
   };
 
@@ -1885,18 +1897,20 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
         for (HighsInt c : cols_with_obj) {
           double obj_coef = mipsolver.colCost(c);
           if (std::abs(obj_coef) < feastol) continue;
-          const double obj_change = static_cast<double>(obj - bestobj);
-          assert(obj_change > 0);
+          const double obj_change =
+              std::max(static_cast<double>(obj - bestobj), feastol);
           HighsInt dir = obj_coef < 0 ? 1 : -1;
           double delta = obj_change / std::abs(obj_coef);
           if (mipsolver.isColIntegral(c)) {
-            delta = std::floor(delta + feastol);
+            delta = std::ceil(delta + feastol);
           }
           delta =
               dir == -1
                   ? std::min(delta, std::abs(sol[c] - globaldom.col_lower_[c]))
                   : std::min(delta, std::abs(globaldom.col_upper_[c] - sol[c]));
           if (delta < feastol) return;
+          assert(sol[c] + delta > globaldom.col_lower_[c] - feastol);
+          assert(sol[c] + delta < globaldom.col_upper_[c] + feastol);
           moves.emplace_back(c, delta * dir);
         }
       };
@@ -1917,7 +1931,7 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
         }
       }
     }
-    if (found_feas_before && obj > bestobj + feastol) {
+    if (found_feas_before && obj > bestobj - feastol) {
       explore_breakthrough(moves);
     }
     sample_operations(moves, num_violated_rows_sample, n);
@@ -1944,9 +1958,10 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
 
   auto score_moves = [&](std::vector<std::pair<HighsInt, double>>& moves,
                          HighsInt n) {
-    HighsInt best_i = 0;
-    double best_score = -kHighsInf;
+    HighsInt best_i = -1;
+    double best_score = 0;
     for (HighsInt i = 0; i < n; ++i) {
+      HighsInt feas_improvements = 0;
       HighsInt score = 0;
       HighsInt c = moves[i].first;
       double delta = moves[i].second;
@@ -1974,18 +1989,20 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
         bool now_satisfied = new_violation < feastol;
         if (!was_satisfied && now_satisfied) {
           score += 2 * weights[r];
+          feas_improvements++;
         } else if (was_satisfied && !now_satisfied) {
           score -= 2 * weights[r];
         } else if (!now_satisfied && !was_satisfied) {
           if (old_violation > new_violation) {
             score += weights[r];
+            feas_improvements++;
           } else {
             score -= weights[r];
           }
         }
       }
-      if (score > best_score) {
-        best_score = score;
+      if (score > best_score || (best_score == 0 && feas_improvements > 1)) {
+        best_score = std::max(score, 0);
         best_i = i;
       }
     }
@@ -2017,6 +2034,7 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
     for (HighsInt c = 0; c != mipsolver.numCol(); ++c) {
       intsol[c] = sol[c];
     }
+    bestobj = obj;
   };
 
   auto terminate = [&]() { return iters > 5000; };
@@ -2050,8 +2068,10 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
     }
     // Explore neighbourhood
     HighsInt candidate = explore_neighbourhood(candidate_moves);
-    apply_move(candidate_moves[candidate].first,
-               candidate_moves[candidate].second);
+    if (candidate != -1) {
+      apply_move(candidate_moves[candidate].first,
+                 candidate_moves[candidate].second);
+    }
     candidate_moves.clear();
     // Update weight of all unsatisfied constraints
     for (HighsInt r : viol.viol_index) {
@@ -2059,7 +2079,12 @@ bool HighsPrimalHeuristics::localMip(HighsDomain& globaldom,
     }
     iters++;
   }
-  if (found_feas_before) return true;
+  if (found_feas_before) {
+    recalc_objective();
+    mipsolver.mipdata_->addIncumbent(intsol, static_cast<double>(obj),
+                                     kSolutionSourceLocalMip);
+    return true;
+  }
   return false;
 }
 
