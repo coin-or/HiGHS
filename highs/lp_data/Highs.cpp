@@ -1664,8 +1664,20 @@ HighsStatus Highs::calledOptimizeModel() {
       presolve_.data_.recovered_solution_ = solution_;
       presolve_.data_.recovered_basis_ = basis_;
 
-      if (model_presolve_status_ == HighsPresolveStatus::kReduced)
+      if (model_presolve_status_ == HighsPresolveStatus::kReduced) {
         this->lpKktCheck(presolve_.getReducedProblem(), "Before postsolve");
+	HighsModelStatus local_model_status = this->model_status_;
+	HighsInfo local_info = this->info_;
+	userLpKktCheck(local_model_status,
+		       local_info,
+		       this->model_.lp_,
+		       this->solution_,
+		       this->basis_,
+		       this->options_,		 
+		       "userLpKktCheck: Before postsolve");
+	assert(local_model_status == this->model_status_);
+	assert(this->info_.equal(local_info));
+      }
 
       this_postsolve_time = -timer_.read(timer_.postsolve_clock);
       timer_.start(timer_.postsolve_clock);
