@@ -751,22 +751,22 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
     #endif
         } else {
 
-#ifdef CUPDLP_GPU
-          CUDA_CHECK(cudaMemcpy(d_x_current_, d_x_avg_,
-                                a_num_cols_ * sizeof(double),
-                                cudaMemcpyDeviceToDevice));
-          CUDA_CHECK(cudaMemcpy(d_y_current_, d_y_avg_,
-                                a_num_rows_ * sizeof(double),
-                                cudaMemcpyDeviceToDevice));
-          linalgGpuAx(d_x_current_, d_ax_current_);
-          linalgGpuATy(d_y_current_, d_aty_current_);
-#else
-          x_current_ = x_avg_;
-          y_current_ = y_avg_;
+    #ifdef CUPDLP_GPU
+              CUDA_CHECK(cudaMemcpy(d_x_current_, d_x_avg_,
+                                    a_num_cols_ * sizeof(double),
+                                    cudaMemcpyDeviceToDevice));
+              CUDA_CHECK(cudaMemcpy(d_y_current_, d_y_avg_,
+                                    a_num_rows_ * sizeof(double),
+                                    cudaMemcpyDeviceToDevice));
+              linalgGpuAx(d_x_current_, d_ax_current_);
+              linalgGpuATy(d_y_current_, d_aty_current_);
+    #else
+              x_current_ = x_avg_;
+              y_current_ = y_avg_;
 
-          Ax_cache_ = Ax_avg;
-          ATy_cache_ = ATy_avg;
-#endif
+              Ax_cache_ = Ax_avg;
+              ATy_cache_ = ATy_avg;
+    #endif
           }
         } else {
           restart_scheme_.primal_feas_last_restart_ =
