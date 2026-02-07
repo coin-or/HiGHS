@@ -719,7 +719,7 @@ class HighsOptions : public HighsOptionsStruct {
 
     record_string =
         new OptionRecordString(kSolverString,
-                               "LP solver: \"choose\", \"simplex\", "
+                               "LP/QP solver: \"choose\", \"simplex\", "
                                "\"ipm\", \"ipx\", \"hipo\" or \"pdlp\"",
                                advanced, &solver, kHighsChooseString);
     records.push_back(record_string);
