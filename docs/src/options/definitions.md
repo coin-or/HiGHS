@@ -115,19 +115,19 @@
 - Range: {0, 2147483647}
 - Default: 0
 
-## [user\_objective\_scale](@id option-user_objective_scale)
+## [user\_objective\_scale](@id option-user-objective-scale)
 - Exponent of power-of-two objective scaling for model
 - Type: integer
 - Range: {-2147483647, 2147483647}
 - Default: 0
 
-## [user\_bound\_scale](@id option-user_bound_scale)
+## [user\_bound\_scale](@id option-user-bound-scale)
 - Exponent of power-of-two bound scaling for model
 - Type: integer
 - Range: {-2147483647, 2147483647}
 - Default: 0
 
-## [simplex\_strategy](@id option-simplex_strategy)
+## [simplex\_strategy](@id option-simplex-strategy)
 - Strategy for simplex solver 0 => Choose; 1 => Dual (serial); 2 => Dual (SIP); 3 => Dual (PAMI); 4 => Primal
 - Type: integer
 - Range: {0, 4}
