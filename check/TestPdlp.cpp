@@ -501,7 +501,7 @@ TEST_CASE("hi-pdlp-halpern", "[pdlp]") {
   h.setOptionValue("pdlp_step_size_strategy", 1);
   h.setOptionValue("pdlp_restart_strategy", kPdlpRestartStrategyHalpern); // kPdlpRestartStrategyHalpern
   //turn on log
-  h.setOptionValue("log_dev_level", kHighsLogDevLevelVerbose);
+  //h.setOptionValue("log_dev_level", kHighsLogDevLevelVerbose);
   h.setOptionValue("pdlp_iteration_limit", 8000);
   // h.setOptionValue("pdlp_time_limit", 60);
   //    h.setOptionValue("log_dev_level", kHighsLogDevLevelVerbose);
