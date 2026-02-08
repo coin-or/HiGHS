@@ -920,18 +920,23 @@ void reportOptions(FILE* file, const HighsLogOptions& log_options,
                    const bool report_only_deviations,
                    const HighsFileType file_type) {
   HighsInt num_options = option_records.size();
+  const bool not_md_or_full =
+      file_type != HighsFileType::kMd && file_type != HighsFileType::kFull;
+  if (file_type == HighsFileType::kMd)
+    fprintf(file, "# [List of options](@id option-definitions)\n\n");
   for (HighsInt index = 0; index < num_options; index++) {
     HighsOptionType type = option_records[index]->type;
-    if (option_records[index]->name == kLogFileString) {
-      // Default HiGHS log file name is "" so that deviations from it
-      // trigger opening the log file. However, it's unnecessary to
-      // report the deviation to kLogFileString, which is the default
-      // non-empty log file name in HighsRun.cpp
-      if (*((OptionRecordString*)option_records[index])[0].value ==
-          kHighsRunLogFile)
-        continue;
+    if (not_md_or_full) {
+      if (option_records[index]->name == kLogFileString) {
+        // Default HiGHS log file name is "" so that deviations from it
+        // trigger opening the log file. However, it's unnecessary to
+        // report the deviation to kLogFileString, which is the default
+        // non-empty log file name in HighsRun.cpp
+        if (*((OptionRecordString*)option_records[index])[0].value ==
+            kHighsRunLogFile)
+          continue;
+      }
     }
-
     // Only report non-advanced options
     if (option_records[index]->advanced) {
       // Possibly skip the advanced options when creating Md file
@@ -963,8 +968,11 @@ void reportOption(FILE* file, const HighsLogOptions& log_options,
                   const HighsFileType file_type) {
   if (!report_only_deviations || option.default_value != *option.value) {
     if (file_type == HighsFileType::kMd) {
-      fprintf(file, "## %s\n- %s\n- Type: boolean\n- Default: \"%s\"\n\n",
+      fprintf(file,
+              "## [%s](@id option-%s)\n- %s\n- Type: boolean\n- Default: "
+              "\"%s\"\n\n",
               highsInsertMdEscapes(option.name).c_str(),
+              highsInsertMdId(option.name).c_str(),
               highsInsertMdEscapes(option.description).c_str(),
               highsBoolToString(option.default_value).c_str());
     } else if (file_type == HighsFileType::kFull) {
@@ -995,13 +1003,14 @@ void reportOption(FILE* file, const HighsLogOptions& log_options,
                   const HighsFileType file_type) {
   if (!report_only_deviations || option.default_value != *option.value) {
     if (file_type == HighsFileType::kMd) {
-      fprintf(
-          file,
-          "## %s\n- %s\n- Type: integer\n- Range: {%d, %d}\n- Default: %d\n\n",
-          highsInsertMdEscapes(option.name).c_str(),
-          highsInsertMdEscapes(option.description).c_str(),
-          int(option.lower_bound), int(option.upper_bound),
-          int(option.default_value));
+      fprintf(file,
+              "## [%s](@id option-%s)\n- %s\n- Type: integer\n- Range: {%d, "
+              "%d}\n- Default: %d\n\n",
+              highsInsertMdEscapes(option.name).c_str(),
+              highsInsertMdId(option.name).c_str(),
+              highsInsertMdEscapes(option.description).c_str(),
+              int(option.lower_bound), int(option.upper_bound),
+              int(option.default_value));
     } else if (file_type == HighsFileType::kFull) {
       fprintf(file, "\n# %s\n", option.description.c_str());
       fprintf(file,
@@ -1028,12 +1037,13 @@ void reportOption(FILE* file, const HighsLogOptions& log_options,
                   const HighsFileType file_type) {
   if (!report_only_deviations || option.default_value != *option.value) {
     if (file_type == HighsFileType::kMd) {
-      fprintf(
-          file,
-          "## %s\n- %s\n- Type: double\n- Range: [%g, %g]\n- Default: %g\n\n",
-          highsInsertMdEscapes(option.name).c_str(),
-          highsInsertMdEscapes(option.description).c_str(), option.lower_bound,
-          option.upper_bound, option.default_value);
+      fprintf(file,
+              "## [%s](@id option-%s)\n- %s\n- Type: double\n- Range: [%g, "
+              "%g]\n- Default: %g\n\n",
+              highsInsertMdEscapes(option.name).c_str(),
+              highsInsertMdId(option.name).c_str(),
+              highsInsertMdEscapes(option.description).c_str(),
+              option.lower_bound, option.upper_bound, option.default_value);
     } else if (file_type == HighsFileType::kFull) {
       fprintf(file, "\n# %s\n", option.description.c_str());
       fprintf(file,
@@ -1064,10 +1074,13 @@ void reportOption(FILE* file, const HighsLogOptions& log_options,
 
   if (!report_only_deviations || option.default_value != *option.value) {
     if (file_type == HighsFileType::kMd) {
-      fprintf(file, "## %s\n- %s\n- Type: string\n- Default: \"%s\"\n\n",
-              highsInsertMdEscapes(option.name).c_str(),
-              highsInsertMdEscapes(option.description).c_str(),
-              option.default_value.c_str());
+      fprintf(
+          file,
+          "## [%s](@id option-%s)\n- %s\n- Type: string\n- Default: \"%s\"\n\n",
+          highsInsertMdEscapes(option.name).c_str(),
+          highsInsertMdId(option.name).c_str(),
+          highsInsertMdEscapes(option.description).c_str(),
+          option.default_value.c_str());
     } else if (file_type == HighsFileType::kFull) {
       fprintf(file, "\n# %s\n", option.description.c_str());
       fprintf(file, "# [type: string, advanced: %s, default: \"%s\"]\n",

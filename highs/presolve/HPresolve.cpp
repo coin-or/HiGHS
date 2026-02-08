@@ -5018,8 +5018,16 @@ HPresolve::Result HPresolve::enumerateSolutions(
     numWorstCaseBounds--;
   };
 
+  auto varsFormClique = [&](size_t numVars, size_t minNumActiveCols,
+                            size_t maxNumActiveCols) {
+    return (maxNumActiveCols == 1 || (minNumActiveCols == numVars - 1 &&
+                                      maxNumActiveCols == numVars - 1));
+  };
+
   auto handleSolution = [&](size_t numVars, size_t& numSolutions,
-                            size_t& numWorstCaseBounds, bool& noReductions) {
+                            size_t& numWorstCaseBounds,
+                            size_t& minNumActiveCols, size_t& maxNumActiveCols,
+                            bool& noReductions) {
     // propagate
     domain.propagate();
     if (domain.infeasible()) return;
@@ -5056,14 +5064,21 @@ HPresolve::Result HPresolve::enumerateSolutions(
         }
       }
     }
-    // store solution
-    for (size_t i = 0; i < numVars; i++)
-      solutions[i][numSolutions] =
-          (domain.col_lower_[vars[i]] == 0.0 ? HighsInt{0} : HighsInt{1});
+    // store solution and compute minimum and maximum number of active variables
+    // (i.e. those having solution value of 1)
+    size_t numActiveCols = 0;
+    for (size_t i = 0; i < numVars; i++) {
+      HighsInt solValue = domain.col_lower_[vars[i]] == 0.0 ? 0 : 1;
+      solutions[i][numSolutions] = solValue;
+      if (solValue != 0) numActiveCols++;
+    }
+    minNumActiveCols = std::min(minNumActiveCols, numActiveCols);
+    maxNumActiveCols = std::max(maxNumActiveCols, numActiveCols);
     numSolutions++;
 
     // if no reductions are possible, stop enumerating solutions
-    noReductions = numWorstCaseBounds == 0;
+    noReductions = numWorstCaseBounds == 0 &&
+                   !varsFormClique(numVars, minNumActiveCols, maxNumActiveCols);
     if (noReductions) {
       for (size_t i = 0; i < numVars - 1; i++) {
         for (size_t ii = i + 1; ii < numVars; ii++) {
@@ -5078,6 +5093,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
   // loop over candidate rows
   HighsInt numRowsChecked = 0;
+  HighsInt numCliquesFound = 0;
   for (const auto& r : rows) {
     // get row index
     HighsInt row = r.row;
@@ -5107,6 +5123,8 @@ HPresolve::Result HPresolve::enumerateSolutions(
     HighsInt numBranches = -1;
     size_t numWorstCaseBounds = 0;
     size_t numSolutions = 0;
+    size_t minNumActiveCols = numVars;
+    size_t maxNumActiveCols = 0;
     bool noReductions = false;
     while (true) {
       bool backtrack = domain.infeasible();
@@ -5114,7 +5132,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
         backtrack = solutionFound(numVars);
         if (backtrack) {
           handleSolution(numVars, numSolutions, numWorstCaseBounds,
-                         noReductions);
+                         minNumActiveCols, maxNumActiveCols, noReductions);
           if (noReductions) break;
         }
       }
@@ -5138,11 +5156,22 @@ HPresolve::Result HPresolve::enumerateSolutions(
     // no solutions -> infeasible
     HPRESOLVE_CHECKED_CALL(handleInfeasibility(numSolutions == 0));
 
+    // check if all variables form a clique
+    if (varsFormClique(numVars, minNumActiveCols, maxNumActiveCols)) {
+      numCliquesFound++;
+      std::vector<HighsCliqueTable::CliqueVar> clique(numVars);
+      for (size_t i = 0; i < numVars; i++)
+        clique[i] =
+            HighsCliqueTable::CliqueVar(vars[i], maxNumActiveCols == 1 ? 1 : 0);
+      cliquetable.addClique(*mipsolver, clique.data(),
+                            static_cast<HighsInt>(numVars),
+                            minNumActiveCols == maxNumActiveCols);
+      HPRESOLVE_CHECKED_CALL(handleInfeasibility(domain.infeasible()));
+    }
+
     // analyse worst-case bounds
     for (size_t i = 0; i < numWorstCaseBounds; i++) {
       HighsInt col = worstCaseBounds[i];
-      assert(worstCaseLowerBound[col] >= domain.col_lower_[col]);
-      assert(worstCaseUpperBound[col] <= domain.col_upper_[col]);
       if (worstCaseLowerBound[col] > domain.col_lower_[col]) {
         // tighten lower bound
         col_lower[col] = worstCaseLowerBound[col];
@@ -5168,24 +5197,22 @@ HPresolve::Result HPresolve::enumerateSolutions(
     for (size_t i = 0; i < numVars - 1; i++) {
       // get column index
       HighsInt col = vars[i];
-      // skip already fixed columns
-      if (domain.isFixed(col)) continue;
       for (size_t ii = i + 1; ii < numVars; ii++) {
         // get column index
         HighsInt col2 = vars[ii];
-        // skip already fixed columns
-        if (domain.isFixed(col2)) continue;
         // check if two binary variables take identical or complementary
         // values in all feasible solutions
         if (identicalVars(numSolutions, i, ii)) {
-          // add clique x_1 + (1 - x_2) = 1 to clique table
+          // add clique (1 - x_1) + x_2 = 1 to clique table
+          numCliquesFound++;
           std::array<HighsCliqueTable::CliqueVar, 2> clique;
           clique[0] = HighsCliqueTable::CliqueVar(col, 0);
           clique[1] = HighsCliqueTable::CliqueVar(col2, 1);
           cliquetable.addClique(*mipsolver, clique.data(), 2, true);
           HPRESOLVE_CHECKED_CALL(handleInfeasibility(domain.infeasible()));
         } else if (complementaryVars(numSolutions, i, ii)) {
-          // add clique x_1 + x_2 = 1 to clique table
+          // add clique (1 - x_1) + (1 - x_2) = 1 to clique table
+          numCliquesFound++;
           std::array<HighsCliqueTable::CliqueVar, 2> clique;
           clique[0] = HighsCliqueTable::CliqueVar(col, 0);
           clique[1] = HighsCliqueTable::CliqueVar(col2, 0);
@@ -5208,7 +5235,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
   if (numVarsFixed > 0 || numBndsTightened > 0 || numVarsSubstituted > 0)
     highsLogDev(options->log_options, HighsLogType::kInfo,
                 "Enumeration presolve fixed %d columns, tightened %d bounds "
-                "and performed %d substitutions",
+                "and performed %d substitutions\n",
                 static_cast<int>(numVarsFixed),
                 static_cast<int>(numBndsTightened),
                 static_cast<int>(numVarsSubstituted));
