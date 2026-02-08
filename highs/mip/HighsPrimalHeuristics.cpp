@@ -1685,6 +1685,7 @@ bool HighsPrimalHeuristics::localMip() {
 
   std::vector<HighsInt> weights(mipsolver.numRow());
   HighsInt obj_weight = 0;
+  HighsInt momentum = 1;
   std::vector<HighsInt> allow_neg_delta(mipsolver.numCol());
   std::vector<HighsInt> allow_pos_delta(mipsolver.numCol());
   Violated viol(mipsolver.numRow());
@@ -1747,6 +1748,7 @@ bool HighsPrimalHeuristics::localMip() {
     } else {
       allow_pos_delta[c] = iters + 15;
     }
+    printf("Applying move col %d with delta %g\n", c, delta);
   };
 
   auto one_opt_calc_delta = [&](HighsInt c) -> double {
@@ -1838,11 +1840,12 @@ bool HighsPrimalHeuristics::localMip() {
     double delta = increase_activity == 1 ? std::abs(slack_lower / coef)
                                           : std::abs(slack_upper / coef);
     HighsInt dir = coef < 0 ? -increase_activity : increase_activity;
+    // TODO: Protect against cases where bounds for integral columns aren't integral.
     delta = dir == -1
                 ? std::min(std::abs(sol[c] - globaldom.col_lower_[c]), delta)
                 : std::min(std::abs(globaldom.col_upper_[c] - sol[c]), delta);
     if (mipsolver.isColIntegral(c)) {
-      delta = std::floor(delta + feastol);
+      delta = std::ceil(delta - feastol);
     }
     if (delta < feastol) return;
     if (!tabu(c, dir * delta)) return;
@@ -2000,13 +2003,13 @@ bool HighsPrimalHeuristics::localMip() {
         bool was_satisfied = old_violation < feastol;
         bool now_satisfied = new_violation < feastol;
         if (!was_satisfied && now_satisfied) {
-          score += 2 * weights[r];
+          score += momentum * 2 * weights[r];
           feas_improvements++;
         } else if (was_satisfied && !now_satisfied) {
           score -= 2 * weights[r];
         } else if (!now_satisfied && !was_satisfied) {
           if (old_violation > new_violation) {
-            score += weights[r];
+            score += momentum * weights[r];
             feas_improvements++;
           } else {
             score -= weights[r];
@@ -2066,6 +2069,7 @@ bool HighsPrimalHeuristics::localMip() {
       if (viol.viol_index.empty()) {
         obj_weight++;
       }
+      momentum = 1;
       recalc_objective();
       // If solution is improving then store it
       // TODO: Should we undo the transformation here??
@@ -2092,11 +2096,16 @@ bool HighsPrimalHeuristics::localMip() {
     for (HighsInt r : viol.viol_index) {
       weights[r]++;
     }
+    if (candidate == -1) {
+      momentum++;
+    } else {
+      momentum = 1;
+    }
     iters++;
-  }
-  printf("Current viol %lu. Found feas %d. Best obj %g\n",
+    printf("Current viol %lu. Found feas %d. Best obj %g\n",
          viol.viol_index.size(), found_feas_before,
          static_cast<double>(bestobj));
+  }
   if (found_feas_before) {
     recalc_objective();
     mipsolver.mipdata_->addIncumbent(intsol, static_cast<double>(obj),
