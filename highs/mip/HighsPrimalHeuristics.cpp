@@ -1823,14 +1823,21 @@ bool HighsPrimalHeuristics::localMip() {
     // Get direction column can be moved to maximise constraint feasibility
     double row_lower = mipsolver.model_->row_lower_[r];
     double row_upper = mipsolver.model_->row_upper_[r];
-    double slack_lower =
-        std::abs(static_cast<double>(activities[r]) - row_lower);
-    double slack_upper =
-        std::abs(row_upper - static_cast<double>(activities[r]));
-    HighsInt row_dir = slack_lower > slack_upper ? -1 : 1;
-    double delta = row_dir == -1 ? std::abs(slack_lower / coef)
-                                 : std::abs(slack_upper / coef);
-    HighsInt dir = coef < 0 ? -1 * row_dir : 1 * row_dir;
+    bool lower_inf = row_lower == -kHighsInf;
+    bool upper_inf = row_upper == kHighsInf;
+    double slack_lower = static_cast<double>(activities[r]) - row_lower;
+    double slack_upper = row_upper - static_cast<double>(activities[r]);
+    HighsInt increase_activity;
+    if (!upper_inf && activities[r] > row_upper + feastol) {
+      increase_activity = -1;
+    } else if (!lower_inf && activities[r] < row_lower - feastol) {
+      increase_activity = 1;
+    } else {
+      return;
+    }
+    double delta = increase_activity == 1 ? std::abs(slack_lower / coef)
+                                          : std::abs(slack_upper / coef);
+    HighsInt dir = coef < 0 ? -increase_activity : increase_activity;
     delta = dir == -1
                 ? std::min(std::abs(sol[c] - globaldom.col_lower_[c]), delta)
                 : std::min(std::abs(globaldom.col_upper_[c] - sol[c]), delta);
@@ -1975,16 +1982,21 @@ bool HighsPrimalHeuristics::localMip() {
       for (HighsInt j = start; j < end; ++j) {
         HighsInt r = a_matrix.index_[j];
         double val = a_matrix.value_[j];
+        double row_upper = mipsolver.model_->row_upper_[r];
+        double row_lower = mipsolver.model_->row_lower_[r];
         double new_act = static_cast<double>(activities[r] + val * delta);
-        double old_violation =
-            std::min(std::abs(static_cast<double>(
-                         activities[r] - mipsolver.model_->row_lower_[r])),
-                     std::abs(static_cast<double>(
-                         mipsolver.model_->row_upper_[r] - activities[r])));
-        if (old_violation == kHighsInf) continue;
-        double new_violation =
-            std::min(std::abs(new_act - mipsolver.model_->row_lower_[r]),
-                     std::abs(mipsolver.model_->row_upper_[r] - new_act));
+        double old_violation = 0;
+        double new_violation = 0;
+        if (row_upper != kHighsInf) {
+          old_violation = std::max(
+              old_violation, static_cast<double>(activities[r]) - row_upper);
+          new_violation = std::max(new_violation, new_act - row_upper);
+        }
+        if (row_lower != -kHighsInf) {
+          old_violation = std::max(
+              old_violation, row_lower - static_cast<double>(activities[r]));
+          new_violation = std::max(new_violation, row_lower - new_act);
+        }
         bool was_satisfied = old_violation < feastol;
         bool now_satisfied = new_violation < feastol;
         if (!was_satisfied && now_satisfied) {
@@ -2006,7 +2018,7 @@ bool HighsPrimalHeuristics::localMip() {
         best_i = i;
       }
     }
-    if (best_i == -1 && n > 0 && randgen.fraction() > 0.5) {
+    if (best_i == -1 && n > 0 && randgen.fraction() > 0.0005) {
       best_i = randgen.integer(n);
     }
     return best_i;
@@ -2083,7 +2095,8 @@ bool HighsPrimalHeuristics::localMip() {
     iters++;
   }
   printf("Current viol %lu. Found feas %d. Best obj %g\n",
-         viol.viol_index.size(), found_feas_before, static_cast<double>(bestobj));
+         viol.viol_index.size(), found_feas_before,
+         static_cast<double>(bestobj));
   if (found_feas_before) {
     recalc_objective();
     mipsolver.mipdata_->addIncumbent(intsol, static_cast<double>(obj),
