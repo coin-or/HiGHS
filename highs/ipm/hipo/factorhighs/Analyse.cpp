@@ -122,7 +122,7 @@ Int Analyse::getPermutation() {
     // ----- METIS ----------------
     // ----------------------------
     idx_t options[METIS_NOPTIONS];
-    METIS_SetDefaultOptions(options);
+    Highs_METIS_SetDefaultOptions(options);
     options[METIS_OPTION_SEED] = kMetisSeed;
 
     // set logging of Metis depending on debug level
@@ -135,7 +135,7 @@ Int Analyse::getPermutation() {
 
     if (log_) log_->printDevInfo("Running Metis\n");
 
-    Int status = METIS_NodeND(&n_, temp_ptr.data(), temp_rows.data(), NULL,
+    Int status = Highs_METIS_NodeND(&n_, temp_ptr.data(), temp_rows.data(), NULL,
                               options, perm_.data(), iperm_.data());
 
     if (log_) log_->printDevInfo("Metis done\n");
