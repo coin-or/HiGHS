@@ -1748,7 +1748,7 @@ bool HighsPrimalHeuristics::localMip() {
     } else {
       allow_pos_delta[c] = iters + 15;
     }
-    printf("Applying move col %d with delta %g\n", c, delta);
+    // printf("Applying move col %d with delta %g\n", c, delta);
   };
 
   auto one_opt_calc_delta = [&](HighsInt c) -> double {
@@ -1914,16 +1914,16 @@ bool HighsPrimalHeuristics::localMip() {
           double delta = obj_change / std::abs(obj_coef);
           // TODO: THis feastol should be a negative.... Why does it work better?
           if (mipsolver.isColIntegral(c)) {
-            delta = std::ceil(delta + feastol);
+            delta = std::ceil(delta - kHighsTiny);
           }
           delta =
               dir == -1
                   ? std::min(delta, std::abs(sol[c] - globaldom.col_lower_[c]))
                   : std::min(delta, std::abs(globaldom.col_upper_[c] - sol[c]));
           // TODO: Need to add this in case integral variables have continuous bounds?
-          // if (mipsolver.isColIntegral(c)) {
-          //   delta = std::floor(delta + feastol);
-          // }
+          if (mipsolver.isColIntegral(c)) {
+            delta = std::floor(delta + feastol);
+          }
           if (delta < feastol) continue;
           assert(sol[c] + dir * delta > globaldom.col_lower_[c] - feastol);
           assert(sol[c] + dir * delta < globaldom.col_upper_[c] + feastol);
@@ -2062,7 +2062,7 @@ bool HighsPrimalHeuristics::localMip() {
     bestobj = obj;
   };
 
-  auto terminate = [&]() { return iters > 10000; };
+  auto terminate = [&]() { return iters > 5000; };
 
   calc_activites(false);
   bool last_iter_feas = false;
@@ -2109,9 +2109,9 @@ bool HighsPrimalHeuristics::localMip() {
       momentum = 1;
     }
     iters++;
-    printf("Current viol %lu. Found feas %d. Best obj %g\n",
-         viol.viol_index.size(), found_feas_before,
-         static_cast<double>(bestobj));
+    // printf("Current viol %lu. Found feas %d. Best obj %g\n",
+    //      viol.viol_index.size(), found_feas_before,
+    //      static_cast<double>(bestobj));
   }
   if (found_feas_before) {
     recalc_objective();
