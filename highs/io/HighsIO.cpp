@@ -303,6 +303,22 @@ const std::string highsInsertMdEscapes(const std::string from_string) {
   return to_string;
 }
 
+const std::string highsInsertMdId(const std::string from_string) {
+  std::string to_string = "";
+  const char* underscore = "_";
+  const char* hyphen = "-";
+  HighsInt from_string_length = from_string.length();
+  for (HighsInt p = 0; p < from_string_length; p++) {
+    const char string_ch = from_string[p];
+    if (string_ch == *underscore) {
+      to_string += hyphen;
+    } else {
+      to_string += from_string[p];
+    }
+  }
+  return to_string;
+}
+
 void HighsLogOptions::clear() {
   this->log_stream = nullptr;
   this->output_flag = nullptr;

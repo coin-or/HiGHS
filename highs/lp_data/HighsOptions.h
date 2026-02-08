@@ -713,20 +713,20 @@ class HighsOptions : public HighsOptionsStruct {
     const bool now_advanced = true;
     // Options read from the command line
     record_string = new OptionRecordString(
-        kPresolveString, "Presolve option: \"off\", \"choose\" or \"on\"",
-        advanced, &presolve, kHighsChooseString);
+        kPresolveString, "Presolve: \"off\", \"choose\" or \"on\"", advanced,
+        &presolve, kHighsChooseString);
     records.push_back(record_string);
 
     record_string =
         new OptionRecordString(kSolverString,
-                               "LP solver option: \"choose\", \"simplex\", "
+                               "LP/QP solver: \"choose\", \"simplex\", "
                                "\"ipm\", \"ipx\", \"hipo\" or \"pdlp\"",
                                advanced, &solver, kHighsChooseString);
     records.push_back(record_string);
 
     record_string = new OptionRecordString(
-        kParallelString, "Parallel option: \"off\", \"choose\" or \"on\"",
-        advanced, &parallel, kHighsChooseString);
+        kParallelString, "Parallel: \"off\", \"choose\" or \"on\"", advanced,
+        &parallel, kHighsChooseString);
     records.push_back(record_string);
 
     record_string = new OptionRecordString(
@@ -1244,15 +1244,14 @@ class HighsOptions : public HighsOptionsStruct {
 
     record_string =
         new OptionRecordString(kMipLpSolverString,
-                               "MIP LP solver option: \"choose\", \"simplex\", "
+                               "MIP LP solver: \"choose\", \"simplex\", "
                                "\"ipm\", \"ipx\" or \"hipo\"",
                                advanced, &mip_lp_solver, kHighsChooseString);
     records.push_back(record_string);
 
     record_string = new OptionRecordString(
-        kMipIpmSolverString,
-        "MIP IPM solver option: \"choose\", \"ipx\" or \"hipo\"", advanced,
-        &mip_ipm_solver, kHighsChooseString);
+        kMipIpmSolverString, "MIP IPM solver: \"choose\", \"ipx\" or \"hipo\"",
+        advanced, &mip_ipm_solver, kHighsChooseString);
     records.push_back(record_string);
 
     record_double = new OptionRecordDouble(
@@ -1292,8 +1291,8 @@ class HighsOptions : public HighsOptionsStruct {
     records.push_back(record_int);
 
     record_bool = new OptionRecordBool(
-        "pdlp_scaling", "Scaling option for PDLP solver: Default = true",
-        advanced, &pdlp_scaling, true);
+        "pdlp_scaling", "Scaling for PDLP solver: Default = true", advanced,
+        &pdlp_scaling, true);
     records.push_back(record_bool);
 
     record_int = new OptionRecordInt(
