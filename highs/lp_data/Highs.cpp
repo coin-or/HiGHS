@@ -1653,7 +1653,7 @@ HighsStatus Highs::calledOptimizeModel() {
       presolve_.data_.recovered_basis_ = basis_;
 
       if (model_presolve_status_ == HighsPresolveStatus::kReduced)
-        this->lpKktCheck(presolve_.getReducedProblem(), "Before postsolve");
+        this->callLpKktCheck(presolve_.getReducedProblem(), "Before postsolve");
 
       this_postsolve_time = -timer_.read(timer_.postsolve_clock);
       timer_.start(timer_.postsolve_clock);
@@ -1811,7 +1811,7 @@ HighsStatus Highs::calledOptimizeModel() {
   // Unless the model status was determined using the strictly reduced LP, the
   // HiGHS info is valid
   if (!no_incumbent_lp_solution_or_basis) {
-    this->lpKktCheck(this->model_.lp_);
+    this->callLpKktCheck(this->model_.lp_);
     info_.valid = true;
   }
 

@@ -107,5 +107,6 @@ const std::string highsBoolToString(const bool b,
                                     const HighsInt field_width = 2);
 
 const std::string highsInsertMdEscapes(const std::string from_string);
+const std::string highsInsertMdId(const std::string from_string);
 
 #endif

@@ -66,6 +66,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
   find_package(IntelSYCL REQUIRED)
 endif()
 
+# MSVC
+# set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 message(STATUS "Git hash: " ${GITHASH})
 # By default only build the C++ library.
@@ -150,6 +152,10 @@ option(HIPO "Build HIPO" OFF)
 message(STATUS "Build HIPO: ${HIPO}")
 option(BUILD_OPENBLAS "Build OpenBLAS" OFF)
 message(STATUS "Build OpenBLAS: ${BUILD_OPENBLAS}")
+option(NO_AVX512 "Build OpenBLAS without AVX512" OFF)
+if (NO_AVX512)
+  message(STATUS "Build OpenBLAS without AVX512: ON")
+endif()
 
 if (HIPO AND CSHARP)
   message(ERROR "HIPO is only available in C++. Not yet supported in C#.")
@@ -211,9 +217,9 @@ if(BUILD_STATIC_EXE)
   endif()
 
   # Windows: link runtime statically
-  if(MSVC)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  endif()
+  # if(MSVC)
+  #   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  # endif()
 endif()
 
 
@@ -556,7 +562,7 @@ if(ZLIB AND NOT TARGET ZLIB::ZLIB)
   find_package(ZLIB 1.2.3)
 endif()
 
-install(FILES README.md LICENSE.txt DESTINATION .)
+install(FILES README.md LICENSE.txt THIRD_PARTY_NOTICES.md DESTINATION .)
 
 # Set default generator based on platform
 if(WIN32)
@@ -872,6 +878,10 @@ else(FAST_BUILD)
   endif()
 
 endif()
+
+# Prevent nested directory structure in the archive
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
+set(CPACK_COMPONENT_INCLUDE_TOPLEVEL_DIRECTORY OFF)
 
 # Detect system information
 if(UNIX AND NOT APPLE)

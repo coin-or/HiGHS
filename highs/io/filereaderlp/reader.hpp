@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "model.hpp"
+#include "io/filereaderlp/model.hpp"
 
 Model readinstance(std::string filename);
 
