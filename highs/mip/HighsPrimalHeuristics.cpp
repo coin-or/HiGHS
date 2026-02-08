@@ -1644,10 +1644,16 @@ bool HighsPrimalHeuristics::localMip() {
       sol[col] = std::max(std::min(0.0, globaldom.col_upper_[col]),
                           globaldom.col_lower_[col]);
     }
+    if (mipsolver.isColIntegral(col)) {
+      sol[col] = std::min(std::max(globaldom.col_lower_[col], sol[col]),
+                          globaldom.col_upper_[col]);
+    }
     if (mipsolver.colCost(col) != 0) {
       cols_with_obj.push_back(col);
       obj += mipsolver.colCost(col) * sol[col];
     }
+    assert(sol[col] > globaldom.col_lower_[col] - feastol);
+    assert(sol[col] < globaldom.col_upper_[col] + feastol);
   }
 
   auto is_violated = [&](const HighsCDouble& act, HighsInt r) {
@@ -1717,10 +1723,6 @@ bool HighsPrimalHeuristics::localMip() {
   auto apply_move = [&](HighsInt c, double delta) {
     assert(sol[c] + delta > globaldom.col_lower_[c] - feastol);
     assert(sol[c] + delta < globaldom.col_upper_[c] + feastol);
-    printf(
-        "Applying move col %d with delta %g. Current obj %g. Num viol rows "
-        "%lu\n",
-        c, delta, static_cast<double>(obj), viol.viol_index.size());
     sol[c] += delta;
     HighsInt start = a_matrix.start_[c];
     HighsInt end = a_matrix.start_[c + 1];
@@ -1740,14 +1742,10 @@ bool HighsPrimalHeuristics::localMip() {
       }
     }
     obj += delta * mipsolver.colCost(c);
-    printf(
-        "Applied move col %d with delta %g. Current obj %g. Num viol rows "
-        "%lu\n",
-        c, delta, static_cast<double>(obj), viol.viol_index.size());
     if (delta > 0) {
-      allow_neg_delta[c] = iters + 5;
+      allow_neg_delta[c] = iters + 15;
     } else {
-      allow_pos_delta[c] = iters + 5;
+      allow_pos_delta[c] = iters + 15;
     }
   };
 
@@ -1841,6 +1839,7 @@ bool HighsPrimalHeuristics::localMip() {
     }
     if (delta < feastol) return;
     if (!tabu(c, dir * delta)) return;
+    // TODO: Need to add some safety net for unbounded variables
     assert(sol[c] + delta * dir > globaldom.col_lower_[c] - feastol);
     assert(sol[c] + delta * dir < globaldom.col_upper_[c] + feastol);
     moves.emplace_back(c, dir * delta);
@@ -1982,6 +1981,7 @@ bool HighsPrimalHeuristics::localMip() {
                          activities[r] - mipsolver.model_->row_lower_[r])),
                      std::abs(static_cast<double>(
                          mipsolver.model_->row_upper_[r] - activities[r])));
+        if (old_violation == kHighsInf) continue;
         double new_violation =
             std::min(std::abs(new_act - mipsolver.model_->row_lower_[r]),
                      std::abs(mipsolver.model_->row_upper_[r] - new_act));
@@ -2006,6 +2006,9 @@ bool HighsPrimalHeuristics::localMip() {
         best_i = i;
       }
     }
+    if (best_i == -1 && n > 0 && randgen.fraction() > 0.5) {
+      best_i = randgen.integer(n);
+    }
     return best_i;
   };
 
@@ -2015,7 +2018,7 @@ bool HighsPrimalHeuristics::localMip() {
     explore_violated(moves, n);
     if (n > 0) {
       HighsInt best_candidate = score_moves(moves, n);
-      if (best_candidate > 0) return best_candidate;
+      if (best_candidate >= 0) return best_candidate;
       moves.clear();
     }
     explore_satisfied(moves, n);
@@ -2037,7 +2040,7 @@ bool HighsPrimalHeuristics::localMip() {
     bestobj = obj;
   };
 
-  auto terminate = [&]() { return iters > 5000; };
+  auto terminate = [&]() { return iters > 10000; };
 
   calc_activites(false);
   bool last_iter_feas = false;
@@ -2079,6 +2082,8 @@ bool HighsPrimalHeuristics::localMip() {
     }
     iters++;
   }
+  printf("Current viol %lu. Found feas %d. Best obj %g\n",
+         viol.viol_index.size(), found_feas_before, static_cast<double>(bestobj));
   if (found_feas_before) {
     recalc_objective();
     mipsolver.mipdata_->addIncumbent(intsol, static_cast<double>(obj),
