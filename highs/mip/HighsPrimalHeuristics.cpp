@@ -1840,12 +1840,14 @@ bool HighsPrimalHeuristics::localMip() {
     double delta = increase_activity == 1 ? std::abs(slack_lower / coef)
                                           : std::abs(slack_upper / coef);
     HighsInt dir = coef < 0 ? -increase_activity : increase_activity;
-    // TODO: Protect against cases where bounds for integral columns aren't integral.
+    if (mipsolver.isColIntegral(c)) {
+      delta = std::ceil(delta - feastol);
+    }
     delta = dir == -1
                 ? std::min(std::abs(sol[c] - globaldom.col_lower_[c]), delta)
                 : std::min(std::abs(globaldom.col_upper_[c] - sol[c]), delta);
     if (mipsolver.isColIntegral(c)) {
-      delta = std::ceil(delta - feastol);
+      delta = std::floor(delta + feastol);
     }
     if (delta < feastol) return;
     if (!tabu(c, dir * delta)) return;
@@ -1910,6 +1912,7 @@ bool HighsPrimalHeuristics::localMip() {
               std::max(static_cast<double>(obj - bestobj), feastol);
           HighsInt dir = obj_coef < 0 ? 1 : -1;
           double delta = obj_change / std::abs(obj_coef);
+          // TODO: THis feastol should be a negative.... Why does it work better?
           if (mipsolver.isColIntegral(c)) {
             delta = std::ceil(delta + feastol);
           }
@@ -1917,9 +1920,13 @@ bool HighsPrimalHeuristics::localMip() {
               dir == -1
                   ? std::min(delta, std::abs(sol[c] - globaldom.col_lower_[c]))
                   : std::min(delta, std::abs(globaldom.col_upper_[c] - sol[c]));
-          if (delta < feastol) return;
-          assert(sol[c] + delta > globaldom.col_lower_[c] - feastol);
-          assert(sol[c] + delta < globaldom.col_upper_[c] + feastol);
+          // TODO: Need to add this in case integral variables have continuous bounds?
+          // if (mipsolver.isColIntegral(c)) {
+          //   delta = std::floor(delta + feastol);
+          // }
+          if (delta < feastol) continue;
+          assert(sol[c] + dir * delta > globaldom.col_lower_[c] - feastol);
+          assert(sol[c] + dir * delta < globaldom.col_upper_[c] + feastol);
           moves.emplace_back(c, delta * dir);
         }
       };
