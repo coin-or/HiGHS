@@ -46,32 +46,32 @@ inline HighsStatus returnFromSolveLpSimplex(HighsLpSolverObject& solver_object,
   // there was one before
   HighsInt sub_solver_ix = -1;
   if (std::signbit(solver_object.sub_solver_call_time_
-                        .run_time[kSubSolverDuSimplexBasis]))
+                       .run_time[kSubSolverDuSimplexBasis]))
     sub_solver_ix = kSubSolverDuSimplexBasis;
   if (std::signbit(solver_object.sub_solver_call_time_
-                        .run_time[kSubSolverDuSimplexNoBasis]))
+                       .run_time[kSubSolverDuSimplexNoBasis]))
     sub_solver_ix = kSubSolverDuSimplexNoBasis;
   if (std::signbit(solver_object.sub_solver_call_time_
-                        .run_time[kSubSolverPrSimplexBasis]))
+                       .run_time[kSubSolverPrSimplexBasis]))
     sub_solver_ix = kSubSolverPrSimplexBasis;
   if (std::signbit(solver_object.sub_solver_call_time_
-                        .run_time[kSubSolverPrSimplexNoBasis]))
+                       .run_time[kSubSolverPrSimplexNoBasis]))
     sub_solver_ix = kSubSolverPrSimplexNoBasis;
   // Ensure that one clock has been identified
   assert(sub_solver_ix >= 0);
   // Check that only one clock was started
   if (sub_solver_ix != kSubSolverDuSimplexBasis)
     assert(!std::signbit(solver_object.sub_solver_call_time_
-                              .run_time[kSubSolverDuSimplexBasis]));
+                             .run_time[kSubSolverDuSimplexBasis]));
   if (sub_solver_ix != kSubSolverDuSimplexNoBasis)
     assert(!std::signbit(solver_object.sub_solver_call_time_
-                              .run_time[kSubSolverDuSimplexNoBasis]));
+                             .run_time[kSubSolverDuSimplexNoBasis]));
   if (sub_solver_ix != kSubSolverPrSimplexBasis)
     assert(!std::signbit(solver_object.sub_solver_call_time_
-                              .run_time[kSubSolverPrSimplexBasis]));
+                             .run_time[kSubSolverPrSimplexBasis]));
   if (sub_solver_ix != kSubSolverPrSimplexNoBasis)
     assert(!std::signbit(solver_object.sub_solver_call_time_
-                              .run_time[kSubSolverPrSimplexNoBasis]));
+                             .run_time[kSubSolverPrSimplexNoBasis]));
   // Update the call count and run time
   solver_object.sub_solver_call_time_.num_call[sub_solver_ix]++;
   solver_object.sub_solver_call_time_.run_time[sub_solver_ix] +=
