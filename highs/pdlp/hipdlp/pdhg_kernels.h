@@ -35,6 +35,9 @@ void launchCheckConvergenceKernels_wrapper(
     const double* d_col_scale, const double* d_row_scale,
     int n_cols, int n_rows);
 
+void launchKernelHalpernBlendReflected_wrapper(
+    double* d_current, const double* d_next,
+    const double* d_anchor, double w, int n);
 
 #ifdef __cplusplus
 }

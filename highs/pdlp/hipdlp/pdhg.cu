@@ -206,6 +206,16 @@ __global__ void kernelCheckDual(
   atomicAdd(&d_results[IDX_DUAL_OBJ], local_dual_obj_part);
 }
 
+__global__ void kernelHalpernBlendReflected(
+    double* d_current, const double* d_next,
+    const double* d_anchor, double w, int n)
+{
+    CUDA_GRID_STRIDE_LOOP(i, n) {
+        double refl = fma_rn(2.0, d_next[i], -d_current[i]);
+        d_current[i] = fma_rn(w, refl, (1.0 - w) * d_anchor[i]);
+    }
+}
+
 // Add C++ wrapper functions to launch the kernels
 extern "C" {
 void launchKernelUpdateX_wrapper(
@@ -299,6 +309,17 @@ void launchCheckConvergenceKernels_wrapper(
         d_col_cost, d_col_lower, d_col_upper, d_col_scale, n_cols
     );
 
+    cudaGetLastError();
+}
+
+void launchKernelHalpernBlendReflected_wrapper(
+    double* d_current, const double* d_next,
+    const double* d_anchor, double w, int n)
+{
+    const int block_size = 256;
+    dim3 config = GetLaunchConfig(n, block_size);
+    kernelHalpernBlendReflected<<<config.x, block_size>>>(
+        d_current, d_next, d_anchor, w, n);
     cudaGetLastError();
 }
 } // extern "C"
