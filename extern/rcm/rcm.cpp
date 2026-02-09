@@ -745,8 +745,9 @@ void root_find(HighsInt* root, HighsInt adj_num, const HighsInt adj_row[],
 }
 //****************************************************************************80
 
-HighsInt genrcm(HighsInt node_num, HighsInt adj_num, const HighsInt adj_row[],
-                const HighsInt adj[], HighsInt perm[])
+HighsInt Highs_genrcm(HighsInt node_num, HighsInt adj_num,
+                      const HighsInt adj_row[], const HighsInt adj[],
+                      HighsInt perm[])
 
 //****************************************************************************80
 //
