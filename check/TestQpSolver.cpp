@@ -1150,7 +1150,7 @@ TEST_CASE("2489", "[qpsolver]") {
   //
   // Hence it has a constraint, but its coefficients are zero
   Highs h;
-  //  h.setOptionValue("output_flag", dev_run);
+  h.setOptionValue("output_flag", dev_run);
   REQUIRE(h.setOptionValue("log_dev_level", 3) == HighsStatus::kOk);
   REQUIRE(h.setOptionValue("time_limit", 3) == HighsStatus::kOk);
   REQUIRE(h.setOptionValue("qp_iteration_limit", 10) == HighsStatus::kOk);
