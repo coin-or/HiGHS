@@ -40,6 +40,41 @@ inline HighsStatus returnFromSolveLpSimplex(HighsLpSolverObject& solver_object,
   // Copy the simplex iteration count to highs_info_ from ekk_instance
   solver_object.highs_info_.simplex_iteration_count =
       ekk_instance.iteration_count_;
+  // Identify which clock to stop. Can't inspect the basis, as there
+  // will generally be one after simplex, so have to deduce whether
+  // there was one before
+  HighsInt sub_solver_ix = -1;
+  if (solver_object.sub_solver_call_time_.run_time[kSubSolverDuSimplexBasis] <
+      0)
+    sub_solver_ix = kSubSolverDuSimplexBasis;
+  if (solver_object.sub_solver_call_time_.run_time[kSubSolverDuSimplexNoBasis] <
+      0)
+    sub_solver_ix = kSubSolverDuSimplexNoBasis;
+  if (solver_object.sub_solver_call_time_.run_time[kSubSolverPrSimplexBasis] <
+      0)
+    sub_solver_ix = kSubSolverPrSimplexBasis;
+  if (solver_object.sub_solver_call_time_.run_time[kSubSolverPrSimplexNoBasis] <
+      0)
+    sub_solver_ix = kSubSolverPrSimplexNoBasis;
+  // Ensure that one clock has been identified
+  assert(sub_solver_ix >= 0);
+  // Check that only one clock was started
+  if (sub_solver_ix != kSubSolverDuSimplexBasis)
+    assert(solver_object.sub_solver_call_time_
+               .run_time[kSubSolverDuSimplexBasis] >= 0);
+  if (sub_solver_ix != kSubSolverDuSimplexNoBasis)
+    assert(solver_object.sub_solver_call_time_
+               .run_time[kSubSolverDuSimplexNoBasis] >= 0);
+  if (sub_solver_ix != kSubSolverPrSimplexBasis)
+    assert(solver_object.sub_solver_call_time_
+               .run_time[kSubSolverPrSimplexBasis] >= 0);
+  if (sub_solver_ix != kSubSolverPrSimplexNoBasis)
+    assert(solver_object.sub_solver_call_time_
+               .run_time[kSubSolverPrSimplexNoBasis] >= 0);
+  // Update the call count and run time
+  solver_object.sub_solver_call_time_.num_call[sub_solver_ix]++;
+  solver_object.sub_solver_call_time_.run_time[sub_solver_ix] +=
+      solver_object.timer_.read();
   // Ensure that the incumbent LP is neither moved, nor scaled
   assert(!incumbent_lp.is_moved_);
   assert(!incumbent_lp.is_scaled_);
@@ -100,7 +135,24 @@ inline HighsStatus solveLpSimplex(HighsLpSolverObject& solver_object) {
     assert(retained_ekk_data_ok);
     return_status = HighsStatus::kError;
   }
-
+  HighsInt sub_solver_ix = -1;
+  if (options.simplex_strategy == kSimplexStrategyPrimal) {
+    if (basis.valid) {
+      sub_solver_ix = kSubSolverPrSimplexBasis;
+    } else {
+      sub_solver_ix = kSubSolverPrSimplexNoBasis;
+    }
+  } else {
+    if (basis.valid) {
+      sub_solver_ix = kSubSolverDuSimplexBasis;
+    } else {
+      sub_solver_ix = kSubSolverDuSimplexNoBasis;
+    }
+  }
+  assert(sub_solver_ix >= 0);
+  assert(solver_object.sub_solver_call_time_.run_time.size() > 0);
+  solver_object.sub_solver_call_time_.run_time[sub_solver_ix] =
+      -solver_object.timer_.read();
   // Copy the simplex iteration count from highs_info_ to ekk_instance, just for
   // convenience
   ekk_instance.iteration_count_ = highs_info.simplex_iteration_count;
@@ -388,6 +440,19 @@ inline HighsStatus solveLpSimplex(HighsLpSolverObject& solver_object) {
                       (int)ekk_instance.iteration_count_);
         }
       } else {
+        // There are unscaled primal infeasibilities, so use dual
+        // simplex
+        assert(num_unscaled_primal_infeasibilities > 0);
+        if (options.simplex_strategy != kSimplexStrategyDual)
+          highsLogDev(
+              options.log_options, HighsLogType::kInfo,
+              "Forcing change from %s to %s\n",
+              ekk_instance.simplexStrategyToString(options.simplex_strategy)
+                  .c_str(),
+              ekk_instance.simplexStrategyToString(kSimplexStrategyDual)
+                  .c_str());
+
+        options.simplex_strategy = kSimplexStrategyDual;
         // Using dual simplex, so force Devex if starting from an advanced
         // basis with no steepest edge weights
         if ((status.has_basis || basis.valid) &&

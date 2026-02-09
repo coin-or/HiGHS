@@ -1,3 +1,10 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/*                                                                       */
+/*    This file is part of the HiGHS linear optimization suite           */
+/*                                                                       */
+/*    Available as open-source under the MIT License                     */
+/*                                                                       */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 #include <algorithm>
 #include <cassert>
 #include <climits>
@@ -75,7 +82,7 @@ struct Constraint {
   }
 };
 
-// A potential new value for a varaiable, including its score.
+// A potential new value for a variable, including its score.
 struct Move {
   double value;
   double score;

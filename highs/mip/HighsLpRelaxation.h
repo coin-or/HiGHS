@@ -81,6 +81,7 @@ class HighsLpRelaxation {
   HighsInt maxNumFractional;
   Status status;
   bool adjustSymBranchingCol;
+  bool solved_first_lp;
 
   void storeDualInfProof();
 
@@ -210,7 +211,7 @@ class HighsLpRelaxation {
 
   bool isColIntegral(HighsInt col) const {
     return col < lpsolver.getLp().num_col_
-               ? mipsolver.variableType(col) != HighsVarType::kContinuous
+               ? mipsolver.isColIntegral(col)
                : isRowIntegral(col - lpsolver.getLp().num_col_);
   }
 
@@ -351,6 +352,9 @@ class HighsLpRelaxation {
 
   void setIterationLimit(HighsInt limit = kHighsIInf) {
     lpsolver.setOptionValue("simplex_iteration_limit", limit);
+  }
+  void setSolvedFirstLp(const bool solved_first_lp_) {
+    this->solved_first_lp = solved_first_lp_;
   }
 };
 

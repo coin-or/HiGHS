@@ -4,7 +4,8 @@ import numpy as np
 from numbers import Integral
 from itertools import product
 from threading import Thread, local, RLock, Lock
-from typing import Optional, Any, overload, Callable, Sequence, Mapping, Iterable, SupportsIndex, cast, Union
+from typing import Optional, Any, overload, Callable, Sequence, Mapping, Iterable, SupportsIndex, cast, Union, Tuple
+from weakref import proxy
 
 from ._core import (
     ObjSense,
@@ -81,7 +82,7 @@ class Highs(_Highs):
                 self.__solver_started.acquire(True)
             finally:
                 self.__solver_started.release()
-                return t
+            return t
         else:
             raise Exception("Solver is already running.")
 
@@ -178,6 +179,23 @@ class Highs(_Highs):
         Alias for the solve method.
         """
         return self.solve()
+
+
+    def getObjective(self) -> Tuple[highs_linear_expression, ObjSense]:
+        """
+        Retrieves the current objective function (as a linear expression) and sense.
+        """
+        lp = super().getLp()
+        assert(isinstance(lp.col_cost_, np.ndarray))
+        nonzero_idxs = np.nonzero(lp.col_cost_)
+
+        objective = highs_linear_expression()
+        objective.idxs = nonzero_idxs[0].tolist()
+        objective.vals = lp.col_cost_[nonzero_idxs].tolist()
+        objective.constant = lp.offset_
+
+        return objective, super().getObjectiveSense()[1]
+
 
     # reset the objective
     def setObjective(self, obj: Optional[Union[highs_var, highs_linear_expression]] = None, sense: Optional[ObjSense] = None):
@@ -728,9 +746,9 @@ class Highs(_Highs):
                 super().passColName(int(i), str(n))
 
         return (
-            HighspyArray(np.asarray([highs_var(i, self) for i in idx]).reshape(shape), self)
+            HighspyArray(np.asarray([highs_var(int(i), self) for i in idx]).reshape(shape), self)
             if out_array
-            else {index: highs_var(i, self) for index, i in zip(indices, idx)}
+            else {index: highs_var(int(i), self) for index, i in zip(indices, idx)}
         )
 
     @overload
@@ -1429,7 +1447,7 @@ class HighsCallback(object):
         self.callbacks: list[Callable[[HighsCallbackEvent], None]] = []
         self.user_callback_data: list[Any] = []
         self.callback_type = callback_type
-        self.highs = highs
+        self.highs = proxy(highs) # to avoid circular reference
 
     def subscribe(
         self,
@@ -1600,7 +1618,7 @@ class highs_var(object):
 
     def __init__(self, i: int, highs: Highs):
         self.index = i
-        self.highs = highs
+        self.highs = proxy(highs) # to avoid circular reference
 
     def __repr__(self):
         return f"highs_var({self.index})"
@@ -1694,7 +1712,7 @@ class highs_cons(object):
 
     def __init__(self, i: int, highs: Highs):
         self.index = i
-        self.highs = highs
+        self.highs = proxy(highs) # to avoid circular reference
 
     def __repr__(self):
         return f"highs_cons({self.index})"

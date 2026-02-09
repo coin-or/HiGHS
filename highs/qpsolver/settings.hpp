@@ -1,3 +1,10 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/*                                                                       */
+/*    This file is part of the HiGHS linear optimization suite           */
+/*                                                                       */
+/*    Available as open-source under the MIT License                     */
+/*                                                                       */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 #ifndef __SRC_LIB_SETTINGS_HPP__
 #define __SRC_LIB_SETTINGS_HPP__
 
@@ -54,6 +61,7 @@ struct Settings {
   Eventhandler<Statistics&> iteration_log;
   Eventhandler<QpModelStatus&> qp_model_status_log;
   Eventhandler<HighsInt&> nullspace_limit_log;
+  Eventhandler<std::pair<HighsInt, double>&> degeneracy_fail_log;
 
   HighsInt nullspace_limit = 4000;
 

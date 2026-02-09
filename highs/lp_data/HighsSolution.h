@@ -78,6 +78,7 @@ void getLpKktFailures(const HighsOptions& options, const HighsLp& lp,
                       HighsPrimalDualErrors& primal_dual_errors,
                       const bool get_residuals = false);
 
+// Inner getKktFailures
 void getKktFailures(const HighsOptions& options, const bool is_qp,
                     const HighsLp& lp, const std::vector<double>& gradient,
                     const HighsSolution& solution, HighsInfo& highs_info,
@@ -90,7 +91,16 @@ void getVariableKktFailures(const double primal_feasibility_tolerance,
                             const HighsVarType integrality,
                             double& primal_infeasibility,
                             double& dual_infeasibility, uint8_t& at_status,
-                            uint8_t& mid_status);
+                            uint8_t& mid_status, const HighsInt index = 0);
+
+void lpNoBasisKktCheck(HighsModelStatus& model_status, HighsInfo& info,
+                       const HighsLp& lp, const HighsSolution& solution,
+                       const HighsOptions& options, const std::string& message);
+
+void lpKktCheck(HighsModelStatus& model_status, HighsInfo& info,
+                const HighsLp& lp, const HighsSolution& solution,
+                const HighsBasis& basis, const HighsOptions& options,
+                const std::string& message);
 
 void getPrimalDualGlpsolErrors(const HighsOptions& options, const HighsLp& lp,
                                const std::vector<double>& gradient,
@@ -148,14 +158,24 @@ void resetModelStatusAndHighsInfo(HighsModelStatus& model_status,
                                   HighsInfo& highs_info);
 bool isBasisConsistent(const HighsLp& lp, const HighsBasis& basis);
 
+bool isColPrimalSolutionRightSize(const HighsLp& lp,
+                                  const HighsSolution& solution);
+bool isRowPrimalSolutionRightSize(const HighsLp& lp,
+                                  const HighsSolution& solution);
 bool isPrimalSolutionRightSize(const HighsLp& lp,
                                const HighsSolution& solution);
+
+bool isColDualSolutionRightSize(const HighsLp& lp,
+                                const HighsSolution& solution);
+bool isRowDualSolutionRightSize(const HighsLp& lp,
+                                const HighsSolution& solution);
 bool isDualSolutionRightSize(const HighsLp& lp, const HighsSolution& solution);
+
 bool isSolutionRightSize(const HighsLp& lp, const HighsSolution& solution);
 bool isBasisRightSize(const HighsLp& lp, const HighsBasis& basis);
 
-void reportLpKktFailures(const HighsLp& lp, const HighsOptions& options,
-                         const HighsInfo& highs_info,
-                         const std::string& solver = "");
+bool reportKktFailures(const HighsLp& lp, const HighsOptions& options,
+                       const HighsInfo& highs_info,
+                       const std::string& message = "");
 
 #endif  // LP_DATA_HIGHSSOLUTION_H_
