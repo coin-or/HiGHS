@@ -664,8 +664,7 @@ HighsStatus Highs::readModel(const std::string& filename) {
       reader->readModelFromFile(options_, filename, model);
   delete reader;
   if (call_code != FilereaderRetcode::kOk) {
-    interpretFilereaderRetcode(options_.log_options, filename.c_str(),
-                               call_code);
+    interpretFilereaderRetcode(options_.log_options, filename, call_code);
     const HighsStatus call_status = call_code == FilereaderRetcode::kWarning
                                         ? HighsStatus::kWarning
                                         : HighsStatus::kError;
@@ -2772,7 +2771,7 @@ HighsStatus Highs::changeColsIntegrality(const HighsInt from_col,
 }
 
 static HighsStatus analyseSetCreateError(HighsLogOptions log_options,
-                                         const std::string method,
+                                         const std::string& method,
                                          const HighsInt create_error,
                                          const bool ordered,
                                          const HighsInt num_set_entries,

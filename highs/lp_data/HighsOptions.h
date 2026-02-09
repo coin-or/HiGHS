@@ -126,7 +126,7 @@ class OptionRecordString : public OptionRecord {
 
 void highsOpenLogFile(HighsLogOptions& log_options,
                       std::vector<OptionRecord*>& option_records,
-                      const std::string log_file);
+                      const std::string& log_file);
 
 bool optionOffChooseOnOk(const HighsLogOptions& report_log_options,
                          const string& name, const string& value);
@@ -161,7 +161,7 @@ OptionStatus checkOptionValue(const HighsLogOptions& report_log_options,
                               const double value);
 OptionStatus checkOptionValue(const HighsLogOptions& report_log_options,
                               OptionRecordString& option_records,
-                              const std::string value);
+                              const std::string& value);
 
 OptionStatus setLocalOptionValue(const HighsLogOptions& report_log_options,
                                  const std::string& name,
@@ -188,7 +188,7 @@ OptionStatus setLocalOptionValue(const HighsLogOptions& report_log_options,
                                  const std::string& name,
                                  HighsLogOptions& log_options,
                                  std::vector<OptionRecord*>& option_records,
-                                 const std::string value);
+                                 const std::string& value);
 OptionStatus setLocalOptionValue(const HighsLogOptions& report_log_options,
                                  const std::string& name,
                                  HighsLogOptions& log_options,
@@ -203,7 +203,7 @@ OptionStatus setLocalOptionValue(const HighsLogOptions& report_log_options,
                                  const double value);
 OptionStatus setLocalOptionValue(const HighsLogOptions& report_log_options,
                                  OptionRecordString& option,
-                                 std::string const value);
+                                 const std::string& value);
 
 OptionStatus passLocalOptions(const HighsLogOptions& report_log_options,
                               const HighsOptions& from_options,
@@ -1219,8 +1219,8 @@ class HighsOptions : public HighsOptionsStruct {
 
     record_bool = new OptionRecordBool(
         "mip_allow_cut_separation_at_nodes",
-        "Whether cut separation at nodes is permitted", advanced,
-        &mip_allow_cut_separation_at_nodes, true);
+        "Whether cut separation at nodes other than the root node is permitted",
+        advanced, &mip_allow_cut_separation_at_nodes, true);
     records.push_back(record_bool);
 
     record_double = new OptionRecordDouble(
