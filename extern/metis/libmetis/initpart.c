@@ -44,10 +44,10 @@ void InitSeparator(ctrl_t *ctrl, graph_t *graph, idx_t niparts)
       break;
 
     default:
-      GK_ERREXIT(("Unknown iptype of %"PRIDX"\n", ctrl->iptype));
+      GK_ERREXIT("Unknown iptype of %"PRIDX"\n", ctrl->iptype);
   }
 
-  IFSET(ctrl->dbglvl, METIS_DBG_IPART, HIGHS_ORDERING_PRINT(("Initial Sep: %"PRIDX"\n", graph->mincut)));
+  IFSET(ctrl->dbglvl, METIS_DBG_IPART, HIGHS_ORDERING_PRINT("Initial Sep: %"PRIDX"\n", graph->mincut));
 
   ctrl->dbglvl = dbglvl;
 

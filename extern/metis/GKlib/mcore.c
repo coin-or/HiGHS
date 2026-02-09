@@ -109,8 +109,8 @@ void gk_mcorePop(gk_mcore_t *mcore)
 
       case GK_MOPT_CORE: /* core free */
         if (mcore->corecpos < mcore->mops[mcore->cmop].nbytes)
-          GK_ERREXIT(("Internal Error: wspace's core is about to be over-freed [%zu, %zu, %zd]\n",
-              mcore->coresize, mcore->corecpos, mcore->mops[mcore->cmop].nbytes));
+          GK_ERREXIT("Internal Error: wspace's core is about to be over-freed [%zu, %zu, %zd]\n",
+              mcore->coresize, mcore->corecpos, mcore->mops[mcore->cmop].nbytes);
 
         mcore->corecpos    -= mcore->mops[mcore->cmop].nbytes;
         break;
@@ -120,7 +120,7 @@ void gk_mcorePop(gk_mcore_t *mcore)
         break;
 
       default:
-        GK_ERREXIT(("Unknown mop type of %d\n", mcore->mops[mcore->cmop].type));
+        GK_ERREXIT("Unknown mop type of %d\n", mcore->mops[mcore->cmop].type);
     }
   }
 
@@ -139,7 +139,7 @@ void gk_mcoreAdd(gk_mcore_t *mcore, int type, size_t nbytes, void *ptr)
     mcore->nmops *= 2;
     mcore->mops = realloc(mcore->mops, mcore->nmops*sizeof(gk_mop_t));
     if (mcore->mops == NULL) 
-      GK_ERREXIT(("***Memory allocation for gkmcore failed.\n"));
+      GK_ERREXIT("***Memory allocation for gkmcore failed.\n");
   }
 
   mcore->mops[mcore->cmop].type   = type;
@@ -160,17 +160,17 @@ void gk_mcoreDel(gk_mcore_t *mcore, void *ptr)
 
   for (i=mcore->cmop-1; i>=0; i--) {
     if (mcore->mops[i].type == GK_MOPT_MARK)
-      GK_ERREXIT(("Could not find pointer %p in mcore\n", ptr));
+      GK_ERREXIT("Could not find pointer %p in mcore\n", ptr);
 
     if (mcore->mops[i].ptr == ptr) {
       if (mcore->mops[i].type != GK_MOPT_HEAP)
-        GK_ERREXIT(("Trying to delete a non-HEAP mop.\n"));
+        GK_ERREXIT("Trying to delete a non-HEAP mop.\n");
 
       mcore->mops[i] = mcore->mops[--mcore->cmop];
       return;
     }
   }
 
-  GK_ERREXIT(("mcoreDel should never have been here!\n"));
+  GK_ERREXIT("mcoreDel should never have been here!\n");
 }
 

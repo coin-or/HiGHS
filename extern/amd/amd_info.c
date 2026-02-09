@@ -15,7 +15,7 @@
 #include "amd_internal.h"
 #include "ipm/hipo/auxiliary/OrderingPrint.h"
 
-#define PRI(format,x) { if (x >= 0) { HIGHS_ORDERING_PRINT ((format, x)) ; }}
+#define PRI(format,x) { if (x >= 0) { HIGHS_ORDERING_PRINT (format, x) ; }}
 
 void Highs_amd_info
 (
@@ -24,8 +24,8 @@ void Highs_amd_info
 {
     double n, ndiv, nmultsubs_ldl, nmultsubs_lu, lnz, lnzd ;
 
-    HIGHS_ORDERING_PRINT (("\nAMD version %d.%d.%d, %s, results:\n",
-	AMD_MAIN_VERSION, AMD_SUB_VERSION, AMD_SUBSUB_VERSION, AMD_DATE)) ;
+    HIGHS_ORDERING_PRINT ("\nAMD version %d.%d.%d, %s, results:\n",
+	AMD_MAIN_VERSION, AMD_SUB_VERSION, AMD_SUBSUB_VERSION, AMD_DATE) ;
 
     if (!Info)
     {
@@ -40,26 +40,26 @@ void Highs_amd_info
     lnzd = (n >= 0 && lnz >= 0) ? (n + lnz) : (-1) ;
 
     /* AMD return status */
-    HIGHS_ORDERING_PRINT (("    status: ")) ;
+    HIGHS_ORDERING_PRINT ("    status: ") ;
     if (Info [AMD_STATUS] == AMD_OK)
     {
-	HIGHS_ORDERING_PRINT (("OK\n")) ;
+	HIGHS_ORDERING_PRINT ("OK\n") ;
     }
     else if (Info [AMD_STATUS] == AMD_OUT_OF_MEMORY)
     {
-	HIGHS_ORDERING_PRINT (("out of memory\n")) ;
+	HIGHS_ORDERING_PRINT ("out of memory\n") ;
     }
     else if (Info [AMD_STATUS] == AMD_INVALID)
     {
-	HIGHS_ORDERING_PRINT (("invalid matrix\n")) ;
+	HIGHS_ORDERING_PRINT ("invalid matrix\n") ;
     }
     else if (Info [AMD_STATUS] == AMD_OK_BUT_JUMBLED)
     {
-	HIGHS_ORDERING_PRINT (("OK, but jumbled\n")) ;
+	HIGHS_ORDERING_PRINT ("OK, but jumbled\n") ;
     }
     else
     {
-	HIGHS_ORDERING_PRINT (("unknown\n")) ;
+	HIGHS_ORDERING_PRINT ("unknown\n") ;
     }
 
     /* statistics about the input matrix */
@@ -82,11 +82,11 @@ void Highs_amd_info
 	Info [AMD_NCMPA]) ;
 
     /* statistics about the ordering quality */
-    HIGHS_ORDERING_PRINT (("\n"
+    HIGHS_ORDERING_PRINT ("\n"
 	"    The following approximate statistics are for a subsequent\n"
 	"    factorization of A(P,P) + A(P,P)'.  They are slight upper\n"
 	"    bounds if there are no dense rows/columns in A+A', and become\n"
-	"    looser if dense rows/columns exist.\n\n")) ;
+	"    looser if dense rows/columns exist.\n\n") ;
 
     PRI ("    nonzeros in L (excluding diagonal):                 %.20g\n",
 	lnz) ;
@@ -105,7 +105,7 @@ void Highs_amd_info
 
     if (n >= 0 && ndiv >= 0 && nmultsubs_ldl >= 0 && nmultsubs_lu >= 0)
     {
-	HIGHS_ORDERING_PRINT (("\n"
+	HIGHS_ORDERING_PRINT ("\n"
 	"    chol flop count for real A, sqrt counted as 1 flop: %.20g\n"
 	"    LDL' flop count for real A:                         %.20g\n"
 	"    LDL' flop count for complex A:                      %.20g\n"
@@ -115,6 +115,6 @@ void Highs_amd_info
 	    ndiv + 2*nmultsubs_ldl,
 	  9*ndiv + 8*nmultsubs_ldl,
 	    ndiv + 2*nmultsubs_lu,
-	  9*ndiv + 8*nmultsubs_lu)) ;
+	  9*ndiv + 8*nmultsubs_lu) ;
     }
 }

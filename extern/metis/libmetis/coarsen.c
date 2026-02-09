@@ -56,7 +56,7 @@ graph_t *CoarsenGraph(ctrl_t *ctrl, graph_t *graph)
           Match_SHEM(ctrl, graph);
         break;
       default:
-        GK_ERREXIT(("Unknown ctype: %d\n", ctrl->ctype));
+        GK_ERREXIT("Unknown ctype: %d\n", ctrl->ctype);
     }
 
     graph = graph->coarser;
@@ -116,7 +116,7 @@ graph_t *CoarsenGraphNlevels(ctrl_t *ctrl, graph_t *graph, idx_t nlevels)
           Match_SHEM(ctrl, graph);
         break;
       default:
-        GK_ERREXIT(("Unknown ctype: %d\n", ctrl->ctype));
+        GK_ERREXIT("Unknown ctype: %d\n", ctrl->ctype);
     }
 
     graph = graph->coarser;
@@ -594,12 +594,12 @@ void PrintCGraphStats(ctrl_t *ctrl, graph_t *graph)
 {
   idx_t i;
 
-  HIGHS_ORDERING_PRINT(("%10"PRIDX" %10"PRIDX" %10"PRIDX" [%"PRIDX"] [", 
-      graph->nvtxs, graph->nedges, isum(graph->nedges, graph->adjwgt, 1), ctrl->CoarsenTo));
+  HIGHS_ORDERING_PRINT("%10"PRIDX" %10"PRIDX" %10"PRIDX" [%"PRIDX"] [", 
+      graph->nvtxs, graph->nedges, isum(graph->nedges, graph->adjwgt, 1), ctrl->CoarsenTo);
 
   for (i=0; i<graph->ncon; i++)
-    HIGHS_ORDERING_PRINT((" %8"PRIDX":%8"PRIDX, ctrl->maxvwgt[i], graph->tvwgt[i]));
-  HIGHS_ORDERING_PRINT((" ]\n"));
+    HIGHS_ORDERING_PRINT(" %8"PRIDX":%8"PRIDX, ctrl->maxvwgt[i], graph->tvwgt[i]);
+  HIGHS_ORDERING_PRINT(" ]\n");
 }
 
 

@@ -2,9 +2,9 @@
 #define HIPO_ORDERING_PRINT_H
 
 #ifndef NDEBUG
-#define HIGHS_ORDERING_PRINT(params) printf params
+#define HIGHS_ORDERING_PRINT(...) printf(__VA_ARGS__)
 #else
-#define HIGHS_ORDERING_PRINT(params)
+#define HIGHS_ORDERING_PRINT(...)
 #endif
 
 #endif
