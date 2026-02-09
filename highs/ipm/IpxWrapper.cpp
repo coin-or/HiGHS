@@ -1,3 +1,4 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /*                                                                       */
 /*    This file is part of the HiGHS linear optimization suite           */
 /*                                                                       */
@@ -62,6 +63,10 @@ HighsStatus solveLpIpx(const HighsOptions& options, HighsTimer& timer,
   resetModelStatusAndHighsInfo(model_status, highs_info);
   // Create the LpSolver instance
   ipx::LpSolver lps;
+  // Use the current HiGHS time as an offset for the lps.control_
+  // elapsed time
+  lps.setTimerOffset(timer.read());
+
   // Set IPX parameters
   //
   // Cannot set internal IPX parameters directly since they are
@@ -124,8 +129,9 @@ HighsStatus solveLpIpx(const HighsOptions& options, HighsTimer& timer,
 
   parameters.analyse_basis_data =
       kHighsAnalysisLevelNlaData & options.highs_analysis_level;
-  // Determine the run time allowed for IPX
-  parameters.time_limit = options.time_limit - timer.read();
+  // Now that the lps.control_ elapsed time includes the HiGHS time,
+  // can use the HiGHS time limit
+  parameters.time_limit = options.time_limit;
   parameters.ipm_maxiter =
       options.ipm_iteration_limit - highs_info.ipm_iteration_count;
   // Determine if crossover is to be run or not
@@ -457,6 +463,10 @@ HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
 
   // Create solver instance
   hipo::Solver hipo{};
+  // This creates ipx::LpSolver ipx_lps_, in case HiPO has to switch
+  // to IPX, so use the current HiGHS time as an offset for the
+  // ipx_lps.control_ elapsed time
+  hipo.setIpxTimerOffset(timer.read());
 
   hipo::Options hipo_options{};
 
@@ -503,7 +513,7 @@ HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
 
   // Potentially control if ipx is used for refinement and if it is displayed
   // hipo_options.refine_with_ipx = true;
-  // hipo_options.display_ipx = true;
+  hipo_options.display_ipx = true;
 
   // if option parallel is on, it can be refined by option hipo_parallel_type
   if (options.parallel == kHighsOnString) {
@@ -542,6 +552,18 @@ HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
     return HighsStatus::kError;
   }
 
+  // Reordering heuristic
+  if (options.hipo_ordering != kHipoMetisString &&
+      options.hipo_ordering != kHipoAmdString &&
+      options.hipo_ordering != kHipoRcmString &&
+      options.hipo_ordering != kHighsChooseString) {
+    highsLogUser(options.log_options, HighsLogType::kError,
+                 "Unknown value of option %s\n", kHipoOrderingString.c_str());
+    model_status = HighsModelStatus::kSolveError;
+    return HighsStatus::kError;
+  }
+  hipo_options.ordering = options.hipo_ordering;
+
   // block size option
   hipo_options.block_size = options.hipo_block_size;
 
@@ -549,28 +571,19 @@ HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
   hipo.setTimer(timer);
   hipo.setCallback(callback);
 
-  // Transform problem to correct formulation
-  hipo::Int num_col, num_row;
-  std::vector<double> obj, rhs, lower, upper, Aval;
-  std::vector<hipo::Int> Aptr, Aind;
-  std::vector<char> constraints;
-  double offset;
-  fillInIpxData(lp, num_col, num_row, offset, obj, lower, upper, Aptr, Aind,
-                Aval, rhs, constraints);
-  highsLogUser(options.log_options, HighsLogType::kInfo,
-               "HiPO model has %" HIGHSINT_FORMAT " rows, %" HIGHSINT_FORMAT
-               " columns and %" HIGHSINT_FORMAT " nonzeros\n",
-               num_row, num_col, Aptr[num_col]);
-
   // Load the problem
-  hipo::Int load_status = hipo.load(
-      num_col, num_row, obj.data(), rhs.data(), lower.data(), upper.data(),
-      Aptr.data(), Aind.data(), Aval.data(), constraints.data(), offset);
-
+  hipo::Int load_status = hipo.load(lp);
   if (load_status) {
     model_status = HighsModelStatus::kSolveError;
     return HighsStatus::kError;
   }
+
+  // This information about the problem loaded into HiPO is needed for later
+  HighsInt num_row, num_col;
+  hipo.getOriginalDims(num_row, num_col);
+  std::vector<double> rhs;
+  std::vector<char> constraints;
+  fillInRhsAndConstraints(lp, rhs, constraints);
 
   hipo.solve();
 
@@ -775,29 +788,7 @@ void fillInIpxData(const HighsLp& lp, ipx::Int& num_col, ipx::Int& num_row,
 
   const HighsInt num_slack = general_bounded_rows.size();
 
-  // For each row except free rows add entry to char array and set up rhs
-  // vector
-  rhs.reserve(num_row);
-  constraint_type.reserve(num_row);
-
-  for (int row = 0; row < num_row; row++) {
-    if (lp.row_lower_[row] > -kHighsInf && lp.row_upper_[row] >= kHighsInf) {
-      rhs.push_back(lp.row_lower_[row]);
-      constraint_type.push_back('>');
-    } else if (lp.row_lower_[row] <= -kHighsInf &&
-               lp.row_upper_[row] < kHighsInf) {
-      rhs.push_back(lp.row_upper_[row]);
-      constraint_type.push_back('<');
-    } else if (lp.row_lower_[row] == lp.row_upper_[row]) {
-      rhs.push_back(lp.row_upper_[row]);
-      constraint_type.push_back('=');
-    } else if (lp.row_lower_[row] > -kHighsInf &&
-               lp.row_upper_[row] < kHighsInf) {
-      // general bounded
-      rhs.push_back(0);
-      constraint_type.push_back('=');
-    }
-  }
+  fillInRhsAndConstraints(lp, rhs, constraint_type);
 
   std::vector<HighsInt> reduced_rowmap(lp.num_row_, -1);
   if (free_rows.size() > 0) {
@@ -879,7 +870,36 @@ void fillInIpxData(const HighsLp& lp, ipx::Int& num_col, ipx::Int& num_row,
   for (HighsInt col = 0; col < lp.num_col_; col++) {
     obj[col] = (HighsInt)lp.sense_ * lp.col_cost_[col];
   }
-  obj.insert(obj.end(), num_slack, 0);
+}
+
+void fillInRhsAndConstraints(const HighsLp& lp, std::vector<double>& rhs,
+                             std::vector<char>& constraint_type) {
+  // For each row except free rows add entry to char array and set up rhs
+  // vector
+
+  const HighsInt num_row = lp.num_row_;
+
+  rhs.reserve(num_row);
+  constraint_type.reserve(num_row);
+
+  for (int row = 0; row < num_row; row++) {
+    if (lp.row_lower_[row] > -kHighsInf && lp.row_upper_[row] >= kHighsInf) {
+      rhs.push_back(lp.row_lower_[row]);
+      constraint_type.push_back('>');
+    } else if (lp.row_lower_[row] <= -kHighsInf &&
+               lp.row_upper_[row] < kHighsInf) {
+      rhs.push_back(lp.row_upper_[row]);
+      constraint_type.push_back('<');
+    } else if (lp.row_lower_[row] == lp.row_upper_[row]) {
+      rhs.push_back(lp.row_upper_[row]);
+      constraint_type.push_back('=');
+    } else if (lp.row_lower_[row] > -kHighsInf &&
+               lp.row_upper_[row] < kHighsInf) {
+      // general bounded
+      rhs.push_back(0);
+      constraint_type.push_back('=');
+    }
+  }
 }
 
 HighsStatus reportIpxSolveStatus(const HighsOptions& options,
@@ -1508,9 +1528,9 @@ HighsStatus reportHipoStatus(const HighsOptions& options,
   else if (status == hipo::kStatusError) {
     highsLogUser(options.log_options, HighsLogType::kError,
                  "Hipo: Internal error\n");
-  } else if (status == hipo::kStatusOoM) {
+  } else if (status == hipo::kStatusOverflow) {
     highsLogUser(options.log_options, HighsLogType::kError,
-                 "Hipo: Out of memory\n");
+                 "Hipo: Integer overflow\n");
   } else if (status == hipo::kStatusErrorAnalyse) {
     highsLogUser(options.log_options, HighsLogType::kError,
                  "Hipo: Error in analyse phase\n");
