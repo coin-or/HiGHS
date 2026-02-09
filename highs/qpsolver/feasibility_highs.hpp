@@ -21,7 +21,7 @@ static void computeStartingPointByLp(Instance& instance, Settings& settings,
                                      const HighsSolution& highs_solution,
                                      HighsTimer& timer) {
   // Compute initial feasible point by solving an LP
-  const bool debug_report = false; //true;
+  const bool debug_report = false;  // true;
   Highs highs;
   highs.setOptionValue("output_flag", debug_report);
   highs.setOptionValue("presolve", kHighsOnString);
@@ -98,7 +98,7 @@ static void computeStartingPointByLp(Instance& instance, Settings& settings,
   }
   // Solve the feasibility LP
   HighsStatus status = highs.run();
-  
+
   if (debug_report) highs.writeSolution("", kSolutionStylePretty);
 
   if (status == HighsStatus::kError) {
