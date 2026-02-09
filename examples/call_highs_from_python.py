@@ -6,6 +6,11 @@ import highspy
 
 hscb = highspy.cb 
 
+# Constants for iteration limits or objective targets, adjust as required
+SIMPLEX_ITERATION_LIMIT = 100
+IPM_ITERATION_LIMIT = 100
+EGOUT_OBJECTIVE_TARGET = 610.0
+
 h = highspy.Highs()
 
 # h.setOptionValue("log_to_console", True)
@@ -54,6 +59,13 @@ h.run()
 solution = h.getSolution()
 basis = h.getBasis()
 info = h.getInfo()
+# basis.col_status and basis.row_status are already lists, but
+# accessing values in solution.col_value and solution.row_value
+# directly is very inefficient, so convert them to lists
+col_status = basis.col_status
+row_status = basis.row_status
+col_value = list(solution.col_value)
+row_value = list(solution.row_value)
 model_status = h.getModelStatus()
 print("Model status = ", h.modelStatusToString(model_status))
 print("Optimal objective = ", info.objective_function_value)
@@ -69,12 +81,12 @@ num_var = h.getNumCol()
 num_row = h.getNumRow()
 print("Variables")
 for icol in range(num_var):
-    print(icol, solution.col_value[icol],
-          h.basisStatusToString(basis.col_status[icol]))
+    print(icol, col_value[icol],
+          h.basisStatusToString(col_status[icol]))
 print("Constraints")
 for irow in range(num_row):
-    print(irow, solution.row_value[irow],
-          h.basisStatusToString(basis.row_status[irow]))
+    print(irow, row_value[irow],
+          h.basisStatusToString(row_status[irow]))
 
 # ~~~
 # Clear so that incumbent model is empty
@@ -223,38 +235,33 @@ print("From logical basis, simplex iteration count =", simplex_iteration_count)
 
 # Define a callback
 
-def user_interrupt_callback(
+def user_callback(
     callback_type,
     message,
     data_out,
     data_in,
     user_callback_data
 ):
-    # dev_run = True
-    dev_run = False
-
-    # Constants for iteration limits or objective targets, adjust as required
-    SIMPLEX_ITERATION_LIMIT = 100
-    IPM_ITERATION_LIMIT = 100
-    EGOUT_OBJECTIVE_TARGET = 1.0
+    dev_run = True
+    #dev_run = False
 
     # Callback for MIP Improving Solution
     if callback_type == hscb.HighsCallbackType.kCallbackMipImprovingSolution:
         # Assuming it is a list or array
         assert user_callback_data is not None, "User callback data is None!"
-        local_callback_data = user_callback_data[0]
 
         if dev_run:
-            print(f"userCallback(type {callback_type};")
-            print(f"data {local_callback_data:.4g}): {message}")
-            print(f"with objective {data_out.objective_function_value}")
+            print(f"userCallback(type {callback_type}; "
+                  f"data {user_callback_data:.4g}): {message} "
+                  f"with objective {data_out.objective_function_value:.4g}")
             print(f"and solution[0] = {data_out.mip_solution[0]}")
+            print(f"and solution[1] = {data_out.mip_solution[1]}")
 
         # Check and update the objective function value
         assert (
-            local_callback_data >= data_out.objective_function_value
+            user_callback_data >= data_out.objective_function_value
         ), "Objective function value is invalid!"
-        user_callback_data[0] = data_out.objective_function_value
+        user_callback_data = data_out.objective_function_value
 
     else:
         # Various other callback types
@@ -283,14 +290,15 @@ def user_interrupt_callback(
 
         elif callback_type == hscb.HighsCallbackType.kCallbackMipInterrupt:
             if dev_run:
-                print(f"userInterruptCallback(type {callback_type}): {message}")
+                print(f"userInterruptCallback(type {callback_type}; "
+                  f"data {user_callback_data:.4g}): {message} "
+                  f"with objective {data_out.objective_function_value:.4g}")
                 print(f"Dual bound = {data_out.mip_dual_bound:.4g}")
                 print(f"Primal bound = {data_out.mip_primal_bound:.4g}")
                 print(f"Gap = {data_out.mip_gap:.4g}")
-                print(f"Objective = {data_out.objective_function_value:.4g}")
 
             data_in.user_interrupt = (
-                data_out.objective_function_value < EGOUT_OBJECTIVE_TARGET
+                data_out.objective_function_value < user_callback_data
             )
 
 
@@ -309,7 +317,7 @@ h.addRows(num_cons, lower, upper, num_new_nz, starts, indices, values)
 
 
 # Set callback and run
-h.setCallback(user_interrupt_callback, None)
+h.setCallback(user_callback, None)
 h.startCallback(hscb.HighsCallbackType.kCallbackLogging)
 
 h.run()
@@ -320,6 +328,11 @@ num_var = h.getNumCol()
 solution = h.getSolution()
 basis = h.getBasis()
 info = h.getInfo()
+# basis.col_status is already a list, but accessing values in
+# solution.col_value directly is very inefficient, so convert it to a
+# list
+col_status = basis.col_status
+col_value = list(solution.col_value)
 model_status = h.getModelStatus()
 print("Model status = ", h.modelStatusToString(model_status))
 print("Optimal objective = ", info.objective_function_value)
@@ -333,168 +346,103 @@ print("Dual solution status = ",
 print("Basis validity = ", h.basisValidityToString(info.basis_validity))
 print("Variables:")
 for icol in range(0, 5):
-    print(icol, solution.col_value[icol],
-          h.basisStatusToString(basis.col_status[icol]))
+    print(icol, col_value[icol],
+          h.basisStatusToString(col_status[icol]))
 print("...")
 for icol in range(num_var-2, num_var):
-    print(icol, solution.col_value[icol],
-          h.basisStatusToString(basis.col_status[icol]))
-
-print("computing IIS for lp-incompatible-bounds")
-"""
-LP has row0 and col2 with inconsistent bounds.
-
-When prioritising rows, row0 and its constituent columns (1, 2) should be found
-When prioritising columns, col2 and its constituent rows (0, 1) should be found
-"""
-# Define the LP
-lp = highspy.HighsLp()
-lp.num_col_ = 3
-lp.num_row_ = 2
-lp.col_cost_ = np.array([0, 0, 0], dtype=np.double)
-lp.col_lower_ = np.array([0, 0, 0], dtype=np.double)
-lp.col_upper_ = np.array([1, 1, -1], dtype=np.double)
-lp.row_lower_ = np.array([1, 0], dtype=np.double)
-lp.row_upper_ = np.array([0, 1], dtype=np.double)
-lp.a_matrix_.format_ = highspy.MatrixFormat.kRowwise
-lp.a_matrix_.start_ = np.array([0, 2, 4])
-lp.a_matrix_.index_ = np.array([1, 2, 0, 2])
-lp.a_matrix_.value_ = np.array([1, 1, 1, 1], dtype=np.double)
-
-h.clear()
-h.passModel(lp)
-h.run()
-assert h.getModelStatus() == highspy.HighsModelStatus.kInfeasible
-
-# Set IIS strategy to row priority and get IIS
-h.setOptionValue("iis_strategy", highspy.IisStrategy.kIisStrategyFromLpRowPriority)
-
-iis = highspy.HighsIis()
-assert h.getIis(iis) == highspy.HighsStatus.kOk
-assert len(iis.col_index) == 0
-assert len(iis.row_index) == 1
-assert iis.row_index[0] == 0
-assert iis.row_bound[0] == highspy.IisBoundStatus.kIisBoundStatusBoxed
-
-# Set IIS strategy to column priority and get IIS
-h.setOptionValue("iis_strategy", highspy.IisStrategy.kIisStrategyFromLpColPriority)
-iis.invalidate()
-assert h.getIis(iis) == highspy.HighsStatus.kOk
-assert len(iis.col_index) == 1
-assert len(iis.row_index) == 0
-assert iis.col_index[0] == 2
-assert iis.col_bound[0] == highspy.IisBoundStatus.kIisBoundStatusBoxed
-
-print("IIS computation completed successfully")
-
-print("computing feasibility relaxation")
-h.clear()
-inf = h.getInfinity()
-
-num_col = 2
-num_row = 3
-num_nz = 6
-a_format = highspy.MatrixFormat.kColwise
-sense = highspy.ObjSense.kMinimize
-offset = 0
-col_cost = np.array([1, -2], dtype=np.double)
-col_lower = np.array([5, -inf], dtype=np.double)
-col_upper = np.array([inf, inf], dtype=np.double)
-row_lower = np.array([2, -inf, -inf], dtype=np.double)
-row_upper = np.array([inf, 1, 20], dtype=np.double)
-a_start = np.array([0, 3])
-a_index = np.array([0, 1, 2, 0, 1, 2])
-a_value = np.array([-1, -3, 20, 21, 2, 1], dtype=np.double)
-integrality = np.array([highspy.HighsVarType.kInteger, highspy.HighsVarType.kInteger])
-
-h.passModel(
-    num_col, num_row, num_nz, a_format, sense, offset,
-    col_cost, col_lower, col_upper,
-    row_lower, row_upper,
-    a_start, a_index, a_value,
-    integrality
-)
-
-assert h.feasibilityRelaxation(1, 1, 1) == highspy.HighsStatus.kOk
-
-info = h.getInfo()
-objective_function_value = info.objective_function_value
-
-solution = h.getSolution()
-
-assert abs(objective_function_value - 5) < 1e-6, f"Expected objective value 5, got {objective_function_value}"
-assert abs(solution.col_value[0] - 1) < 1e-6, f"Expected solution[0] = 1, got {solution.col_value[0]}"
-assert abs(solution.col_value[1] - 1) < 1e-6, f"Expected solution[1] = 1, got {solution.col_value[1]}"
-
-print("Feasibility Relaxation Test Passed")
-
-# Using infeasible LP from AMPL documentation
-h = highspy.Highs()
-lp = highspy.HighsLp()
-lp.num_col_ = 2
-lp.num_row_ = 3
-lp.col_cost_ = np.array([1, -2], dtype=np.double)
-lp.col_lower_ = np.array([5, -h.getInfinity()], dtype=np.double)
-lp.col_upper_ = np.array([h.getInfinity(), h.getInfinity()], dtype=np.double)
-lp.col_names_ = ["X", "Y"]
-lp.row_lower_ = np.array([2, -h.getInfinity(), -h.getInfinity()], dtype=np.double)
-lp.row_upper_ = np.array([h.getInfinity(), 1, 20], dtype=np.double)
-lp.row_names_ = ["R0", "R1", "R2"]
-lp.a_matrix_.start_ = np.array([0, 3, 6])
-lp.a_matrix_.index_ = np.array([0, 1, 2, 0, 1, 2])
-lp.a_matrix_.value_ = np.array([-1, -3, 20, 21, 2, 1], dtype=np.double)
-lp.integrality_ = np.array([highspy.HighsVarType.kInteger, highspy.HighsVarType.kInteger])
-h.setOptionValue("output_flag", False)
-h.passModel(lp)
-
-# Vanilla feasibility relaxation
-print("Vanilla feasibility relaxation")
-h.feasibilityRelaxation(1, 1, 1)
-solution = h.getSolution()
-print(f"Solution: ({solution.col_value[0]}, {solution.col_value[1]})")
-print(f"Slacks: ({solution.row_value[0] - lp.row_lower_[0]}, "
-      f"{lp.row_upper_[1] - solution.row_value[1]}, "
-      f"{lp.row_upper_[2] - solution.row_value[2]})")
-
-# Respect all lower bounds
-print("\nRespect all lower bounds")
-h.feasibilityRelaxation(-1, 1, 1)
-solution = h.getSolution()
-print(f"Solution: ({solution.col_value[0]}, {solution.col_value[1]})")
-print(f"Slacks: ({solution.row_value[0] - lp.row_lower_[0]}, "
-      f"{lp.row_upper_[1] - solution.row_value[1]}, "
-      f"{lp.row_upper_[2] - solution.row_value[2]})")
-
-# Local penalties RHS {1, -1, 10}
-print("\nLocal penalties RHS {1, -1, 10}")
-local_rhs_penalty = np.array([1, -1, 10], dtype=np.double)
-h.feasibilityRelaxation(1, 1, 0, None, None, local_rhs_penalty)
-solution = h.getSolution()
-print(f"Solution: ({solution.col_value[0]}, {solution.col_value[1]})")
-print(f"Slacks: ({solution.row_value[0] - lp.row_lower_[0]}, "
-      f"{lp.row_upper_[1] - solution.row_value[1]}, "
-      f"{lp.row_upper_[2] - solution.row_value[2]})")
-
-# Local penalties RHS {10, 1, 1}
-print("\nLocal penalties RHS {10, 1, 1}")
-local_rhs_penalty = np.array([10, 1, 1], dtype=np.double)
-h.feasibilityRelaxation(1, 1, 0, None, None, local_rhs_penalty)
-solution = h.getSolution()
-print(f"Solution: ({solution.col_value[0]}, {solution.col_value[1]})")
-print(f"Slacks: ({solution.row_value[0] - lp.row_lower_[0]}, "
-      f"{lp.row_upper_[1] - solution.row_value[1]}, "
-      f"{lp.row_upper_[2] - solution.row_value[2]})")
-
-iis = highspy.HighsIis()
-assert h.getIis(iis) == highspy.HighsStatus.kOk
-
-print("\nIIS")
-print("row_index:", iis.row_index)
-print("row_bound:", iis.row_bound)
-
-print("col_index:", iis.col_index)
-print("col_bound:", iis.col_bound)
+    print(icol, col_value[icol],
+          h.basisStatusToString(col_status[icol]))
 
 # ~~~
 # Clear so that incumbent model is empty
 h.clear()
+
+# Test MIP callbacks
+print("\negout as HighsModel")
+
+h.setOptionValue("output_flag", False);
+h.setOptionValue("presolve", "off");
+
+h.readModel("check/instances/egout.mps")
+
+for iCase in range(0, 2):
+    if iCase == 0:
+        user_callback_data = EGOUT_OBJECTIVE_TARGET;
+        h.setCallback(user_callback, user_callback_data)
+        h.startCallback(hscb.HighsCallbackType.kCallbackMipInterrupt)
+        required_model_status = highspy.HighsModelStatus.kInterrupt
+    else:
+        user_callback_data = 1e30;
+        h.setCallback(user_callback, user_callback_data)
+        h.startCallback(hscb.HighsCallbackType.kCallbackMipImprovingSolution)
+        required_model_status = highspy.HighsModelStatus.kOptimal
+
+    h.run()
+
+    assert (h.getModelStatus() == required_model_status)
+
+    print(f"user_callback_data = {user_callback_data}: Success!")
+    h.clearSolver()
+
+# ~~~
+# Clear so that incumbent model is empty
+h.clear()
+
+# Build an infeasible LP problem
+# Problem: minimize x + y
+# Subject to: x + y <= 0.5 and x + y >= 2.0 (contradictory constraints)
+# Bounds: 0 <= x <= 1, 0 <= y <= 1
+
+lp = highspy.HighsLp()
+lp.num_col_ = 2
+lp.num_row_ = 2
+
+# Objective: minimize x + y
+lp.col_cost_ = [1.0, 1.0]
+
+# Variable bounds: 0 <= x <= 1, 0 <= y <= 1
+lp.col_lower_ = [0.0, 0.0]
+lp.col_upper_ = [1.0, 1.0]
+
+# Constraints:
+# Row 0: x + y <= 0.5
+# Row 1: -x - y <= -2.0  (equivalent to x + y >= 2.0)
+lp.row_lower_ = [-np.inf, -np.inf]
+lp.row_upper_ = [0.5, -2.0]
+
+# Constraint matrix (CSC format)
+lp.a_matrix_.start_ = [0, 2, 4]
+lp.a_matrix_.index_ = [0, 1, 0, 1]  # Row indices
+lp.a_matrix_.value_ = [1.0, 1.0, -1.0, -1.0]  # Coefficients
+
+# Pass model to HiGHS
+h.passModel(lp)
+
+# Solve the problem
+h.run()
+
+model_status = h.getModelStatus()
+
+# Change the IIS strategy from the default (use the "light" strategy
+# of testing for incompatible bounds and bounds on row activities that
+# are incomparible with row bounds) to an attempt to find an IIS -
+# although the "light" strategy is sufficient for this LP
+
+h.setOptionValue("iis_strategy", highspy.IisStrategy.kIisStrategyIrreducible)
+
+[status, iis] = h.getIis()
+
+iis_num_col = len(iis.col_index_)
+for iX in range(iis_num_col) :
+    print("IIS col ", iX, " is ", iis.col_index_[iX], " with bound status ", iis.col_bound_[iX])
+
+iis_num_row = len(iis.row_index_)
+for iX in range(iis_num_row) :
+    print("IIS row ", iX, " is ", iis.row_index_[iX], " with bound status ", iis.row_bound_[iX])
+
+# Status -1 => Not in conflict; 0 => Maybe in conflict; 1 => in conflict
+for iX in range(lp.num_col_) :
+    print("Col ", iX, " has IIS status ", iis.col_status_[iX])
+
+for iX in range(lp.num_row_) :
+    print("Row ", iX, " has IIS status ", iis.row_status_[iX])
