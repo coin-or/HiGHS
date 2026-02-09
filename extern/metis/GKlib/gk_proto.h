@@ -10,6 +10,8 @@
 #ifndef _GK_PROTO_H_
 #define _GK_PROTO_H_
 
+#include "ipm/hipo/auxiliary/OrderingPrint.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -23,6 +25,7 @@ void gk_free(void **ptr1);
  * error.c
  *-------------------------------------------------------------*/
 void gk_errexit(char *,...);
+#define GK_ERREXIT(params) { HIGHS_ORDERING_PRINT(params) ; abort(); }
 
 /*-------------------------------------------------------------
  * random.c
