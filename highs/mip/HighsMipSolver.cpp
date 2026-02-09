@@ -42,8 +42,12 @@ HighsMipSolver::HighsMipSolver(HighsCallback& callback,
       pscostinit(nullptr),
       clqtableinit(nullptr),
       implicinit(nullptr) {
+  timer_.setPrintfFlag(options_mip_->output_flag, options_mip_->log_to_console);
   assert(!submip || submip_level > 0);
   max_submip_level = 0;
+  // Initialise empty terminator
+  initialiseTerminator();
+  assert(termination_status_ == HighsModelStatus::kNotset);
   if (solution.value_valid) {
 #ifndef NDEBUG
     // MIP solver doesn't check row residuals, but they should be OK
@@ -73,6 +77,7 @@ void HighsMipSolver::run() {
     analysis_.analyse_mip_time = false;
   } else {
     analysis_.timer_ = &this->timer_;
+    analysis_.sub_solver_call_time_ = &this->sub_solver_call_time_;
     analysis_.setup(*orig_model_, *options_mip_);
   }
   timer_.start();
@@ -87,10 +92,16 @@ void HighsMipSolver::run() {
   analysis_.mipTimerStart(kMipClockInit);
   mipdata_->init();
   analysis_.mipTimerStop(kMipClockInit);
+#ifdef HIGHS_DEBUGSOL
+  mipdata_->debugSolution.activate();
+  bool debugSolActive = false;
+  std::swap(mipdata_->debugSolution.debugSolActive, debugSolActive);
+#endif
   analysis_.mipTimerStart(kMipClockRunPresolve);
-  mipdata_->runPresolve(options_mip_->presolve_reduction_limit);
+  mipdata_->runMipPresolve(options_mip_->presolve_reduction_limit);
   analysis_.mipTimerStop(kMipClockRunPresolve);
   analysis_.mipTimerStop(kMipClockPresolve);
+
   if (analysis_.analyse_mip_time && !submip)
     highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
                  "MIP-Timing: %11.2g - completed presolve\n", timer_.read());
@@ -119,6 +130,9 @@ void HighsMipSolver::run() {
     highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
                  "MIP-Timing: %11.2g - starting  setup\n", timer_.read());
   analysis_.mipTimerStart(kMipClockRunSetup);
+#ifdef HIGHS_DEBUGSOL
+  mipdata_->debugSolution.debugSolActive = debugSolActive;
+#endif
   mipdata_->runSetup();
   analysis_.mipTimerStop(kMipClockRunSetup);
   if (analysis_.analyse_mip_time && !submip)
@@ -131,35 +145,11 @@ restart:
       cleanupSolve();
       return;
     }
-    // Possibly look for primal solution from the user
-    if (!submip && callback_->user_callback &&
-        callback_->active[kCallbackMipUserSolution])
-      mipdata_->callbackUserSolution(solution_objective_,
-                                     kUserMipSolutionCallbackOriginAfterSetup);
+    // Possibly query existence of an external solution
+    if (!submip)
+      mipdata_->queryExternalSolution(
+          solution_objective_, kExternalMipSolutionQueryOriginAfterSetup);
 
-    if (options_mip_->mip_heuristic_run_feasibility_jump) {
-      // Apply the feasibility jump before evaluating the root node
-      analysis_.mipTimerStart(kMipClockFeasibilityJump);
-      HighsModelStatus returned_model_status = mipdata_->feasibilityJump();
-      analysis_.mipTimerStop(kMipClockFeasibilityJump);
-      if (modelstatus_ == HighsModelStatus::kNotset &&
-          returned_model_status == HighsModelStatus::kInfeasible) {
-        // feasibilityJump can spot trivial infeasibility, so act on it
-        modelstatus_ = returned_model_status;
-        cleanupSolve();
-        return;
-      }
-      const bool bailout_after_feasibility_jump = false;
-      if (bailout_after_feasibility_jump) {
-        highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
-                     "HighsMipSolver: Bailing out after Feasibility Jump with "
-                     "model status = %s\n",
-                     utilModelStatusToString(returned_model_status).c_str());
-        modelstatus_ = HighsModelStatus::kInterrupt;
-        cleanupSolve();
-        return;
-      }
-    }
     // Apply the trivial heuristics
     analysis_.mipTimerStart(kMipClockTrivialHeuristics);
     HighsModelStatus returned_model_status = mipdata_->trivialHeuristics();
@@ -171,6 +161,20 @@ restart:
       cleanupSolve();
       return;
     }
+    // Apply the feasibility jump heuristic (if enabled)
+    if (options_mip_->mip_heuristic_run_feasibility_jump) {
+      analysis_.mipTimerStart(kMipClockFeasibilityJump);
+      HighsModelStatus returned_model_status = mipdata_->feasibilityJump();
+      analysis_.mipTimerStop(kMipClockFeasibilityJump);
+      if (modelstatus_ == HighsModelStatus::kNotset &&
+          returned_model_status == HighsModelStatus::kInfeasible) {
+        // feasibilityJump can spot trivial infeasibility, so act on it
+        modelstatus_ = returned_model_status;
+        cleanupSolve();
+        return;
+      }
+    }
+    // End of pre-root-node heuristics
     if (analysis_.analyse_mip_time && !submip)
       if (analysis_.analyse_mip_time & !submip)
         highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
@@ -179,11 +183,16 @@ restart:
     analysis_.mipTimerStart(kMipClockEvaluateRootNode);
     mipdata_->evaluateRootNode();
     analysis_.mipTimerStop(kMipClockEvaluateRootNode);
+    if (this->terminate()) {
+      modelstatus_ = this->terminationStatus();
+      cleanupSolve();
+      return;
+    }
     // Sometimes the analytic centre calculation is not completed when
     // evaluateRootNode returns, so stop its clock if it's running
     if (analysis_.analyse_mip_time &&
-        analysis_.mipTimerRunning(kMipClockIpmSolveLp))
-      analysis_.mipTimerStop(kMipClockIpmSolveLp);
+        analysis_.mipTimerRunning(kMipClockIpxSolveLp))
+      analysis_.mipTimerStop(kMipClockIpxSolveLp);
     if (analysis_.analyse_mip_time && !submip)
       highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
                    "MIP-Timing: %11.2g - completed evaluate root node\n",
@@ -211,15 +220,7 @@ restart:
   search.setLpRelaxation(&mipdata_->lp);
   sepa.setLpRelaxation(&mipdata_->lp);
 
-  double prev_lower_bound = mipdata_->lower_bound;
-
-  mipdata_->lower_bound = mipdata_->nodequeue.getBestLowerBound();
-
-  bool bound_change = mipdata_->lower_bound != prev_lower_bound;
-  if (!submip && bound_change)
-    mipdata_->updatePrimalDualIntegral(prev_lower_bound, mipdata_->lower_bound,
-                                       mipdata_->upper_bound,
-                                       mipdata_->upper_bound);
+  mipdata_->updateLowerBound(mipdata_->nodequeue.getBestLowerBound());
 
   mipdata_->printDisplayLine();
   search.installNode(mipdata_->nodequeue.popBestBoundNode());
@@ -234,11 +235,10 @@ restart:
   double lowerBoundLastCheck = mipdata_->lower_bound;
   analysis_.mipTimerStart(kMipClockSearch);
   while (search.hasNode()) {
-    // Possibly look for primal solution from the user
-    if (!submip && callback_->user_callback &&
-        callback_->active[kCallbackMipUserSolution])
-      mipdata_->callbackUserSolution(solution_objective_,
-                                     kUserMipSolutionCallbackOriginBeforeDive);
+    // Possibly query existence of an external solution
+    if (!submip)
+      mipdata_->queryExternalSolution(
+          solution_objective_, kExternalMipSolutionQueryOriginBeforeDive);
 
     analysis_.mipTimerStart(kMipClockPerformAging1);
     mipdata_->conflictPool.performAging();
@@ -298,6 +298,10 @@ restart:
 
           mipdata_->heuristics.flushStatistics();
           analysis_.mipTimerStop(kMipClockDivePrimalHeuristics);
+          if (mipdata_->terminatorTerminated()) {
+            cleanupSolve();
+            return;
+          }
         }
       }
 
@@ -356,16 +360,8 @@ restart:
     search.flushStatistics();
 
     if (limit_reached) {
-      double prev_lower_bound = mipdata_->lower_bound;
-
-      mipdata_->lower_bound = std::min(mipdata_->upper_bound,
-                                       mipdata_->nodequeue.getBestLowerBound());
-
-      bool bound_change = mipdata_->lower_bound != prev_lower_bound;
-      if (!submip && bound_change)
-        mipdata_->updatePrimalDualIntegral(
-            prev_lower_bound, mipdata_->lower_bound, mipdata_->upper_bound,
-            mipdata_->upper_bound);
+      mipdata_->updateLowerBound(std::min(
+          mipdata_->upper_bound, mipdata_->nodequeue.getBestLowerBound()));
       mipdata_->printDisplayLine();
       break;
     }
@@ -387,29 +383,13 @@ restart:
     if (mipdata_->domain.infeasible()) {
       mipdata_->nodequeue.clear();
       mipdata_->pruned_treeweight = 1.0;
-
-      double prev_lower_bound = mipdata_->lower_bound;
-
-      mipdata_->lower_bound = std::min(kHighsInf, mipdata_->upper_bound);
-
-      bool bound_change = mipdata_->lower_bound != prev_lower_bound;
-      if (!submip && bound_change)
-        mipdata_->updatePrimalDualIntegral(
-            prev_lower_bound, mipdata_->lower_bound, mipdata_->upper_bound,
-            mipdata_->upper_bound);
+      mipdata_->updateLowerBound(std::min(kHighsInf, mipdata_->upper_bound));
       mipdata_->printDisplayLine();
       break;
     }
 
-    double prev_lower_bound = mipdata_->lower_bound;
-
-    mipdata_->lower_bound = std::min(mipdata_->upper_bound,
-                                     mipdata_->nodequeue.getBestLowerBound());
-    bool bound_change = mipdata_->lower_bound != prev_lower_bound;
-    if (!submip && bound_change)
-      mipdata_->updatePrimalDualIntegral(
-          prev_lower_bound, mipdata_->lower_bound, mipdata_->upper_bound,
-          mipdata_->upper_bound);
+    mipdata_->updateLowerBound(std::min(
+        mipdata_->upper_bound, mipdata_->nodequeue.getBestLowerBound()));
     mipdata_->printDisplayLine();
     if (mipdata_->nodequeue.empty()) break;
 
@@ -582,15 +562,9 @@ restart:
           mipdata_->nodequeue.clear();
           mipdata_->pruned_treeweight = 1.0;
 
-          double prev_lower_bound = mipdata_->lower_bound;
+          mipdata_->updateLowerBound(
+              std::min(kHighsInf, mipdata_->upper_bound));
 
-          mipdata_->lower_bound = std::min(kHighsInf, mipdata_->upper_bound);
-
-          bool bound_change = mipdata_->lower_bound != prev_lower_bound;
-          if (!submip && bound_change)
-            mipdata_->updatePrimalDualIntegral(
-                prev_lower_bound, mipdata_->lower_bound, mipdata_->upper_bound,
-                mipdata_->upper_bound);
           analysis_.mipTimerStop(kMipClockNodePrunedLoop);
           break;
         }
@@ -601,16 +575,9 @@ restart:
         }
 
         //	analysis_.mipTimerStart(kMipClockStoreBasis);
-        double prev_lower_bound = mipdata_->lower_bound;
+        mipdata_->updateLowerBound(std::min(
+            mipdata_->upper_bound, mipdata_->nodequeue.getBestLowerBound()));
 
-        mipdata_->lower_bound = std::min(
-            mipdata_->upper_bound, mipdata_->nodequeue.getBestLowerBound());
-
-        bool bound_change = mipdata_->lower_bound != prev_lower_bound;
-        if (!submip && bound_change)
-          mipdata_->updatePrimalDualIntegral(
-              prev_lower_bound, mipdata_->lower_bound, mipdata_->upper_bound,
-              mipdata_->upper_bound);
         mipdata_->printDisplayLine();
 
         if (!mipdata_->domain.getChangedCols().empty()) {
@@ -636,9 +603,14 @@ restart:
       analysis_.mipTimerStop(kMipClockNodePrunedLoop);
 
       // the node is still not fathomed, so perform separation
-      analysis_.mipTimerStart(kMipClockNodeSearchSeparation);
-      sepa.separate(search.getLocalDomain());
-      analysis_.mipTimerStop(kMipClockNodeSearchSeparation);
+      if (options_mip_->mip_allow_cut_separation_at_nodes) {
+        analysis_.mipTimerStart(kMipClockNodeSearchSeparation);
+        sepa.separate(search.getLocalDomain());
+        analysis_.mipTimerStop(kMipClockNodeSearchSeparation);
+      } else {
+        // perform aging
+        mipdata_->cutpool.performAging();
+      }
 
       if (mipdata_->domain.infeasible()) {
         search.cutoffNode();
@@ -649,15 +621,7 @@ restart:
         mipdata_->pruned_treeweight = 1.0;
 
         analysis_.mipTimerStart(kMipClockStoreBasis);
-        double prev_lower_bound = mipdata_->lower_bound;
-
-        mipdata_->lower_bound = std::min(kHighsInf, mipdata_->upper_bound);
-
-        bool bound_change = mipdata_->lower_bound != prev_lower_bound;
-        if (!submip && bound_change)
-          mipdata_->updatePrimalDualIntegral(
-              prev_lower_bound, mipdata_->lower_bound, mipdata_->upper_bound,
-              mipdata_->upper_bound);
+        mipdata_->updateLowerBound(std::min(kHighsInf, mipdata_->upper_bound));
         break;
       }
 
@@ -690,6 +654,22 @@ restart:
 }
 
 void HighsMipSolver::cleanupSolve() {
+  if (mipdata_->terminatorActive()) {
+    if (mipdata_->terminatorTerminated()) {
+      // Indicate that this instance has been interrupted
+      modelstatus_ = HighsModelStatus::kHighsInterrupt;
+    } else if (!submip) {
+      // When sub-MIPs call cleanupSolve(), they generally don't have
+      // a termination criterion for the whole MIP solver
+      //
+      // Possibly allow sub-MIPs to terminate if the time limit is
+      // reached
+      //
+      // No other instance has terminated, so terminate
+      mipdata_->terminatorTerminate();
+    }
+  }
+
   // Force a final logging line
   mipdata_->printDisplayLine(kSolutionSourceCleanup);
   // Stop the solve clock - which won't be running if presolve
@@ -750,10 +730,12 @@ void HighsMipSolver::cleanupSolve() {
   std::string solutionstatus = "-";
 
   if (havesolution) {
-    bool feasible =
+    // Surely this definition of feasible is unnecessary
+    bool lc_feasible =
         bound_violation_ <= options_mip_->mip_feasibility_tolerance &&
         integrality_violation_ <= options_mip_->mip_feasibility_tolerance &&
         row_violation_ <= options_mip_->mip_feasibility_tolerance;
+    assert(feasible == lc_feasible);
     solutionstatus = feasible ? "feasible" : "infeasible";
   }
 
@@ -765,35 +747,8 @@ void HighsMipSolver::cleanupSolve() {
   else
     gap_ = kHighsInf;
 
-  std::array<char, 128> gapString = {};
-
-  if (gap_ == kHighsInf)
-    std::strcpy(gapString.data(), "inf");
-  else {
-    double printTol = std::max(std::min(1e-2, 1e-1 * gap_), 1e-6);
-    auto gapValString = highsDoubleToString(100.0 * gap_, printTol);
-    double gapTol = options_mip_->mip_rel_gap;
-
-    if (options_mip_->mip_abs_gap > options_mip_->mip_feasibility_tolerance) {
-      gapTol = primal_bound_ == 0.0
-                   ? kHighsInf
-                   : std::max(gapTol,
-                              options_mip_->mip_abs_gap / fabs(primal_bound_));
-    }
-
-    if (gapTol == 0.0)
-      std::snprintf(gapString.data(), gapString.size(), "%s%%",
-                    gapValString.data());
-    else if (gapTol != kHighsInf) {
-      printTol = std::max(std::min(1e-2, 1e-1 * gapTol), 1e-6);
-      auto gapTolString = highsDoubleToString(100.0 * gapTol, printTol);
-      std::snprintf(gapString.data(), gapString.size(),
-                    "%s%% (tolerance: %s%%)", gapValString.data(),
-                    gapTolString.data());
-    } else
-      std::snprintf(gapString.data(), gapString.size(), "%s%% (tolerance: inf)",
-                    gapValString.data());
-  }
+  std::array<char, 128> gapString =
+      getGapString(gap_, primal_bound_, options_mip_);
 
   bool timeless_log = options_mip_->timeless_log;
   highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
@@ -823,33 +778,47 @@ void HighsMipSolver::cleanupSolve() {
                  "                    %.12g (row viol.)\n",
                  solution_objective_, bound_violation_, integrality_violation_,
                  row_violation_);
-  if (!timeless_log)
+  if (!timeless_log) {
     highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
-                 "  Timing            %.2f (total)\n"
-                 "                    %.2f (presolve)\n"
-                 "                    %.2f (solve)\n"
-                 "                    %.2f (postsolve)\n",
-                 timer_.read(), analysis_.mipTimerRead(kMipClockPresolve),
-                 analysis_.mipTimerRead(kMipClockSolve),
-                 analysis_.mipTimerRead(kMipClockPostsolve));
+                 "  Timing            %.2f\n", timer_.read());
+    if (analysis_.analyse_mip_time)
+      highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
+                   "                    %.2f (presolve)\n"
+                   "                    %.2f (solve)\n"
+                   "                    %.2f (postsolve)\n",
+                   analysis_.mipTimerRead(kMipClockPresolve),
+                   analysis_.mipTimerRead(kMipClockSolve),
+                   analysis_.mipTimerRead(kMipClockPostsolve));
+  }
   highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
                "  Max sub-MIP depth %d\n"
-               "  Nodes             %llu\n"
-               "  Repair LPs        %llu (%llu feasible; %llu iterations)\n"
-               "  LP iterations     %llu (total)\n"
-               "                    %llu (strong br.)\n"
-               "                    %llu (separation)\n"
-               "                    %llu (heuristics)\n",
-               int(max_submip_level), (long long unsigned)mipdata_->num_nodes,
-               (long long unsigned)mipdata_->total_repair_lp,
-               (long long unsigned)mipdata_->total_repair_lp_feasible,
-               (long long unsigned)mipdata_->total_repair_lp_iterations,
-               (long long unsigned)mipdata_->total_lp_iterations,
-               (long long unsigned)mipdata_->sb_lp_iterations,
-               (long long unsigned)mipdata_->sepa_lp_iterations,
-               (long long unsigned)mipdata_->heuristic_lp_iterations);
+               "  Nodes             %llu\n",
+               int(max_submip_level), (long long unsigned)mipdata_->num_nodes);
+  if (mipdata_->total_repair_lp) {
+    highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
+                 "  Repair LPs        %llu (%llu feasible; %llu iterations)\n",
+                 (long long unsigned)mipdata_->total_repair_lp,
+                 (long long unsigned)mipdata_->total_repair_lp_feasible,
+                 (long long unsigned)mipdata_->total_repair_lp_iterations);
+  } else {
+    highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
+                 "  Repair LPs        0\n");
+  }
+  highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
+               "  LP iterations     %llu\n",
+               (long long unsigned)mipdata_->total_lp_iterations);
+  if (mipdata_->total_lp_iterations)
+    highsLogUser(options_mip_->log_options, HighsLogType::kInfo,
+                 "                    %llu (strong br.)\n"
+                 "                    %llu (separation)\n"
+                 "                    %llu (heuristics)\n",
+                 (long long unsigned)mipdata_->sb_lp_iterations,
+                 (long long unsigned)mipdata_->sepa_lp_iterations,
+                 (long long unsigned)mipdata_->heuristic_lp_iterations);
 
   if (!timeless_log) analysis_.reportMipTimer();
+
+  analysis_.checkSubSolverCallTime(sub_solver_call_time_);
 
   assert(modelstatus_ != HighsModelStatus::kNotset);
 
@@ -857,10 +826,10 @@ void HighsMipSolver::cleanupSolve() {
 }
 
 // Only called in Highs::runPresolve
-void HighsMipSolver::runPresolve(const HighsInt presolve_reduction_limit) {
+void HighsMipSolver::runMipPresolve(const HighsInt presolve_reduction_limit) {
   mipdata_ = decltype(mipdata_)(new HighsMipSolverData(*this));
   mipdata_->init();
-  mipdata_->runPresolve(presolve_reduction_limit);
+  mipdata_->runMipPresolve(presolve_reduction_limit);
 }
 
 const HighsLp& HighsMipSolver::getPresolvedModel() const {
@@ -893,6 +862,41 @@ void HighsMipSolver::callbackGetCutPool() const {
   callback_->user_callback(kCallbackMipGetCutPool, "MIP cut pool",
                            &callback_->data_out, &callback_->data_in,
                            callback_->user_callback_data);
+}
+
+std::array<char, 128> getGapString(const double gap_,
+                                   const double primal_bound_,
+                                   const HighsOptions* options_mip_) {
+  std::array<char, 128> gapString = {};
+  if (gap_ == kHighsInf)
+    std::strcpy(gapString.data(), "inf");
+  else {
+    double printTol = std::max(std::min(1e-2, 1e-1 * gap_), 1e-6);
+    auto gapValString = highsDoubleToString(100.0 * gap_, printTol);
+    double gapTol = options_mip_->mip_rel_gap;
+
+    if (options_mip_->mip_abs_gap > options_mip_->mip_feasibility_tolerance) {
+      gapTol = primal_bound_ == 0.0
+                   ? kHighsInf
+                   : std::max(gapTol,
+                              options_mip_->mip_abs_gap / fabs(primal_bound_));
+    }
+
+    if (gapTol == 0.0)
+      std::snprintf(gapString.data(), gapString.size(), "%s%%",
+                    gapValString.data());
+    else if (gapTol != kHighsInf) {
+      printTol = std::max(std::min(1e-2, 1e-1 * gapTol), 1e-6);
+      auto gapTolString = highsDoubleToString(100.0 * gapTol, printTol);
+      std::snprintf(gapString.data(), gapString.size(),
+                    "%s%% (tolerance: %s%%)", gapValString.data(),
+                    gapTolString.data());
+    } else
+      std::snprintf(gapString.data(), gapString.size(), "%s%% (tolerance: inf)",
+                    gapValString.data());
+  }
+
+  return gapString;
 }
 
 bool HighsMipSolver::solutionFeasible(const HighsLp* lp,
@@ -971,4 +975,27 @@ bool HighsMipSolver::solutionFeasible(const HighsLp* lp,
                         integrality_violation <= mip_feasibility_tolerance &&
                         row_violation <= mip_feasibility_tolerance;
   return feasible;
+}
+
+std::vector<HighsModelStatus> HighsMipSolver::initialiseTerminatorRecord(
+    HighsInt num_instance) const {
+  std::vector<HighsModelStatus> record(num_instance, HighsModelStatus::kNotset);
+  return record;
+}
+
+void HighsMipSolver::initialiseTerminator(HighsInt num_instance_,
+                                          HighsInt my_instance_,
+                                          HighsModelStatus* record_) {
+  this->termination_status_ = HighsModelStatus::kNotset;
+  this->terminator_.clear();
+  this->terminator_.initialise(num_instance_, my_instance_, record_);
+}
+
+void HighsMipSolver::initialiseTerminator(const HighsMipSolver& mip_solver) {
+  this->terminator_.clear();
+  if (!mip_solver.mipdata_->terminatorActive()) return;
+  assert(mip_solver.mipdata_->terminatorConcurrency() > 0);
+  this->initialiseTerminator(mip_solver.mipdata_->terminatorConcurrency(),
+                             mip_solver.mipdata_->terminatorMyInstance(),
+                             mip_solver.terminator_.record);
 }

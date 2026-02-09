@@ -57,7 +57,7 @@ endif()
 # message("CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
 if (CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
   message(STATUS "Compiler is IntelLLVM")
-  if (CMAKE_HOST_WIN32 AND CMAKE_VERSION VERSION_LESS "3.23.0") 
+  if (CMAKE_HOST_WIN32 AND CMAKE_VERSION VERSION_LESS "3.23.0")
       message(FATAL_ERROR "Need at least CMake 3.23 for IntelLLVM support of IntelDPCPP package on Windows")
   elseif(CMAKE_VERSION VERSION_LESS "3.23.0")
       message(FATAL_ERROR "CMake 3.20.5 is the minimum recommended for IntelLLVM on Linux")
@@ -66,6 +66,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
   find_package(IntelSYCL REQUIRED)
 endif()
 
+# MSVC
+# set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 message(STATUS "Git hash: " ${GITHASH})
 # By default only build the C++ library.
@@ -121,9 +123,9 @@ endif()
 
 option(HIGHS_COVERAGE "Activate the code coverage compilation" OFF)
 
-# Address | Thread | Leak 
+# Address | Thread | Leak
 # Linux atm
-# Only Debug is theted atm 
+# Only Debug atm
 # See below for RelWithDeb info, todo test wip
 set(DEBUG_MEMORY "Off" CACHE STRING "Sanitizers")
 
@@ -137,7 +139,7 @@ message(STATUS "Build pdlp with GPU: ${CUPDLP_GPU}")
 option(CUPDLP_FIND_CUDA "Build pdlp with GPU" OFF)
 message(STATUS "Use FindCUDAConf: ${CUPDLP_FIND_CUDA}")
 
-if(CUPDLP_GPU AND CMAKE_VERSION VERSION_LESS "3.25.0") 
+if(CUPDLP_GPU AND CMAKE_VERSION VERSION_LESS "3.25.0")
     message("CUPDLP FindCUDAConf requires CMake version minumum 3.24. Please use a higher version of CMake.")
 endif()
 
@@ -145,6 +147,28 @@ endif()
   # set (CUPDLP_GPU OFF)
   # message(STATUS "CUPLDP with Nvidia is only supported on Linux at the moment. Using CPU version.")
 # endif()
+
+option(HIPO "Build HIPO" OFF)
+message(STATUS "Build HIPO: ${HIPO}")
+option(BUILD_OPENBLAS "Build OpenBLAS" OFF)
+message(STATUS "Build OpenBLAS: ${BUILD_OPENBLAS}")
+option(NO_AVX512 "Build OpenBLAS without AVX512" OFF)
+if (NO_AVX512)
+  message(STATUS "Build OpenBLAS without AVX512: ON")
+endif()
+
+if (HIPO AND CSHARP)
+  message(ERROR "HIPO is only available in C++. Not yet supported in C#.")
+endif()
+if (HIPO AND FORTRAN)
+  message(ERROR "HIPO is only available in C++. Not yet supported in FORTRAN")
+endif()
+if (HIPO AND PYTHON_BUILD_SETUP)
+  message(ERROR "HIPO is only available in C++. Not yet supported in Python.")
+endif()
+if (HIPO AND NOT FAST_BUILD)
+  message(ERROR "HIPO is only available with FAST_BUILD=ON.")
+endif()
 
 if (CUPDLP_GPU)
   if (WIN32)
@@ -158,11 +182,11 @@ if (CUPDLP_GPU)
     # With FindCUDAConf.cmake
     # Need to have the CUDA_HOME environment variable set.
     include(FindCUDAConf)
-  else() 
+  else()
     # Without FindCUDAConf.cmake
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
-    
+
     set(CUDA_LIBRARY-NOTFOUND, OFF)
     set(CUDA_LIBRARY CUDA::cudart CUDA::cublas CUDA::cusparse)
   endif()
@@ -171,6 +195,33 @@ else()
   set (CUPDLP_CPU ON)
     set(CUDA_LIBRARY-NOTFOUND true)
 endif()
+
+# HiPO deps
+if(HIPO)
+  # find_package(METIS REQUIRED)
+  # find_package(GKlib REQUIRED)
+  # does not work with outdated CMake
+  include(FindHipoDeps)
+endif()
+
+# Option to build static
+option(BUILD_STATIC_EXE "Build static executable" OFF)
+
+if(BUILD_STATIC_EXE)
+  set(BUILD_SHARED_LIBS OFF)
+
+  # Link statically on Linux
+  if(UNIX AND NOT APPLE)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+  endif()
+
+  # Windows: link runtime statically
+  # if(MSVC)
+  #   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  # endif()
+endif()
+
 
 if (BUILD_CXX)
   # Default Build Type to be Release
@@ -205,7 +256,7 @@ if (BUILD_CXX)
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
-    # for multi-config build system (e.g. xcode) 
+    # for multi-config build system (e.g. xcode)
     foreach(OutputConfig IN LISTS CMAKE_CONFIGURATION_TYPES)
       string(TOUPPER ${OutputConfig} OUTPUTCONFIG)
       set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/${OutputConfig}/${CMAKE_INSTALL_LIBDIR})
@@ -244,14 +295,14 @@ if (BUILD_CXX)
     option(STDCALL "Build highs with the __stdcall convention" OFF)
   endif()
 
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR 
-    CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR  
-    CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang") 
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
+    CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
+    CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-  # elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") 
+  # elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # not recognised by cl
-  #   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++11") 
-  endif()  
+  #   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++11")
+  endif()
 
   # Basic type
   include(CMakePushCheckState)
@@ -275,7 +326,7 @@ if (BUILD_CXX)
   check_type_size("int *" SIZEOF_INT_P LANGUAGE CXX)
   message(STATUS "Found int * size: ${SIZEOF_INT_P}")
   cmake_pop_check_state()
- 
+
   # Use current CMAKE_C_FLAGS and CMAKE_CXX_FLAGS when checking for IPO support,
   # instead of defaults: https://cmake.org/cmake/help/latest/policy/CMP0138.html
   if(MSVC AND BUILD_SHARED_LIBS)
@@ -293,7 +344,7 @@ if (BUILD_CXX)
     set(ipo_supported NO)
     message(STATUS "IPO / LTO not currently supported building HiGHS on MinGW")
   else()
-    if(CMAKE_VERSION VERSION_GREATER_EQUAL  "3.24.0") 
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL  "3.24.0")
       cmake_policy(SET CMP0138 NEW)
     endif()
 
@@ -334,6 +385,11 @@ if (BUILD_CXX)
       message(STATUS "IPO / LTO is not supported at the moment when PDLP is using GPU: LTO disabled.")
   endif()
 
+  if (LINUX AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+      set(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE)
+      message(STATUS "IPO / LTO is not supported for 32-bit linux.")
+  endif()
+
 endif()
 
 
@@ -371,7 +427,7 @@ else()
     HIGHS_HAVE_BUILTIN_CLZ)
 endif()
 
-set(CMAKE_MACOSX_RPATH ON)
+set(CMAKE_MACOSX_RPATH TRUE)
 
 if (BUILD_DOTNET)
     set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
@@ -384,6 +440,10 @@ else()
     set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
     set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 endif()
+
+# In your CMakeLists.txt
+set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "cli;libs")
+
 
 if(NOT FAST_BUILD)
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${HIGHS_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
@@ -428,7 +488,7 @@ endif()
 
 # For debug of cuda locally
 
-# does not work with older CMake 
+# does not work with older CMake
 # add_compile_options("$<$<AND:$<CONFIG:Debug,RelWithDebInfo>,$<COMPILE_LANGUAGE:CUDA>>:-G>")
 
 # add_compile_options("$<$<COMPILE_LANGUAGE:CUDA>:-G>")
@@ -440,7 +500,7 @@ endif()
 
 # set(CMAKE_C_FLAGS "-Wno-deprecated-declarations")
 if (UNIX)
-  set(CMAKE_C_FLAGS "-Wno-implicit-function-declaration")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-implicit-function-declaration")
 endif()
 
 
@@ -453,13 +513,15 @@ if(MSVC)
   add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:-D_CRT_SECURE_NO_WARNINGS>")
   add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:/MP>")
 
-  # Try to split large pdb files into objects. 
+  # Try to split large pdb files into objects.
   # https://github.com/tensorflow/tensorflow/issues/31610
   # add_compile_options("/Z7")
   # add_link_options("/DEBUG:FASTLINK")
 
-  add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:/Z7>")
-  add_link_options("$<$<COMPILE_LANGUAGE:C,CXX>:/DEBUG:FASTLINK>")
+  if (NOT BUILD_STATIC_EXE)
+    add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:/Z7>")
+    add_link_options("$<$<COMPILE_LANGUAGE:C,CXX>:/DEBUG:FASTLINK>")
+  endif()
 
   if(STDCALL)
     # /Gz - stdcall calling convention
@@ -500,15 +562,16 @@ if(ZLIB AND NOT TARGET ZLIB::ZLIB)
   find_package(ZLIB 1.2.3)
 endif()
 
-if(CPack_CMake_INCLUDED EQUAL 0)
-  include(CPack)
+install(FILES README.md LICENSE.txt THIRD_PARTY_NOTICES.md DESTINATION .)
+
+# Set default generator based on platform
+if(WIN32)
+    set(CPACK_GENERATOR "ZIP")
+elseif(APPLE)
+    set(CPACK_GENERATOR "TGZ")
+else()
+    set(CPACK_GENERATOR "TGZ")
 endif()
-
-set(CPACK_PACKAGE_VERSION_MAJOR "${HIGHS_VERSION_MAJOR}")
-set(CPACK_PACKAGE_VERSION_MINOR "${HIGHS_VERSION_MINOR}")
-set(CPACK_PACKAGE_VERSION_PATCH "${HIGHS_VERSION_PATCH}")
-set(CPACK_PACKAGE_VENDOR "University of Edinburgh")
-
 
 # Deprecate
 # string(TIMESTAMP TODAY "%Y-%m-%d")
@@ -614,11 +677,11 @@ if(FAST_BUILD AND HIGHS_COVERAGE)
   message(STATUS "Building in coverage mode")
 
   # Enable coverage flags
-  add_compile_options(-O0) 
-  add_compile_options(--coverage) 
-  add_compile_options(-fprofile-update=atomic) 
+  add_compile_options(-O0)
+  add_compile_options(--coverage)
+  add_compile_options(-fprofile-update=atomic)
 
-  add_link_options(-O0) 
+  add_link_options(-O0)
   add_link_options(--coverage)    # Ensure coverage data is linked correctly
 
   find_program(GCOV_PATH gcov)
@@ -814,4 +877,81 @@ else(FAST_BUILD)
     target_link_libraries(doctest highs)
   endif()
 
+endif()
+
+# Prevent nested directory structure in the archive
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
+set(CPACK_COMPONENT_INCLUDE_TOPLEVEL_DIRECTORY OFF)
+
+# Detect system information
+if(UNIX AND NOT APPLE)
+  set(OS_NAME "linux")
+elseif(APPLE)
+  set(OS_NAME "apple")
+elseif(WIN32)
+  set(OS_NAME "windows")
+else()
+  set(OS_NAME "unknown")
+endif()
+
+# Get architecture
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+  set(ARCH "x86_64")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64")
+  set(ARCH "aarch64")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
+  set(ARCH "arm")
+else()
+  set(ARCH ${CMAKE_SYSTEM_PROCESSOR})
+endif()
+
+# Get libc info (for Linux)
+if(UNIX AND NOT APPLE)
+  execute_process(
+    COMMAND ldd --version
+    OUTPUT_VARIABLE LDD_OUTPUT
+    ERROR_VARIABLE LDD_OUTPUT
+  )
+  if(LDD_OUTPUT MATCHES "musl")
+    set(LIBC "musl")
+  else()
+    set(LIBC "gnu")
+  endif()
+  set(PLATFORM "${ARCH}-${OS_NAME}-${LIBC}")
+else()
+  set(PLATFORM "${ARCH}-${OS_NAME}")
+endif()
+
+# Set CPack filename
+if(BUILD_STATIC_EXE)
+  if (HIPO)
+    set(CPACK_PACKAGE_FILE_NAME "highs-${VERSION}-${PLATFORM}-static-apache")
+  else()
+    set(CPACK_PACKAGE_FILE_NAME "highs-${VERSION}-${PLATFORM}-static-mit")
+  endif()
+else()
+  if (HIPO)
+    set(CPACK_PACKAGE_FILE_NAME "highs-${VERSION}-${PLATFORM}-apache")
+  else()
+    set(CPACK_PACKAGE_FILE_NAME "highs-${VERSION}-${PLATFORM}-mit")
+  endif()
+endif()
+
+set(CPACK_PACKAGE_NAME "HiGHS")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_VERSION_MAJOR "${HIGHS_VERSION_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${HIGHS_VERSION_MINOR}")
+set(CPACK_PACKAGE_VERSION_PATCH "${HIGHS_VERSION_PATCH}")
+set(CPACK_PACKAGE_VENDOR "University of Edinburgh")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "\
+Open source serial and parallel solvers for large-scale sparse \
+linear programming (LP), mixed-integer programming (MIP), and \
+quadratic programming (QP) models")
+
+set(CPACK_COMPONENTS_ALL cli libs)
+set(CPACK_COMPONENT_CLI_DISPLAY_NAME "HiGHS CLI (static)")
+set(CPACK_COMPONENT_LIBS_DISPLAY_NAME "HiGHS Libraries")
+
+if(NOT CPack_CMake_INCLUDED)
+  include(CPack)
 endif()
