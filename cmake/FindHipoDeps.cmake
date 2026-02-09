@@ -324,7 +324,7 @@ else()
             message(STATUS "Specified BLA_VENDOR: ${BLA_VENDOR}")
         endif()
 
-        if (NOT BLAS_FOUND)
+        if (NOT BLAS_FOUND AND BUILD_SHARED_LIBS)
             find_package(BLAS REQUIRED)
             if (BLAS_FOUND)
                 message(STATUS "Using BLAS library: ${BLAS_LIBRARIES}")
