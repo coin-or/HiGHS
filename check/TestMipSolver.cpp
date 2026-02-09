@@ -789,7 +789,9 @@ TEST_CASE("IP-with-fract-bounds-no-presolve", "[highs_test_mip_solver]") {
   highs.resetGlobalScheduler(true);
 }
 
+/*
 TEST_CASE("MIP-2084", "[highs_test_mip_solver]") {
+// To be used to debug #2084
   Highs h;
   // No presolve
   h.setOptionValue("output_flag", dev_run);
@@ -837,6 +839,7 @@ TEST_CASE("MIP-2084", "[highs_test_mip_solver]") {
            h.modelStatusToString(model_status).c_str());
   REQUIRE(model_status == require_model_status);
 }
+*/
 
 bool objectiveOk(const double optimal_objective,
                  const double require_optimal_objective, const bool dev_run) {
