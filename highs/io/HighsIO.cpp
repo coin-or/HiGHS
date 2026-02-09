@@ -26,6 +26,19 @@ void highsLogHeader(const HighsLogOptions& log_options,
                "Running HiGHS %d.%d.%d%s: %s\n", (int)HIGHS_VERSION_MAJOR,
                (int)HIGHS_VERSION_MINOR, (int)HIGHS_VERSION_PATCH,
                githash_text.c_str(), kHighsCopyrightStatement.c_str());
+
+#ifdef HIPO
+#ifdef BLAS_LIBRARIES
+  highsLogUser(log_options, HighsLogType::kInfo, "Using BLAS: %s \n",
+               BLAS_LIBRARIES);
+#else
+#ifdef HIPO_USES_OPENBLAS
+  highsLogUser(log_options, HighsLogType::kInfo, "Using BLAS: OpenBLAS \n");
+#else
+  highsLogUser(log_options, HighsLogType::kInfo, "Using BLAS: unknown \n");
+#endif
+#endif
+#endif
 }
 
 std::array<char, 32> highsDoubleToString(const double val,
@@ -286,6 +299,22 @@ const std::string highsInsertMdEscapes(const std::string from_string) {
       to_string += backslash;
     }
     to_string += from_string[p];
+  }
+  return to_string;
+}
+
+const std::string highsInsertMdId(const std::string from_string) {
+  std::string to_string = "";
+  const char* underscore = "_";
+  const char* hyphen = "-";
+  HighsInt from_string_length = from_string.length();
+  for (HighsInt p = 0; p < from_string_length; p++) {
+    const char string_ch = from_string[p];
+    if (string_ch == *underscore) {
+      to_string += hyphen;
+    } else {
+      to_string += from_string[p];
+    }
   }
   return to_string;
 }

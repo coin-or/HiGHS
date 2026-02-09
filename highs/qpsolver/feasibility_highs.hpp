@@ -1,3 +1,10 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/*                                                                       */
+/*    This file is part of the HiGHS linear optimization suite           */
+/*                                                                       */
+/*    Available as open-source under the MIT License                     */
+/*                                                                       */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 #ifndef __SRC_LIB_FEASIBILITYHIGHS_HPP__
 #define __SRC_LIB_FEASIBILITYHIGHS_HPP__
 
@@ -14,7 +21,7 @@ static void computeStartingPointByLp(Instance& instance, Settings& settings,
                                      const HighsSolution& highs_solution,
                                      HighsTimer& timer) {
   // Compute initial feasible point by solving an LP
-  const bool debug_report = true;
+  const bool debug_report = false; //true;
   Highs highs;
   highs.setOptionValue("output_flag", debug_report);
   highs.setOptionValue("presolve", kHighsOnString);

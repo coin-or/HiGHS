@@ -137,9 +137,13 @@ bool HighsPrimalHeuristics::solveSubMip(
   HighsSolution solution;
   solution.value_valid = false;
   solution.dual_valid = false;
-  // Create HighsMipSolver instance for sub-MIP
-  if (!mipsolver.submip)
+  if (!mipsolver.submip) {
     mipsolver.analysis_.mipTimerStart(kMipClockSubMipSolve);
+    // Remember to accumulate time for sub-MIP solves!
+    mipsolver.sub_solver_call_time_.run_time[kSubSolverSubMip] -=
+        mipsolver.timer_.read();
+  }
+  // Create HighsMipSolver instance for sub-MIP
   HighsMipSolver submipsolver(*mipsolver.callback_, submipoptions, submip,
                               solution, true, mipsolver.submip_level + 1);
   // Initialise termination_status_ and propagate any terminator to
@@ -154,7 +158,12 @@ bool HighsPrimalHeuristics::solveSubMip(
   submipsolver.run();
   mipsolver.max_submip_level =
       std::max(submipsolver.max_submip_level + 1, mipsolver.max_submip_level);
-  if (!mipsolver.submip) mipsolver.analysis_.mipTimerStop(kMipClockSubMipSolve);
+  if (!mipsolver.submip) {
+    mipsolver.analysis_.mipTimerStop(kMipClockSubMipSolve);
+    mipsolver.sub_solver_call_time_.num_call[kSubSolverSubMip]++;
+    mipsolver.sub_solver_call_time_.run_time[kSubSolverSubMip] +=
+        mipsolver.timer_.read();
+  }
   // 22/07/25: Seems impossible for submipsolver.mipdata_ to be a null
   // pointer after calling HighsMipSolver::run(), and assert isn't
   // triggered for anything in ctest, but use direct test of
@@ -288,9 +297,8 @@ void HighsPrimalHeuristics::rootReducedCost() {
   HeuristicNeighbourhood neighbourhood(mipsolver, localdom);
 
   double currCutoff = kHighsInf;
-  double lower_bound;
-
-  lower_bound = mipsolver.mipdata_->lower_bound + mipsolver.mipdata_->feastol;
+  double lower_bound =
+      mipsolver.mipdata_->lower_bound + mipsolver.mipdata_->feastol;
 
   for (const std::pair<double, HighsDomainChange>& domchg : lurkingBounds) {
     currCutoff = domchg.first;
@@ -305,17 +313,9 @@ void HighsPrimalHeuristics::rootReducedCost() {
       if (localdom.infeasible()) {
         localdom.conflictAnalysis(mipsolver.mipdata_->conflictPool);
 
-        double prev_lower_bound = mipsolver.mipdata_->lower_bound;
+        mipsolver.mipdata_->updateLowerBound(
+            std::max(mipsolver.mipdata_->lower_bound, currCutoff));
 
-        mipsolver.mipdata_->lower_bound =
-            std::max(mipsolver.mipdata_->lower_bound, currCutoff);
-
-        const bool bound_change =
-            mipsolver.mipdata_->lower_bound != prev_lower_bound;
-        if (!mipsolver.submip && bound_change)
-          mipsolver.mipdata_->updatePrimalDualIntegral(
-              prev_lower_bound, mipsolver.mipdata_->lower_bound,
-              mipsolver.mipdata_->upper_bound, mipsolver.mipdata_->upper_bound);
         localdom.backtrack();
         if (localdom.getBranchDepth() == 0) break;
         neighbourhood.backtracked();
@@ -1062,13 +1062,17 @@ void HighsPrimalHeuristics::randomizedRounding(
     // check if only root presolve is allowed
     if (mipsolver.options_mip_->mip_root_presolve_only)
       lprelax.getLpSolver().setOptionValue("presolve", kHighsOffString);
+
     if (!mipsolver.options_mip_->mip_root_presolve_only &&
-        (5 * intcols.size()) / mipsolver.numCol() >= 1)
+        (5 * intcols.size()) / mipsolver.numCol() >= 1) {
+      // LP to solve is very much smaller, so use presolve rather than
+      // the root basis
       lprelax.getLpSolver().setOptionValue("presolve", kHighsOnString);
-    else
+    } else {
       lprelax.getLpSolver().setBasis(
           mipsolver.mipdata_->firstrootbasis,
           "HighsPrimalHeuristics::randomizedRounding");
+    }
 
     HighsLpRelaxation::Status st = lprelax.resolveLp();
 
@@ -1471,8 +1475,8 @@ void HighsPrimalHeuristics::feasibilityPump() {
   std::vector<double> fracintcost;
   std::vector<HighsInt> fracintset;
 
-  std::vector<HighsInt> mask(mipsolver.model_->num_col_, 1);
-  std::vector<double> cost(mipsolver.model_->num_col_, 0.0);
+  std::vector<HighsInt> mask(mipsolver.numCol(), 1);
+  std::vector<double> cost(mipsolver.numCol(), 0.0);
 
   lprelax.getLpSolver().setOptionValue("simplex_strategy",
                                        kSimplexStrategyPrimal);
@@ -1491,7 +1495,7 @@ void HighsPrimalHeuristics::feasibilityPump() {
 
     auto localdom = mipsolver.mipdata_->domain;
     for (HighsInt i : mipsolver.mipdata_->integer_cols) {
-      assert(mipsolver.variableType(i) == HighsVarType::kInteger);
+      assert(mipsolver.isColInteger(i));
       double intval = std::floor(roundedsol[i] + randgen.real(0.4, 0.6));
       intval = std::max(intval, localdom.col_lower_[i]);
       intval = std::min(intval, localdom.col_upper_[i]);
@@ -1541,7 +1545,7 @@ void HighsPrimalHeuristics::feasibilityPump() {
       break;
 
     for (HighsInt i : mipsolver.mipdata_->integer_cols) {
-      assert(mipsolver.variableType(i) == HighsVarType::kInteger);
+      assert(mipsolver.isColInteger(i));
 
       if (mipsolver.mipdata_->uplocks[i] == 0 ||
           mipsolver.mipdata_->downlocks[i] == 0)

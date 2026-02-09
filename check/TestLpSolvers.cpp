@@ -500,3 +500,58 @@ TEST_CASE("highs-files-mip", "[highs_lp_solver]") {
 
   h.resetGlobalScheduler(true);
 }
+
+/*
+TEST_CASE("highs-debug-level", "[highs_lp_solver]") {
+  Highs h;
+  h.setOptionValue("output_flag", dev_run);
+  std::string model_file =
+      std::string(HIGHS_DIR) + "/check/instances/avgas.mps";
+
+  h.readModel(model_file);
+  h.setOptionValue("solver", kIpmString);
+  h.setOptionValue("highs_debug_level",  1);
+  h.run();
+  h.setOptionValue("highs_debug_level",  2);
+  h.run();
+  h.setOptionValue("highs_debug_level",  3);
+  h.run();
+  h.resetGlobalScheduler(true);
+}
+*/
+TEST_CASE("solver-string", "[highs_lp_solver]") {
+  Highs h;
+  h.setOptionValue("output_flag", dev_run);
+  REQUIRE(h.setOptionValue(kSolverString, "fred") == HighsStatus::kError);
+  REQUIRE(h.setOptionValue(kSolverString, kHighsChooseString) ==
+          HighsStatus::kOk);
+  REQUIRE(h.setOptionValue(kSolverString, kSimplexString) == HighsStatus::kOk);
+  REQUIRE(h.setOptionValue(kSolverString, kIpmString) == HighsStatus::kOk);
+
+#ifdef HIPO
+  REQUIRE(h.setOptionValue(kSolverString, kHipoString) == HighsStatus::kOk);
+#else
+  REQUIRE(h.setOptionValue(kSolverString, kHipoString) == HighsStatus::kError);
+#endif
+  REQUIRE(h.setOptionValue(kSolverString, kIpxString) == HighsStatus::kOk);
+  REQUIRE(h.setOptionValue(kSolverString, kPdlpString) == HighsStatus::kOk);
+}
+
+TEST_CASE("choose-lp-solver", "[highs_lp_solver]") {
+  std::string model_file =
+      std::string(HIGHS_DIR) + "/check/instances/avgas.mps";
+  Highs h;
+  h.setOptionValue("output_flag", dev_run);
+  REQUIRE(h.readModel(model_file) == HighsStatus::kOk);
+
+  REQUIRE(h.setOptionValue(kSolverString, kPdlpString) == HighsStatus::kOk);
+  h.run();
+  REQUIRE(h.getInfo().pdlp_iteration_count > 0);
+
+  REQUIRE(h.setOptionValue(kSolverString, kIpmString) == HighsStatus::kOk);
+  // h.setOptionValue("output_flag", true);
+  h.run();
+  REQUIRE(h.getInfo().ipm_iteration_count > 0);
+
+  h.resetGlobalScheduler(true);
+}

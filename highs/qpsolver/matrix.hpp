@@ -1,3 +1,10 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/*                                                                       */
+/*    This file is part of the HiGHS linear optimization suite           */
+/*                                                                       */
+/*    Available as open-source under the MIT License                     */
+/*                                                                       */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 #ifndef __SRC_LIB_MATRIX_HPP__
 #define __SRC_LIB_MATRIX_HPP__
 
@@ -98,7 +105,7 @@ struct MatrixBase {
     return vec_mat(other, result);
   }
 
-  // computes this * mat, where "this" is a tranposed matrix
+  // computes this * mat, where "this" is a transposed matrix
   MatrixBase tran_mat_(const MatrixBase& other) {
     MatrixBase res;
     res.num_row = num_col;

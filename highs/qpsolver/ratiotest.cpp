@@ -1,3 +1,10 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/*                                                                       */
+/*    This file is part of the HiGHS linear optimization suite           */
+/*                                                                       */
+/*    Available as open-source under the MIT License                     */
+/*                                                                       */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 #include "qpsolver/ratiotest.hpp"
 
 static double step(double x, double p, double l, double u, double t) {
@@ -17,6 +24,7 @@ static RatiotestResult ratiotest_textbook(Runtime& rt, const QpVector& p,
   RatiotestResult result;
   result.limitingconstraint = -1;
   result.alpha = alphastart;
+  result.nowactiveatlower = false;
 
   // check ratio towards variable bounds
   for (HighsInt j = 0; j < p.num_nz; j++) {
