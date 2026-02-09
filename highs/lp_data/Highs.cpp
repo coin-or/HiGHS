@@ -664,8 +664,7 @@ HighsStatus Highs::readModel(const std::string& filename) {
       reader->readModelFromFile(options_, filename, model);
   delete reader;
   if (call_code != FilereaderRetcode::kOk) {
-    interpretFilereaderRetcode(options_.log_options, filename,
-                               call_code);
+    interpretFilereaderRetcode(options_.log_options, filename, call_code);
     const HighsStatus call_status = call_code == FilereaderRetcode::kWarning
                                         ? HighsStatus::kWarning
                                         : HighsStatus::kError;

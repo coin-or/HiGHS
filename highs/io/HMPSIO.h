@@ -72,7 +72,7 @@ bool load_mpsLine(std::istream& file, HighsVarType& integerVar, HighsInt lmax,
                   char* line, char* flag, double* data);
 
 HighsStatus writeModelAsMps(const HighsOptions& options,
-                            const std::string& filename, const HighsModel& model,
-                            const bool free = true);
+                            const std::string& filename,
+                            const HighsModel& model, const bool free = true);
 
 #endif /* IO_HMPSIO_H_ */

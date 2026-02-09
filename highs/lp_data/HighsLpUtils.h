@@ -195,10 +195,10 @@ void reportLpColMatrix(const HighsLogOptions& log_options,
                        const HighsLp& lp  //!< LP whose data are to be reported
 );
 
-void reportMatrix(const HighsLogOptions& log_options, const std::string& message,
-                  const HighsInt num_col, const HighsInt num_nz,
-                  const HighsInt* start, const HighsInt* index,
-                  const double* value);
+void reportMatrix(const HighsLogOptions& log_options,
+                  const std::string& message, const HighsInt num_col,
+                  const HighsInt num_nz, const HighsInt* start,
+                  const HighsInt* index, const double* value);
 
 // Get the number of integer-valued columns in the LP
 HighsInt getNumInt(const HighsLp& lp);

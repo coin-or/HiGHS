@@ -1153,7 +1153,8 @@ bool computeScatterDataRegressionError(HighsScatterData& scatter_data,
   return true;
 }
 
-bool printScatterData(const std::string& name, const HighsScatterData& scatter_data) {
+bool printScatterData(const std::string& name,
+                      const HighsScatterData& scatter_data) {
   if (!scatter_data.num_point_) return true;
   double x;
   double y;

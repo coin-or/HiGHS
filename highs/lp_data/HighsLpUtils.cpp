@@ -2089,10 +2089,10 @@ void reportLpColMatrix(const HighsLogOptions& log_options, const HighsLp& lp) {
   }
 }
 
-void reportMatrix(const HighsLogOptions& log_options, const std::string& message,
-                  const HighsInt num_col, const HighsInt num_nz,
-                  const HighsInt* start, const HighsInt* index,
-                  const double* value) {
+void reportMatrix(const HighsLogOptions& log_options,
+                  const std::string& message, const HighsInt num_col,
+                  const HighsInt num_nz, const HighsInt* start,
+                  const HighsInt* index, const double* value) {
   if (num_col <= 0) return;
   highsLogUser(log_options, HighsLogType::kInfo,
                "%-7s Index              Value\n", message.c_str());

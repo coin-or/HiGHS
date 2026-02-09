@@ -136,7 +136,7 @@ double highsRelativeDifference(const double v0, const double v1);
  */
 void analyseVectorValues(
     const HighsLogOptions* log_options,
-    const std::string& message,       //!< Message to be printed
+    const std::string& message,      //!< Message to be printed
     HighsInt vecDim,                 //!< Dimension of vector
     const std::vector<double>& vec,  //!< Vector of values
     bool analyseValueList = false,   //!< Possibly analyse the distribution of
@@ -148,7 +148,7 @@ void analyseVectorValues(
 
 void analyseVectorValues(
     const HighsLogOptions* log_options,
-    const std::string& message,         //!< Message to be printed
+    const std::string& message,        //!< Message to be printed
     HighsInt vecDim,                   //!< Dimension of vector
     const std::vector<HighsInt>& vec,  //!< Vector of values
     const std::string& model_name =
@@ -189,7 +189,8 @@ bool regressScatterData(HighsScatterData& scatter_data);
 bool predictFromScatterData(const HighsScatterData& scatter_data,
                             const double value0, double& predicted_value1,
                             const bool log_regression = false);
-bool printScatterData(const std::string& name, const HighsScatterData& scatter_data);
+bool printScatterData(const std::string& name,
+                      const HighsScatterData& scatter_data);
 void printScatterDataRegressionComparison(const std::string& name,
                                           const HighsScatterData& scatter_data);
 bool computeScatterDataRegressionError(HighsScatterData& scatter_data,

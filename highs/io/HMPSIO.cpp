@@ -549,8 +549,8 @@ bool load_mpsLine(std::istream& file, HighsVarType& integerVar, HighsInt lmax,
 }
 
 HighsStatus writeModelAsMps(const HighsOptions& options,
-                            const std::string& filename, const HighsModel& model,
-                            const bool free_format) {
+                            const std::string& filename,
+                            const HighsModel& model, const bool free_format) {
   bool warning_found = false;
   const HighsLp& lp = model.lp_;
 
