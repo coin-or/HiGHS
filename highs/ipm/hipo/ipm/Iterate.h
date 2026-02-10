@@ -45,6 +45,11 @@ struct Iterate {
   double* Rd;
   Residuals ires;  // residuals for iterative refinement
 
+  // statistics for stagnation
+  Int bad_iter_{};
+  double largest_dx_x_{}, largest_dy_y_{};
+  double best_pinf_ = kHighsInf, best_dinf_ = kHighsInf;
+
   // ===================================================================================
   // Functions to construct, clear and check for nan or inf
   // ===================================================================================
@@ -156,6 +161,10 @@ struct Iterate {
   // Compute residual of 6x6 linear system for iterative refinement.
   // ===================================================================================
   void residuals6x6(const NewtonDir& d);
+
+  void makeStep(double alpha_primal, double alpha_dual);
+
+  bool stagnation(std::stringstream& log_stream);
 
   void getReg(LinearSolver& LS, OptionNla opt);
 

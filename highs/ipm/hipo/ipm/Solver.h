@@ -38,7 +38,7 @@ class Solver {
   Int m_{}, n_{};
 
   // Iterations counters
-  Int iter_{}, bad_iter_{};
+  Int iter_{};
 
   // Stepsizes
   double alpha_primal_{}, alpha_dual_{};
@@ -65,10 +65,6 @@ class Solver {
   LogHighs logH_;
 
   double start_time_;
-
-  // statistics of previous iterations
-  double largest_dx_x_, largest_dy_y_;
-  double best_pinf_, best_dinf_;
 
  public:
   // ===================================================================================
