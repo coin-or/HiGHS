@@ -562,16 +562,23 @@ if(ZLIB AND NOT TARGET ZLIB::ZLIB)
   find_package(ZLIB 1.2.3)
 endif()
 
-install(FILES
-    README.md
-    LICENSE.txt
-    AUTHORS
-    CITATION.cff
-    CODE_OF_CONDUCT.md
-    CONTRIBUTING.md
-    FEATURES.md
-    DESTINATION ${CMAKE_INSTALL_DOCDIR}
-)
+if (PYTHON_BUILD_SETUP)
+  install(FILES
+      README.md
+      LICENSE.txt
+      THIRD_PARTY_NOTICES.md
+      DESTINATION .)
+else()
+  install(FILES
+      README.md
+      LICENSE.txt
+      AUTHORS
+      CITATION.cff
+      CODE_OF_CONDUCT.md
+      CONTRIBUTING.md
+      FEATURES.md
+      DESTINATION ${CMAKE_INSTALL_DOCDIR})
+endif()
 
 # Set default generator based on platform
 if(WIN32)
