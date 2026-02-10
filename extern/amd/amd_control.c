@@ -15,7 +15,7 @@
 
 #include "amd_internal.h"
 
-void amd_control
+void Highs_amd_control
 (
     double Control [ ]
 )
@@ -34,31 +34,31 @@ void amd_control
 	aggressive = AMD_DEFAULT_AGGRESSIVE ;
     }
 
-    SUITESPARSE_PRINTF ((
+    printf (
         "\nAMD version %d.%d.%d, %s: approximate minimum degree ordering\n"
 	"    dense row parameter: %g\n", AMD_MAIN_VERSION, AMD_SUB_VERSION,
-	AMD_SUBSUB_VERSION, AMD_DATE, alpha)) ;
+	AMD_SUBSUB_VERSION, AMD_DATE, alpha) ;
 
     if (alpha < 0)
     {
-	SUITESPARSE_PRINTF (("    no rows treated as dense\n")) ;
+	printf ("    no rows treated as dense\n") ;
     }
     else
     {
-	SUITESPARSE_PRINTF ((
+	printf (
 	"    (rows with more than max (%g * sqrt (n), 16) entries are\n"
 	"    considered \"dense\", and placed last in output permutation)\n",
-	alpha)) ;
+	alpha) ;
     }
 
     if (aggressive)
     {
-	SUITESPARSE_PRINTF (("    aggressive absorption:  yes\n")) ;
+	printf ("    aggressive absorption:  yes\n") ;
     }
     else
     {
-	SUITESPARSE_PRINTF (("    aggressive absorption:  no\n")) ;
+	printf ("    aggressive absorption:  no\n") ;
     }
 
-    SUITESPARSE_PRINTF (("    size of AMD integer: %lu\n\n", sizeof (amd_int))) ;
+    printf ("    size of AMD integer: %lu\n\n", sizeof (amd_int)) ;
 }
