@@ -8,7 +8,7 @@
 
 //------------------------------------------------------------------------------
 
-/* SuiteSparse configuration : memory manager and printf functions.
+/* SuiteSparse configuration : memory manager
  */
 
 #include "SuiteSparse_config.h"

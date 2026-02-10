@@ -14,6 +14,7 @@
  */
 
 #include "amd_internal.h"
+#include "ipm/hipo/auxiliary/OrderingPrint.h"
 
 void Highs_amd_control
 (
@@ -34,18 +35,18 @@ void Highs_amd_control
 	aggressive = AMD_DEFAULT_AGGRESSIVE ;
     }
 
-    printf (
+    HIGHS_ORDERING_PRINT (
         "\nAMD version %d.%d.%d, %s: approximate minimum degree ordering\n"
 	"    dense row parameter: %g\n", AMD_MAIN_VERSION, AMD_SUB_VERSION,
-	AMD_SUBSUB_VERSION, AMD_DATE, alpha) ;
+	AMD_SUBSUB_VERSION, AMD_DATE, alpha);
 
     if (alpha < 0)
     {
-	printf ("    no rows treated as dense\n") ;
+	HIGHS_ORDERING_PRINT ("    no rows treated as dense\n") ;
     }
     else
     {
-	printf (
+	HIGHS_ORDERING_PRINT (
 	"    (rows with more than max (%g * sqrt (n), 16) entries are\n"
 	"    considered \"dense\", and placed last in output permutation)\n",
 	alpha) ;
@@ -53,12 +54,12 @@ void Highs_amd_control
 
     if (aggressive)
     {
-	printf ("    aggressive absorption:  yes\n") ;
+	HIGHS_ORDERING_PRINT ("    aggressive absorption:  yes\n") ;
     }
     else
     {
-	printf ("    aggressive absorption:  no\n") ;
+	HIGHS_ORDERING_PRINT ("    aggressive absorption:  no\n") ;
     }
 
-    printf ("    size of AMD integer: %lu\n\n", sizeof (amd_int)) ;
+    HIGHS_ORDERING_PRINT ("    size of AMD integer: %lu\n\n", sizeof (amd_int)) ;
 }
