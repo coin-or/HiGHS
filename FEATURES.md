@@ -18,3 +18,9 @@ language.
 
 ## Build changes
 
+Following PR [#2836](https://github.com/ERGO-Code/HiGHS/pull/2836), it is
+now possible to build a static library with HiPO, without the requirement
+for blas to be specified at compile time.
+
+Following PR [#2839](https://github.com/ERGO-Code/HiGHS/pull/2839), files
+like README.md and LICENSE.txt are installed in the proper location.
