@@ -23,12 +23,13 @@ HighsStatus assessMatrix(const HighsLogOptions& log_options,
                          vector<HighsInt>& matrix_index,
                          vector<double>& matrix_value,
                          const double small_matrix_value,
-                         const double large_matrix_value) {
+                         const double large_matrix_value,
+			 const bool sum_duplicates) {
   vector<HighsInt> matrix_p_end;
   const bool partitioned = false;
   return assessMatrix(log_options, matrix_name, vec_dim, num_vec, partitioned,
                       matrix_start, matrix_p_end, matrix_index, matrix_value,
-                      small_matrix_value, large_matrix_value);
+                      small_matrix_value, large_matrix_value, sum_duplicates);
 }
 
 HighsStatus assessMatrix(const HighsLogOptions& log_options,
@@ -38,11 +39,12 @@ HighsStatus assessMatrix(const HighsLogOptions& log_options,
                          vector<HighsInt>& matrix_index,
                          vector<double>& matrix_value,
                          const double small_matrix_value,
-                         const double large_matrix_value) {
+                         const double large_matrix_value,
+			 const bool sum_duplicates) {
   const bool partitioned = false;
   return assessMatrix(log_options, matrix_name, vec_dim, num_vec, partitioned,
                       matrix_start, matrix_p_end, matrix_index, matrix_value,
-                      small_matrix_value, large_matrix_value);
+                      small_matrix_value, large_matrix_value, sum_duplicates);
 }
 
 HighsStatus assessMatrix(
@@ -50,7 +52,8 @@ HighsStatus assessMatrix(
     const HighsInt vec_dim, const HighsInt num_vec, const bool partitioned,
     vector<HighsInt>& matrix_start, vector<HighsInt>& matrix_p_end,
     vector<HighsInt>& matrix_index, vector<double>& matrix_value,
-    const double small_matrix_value, const double large_matrix_value) {
+    const double small_matrix_value, const double large_matrix_value,
+			 const bool sum_duplicates) {
   if (assessMatrixDimensions(log_options, num_vec, partitioned, matrix_start,
                              matrix_p_end, matrix_index,
                              matrix_value) == HighsStatus::kError) {
@@ -133,20 +136,26 @@ HighsStatus assessMatrix(
   // Assess the indices and values
   // Count the number of acceptable indices/values
   HighsInt num_new_nz = 0;
-  HighsInt num_small_values = 0;
+  HighsInt num_small_value = 0;
   double max_small_value = 0;
   double min_small_value = kHighsInf;
-  HighsInt num_large_values = 0;
+  HighsInt num_large_value = 0;
   double max_large_value = 0;
   double min_large_value = kHighsInf;
+  HighsInt num_duplicate = 0;
   // Use index_map to identify duplicates.
   HighsHashTable<HighsInt> index_set;
+  std::vector<HighsInt> el_in_vec;
+  const HighsInt illegal_el = -1;
+  el_in_vec.assign(vec_dim, illegal_el);
 
   for (HighsInt ix = 0; ix < num_vec; ix++) {
     HighsInt from_el = matrix_start[ix];
     HighsInt to_el = matrix_start[ix + 1];
     // Account for any index-value pairs removed so far
     matrix_start[ix] = num_new_nz;
+    HighsInt debug_num_duplicate = 0;
+    HighsInt vec_original_num_nz = to_el - from_el;
     for (HighsInt el = from_el; el < to_el; el++) {
       // Check the index
       HighsInt component = matrix_index[el];
@@ -174,14 +183,53 @@ HighsStatus assessMatrix(
       }
       // Check that the index has not already occurred.
       legal_component = index_set.find(component) == nullptr;
-      if (!legal_component) {
-        highsLogUser(log_options, HighsLogType::kError,
-                     "%s matrix packed vector %" HIGHSINT_FORMAT
-                     ", entry %" HIGHSINT_FORMAT
-                     ", is duplicate index %" HIGHSINT_FORMAT "\n",
-                     matrix_name.c_str(), ix, el, component);
-        return HighsStatus::kError;
+      HighsInt previous_el = el_in_vec[component];
+      bool is_duplicate = previous_el > illegal_el;
+      assert(legal_component == !is_duplicate);
+      if (is_duplicate) {
+	num_duplicate++;
+	debug_num_duplicate++;
+	if (sum_duplicates) {
+	  // Sum the duplicate entry
+	  assert(matrix_index[previous_el] == component);
+	  matrix_value[previous_el] += matrix_value[el];
+	  continue;
+	}
+	highsLogUser(log_options, HighsLogType::kError,
+		     "%s matrix packed vector %" HIGHSINT_FORMAT
+		     ", entry %" HIGHSINT_FORMAT
+		     ", is duplicate index %" HIGHSINT_FORMAT "\n",
+		     matrix_name.c_str(), ix, el, component);
+	return HighsStatus::kError;
       }
+      // Not a duplicate
+      // Shift the index and value of the OK entry to the new
+      // position in the index and value vectors, and increment
+      // the new number of nonzeros
+      matrix_index[num_new_nz] = matrix_index[el];
+      matrix_value[num_new_nz] = matrix_value[el];
+      // Record where the index has occurred
+      index_set.insert(component);
+      el_in_vec[component] = num_new_nz;
+      num_new_nz++;
+    }
+    from_el = matrix_start[ix];
+    to_el = num_new_nz;
+    assert(to_el - from_el == vec_original_num_nz - debug_num_duplicate);
+    // Reset num_new_nz
+    num_new_nz = matrix_start[ix];
+    // Reset el_in_vec
+    for (HighsInt el = from_el; el < to_el; el++) 
+      el_in_vec[matrix_index[el]] = illegal_el;
+    // Check el_in_vec !! Remove later!
+    for (HighsInt ix = 0; ix < vec_dim; ix++)
+      assert(el_in_vec[ix] == illegal_el);
+    
+    for (HighsInt el = from_el; el < to_el; el++) {
+      HighsInt component = matrix_index[el];
+      // Ensure that duplicates have been eliminated
+      HighsInt previous_el = el_in_vec[component];
+      assert(previous_el == illegal_el);
       // Check the value
       double abs_value = fabs(matrix_value[el]);
       // Check that the value is not too large
@@ -189,47 +237,58 @@ HighsStatus assessMatrix(
       if (large_value) {
         if (max_large_value < abs_value) max_large_value = abs_value;
         if (min_large_value > abs_value) min_large_value = abs_value;
-        num_large_values++;
+        num_large_value++;
       }
       bool ok_value = abs_value > small_matrix_value;
       if (!ok_value) {
         if (max_small_value < abs_value) max_small_value = abs_value;
         if (min_small_value > abs_value) min_small_value = abs_value;
-        num_small_values++;
+        num_small_value++;
       }
       if (ok_value) {
-        // Record where the index has occurred
-        index_set.insert(component);
         // Shift the index and value of the OK entry to the new
         // position in the index and value vectors, and increment
         // the new number of nonzeros
         matrix_index[num_new_nz] = matrix_index[el];
         matrix_value[num_new_nz] = matrix_value[el];
+	// Record where the index has occurred
+	el_in_vec[component] = num_new_nz;
         num_new_nz++;
       }
     }  // Loop from_el; to_el
-    index_set.clear();
+    // Reset el_in_vec
+    for (HighsInt el = from_el; el < to_el; el++) 
+      el_in_vec[matrix_index[el]] = illegal_el;
+    // Check el_in_vec !! Remove later!
+    for (HighsInt ix = 0; ix < vec_dim; ix++)
+      assert(el_in_vec[ix] == illegal_el);
   }  // Loop 0; num_vec
-  if (num_large_values) {
+  if (num_duplicate) {
     highsLogUser(log_options, HighsLogType::kError,
                  "%s matrix packed vector contains %" HIGHSINT_FORMAT
-                 " |values| in [%g, %g] greater than %g\n",
-                 matrix_name.c_str(), num_large_values, min_large_value,
+                 " duplicate entris: summed\n",
+                 matrix_name.c_str(), num_duplicate);
+  }
+  if (num_large_value) {
+    highsLogUser(log_options, HighsLogType::kError,
+                 "%s matrix packed vector contains %" HIGHSINT_FORMAT
+                 " |value| in [%g, %g] greater than %g\n",
+                 matrix_name.c_str(), num_large_value, min_large_value,
                  max_large_value, large_matrix_value);
     error_found = true;
   }
-  if (num_small_values) {
+  if (num_small_value) {
     if (partitioned) {
       // Shouldn't happen with a partitioned row-wise matrix since its
       // values should be OK and the code above doesn't handle p_end
       highsLogUser(
           log_options, HighsLogType::kError,
           "%s matrix packed partitioned vector contains %" HIGHSINT_FORMAT
-          " |values| in [%g, %g] less than or equal to %g: ignored\n",
-          matrix_name.c_str(), num_small_values, min_small_value,
+          " |value| in [%g, %g] less than or equal to %g: ignored\n",
+          matrix_name.c_str(), num_small_value, min_small_value,
           max_small_value, small_matrix_value);
       error_found = true;
-      assert(num_small_values == 0);
+      assert(num_small_value == 0);
     }
     // If explicit zeros are ignored, then no model information is
     // lost, so only report and return a warning if small nonzeros are
@@ -237,9 +296,9 @@ HighsStatus assessMatrix(
     if (max_small_value > 0) {
       highsLogUser(log_options, HighsLogType::kWarning,
                    "%s matrix packed vector contains %" HIGHSINT_FORMAT
-                   " |values| in [%g, %g] "
+                   " |value| in [%g, %g] "
                    "less than or equal to %g: ignored\n",
-                   matrix_name.c_str(), num_small_values, min_small_value,
+                   matrix_name.c_str(), num_small_value, min_small_value,
                    max_small_value, small_matrix_value);
       warning_found = true;
     }

@@ -1178,9 +1178,13 @@ TEST_CASE("2489", "[qpsolver]") {
 TEST_CASE("2821", "[qpsolver]") {
   Highs h;
   //  h.setOptionValue("output_flag", dev_run);
+  const HighsInfo& info = h.getInfo();
   const std::string dirname = std::string(HIGHS_DIR) + "/check/instances/";
-  std::string filename = dirname + "2821.mps";
+  std::string filename = dirname + "2821-duplicate.mps";
+  const double optimal_objective_value = -6.0;
   REQUIRE(h.readModel(filename) == HighsStatus::kOk);
+  REQUIRE(h.run() == HighsStatus::kOk);
+  REQUIRE(okValueDifference(info.objective_function_value, optimal_objective_value));
   
   h.resetGlobalScheduler(true);
 

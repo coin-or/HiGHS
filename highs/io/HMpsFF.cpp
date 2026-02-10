@@ -175,7 +175,8 @@ HighsInt HMpsFF::fillMatrix(const HighsLogOptions& log_options) {
 }
 
 HighsInt HMpsFF::fillHessian(const HighsLogOptions& log_options) {
-  size_t num_entries = q_entries.size();
+  std::vector<Triplet>& qentries = q_entries;
+  size_t num_entries = qentries.size();
   if (!num_entries) {
     q_dim = 0;
     return 0;
@@ -194,7 +195,7 @@ HighsInt HMpsFF::fillHessian(const HighsLogOptions& log_options) {
   q_length.assign(q_dim, 0);
 
   for (size_t iEl = 0; iEl < num_entries; iEl++) {
-    HighsInt iCol = std::get<1>(q_entries[iEl]);
+    HighsInt iCol = std::get<1>(qentries[iEl]);
     q_length[iCol]++;
   }
   q_start[0] = 0;
@@ -204,9 +205,9 @@ HighsInt HMpsFF::fillHessian(const HighsLogOptions& log_options) {
   }
 
   for (size_t iEl = 0; iEl < num_entries; iEl++) {
-    HighsInt iRow = std::get<0>(q_entries[iEl]);
-    HighsInt iCol = std::get<1>(q_entries[iEl]);
-    double value = std::get<2>(q_entries[iEl]);
+    HighsInt iRow = std::get<0>(qentries[iEl]);
+    HighsInt iCol = std::get<1>(qentries[iEl]);
+    double value = std::get<2>(qentries[iEl]);
     q_index[q_length[iCol]] = iRow;
     q_value[q_length[iCol]] = value;
     q_length[iCol]++;
@@ -1743,6 +1744,7 @@ typename HMpsFF::Parsekey HMpsFF::parseHessian(
   } else if (keyword == HMpsFF::Parsekey::kQuadobj) {
     section_name = "QUADOBJ";
   }
+  q_format = qmatrix ? HessianFormat::kSquare : HessianFormat::kTriangular;
   std::string strline;
   std::string col_name;
   std::string row_name;
@@ -1807,6 +1809,7 @@ typename HMpsFF::Parsekey HMpsFF::parseHessian(
         return HMpsFF::Parsekey::kFail;
       }
       if (coeff) {
+	q_all_entries.push_back(std::make_tuple(rowidx, colidx, coeff));
         if (qmatrix) {
           // QMATRIX has the whole Hessian, so store the entry if the
           // entry is in the lower triangle
