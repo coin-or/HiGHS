@@ -35,9 +35,35 @@ void launchCheckConvergenceKernels_wrapper(
     const double* d_col_scale, const double* d_row_scale,
     int n_cols, int n_rows);
 
-void launchKernelHalpernBlendReflected_wrapper(
-    double* d_current, const double* d_next,
-    const double* d_anchor, double w, int n);
+// Halpern-mode kernels
+void launchKernelHalpernPrimalMinor_wrapper(
+    const double* d_current_primal, double* d_reflected_primal,
+    const double* d_dual_product, const double* d_objective,
+    const double* d_var_lb, const double* d_var_ub,
+    double step_size, int n);
+
+void launchKernelHalpernPrimalMajor_wrapper(
+    const double* d_current_primal, double* d_pdhg_primal,
+    double* d_reflected_primal, const double* d_dual_product,
+    const double* d_objective, const double* d_var_lb,
+    const double* d_var_ub, double step_size, int n,
+    double* d_dual_slack);
+
+void launchKernelHalpernDualMinor_wrapper(
+    const double* d_current_dual, double* d_reflected_dual,
+    const double* d_primal_product, const double* d_rhs,
+    const bool* d_is_equality, double step_size, int n);
+
+void launchKernelHalpernDualMajor_wrapper(
+    const double* d_current_dual, double* d_pdhg_dual,
+    double* d_reflected_dual, const double* d_primal_product,
+    const double* d_rhs, const bool* d_is_equality,
+    double step_size, int n);
+
+void launchKernelHalpernBlend_wrapper(
+    double* d_current, const double* d_reflected,
+    const double* d_initial, double weight,
+    double reflection_coeff, int n);
 
 #ifdef __cplusplus
 }

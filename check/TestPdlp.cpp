@@ -474,7 +474,7 @@ TEST_CASE("cuda-sandbox", "[pdlp]") {
 #endif
 
 TEST_CASE("hi-pdlp-halpern", "[pdlp]") {
-  std::string model = "25fv47";  //"afiro";
+  std::string model = "neso-2005";  //"afiro";
   // shell //stair //25fv47 //fit2p //avgas //neso-2245 //neso-2005
   std::string model_file =
       // std::string(HIGHS_DIR) + "/srv/" + model + ".mps.gz";
@@ -499,7 +499,7 @@ TEST_CASE("hi-pdlp-halpern", "[pdlp]") {
       + kPdlpScalingPC;
   h.setOptionValue("pdlp_scaling_mode", pdlp_scaling);
   h.setOptionValue("pdlp_step_size_strategy", 1);
-  h.setOptionValue("pdlp_restart_strategy", kPdlpRestartStrategyAdaptive); // kPdlpRestartStrategyHalpern; kPdlpRestartStrategyAdaptive
+  h.setOptionValue("pdlp_restart_strategy",  kPdlpRestartStrategyHalpern); // kPdlpRestartStrategyHalpern; kPdlpRestartStrategyAdaptive
   //turn on log
   //h.setOptionValue("log_dev_level", kHighsLogDevLevelVerbose);
   h.setOptionValue("pdlp_iteration_limit", 20000);

@@ -252,6 +252,7 @@ class PDLPSolver {
   
   double *d_x_at_last_restart_ = nullptr, *d_y_at_last_restart_ = nullptr;
   double *d_x_anchor_ = nullptr, *d_y_anchor_ = nullptr;
+  double *d_pdhg_primal_ = nullptr, *d_pdhg_dual_ = nullptr;
   
   double *d_col_cost_ = nullptr, *d_col_lower_ = nullptr, *d_col_upper_ = nullptr;
   double *d_row_lower_ = nullptr, *d_col_scale_ = nullptr, *d_row_scale_ = nullptr;
@@ -287,6 +288,7 @@ class PDLPSolver {
   double computeMovementGpu(const double* d_x_new, const double* d_x_old, const double* d_y_new, const double* d_y_old);
   double computeNonlinearityGpu(const double* d_x_new, const double* d_x_old, const double* d_aty_new, const double* d_aty_old);
   double computeDiffNormCuBLAS(const double* d_a, const double* d_b, int n);
+  void performHalpernPdhgStepGpu(bool is_major);
 
   // Kernel Wrappers
   void launchKernelUpdateX(double primal_step);
