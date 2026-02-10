@@ -332,10 +332,11 @@ else()
                 if (BLAS_INCLUDE_DIRS)
                     message(STATUS "BLAS include dirs: ${BLAS_INCLUDE_DIRS}")
                 endif()
+            endif()
         endif()
 
-        if (NOT BLAS_FOUND AND NOT
-            (BUILD_SHARED_LIBS AND NOT BUILD_CXX_EXE AND NOT BUILD_EXAMPLES))
+        if (NOT BLAS_FOUND AND
+            (BUILD_SHARED_LIBS OR BUILD_CXX_EXE OR BUILD_EXAMPLES))
             find_package(BLAS REQUIRED)
             if (BLAS_FOUND)
                 message(STATUS "Using BLAS library: ${BLAS_LIBRARIES}")
