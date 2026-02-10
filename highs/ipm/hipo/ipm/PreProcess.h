@@ -27,6 +27,8 @@ struct PreprocessorPoint {
 };
 
 struct PreprocessAction {
+  Int n_pre, m_pre, n_post, m_post;
+
   virtual ~PreprocessAction() = default;
   virtual void apply(Model& model) = 0;
   virtual void undo(PreprocessorPoint& point, const Model& model,
@@ -35,7 +37,6 @@ struct PreprocessAction {
 };
 
 struct PreprocessEmptyRows : public PreprocessAction {
-  Int n_pre, m_pre, n_post, m_post;
   std::vector<Int> rows_shift;
   Int empty_rows{};
 
@@ -46,7 +47,6 @@ struct PreprocessEmptyRows : public PreprocessAction {
 };
 
 struct PreprocessFixedVars : public PreprocessAction {
-  Int n_pre, m_pre, n_post, m_post;
   Int fixed_vars{};
   std::vector<double> fixed_at;
 
@@ -65,7 +65,6 @@ struct PreprocessFixedVars : public PreprocessAction {
 };
 
 struct PreprocessScaling : public PreprocessAction {
-  Int n_pre, m_pre, n_post, m_post;
   Int CG_iter_scaling;
   bool scaled = false;
 
@@ -76,8 +75,6 @@ struct PreprocessScaling : public PreprocessAction {
 };
 
 struct PreprocessFormulation : public PreprocessAction {
-  Int n_pre, m_pre, n_post, m_post;
-
   void apply(Model& model) override;
   void undo(PreprocessorPoint& point, const Model& model,
             const Iterate& it) const override;
