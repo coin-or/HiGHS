@@ -1174,3 +1174,15 @@ TEST_CASE("2489", "[qpsolver]") {
 
   h.resetGlobalScheduler(true);
 }
+
+TEST_CASE("2821", "[qpsolver]") {
+  Highs h;
+  //  h.setOptionValue("output_flag", dev_run);
+  const std::string dirname = std::string(HIGHS_DIR) + "/check/instances/";
+  std::string filename = dirname + "2821.mps";
+  REQUIRE(h.readModel(filename) == HighsStatus::kOk);
+  
+  h.resetGlobalScheduler(true);
+
+}
+
