@@ -541,6 +541,11 @@ void PDLPSolver::solve(std::vector<double>& x, std::vector<double>& y) {
 
   // Pre-calculate Ax and ATy for current iterate
 #ifdef CUPDLP_GPU
+  CUDA_CHECK(cudaMemset(d_x_sum_, 0, lp_.num_col_ * sizeof(double)));
+  CUDA_CHECK(cudaMemset(d_y_sum_, 0, lp_.num_row_ * sizeof(double)));
+  CUDA_CHECK(cudaMemset(d_x_avg_, 0, lp_.num_col_ * sizeof(double)));
+  CUDA_CHECK(cudaMemset(d_y_avg_, 0, lp_.num_row_ * sizeof(double)));
+  sum_weights_gpu_ = 0.0;
   CUDA_CHECK(cudaMemcpy(d_x_current_, x.data(), lp_.num_col_ * sizeof(double), cudaMemcpyHostToDevice));
   CUDA_CHECK(cudaMemcpy(d_y_current_, y.data(), lp_.num_row_ * sizeof(double), cudaMemcpyHostToDevice));
   linalgGpuAx(d_x_current_, d_ax_current_);
