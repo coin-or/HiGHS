@@ -14,16 +14,6 @@ Int Solver::load(const HighsLp& lp, const HighsHessian& Q) {
     logH_.printDevInfo("Error with model\n");
     return kStatusBadModel;
   }
-
-  m_ = model_.m();
-  n_ = model_.n();
-
-  info_.ipx_used = false;
-  info_.m_solver = m_;
-  info_.n_solver = n_;
-  info_.m_original = model_.m_orig();
-  info_.n_original = model_.n_orig();
-
   return kStatusOk;
 }
 
@@ -41,15 +31,37 @@ void Solver::setCallback(HighsCallback& callback) {
 }
 void Solver::setTimer(const HighsTimer& timer) { control_.setTimer(timer); }
 
+void Solver::reset() {
+  m_ = model_.m();
+  n_ = model_.n();
+
+  info_ = Info{};
+
+  info_.ipx_used = false;
+  info_.m_solver = m_;
+  info_.n_solver = n_;
+  info_.m_original = model_.m_orig();
+  info_.n_original = model_.n_orig();
+
+  resetOptions();
+
+  iter_ = 0;
+  alpha_primal_ = 0.0;
+  alpha_dual_ = 0.0;
+  sigma_ = 0.0;
+  regul_ = Regularisation{};
+
+  LS_.reset();
+  it_.reset();
+}
+
 void Solver::solve() {
   if (!model_.ready()) {
     info_.status = kStatusBadModel;
     return;
   }
 
-  // options_ may change during solve, so reset it to options_orig_ each time
-  // solve is called
-  resetOptions();
+  reset();
 
   // iterate object needs to be initialised before potentially interrupting
   it_.reset(new Iterate(model_, regul_));
@@ -537,12 +549,9 @@ void Solver::stepSizes() {
 void Solver::makeStep() {
   stepSizes();
   it_->makeStep(alpha_primal_, alpha_dual_);
-
-  // compute new quantities
   it_->residual1234();
   it_->computeMu();
   it_->indicators();
-
   printOutput();
 }
 

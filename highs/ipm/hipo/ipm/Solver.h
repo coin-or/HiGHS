@@ -327,6 +327,7 @@ class Solver {
   void printSummary() const;
 
   void resetOptions();
+  void reset();
 };
 
 }  // namespace hipo
