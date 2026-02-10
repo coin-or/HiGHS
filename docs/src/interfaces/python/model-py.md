@@ -14,8 +14,8 @@ import highspy
 
 h = highspy.Highs()
 
-x1 = h.addVar()
-x2 = h.addVar()
+x1 = h.addVariable()
+x2 = h.addVariable()
 
 h.addConstr(x1 + 2*x2 <=  80)
 h.addConstr(x1 + 4*x2 <= 120)
@@ -26,14 +26,14 @@ print("x1 = ", h.val(x1))
 print("x2 = ", h.val(x2))
 ```
 
-## addVar
+## addVariable
 
 Adds a variable to the model. By default it is continuous,
 non-negative, with zero objective coefficient, and has no name
 associated with it.
 
 ```
-addVar(lb = 0, ub = kHighsInf, obj = 0, type=HighsVarType.kContinuous, name = None)
+addVariable(lb = 0, ub = kHighsInf, obj = 0, type=HighsVarType.kContinuous, name = None)
 ```
 
 ## addConstr
