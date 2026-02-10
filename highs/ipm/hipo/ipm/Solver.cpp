@@ -1040,6 +1040,10 @@ bool Solver::checkStagnation() {
     best_pinf_ = std::min(best_pinf_, it_->pinf);
     best_dinf_ = std::min(best_dinf_, it_->dinf);
 
+    // if the best is zero, the test would always be triggered
+    best_pinf_ = std::max(best_pinf_, 1e-16);
+    best_dinf_ = std::max(best_dinf_, 1e-16);
+
     if (it_->pinf > thresh_inf_to_best * best_pinf_ ||
         it_->dinf > thresh_inf_to_best * best_dinf_) {
       stagnation = true;

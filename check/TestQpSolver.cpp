@@ -6,7 +6,7 @@
 #include "catch.hpp"
 #include "io/FilereaderLp.h"
 
-const bool dev_run = false;
+const bool dev_run = true;
 const double inf = kHighsInf;
 const double double_equal_tolerance = 1e-5;
 
@@ -1238,13 +1238,21 @@ TEST_CASE("2489", "[qpsolver]") {
   hessian.index_ = {0};
   hessian.value_ = {1.0};
   REQUIRE(h.passHessian(hessian) == HighsStatus::kOk);
-  HighsStatus run_status = h.run();
-  if (dev_run)
-    printf("Test 2489: run_status = %s\n",
-           run_status == HighsStatus::kError     ? "Error"
-           : run_status == HighsStatus::kWarning ? "Warning"
-                                                 : "OK");
-  REQUIRE(run_status == HighsStatus::kWarning);
+
+  for (auto& solver : solvers) {
+    h.setOptionValue("solver", solver);
+    HighsStatus run_status = h.run();
+    if (dev_run)
+      printf("Test 2489: run_status = %s\n",
+             run_status == HighsStatus::kError     ? "Error"
+             : run_status == HighsStatus::kWarning ? "Warning"
+                                                   : "OK");
+
+    // test fails using asm, but succeeds using hipo
+    const HighsStatus expected_status =
+        (solver == kQpAsmString ? HighsStatus::kWarning : HighsStatus::kOk);
+    REQUIRE(run_status == expected_status);
+  }
 
   h.resetGlobalScheduler(true);
 }
