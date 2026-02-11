@@ -228,20 +228,23 @@ HighsStatus assessMatrix(
     // Reset el_in_vec
     for (HighsInt el = from_el; el < to_el; el++)
       el_in_vec[matrix_index[el]] = illegal_el;
-    const bool expensive_2821_check = true;
+    //    const bool expensive_2821_check = true;
+    /*
     if (expensive_2821_check) {
       // Check el_in_vec !! Remove later!
       for (HighsInt lc_ix = 0; lc_ix < vec_dim; lc_ix++)
         assert(el_in_vec[lc_ix] == illegal_el);
     }
-
+    */
     for (HighsInt el = from_el; el < to_el; el++) {
       HighsInt component = matrix_index[el];
+      /*
       if (expensive_2821_check) {
         // Ensure that duplicates have been eliminated
         HighsInt previous_el = el_in_vec[component];
         assert(previous_el == illegal_el);
       }
+      */
       // Check the value
       double abs_value = fabs(matrix_value[el]);
       // Check that the value is not too large
@@ -263,14 +266,17 @@ HighsStatus assessMatrix(
         // the new number of nonzeros
         matrix_index[num_new_nz] = matrix_index[el];
         matrix_value[num_new_nz] = matrix_value[el];
+	/*
         if (expensive_2821_check) {
           // Record where the index has occurred
           el_in_vec[component] = num_new_nz;
         }
+	*/
         num_new_nz++;
       }
     }  // Loop from_el; to_el
     index_set.clear();
+    /*
     if (expensive_2821_check) {
       // Reset el_in_vec
       for (HighsInt el = from_el; el < to_el; el++)
@@ -279,6 +285,7 @@ HighsStatus assessMatrix(
       for (HighsInt lc_ix = 0; lc_ix < vec_dim; lc_ix++)
         assert(el_in_vec[lc_ix] == illegal_el);
     }
+    */
   }  // Loop 0; num_vec
   if (num_duplicate) {
     highsLogUser(log_options, HighsLogType::kInfo,

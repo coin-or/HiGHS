@@ -418,7 +418,7 @@ HighsStatus normaliseHessian2(const HighsOptions& options,
   HighsInt num_summation = 0;
   HighsInt num_upper_triangle = 0;
   HighsInt num_hessian_el = 0;
-  const bool expensive_2821_check = true;
+  //  const bool expensive_2821_check = true;
   for (HighsInt iCol = 0; iCol < dim; iCol++) {
     for (HighsInt iEl = from_hessian.start_[iCol];
          iEl < from_hessian.start_[iCol + 1]; iEl++) {
@@ -496,6 +496,7 @@ HighsStatus normaliseHessian2(const HighsOptions& options,
       // Hessians needs to be zeroed
       upper_off_diagonal[iRow] = 0;
     }
+    /*
     if (expensive_2821_check) {
       // Check that lower_on_below_diagonal and upper_off_diagonal
       // have been zeroed
@@ -504,6 +505,7 @@ HighsStatus normaliseHessian2(const HighsOptions& options,
         assert(!upper_off_diagonal[iRow]);
       }
     }
+    */
   }  // Loop iCol = 0; iCol < dim; iCol++
   hessian.start_[dim] = num_hessian_el;
   hessian.format_ = HessianFormat::kTriangular;
