@@ -124,23 +124,24 @@ void highsLogUser(const HighsLogOptions& log_options_, const HighsLogType type,
       log_options_.user_log_callback ||
       (log_options_.user_callback && log_options_.user_callback_active);
 
-  if (!use_log_callback) {
-    // Write to log file stream unless it is NULL
-    if (log_options_.log_stream) {
-      if (prefix)
-        fprintf(log_options_.log_stream, "%-9s", HighsLogTypeTag[(int)type]);
-      vfprintf(log_options_.log_stream, format, argptr);
-      if (flush_streams) fflush(log_options_.log_stream);
-      va_end(argptr);
-      va_start(argptr, format);
-    }
-    // Write to stdout unless log file stream is stdout
-    if (*log_options_.log_to_console && log_options_.log_stream != stdout) {
-      if (prefix) fprintf(stdout, "%-9s", HighsLogTypeTag[(int)type]);
-      vfprintf(stdout, format, argptr);
-      if (flush_streams) fflush(stdout);
-    }
-  } else {
+  // Write to log file stream unless it is NULL
+  if (log_options_.log_stream) {
+    if (prefix)
+      fprintf(log_options_.log_stream, "%-9s", HighsLogTypeTag[(int)type]);
+    vfprintf(log_options_.log_stream, format, argptr);
+    if (flush_streams) fflush(log_options_.log_stream);
+    va_end(argptr);
+    va_start(argptr, format);
+  }
+  // Write to stdout unless log file stream is stdout
+  if (*log_options_.log_to_console && log_options_.log_stream != stdout) {
+    if (prefix) fprintf(stdout, "%-9s", HighsLogTypeTag[(int)type]);
+    vfprintf(stdout, format, argptr);
+    if (flush_streams) fflush(stdout);
+    va_end(argptr);
+    va_start(argptr, format);
+  }
+  if (use_log_callback) {
     size_t len = 0;
     std::array<char, kIoBufferSize> msgbuffer = {};
     if (prefix) {
@@ -198,21 +199,22 @@ void highsLogDev(const HighsLogOptions& log_options_, const HighsLogType type,
   const bool use_log_callback =
       log_options_.user_log_callback ||
       (log_options_.user_callback && log_options_.user_callback_active);
-  if (!use_log_callback) {
-    // Write to log file stream unless it is NULL
-    if (log_options_.log_stream) {
-      // Write to log file stream
-      vfprintf(log_options_.log_stream, format, argptr);
-      if (flush_streams) fflush(log_options_.log_stream);
-      va_end(argptr);
-      va_start(argptr, format);
-    }
-    // Write to stdout unless log file stream is stdout
-    if (*log_options_.log_to_console && log_options_.log_stream != stdout) {
-      vfprintf(stdout, format, argptr);
-      if (flush_streams) fflush(stdout);
-    }
-  } else {
+  // Write to log file stream unless it is NULL
+  if (log_options_.log_stream) {
+    // Write to log file stream
+    vfprintf(log_options_.log_stream, format, argptr);
+    if (flush_streams) fflush(log_options_.log_stream);
+    va_end(argptr);
+    va_start(argptr, format);
+  }
+  // Write to stdout unless log file stream is stdout
+  if (*log_options_.log_to_console && log_options_.log_stream != stdout) {
+    vfprintf(stdout, format, argptr);
+    if (flush_streams) fflush(stdout);
+    va_end(argptr);
+    va_start(argptr, format);
+  }
+  if (use_log_callback) {
     std::array<char, kIoBufferSize> msgbuffer = {};
     int len = vsnprintf(msgbuffer.data(), msgbuffer.size(), format, argptr);
     // assert that there are no encoding errors
