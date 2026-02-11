@@ -1,12 +1,10 @@
 #include "HCheckConfig.h"
 #include "catch.hpp"
-#include "Highs.h" // For 2821
 #include "lp_data/HighsOptions.h"
 #include "model/HighsHessian.h"
 #include "model/HighsHessianUtils.h"
-// #include "<cstdio>"
 
-const bool dev_run = true;//false;
+const bool dev_run = false;
 
 // No commas in test case name.
 TEST_CASE("HighsHessian", "[highs_hessian]") {
@@ -15,8 +13,8 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
 
   HighsHessian square_hessian;
   // .  0  1  2  3  4
-  // 0  5  1    -1  2  
-  // 1  1  4        1   
+  // 0  5  1    -1  2
+  // 1  1  4        1
   // 2        3 -1
   // 3 -1    -1  4
   // 4  2  1        5
@@ -178,23 +176,23 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
   triangular_hessian.dim_ = 5;
   triangular_hessian.format_ = HessianFormat::kTriangular;
   triangular_hessian.start_ = {0, 4, 6, 9, 10, 13};
-  triangular_hessian.index_ = {0, 1,  3, 4,  1, 4,  1, 2,  3,  3,  1, 3, 4};
-  triangular_hessian.value_ = {5, 1, -1, 2,  4, 0,  0, 3, -1,  4,  1, 0, 5};
+  triangular_hessian.index_ = {0, 1, 3, 4, 1, 4, 1, 2, 3, 3, 1, 3, 4};
+  triangular_hessian.value_ = {5, 1, -1, 2, 4, 0, 0, 3, -1, 4, 1, 0, 5};
   HighsInt triangular_hessian_41_el = 5;
   HighsInt triangular_hessian_12_el = 6;
   HighsInt triangular_hessian_14_el = 10;
   HighsInt triangular_hessian_34_el = 11;
-  assert(triangular_hessian.index_[triangular_hessian_41_el] == 4); 
+  assert(triangular_hessian.index_[triangular_hessian_41_el] == 4);
   assert(triangular_hessian.value_[triangular_hessian_41_el] == 0);
 
-  assert(triangular_hessian.index_[triangular_hessian_12_el] == 1); 
+  assert(triangular_hessian.index_[triangular_hessian_12_el] == 1);
   assert(triangular_hessian.value_[triangular_hessian_12_el] == 0);
- 
-  assert(triangular_hessian.index_[triangular_hessian_14_el] == 1); 
+
+  assert(triangular_hessian.index_[triangular_hessian_14_el] == 1);
   assert(triangular_hessian.value_[triangular_hessian_14_el] == 1);
- 
-  assert(triangular_hessian.index_[triangular_hessian_34_el] == 3); 
-  assert(triangular_hessian.value_[triangular_hessian_34_el] == 0); 
+
+  assert(triangular_hessian.index_[triangular_hessian_34_el] == 3);
+  assert(triangular_hessian.value_[triangular_hessian_34_el] == 0);
 
   HighsHessian triangular_hessian1 = triangular_hessian;
 
@@ -214,7 +212,7 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
   triangular_hessian = triangular_hessian1;
   triangular_hessian.value_[triangular_hessian_41_el] = -1;
   triangular_hessian.value_[triangular_hessian_14_el] = 2;
-  
+
   if (dev_run) {
     printf("\nOriginal\n");
     triangular_hessian.print();
@@ -230,7 +228,94 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
   triangular_hessian = triangular_hessian1;
   triangular_hessian.value_[triangular_hessian_12_el] = -1;
   triangular_hessian.value_[triangular_hessian_34_el] = -2;
-  
+
+  if (dev_run) {
+    printf("\nOriginal\n");
+    triangular_hessian.print();
+  }
+  REQUIRE(assessHessian(triangular_hessian, options) == HighsStatus::kOk);
+  if (dev_run) {
+    printf("\nReturned triangular Hessian\n");
+    triangular_hessian.print();
+  }
+
+  triangular_hessian = square_hessian0;
+  triangular_hessian.format_ = HessianFormat::kTriangular;
+
+  if (dev_run) {
+    printf("\nSquare Hessian as triangular original\n");
+    triangular_hessian.print();
+  }
+  REQUIRE(assessHessian(triangular_hessian, options) == HighsStatus::kOk);
+  if (dev_run) {
+    printf("\nReturned triangular Hessian\n");
+    triangular_hessian.print();
+  }
+
+  // Define the triangular matrix as its transpose
+  //
+  // .  0  1  2  3  4
+  // 0  5
+  // 1  1  4  0     1
+  // 2        3
+  // 3 -1    -1  4  0
+  // 4  2  0        5
+  triangular_hessian.dim_ = 5;
+  triangular_hessian.format_ = HessianFormat::kTriangular;
+  triangular_hessian.start_ = {0, 1, 5, 6, 10, 13};
+  triangular_hessian.index_ = {0, 0, 1, 2, 4, 2, 0, 2, 3, 4, 0, 1, 4};
+  triangular_hessian.value_ = {5, 1, 4, 0, 1, 3, -1, -1, 4, 0, 2, 0, 5};
+  triangular_hessian_41_el = 11;
+  triangular_hessian_12_el = 3;
+  triangular_hessian_14_el = 4;
+  triangular_hessian_34_el = 9;
+  assert(triangular_hessian.index_[triangular_hessian_41_el] == 1);
+  assert(triangular_hessian.value_[triangular_hessian_41_el] == 0);
+
+  assert(triangular_hessian.index_[triangular_hessian_12_el] == 2);
+  assert(triangular_hessian.value_[triangular_hessian_12_el] == 0);
+
+  assert(triangular_hessian.index_[triangular_hessian_14_el] == 4);
+  assert(triangular_hessian.value_[triangular_hessian_14_el] == 1);
+
+  assert(triangular_hessian.index_[triangular_hessian_34_el] == 4);
+  assert(triangular_hessian.value_[triangular_hessian_34_el] == 0);
+
+  HighsHessian triangular_hessian2 = triangular_hessian;
+
+  if (dev_run) {
+    printf("\nOriginal\n");
+    triangular_hessian.print();
+  }
+  REQUIRE(assessHessian(triangular_hessian, options) == HighsStatus::kOk);
+  if (dev_run) {
+    printf("\nReturned triangular Hessian\n");
+    triangular_hessian.print();
+  }
+  REQUIRE(triangular_hessian == triangular_hessian0);
+
+  // Now replace the explicit zero in (4, 1) by -1 and the 1 in (1, 4)
+  // by 2 so they are summed to give the original 1 in (1, 4)
+  triangular_hessian = triangular_hessian2;
+  triangular_hessian.value_[triangular_hessian_41_el] = -1;
+  triangular_hessian.value_[triangular_hessian_14_el] = 2;
+
+  if (dev_run) {
+    printf("\nOriginal\n");
+    triangular_hessian.print();
+  }
+  REQUIRE(assessHessian(triangular_hessian, options) == HighsStatus::kOk);
+  if (dev_run) {
+    printf("\nReturned triangular Hessian\n");
+    triangular_hessian.print();
+  }
+  REQUIRE(triangular_hessian == triangular_hessian0);
+
+  // Now replace the explicit zeros in (1, 2) and (3, 4) by 1
+  triangular_hessian = triangular_hessian2;
+  triangular_hessian.value_[triangular_hessian_12_el] = -1;
+  triangular_hessian.value_[triangular_hessian_34_el] = -2;
+
   if (dev_run) {
     printf("\nOriginal\n");
     triangular_hessian.print();
@@ -241,35 +326,3 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
     triangular_hessian.print();
   }
 }
-
-const double double_equal_tolerance = 1e-5;
-static bool okValueDifference(const double& v_test, const double& v_true) {
-  double difference = std::fabs(v_test - v_true) / std::max(1.0, fabs(v_true));
-  return difference < double_equal_tolerance;
-}
-
-TEST_CASE("2821", "[highs_hessian]") {
-  Highs h;
-  //  h.setOptionValue("output_flag", dev_run);
-  const HighsInfo& info = h.getInfo();
-  const std::string dirname = std::string(HIGHS_DIR) + "/check/instances/";
-  std::string filename;
-  const double optimal_objective_value = -6.0;
-  for (HighsInt k = 0; k < 4; k++) {
-    if (k == 0) {
-      filename = dirname + "2821.mps";
-    } else if (k == 1) {
-      filename = dirname + "2821-quadobj.mps";
-    } else if (k == 2) {
-      filename = dirname + "2821-qmatrix.mps";
-    } else {
-      filename = dirname + "2821-duplicate.mps";
-    }
-    REQUIRE(h.readModel(filename) == HighsStatus::kOk);
-    REQUIRE(h.run() == HighsStatus::kOk);
-    REQUIRE(okValueDifference(info.objective_function_value, optimal_objective_value));
-  }
-  h.resetGlobalScheduler(true);
-
-}
-

@@ -1175,3 +1175,29 @@ TEST_CASE("2489", "[qpsolver]") {
   h.resetGlobalScheduler(true);
 }
 
+TEST_CASE("2821", "[qpsolver]") {
+  Highs h;
+  h.setOptionValue("output_flag", dev_run);
+  const HighsInfo& info = h.getInfo();
+  const std::string dirname = std::string(HIGHS_DIR) + "/check/instances/";
+  std::string filename;
+  const double optimal_objective_value = -6.0;
+  for (HighsInt k = 0; k < 5; k++) {
+    if (k == 0) {
+      filename = dirname + "2821.mps";
+    } else if (k == 1) {
+      filename = dirname + "2821-quadobj.mps";
+    } else if (k == 2) {
+      filename = dirname + "2821-qmatrix.mps";
+    } else if (k == 3) {
+      filename = dirname + "2821-duplicate.mps";
+    } else {
+      filename = dirname + "2821-summation.mps";
+    }
+    REQUIRE(h.readModel(filename) == HighsStatus::kOk);
+    REQUIRE(h.run() == HighsStatus::kOk);
+    REQUIRE(okValueDifference(info.objective_function_value,
+                              optimal_objective_value));
+  }
+  h.resetGlobalScheduler(true);
+}

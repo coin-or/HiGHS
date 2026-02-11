@@ -24,7 +24,7 @@ HighsStatus assessMatrix(const HighsLogOptions& log_options,
                          vector<double>& matrix_value,
                          const double small_matrix_value,
                          const double large_matrix_value,
-			 const bool sum_duplicates) {
+                         const bool sum_duplicates) {
   vector<HighsInt> matrix_p_end;
   const bool partitioned = false;
   return assessMatrix(log_options, matrix_name, vec_dim, num_vec, partitioned,
@@ -40,7 +40,7 @@ HighsStatus assessMatrix(const HighsLogOptions& log_options,
                          vector<double>& matrix_value,
                          const double small_matrix_value,
                          const double large_matrix_value,
-			 const bool sum_duplicates) {
+                         const bool sum_duplicates) {
   const bool partitioned = false;
   return assessMatrix(log_options, matrix_name, vec_dim, num_vec, partitioned,
                       matrix_start, matrix_p_end, matrix_index, matrix_value,
@@ -53,7 +53,7 @@ HighsStatus assessMatrix(
     vector<HighsInt>& matrix_start, vector<HighsInt>& matrix_p_end,
     vector<HighsInt>& matrix_index, vector<double>& matrix_value,
     const double small_matrix_value, const double large_matrix_value,
-			 const bool sum_duplicates) {
+    const bool sum_duplicates) {
   if (assessMatrixDimensions(log_options, num_vec, partitioned, matrix_start,
                              matrix_p_end, matrix_index,
                              matrix_value) == HighsStatus::kError) {
@@ -186,25 +186,28 @@ HighsStatus assessMatrix(
       HighsInt previous_el = el_in_vec[component];
       bool is_duplicate = previous_el > illegal_el;
       if (legal_component != !is_duplicate) {
-	printf("assessMatrix: ix = %d; el_in_vec[%d/%d] = %d; legal_component = %d\n",
-	       int(ix), int(component), int(vec_dim), int(previous_el), legal_component);
+        printf(
+            "assessMatrix: ix = %d; el_in_vec[%d/%d] = %d; legal_component = "
+            "%d\n",
+            int(ix), int(component), int(vec_dim), int(previous_el),
+            legal_component);
       }
       assert(legal_component == !is_duplicate);
       if (is_duplicate) {
-	if (sum_duplicates) {
-	  num_duplicate++;
-	  debug_num_duplicate++;
-	  // Sum the duplicate entry
-	  assert(matrix_index[previous_el] == component);
-	  matrix_value[previous_el] += matrix_value[el];
-	  continue;
-	}
-	highsLogUser(log_options, HighsLogType::kError,
-		     "%s matrix packed vector %" HIGHSINT_FORMAT
-		     ", entry %" HIGHSINT_FORMAT
-		     ", is duplicate index %" HIGHSINT_FORMAT "\n",
-		     matrix_name.c_str(), ix, el, component);
-	return HighsStatus::kError;
+        if (sum_duplicates) {
+          num_duplicate++;
+          debug_num_duplicate++;
+          // Sum the duplicate entry
+          assert(matrix_index[previous_el] == component);
+          matrix_value[previous_el] += matrix_value[el];
+          continue;
+        }
+        highsLogUser(log_options, HighsLogType::kError,
+                     "%s matrix packed vector %" HIGHSINT_FORMAT
+                     ", entry %" HIGHSINT_FORMAT
+                     ", is duplicate index %" HIGHSINT_FORMAT "\n",
+                     matrix_name.c_str(), ix, el, component);
+        return HighsStatus::kError;
       }
       // Not a duplicate
       // Shift the index and value of the OK entry to the new
@@ -223,21 +226,21 @@ HighsStatus assessMatrix(
     // Reset num_new_nz
     num_new_nz = matrix_start[ix];
     // Reset el_in_vec
-    for (HighsInt el = from_el; el < to_el; el++) 
+    for (HighsInt el = from_el; el < to_el; el++)
       el_in_vec[matrix_index[el]] = illegal_el;
     const bool expensive_2821_check = true;
     if (expensive_2821_check) {
       // Check el_in_vec !! Remove later!
       for (HighsInt lc_ix = 0; lc_ix < vec_dim; lc_ix++)
-	assert(el_in_vec[lc_ix] == illegal_el);
+        assert(el_in_vec[lc_ix] == illegal_el);
     }
-    
+
     for (HighsInt el = from_el; el < to_el; el++) {
       HighsInt component = matrix_index[el];
       if (expensive_2821_check) {
-	// Ensure that duplicates have been eliminated
-	HighsInt previous_el = el_in_vec[component];
-	assert(previous_el == illegal_el);
+        // Ensure that duplicates have been eliminated
+        HighsInt previous_el = el_in_vec[component];
+        assert(previous_el == illegal_el);
       }
       // Check the value
       double abs_value = fabs(matrix_value[el]);
@@ -260,21 +263,21 @@ HighsStatus assessMatrix(
         // the new number of nonzeros
         matrix_index[num_new_nz] = matrix_index[el];
         matrix_value[num_new_nz] = matrix_value[el];
-	if (expensive_2821_check) {
-	  // Record where the index has occurred
-	  el_in_vec[component] = num_new_nz;
-	}
+        if (expensive_2821_check) {
+          // Record where the index has occurred
+          el_in_vec[component] = num_new_nz;
+        }
         num_new_nz++;
       }
     }  // Loop from_el; to_el
     index_set.clear();
     if (expensive_2821_check) {
       // Reset el_in_vec
-      for (HighsInt el = from_el; el < to_el; el++) 
-	el_in_vec[matrix_index[el]] = illegal_el;
+      for (HighsInt el = from_el; el < to_el; el++)
+        el_in_vec[matrix_index[el]] = illegal_el;
       // Check el_in_vec !! Remove later!
       for (HighsInt lc_ix = 0; lc_ix < vec_dim; lc_ix++)
-	assert(el_in_vec[lc_ix] == illegal_el);
+        assert(el_in_vec[lc_ix] == illegal_el);
     }
   }  // Loop 0; num_vec
   if (num_duplicate) {
@@ -282,7 +285,7 @@ HighsStatus assessMatrix(
                  "%s matrix packed vector contains %" HIGHSINT_FORMAT
                  " duplicate entr%s: summed\n",
                  matrix_name.c_str(), num_duplicate,
-		 num_duplicate == 1 ? "y" : "ies");
+                 num_duplicate == 1 ? "y" : "ies");
   }
   if (num_large_value) {
     highsLogUser(log_options, HighsLogType::kError,

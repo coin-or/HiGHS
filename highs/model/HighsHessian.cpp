@@ -147,7 +147,7 @@ void HighsHessian::print() const {
   HighsInt num_nz = this->numNz();
   printf("%s Hessian of dimension %" HIGHSINT_FORMAT " and %" HIGHSINT_FORMAT
          " entries\n",
-	 this->format_ == HessianFormat::kTriangular ? "Triangular" : "Square",
+         this->format_ == HessianFormat::kTriangular ? "Triangular" : "Square",
          dim_, num_nz);
   printf("Start; Index; Value of sizes %d; %d; %d\n", (int)this->start_.size(),
          (int)this->index_.size(), (int)this->value_.size());
