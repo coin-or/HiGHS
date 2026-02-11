@@ -44,11 +44,12 @@ HighsStatus assessHessian(HighsHessian& hessian, const HighsOptions& options) {
                  hessian.start_[0]);
     return HighsStatus::kError;
   }
-  // Assess G, deferring the assessment of values (other than those
-  // which are identically zero)
+  // Assess G, summing duplicates, but deferring the assessment of
+  // values (other than those which are identically zero)
+  const bool sum_duplicates = true;
   call_status = assessMatrix(options.log_options, "Hessian", hessian.dim_,
                              hessian.dim_, hessian.start_, hessian.index_,
-                             hessian.value_, 0, kHighsInf);
+                             hessian.value_, 0, kHighsInf, sum_duplicates);
   return_status = interpretCallStatus(options.log_options, call_status,
                                       return_status, "assessMatrix");
   if (return_status == HighsStatus::kError) return return_status;

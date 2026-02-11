@@ -185,11 +185,15 @@ HighsStatus assessMatrix(
       legal_component = index_set.find(component) == nullptr;
       HighsInt previous_el = el_in_vec[component];
       bool is_duplicate = previous_el > illegal_el;
+      if (legal_component != !is_duplicate) {
+	printf("assessMatrix: ix = %d; el_in_vec[%d/%d] = %d; legal_component = %d\n",
+	       int(ix), int(component), int(vec_dim), int(previous_el), legal_component);
+      }
       assert(legal_component == !is_duplicate);
       if (is_duplicate) {
-	num_duplicate++;
-	debug_num_duplicate++;
 	if (sum_duplicates) {
+	  num_duplicate++;
+	  debug_num_duplicate++;
 	  // Sum the duplicate entry
 	  assert(matrix_index[previous_el] == component);
 	  matrix_value[previous_el] += matrix_value[el];
@@ -222,8 +226,8 @@ HighsStatus assessMatrix(
     for (HighsInt el = from_el; el < to_el; el++) 
       el_in_vec[matrix_index[el]] = illegal_el;
     // Check el_in_vec !! Remove later!
-    for (HighsInt ix = 0; ix < vec_dim; ix++)
-      assert(el_in_vec[ix] == illegal_el);
+    for (HighsInt lc_ix = 0; lc_ix < vec_dim; lc_ix++)
+      assert(el_in_vec[lc_ix] == illegal_el);
     
     for (HighsInt el = from_el; el < to_el; el++) {
       HighsInt component = matrix_index[el];
@@ -256,15 +260,16 @@ HighsStatus assessMatrix(
         num_new_nz++;
       }
     }  // Loop from_el; to_el
+    index_set.clear();
     // Reset el_in_vec
     for (HighsInt el = from_el; el < to_el; el++) 
       el_in_vec[matrix_index[el]] = illegal_el;
     // Check el_in_vec !! Remove later!
-    for (HighsInt ix = 0; ix < vec_dim; ix++)
-      assert(el_in_vec[ix] == illegal_el);
+    for (HighsInt lc_ix = 0; lc_ix < vec_dim; lc_ix++)
+      assert(el_in_vec[lc_ix] == illegal_el);
   }  // Loop 0; num_vec
   if (num_duplicate) {
-    highsLogUser(log_options, HighsLogType::kError,
+    highsLogUser(log_options, HighsLogType::kInfo,
                  "%s matrix packed vector contains %" HIGHSINT_FORMAT
                  " duplicate entris: summed\n",
                  matrix_name.c_str(), num_duplicate);
