@@ -385,7 +385,7 @@
 - Default: "false"
 
 ## [mip\_allow\_cut\_separation\_at\_nodes](@id option-mip-allow-cut-separation-at-nodes)
-- Whether cut separation at nodes is permitted
+- Whether cut separation at nodes other than the root node is permitted
 - Type: boolean
 - Default: "true"
 

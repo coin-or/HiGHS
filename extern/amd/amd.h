@@ -341,9 +341,9 @@ void Highs_amd_info       (double Info [ ]) ;
  * This also works during compile-time:
  *
  *       #if defined(AMD_VERSION) && (AMD_VERSION >= AMD_VERSION_CODE (1,2))
- *           printf ("This is version 1.2 or later\n") ;
+ *           // This is version 1.2 or later
  *       #else
- *           printf ("This is an early version\n") ;
+ *           // This is an early version
  *       #endif
  *
  * Versions 1.1 and earlier of AMD do not include a #define'd version number.
