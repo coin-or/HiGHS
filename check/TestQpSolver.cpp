@@ -10,7 +10,7 @@ const bool dev_run = false;
 const double inf = kHighsInf;
 const double double_equal_tolerance = 1e-5;
 
-bool okValueDifference(const double& v_test, const double& v_true) {
+static bool okValueDifference(const double& v_test, const double& v_true) {
   double difference = fabs(v_test - v_true) / std::max(1.0, fabs(v_true));
   return difference < double_equal_tolerance;
 }
@@ -1173,20 +1173,5 @@ TEST_CASE("2489", "[qpsolver]") {
   REQUIRE(run_status == HighsStatus::kWarning);
 
   h.resetGlobalScheduler(true);
-}
-
-TEST_CASE("2821", "[qpsolver]") {
-  Highs h;
-  //  h.setOptionValue("output_flag", dev_run);
-  const HighsInfo& info = h.getInfo();
-  const std::string dirname = std::string(HIGHS_DIR) + "/check/instances/";
-  std::string filename = dirname + "2821-duplicate.mps";
-  const double optimal_objective_value = -6.0;
-  REQUIRE(h.readModel(filename) == HighsStatus::kOk);
-  REQUIRE(h.run() == HighsStatus::kOk);
-  REQUIRE(okValueDifference(info.objective_function_value, optimal_objective_value));
-  
-  h.resetGlobalScheduler(true);
-
 }
 

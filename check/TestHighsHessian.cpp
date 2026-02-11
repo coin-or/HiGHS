@@ -1,11 +1,12 @@
 #include "HCheckConfig.h"
 #include "catch.hpp"
+#include "Highs.h" // For 2821
 #include "lp_data/HighsOptions.h"
 #include "model/HighsHessian.h"
 #include "model/HighsHessianUtils.h"
 // #include "<cstdio>"
 
-const bool dev_run = false;
+const bool dev_run = true;//false;
 
 // No commas in test case name.
 TEST_CASE("HighsHessian", "[highs_hessian]") {
@@ -143,3 +144,25 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
   // maximization since its diagonal entries are in [-4 0)
   REQUIRE(okHessianDiagonal(options, indefinite, ObjSense::kMaximize));
 }
+
+const double double_equal_tolerance = 1e-5;
+static bool okValueDifference(const double& v_test, const double& v_true) {
+  double difference = std::fabs(v_test - v_true) / std::max(1.0, fabs(v_true));
+  return difference < double_equal_tolerance;
+}
+
+TEST_CASE("2821", "[highs_hessian]") {
+  Highs h;
+  //  h.setOptionValue("output_flag", dev_run);
+  const HighsInfo& info = h.getInfo();
+  const std::string dirname = std::string(HIGHS_DIR) + "/check/instances/";
+  std::string filename = dirname + "2821-duplicate.mps";
+  const double optimal_objective_value = -6.0;
+  REQUIRE(h.readModel(filename) == HighsStatus::kOk);
+  REQUIRE(h.run() == HighsStatus::kOk);
+  REQUIRE(okValueDifference(info.objective_function_value, optimal_objective_value));
+  
+  h.resetGlobalScheduler(true);
+
+}
+

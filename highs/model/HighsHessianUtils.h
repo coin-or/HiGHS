@@ -31,6 +31,8 @@ bool okHessianDiagonal(const HighsOptions& options, HighsHessian& hessian,
                        const ObjSense sense = ObjSense::kMinimize);
 HighsStatus normaliseHessian(const HighsOptions& options,
                              HighsHessian& hessian);
+HighsStatus normaliseHessian2(const HighsOptions& options,
+                             HighsHessian& hessian);
 HighsStatus extractTriangularHessian(const HighsOptions& options,
                                      HighsHessian& hessian);
 void triangularToSquareHessian(const HighsHessian& hessian,
