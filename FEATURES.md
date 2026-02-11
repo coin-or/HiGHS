@@ -16,6 +16,10 @@ Following PR [#2834](https://github.com/ERGO-Code/HiGHS/pull/2834),
 there is some minimal documentation of the `highspy`modelling
 language.
 
+Following PR [#2837](https://github.com/ERGO-Code/HiGHS/pull/2837),
+the use of the logging callback is independent to the settings of the
+`output_flag`, `log_to_console` and `output_flag` options.
+
 ## Build changes
 
 Following PR [#2836](https://github.com/ERGO-Code/HiGHS/pull/2836), it is
