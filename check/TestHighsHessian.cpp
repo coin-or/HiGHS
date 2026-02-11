@@ -14,19 +14,31 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
   if (!dev_run) options.output_flag = false;
 
   HighsHessian square_hessian;
+  // .  0  1  2  3  4
+  // 0  5  1    -1  2  
+  // 1  1  4        1   
+  // 2        3 -1
+  // 3 -1    -1  4
+  // 4  2  1        5
   square_hessian.dim_ = 5;
   square_hessian.format_ = HessianFormat::kSquare;
   square_hessian.start_ = {0, 4, 7, 9, 12, 15};
   square_hessian.index_ = {0, 1, 3, 4, 0, 1, 4, 2, 3, 0, 2, 3, 0, 1, 4};
   square_hessian.value_ = {5, 1, -1, 2, 1, 4, 1, 3, -1, -1, -1, 4, 2, 1, 5};
+  HighsHessian square_hessian0 = square_hessian;
 
   HighsHessian triangular_hessian;
+  // .  0  1  2  3  4
+  // 0  5
+  // 1  1  4
+  // 2        3
+  // 3 -1    -1  4
+  // 4  2  1        5
   triangular_hessian.dim_ = 5;
   triangular_hessian.format_ = HessianFormat::kTriangular;
   triangular_hessian.start_ = {0, 4, 6, 8, 9, 10};
   triangular_hessian.index_ = {0, 1, 3, 4, 1, 4, 2, 3, 3, 4};
   triangular_hessian.value_ = {5, 1, -1, 2, 4, 1, 3, -1, 4, 5};
-
   HighsHessian triangular_hessian0 = triangular_hessian;
 
   // Check that the positive diagonal entries are recognised as being
@@ -91,12 +103,13 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
   hessian0.index_ = {0, 0, 1, 2, 0, 2, 3, 0, 1, 4};
   hessian0.value_ = {5, 2, 4, 3, -2, -2, 4, 4, 2, 5};
 
-  REQUIRE(assessHessian(hessian0, options) == HighsStatus::kOk);
+  //  REQUIRE(assessHessian(hessian0, options) == HighsStatus::kOk);
+  REQUIRE(assessHessian(hessian0, options) == HighsStatus::kError);
   if (dev_run) {
     printf("\nReturned\n");
     hessian0.print();
   }
-  REQUIRE((hessian0 == triangular_hessian0));
+  //  REQUIRE((hessian0 == triangular_hessian0));
 
   // Nonsymmetric Hessian - with entries resulting in cancellation
   HighsHessian hessian1;
@@ -105,13 +118,13 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
   hessian1.start_ = {0, 3, 5, 7, 10, 14};
   hessian1.index_ = {0, 3, 4, 0, 1, 2, 4, 0, 2, 3, 0, 1, 2, 4};
   hessian1.value_ = {5, -5, 1, 2, 4, 3, 1, 3, -2, 4, 3, 2, -1, 5};
-
-  REQUIRE(assessHessian(hessian1, options) == HighsStatus::kOk);
+  //  REQUIRE(assessHessian(hessian1, options) == HighsStatus::kOk);
+  REQUIRE(assessHessian(hessian1, options) == HighsStatus::kError);
   if (dev_run) {
     printf("\nReturned\n");
     hessian1.print();
   }
-  REQUIRE((hessian1 == triangular_hessian0));
+  //  REQUIRE((hessian1 == triangular_hessian0));
 
   HighsHessian indefinite;
   indefinite.dim_ = 3;
@@ -143,6 +156,63 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
   // Cannot tell that the indefinite Hessian is not OK for
   // maximization since its diagonal entries are in [-4 0)
   REQUIRE(okHessianDiagonal(options, indefinite, ObjSense::kMaximize));
+
+  // Now add tests for the new normaliseHessian method for Hessians
+  // supplied by users or read from MPS files
+  //
+  // As defined, the triangular-format matrix is equivalent to
+  // triangular_hessian0 (above), but it has three explicit zeros
+  // which together with the upper triangular nonzero, can be accessed
+  // directly
+  //
+  // .  0  1  2  3  4
+  // 0  5
+  // 1  1  4  0     1
+  // 2        3
+  // 3 -1    -1  4  0
+  // 4  2  0        5
+  triangular_hessian.dim_ = 5;
+  triangular_hessian.format_ = HessianFormat::kTriangular;
+  triangular_hessian.start_ = {0, 4, 6, 9, 10, 13};
+  triangular_hessian.index_ = {0, 1,  3, 4,  1, 4,  1, 2,  3,  3,  1, 3, 4};
+  triangular_hessian.value_ = {5, 1, -1, 2,  4, 0,  0, 3, -1,  4,  1, 0, 5};
+  HighsInt triangular_hessian_41_el = 5;
+  HighsInt triangular_hessian_12_el = 6;
+  HighsInt triangular_hessian_14_el = 10;
+  HighsInt triangular_hessian_34_el = 11;
+  assert(triangular_hessian.index_[triangular_hessian_41_el] == 4); 
+  assert(triangular_hessian.value_[triangular_hessian_41_el] == 0);
+
+  assert(triangular_hessian.index_[triangular_hessian_12_el] == 1); 
+  assert(triangular_hessian.value_[triangular_hessian_12_el] == 0);
+ 
+  assert(triangular_hessian.index_[triangular_hessian_14_el] == 1); 
+  assert(triangular_hessian.value_[triangular_hessian_14_el] == 1);
+ 
+  assert(triangular_hessian.index_[triangular_hessian_34_el] == 3); 
+  assert(triangular_hessian.value_[triangular_hessian_34_el] == 0); 
+
+  if (dev_run) {
+    printf("\nOriginal\n");
+    triangular_hessian.print();
+  }
+  
+  HighsHessian triangular_hessian1 = triangular_hessian;
+
+  REQUIRE(assessHessian(triangular_hessian, options) == HighsStatus::kOk);
+  if (dev_run) {
+    printf("\nReturned triangular Hessian\n");
+    triangular_hessian.print();
+  }
+  REQUIRE((triangular_hessian == triangular_hessian0));
+
+
+  HighsInt square_hessian_04_el = 12;
+  assert(square_hessian.index_[square_hessian_04_el] == 0);
+  assert(square_hessian.value_[square_hessian_04_el] == 2);
+  
+  
+  
 }
 
 const double double_equal_tolerance = 1e-5;

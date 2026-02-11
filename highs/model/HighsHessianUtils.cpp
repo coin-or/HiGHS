@@ -331,6 +331,9 @@ HighsStatus normaliseHessian2(const HighsOptions& options,
 			      HighsHessian& hessian) {
   // Extract the entries in the upper triangle, storing them rowwise
   HighsInt dim = hessian.dim_;
+  const bool triangular = hessian.format_ == HessianFormat::kTriangular;
+  const bool square = !triangular;
+  assert((hessian.format_ == HessianFormat::kSquare) == square);
   HighsSparseMatrix upper;
   std::vector<HighsInt> upper_length;
   upper_length.assign(dim, 0);
@@ -347,9 +350,9 @@ HighsStatus normaliseHessian2(const HighsOptions& options,
       }
     }
   }
-  if (hessian.format_ == HessianFormat::kTriangular && num_upper_nz == 0) return HighsStatus::kOk;
+  if (triangular && num_upper_nz == 0) return HighsStatus::kOk;
   // If square, do quick check for asymmetry
-  if (hessian.format_ == HessianFormat::kSquare && num_upper_nz != num_lower_nz) {
+  if (square && num_upper_nz != num_lower_nz) {
     highsLogUser(options.log_options, HighsLogType::kError,
 		 "Hessian has %d / %d lower / upper triangular entries so is not symmetric\n",
 		 int(num_lower_nz), int(num_upper_nz));
@@ -387,8 +390,9 @@ HighsStatus normaliseHessian2(const HighsOptions& options,
 	  num_lower_nz++;
 	}
       }
-      hessian.start_[dim] = num_lower_nz;
     }
+    hessian.start_[dim] = num_lower_nz;
+    // Check that upper_length has reached the start of the next row
     for (HighsInt iRow = 0; iRow < dim; iRow++) 
       assert(upper_length[iRow] == upper.start_[iRow+1]);
     assert(upper_length[dim-1] == num_upper_nz);
@@ -396,9 +400,8 @@ HighsStatus normaliseHessian2(const HighsOptions& options,
   // Have to work from a copy of the Hessian if it is triangular and
   // there are upper triangular entries to insert
   HighsHessian hessian_copy;
-  if (hessian.format_ == HessianFormat::kTriangular)
-    hessian_copy = hessian;
-  const HighsHessian& from_hessian = hessian.format_ == HessianFormat::kTriangular ? hessian_copy : hessian;
+  if (triangular) hessian_copy = hessian;
+  const HighsHessian& from_hessian = triangular ? hessian_copy : hessian;
     
   // Determine the lower (upper) off-diagonal entries in each column
   // (row) of the Hessian
@@ -409,7 +412,8 @@ HighsStatus normaliseHessian2(const HighsOptions& options,
   // Should be no duplicates
   HighsInt debug_num_duplicate = 0;
   HighsInt num_non_symmetric = 0;
-  HighsInt num_sumation = 0;
+  HighsInt num_summation = 0;
+  HighsInt num_upper_triangle = 0;
   HighsInt num_hessian_el = 0;
   const bool expensive_2821_check = true;
   for (HighsInt iCol = 0; iCol < dim; iCol++) {
@@ -424,20 +428,24 @@ HighsStatus normaliseHessian2(const HighsOptions& options,
     // its indices as iRow
     for (HighsInt iEl = upper.start_[iCol]; iEl < upper.start_[iCol+1]; iEl++) {
       HighsInt iRow = upper.index_[iEl];
-      assert(iRow < iCol);
+      assert(iRow > iCol);
       if (upper_off_diagonal[iRow]) debug_num_duplicate++;
       upper_off_diagonal[iRow] = upper.value_[iEl];
-      if (hessian.format_ == HessianFormat::kSquare) {
+      if (square) {
 	// When square, ensure that the upper triangular value matches
 	// the corresponding lower triangular value
-	if (lower_on_below_diagonal[iRow] != upper_off_diagonal[iRow])
+	if (upper_off_diagonal[iRow] != lower_on_below_diagonal[iRow])
 	  num_non_symmetric++;
+	// Don't zero the upper off diagonal entry, so that it's
+	// possible to check that nonzeros in the lower off diagonal
+	// match the upper off diagonal entry
       } else {
 	// When triangular, add the upper triangular value to the
 	// lower triangular value, and zero the upper triangular value
 	// so that it doesn't generate a duplicate
-	assert(hessian.format_ == HessianFormat::kTriangular);
-	if (lower_on_below_diagonal[iRow]) num_sumation++;
+	assert(triangular);
+	num_upper_triangle++;
+	if (lower_on_below_diagonal[iRow]) num_summation++;
 	lower_on_below_diagonal[iRow] += upper_off_diagonal[iRow];
 	upper_off_diagonal[iRow] = 0;
       }
@@ -452,23 +460,28 @@ HighsStatus normaliseHessian2(const HighsOptions& options,
     hessian.value_[num_hessian_el] = lower_on_below_diagonal[iRow];
     num_hessian_el++;
     lower_on_below_diagonal[iRow] = 0;    
+    // Assign nonzeros below the diagonal, checking for asymmetry if
+    // the format is square
     for (HighsInt iEl = from_el; iEl < from_hessian.start_[iCol+1]; iEl++) {
       HighsInt iRow = from_hessian.index_[iEl];
       if (lower_on_below_diagonal[iRow]) {
 	hessian.index_[num_hessian_el] = iRow;
 	hessian.value_[num_hessian_el] = lower_on_below_diagonal[iRow];
 	num_hessian_el++;
-	lower_on_below_diagonal[iRow] = 0;    
+	if (upper_off_diagonal[iRow] != lower_on_below_diagonal[iRow])
+	  num_non_symmetric++;
+	lower_on_below_diagonal[iRow] = 0;
       }
     }
+    // Assign nonzeros above the diagonal
     for (HighsInt iEl = upper.start_[iCol]; iEl < upper.start_[iCol+1]; iEl++) {
       HighsInt iRow = upper.index_[iEl];
-      if (upper_off_diagonal[iRow]) {
+      if (triangular && upper_off_diagonal[iRow]) {
 	hessian.index_[num_hessian_el] = iRow;
 	hessian.value_[num_hessian_el] = upper_off_diagonal[iRow];
 	num_hessian_el++;
-	upper_off_diagonal[iRow] = 0;    
       }
+      upper_off_diagonal[iRow] = 0;    
     }
     if (expensive_2821_check) {
       // Check that lower_on_below_diagonal and upper_off_diagonal
@@ -483,7 +496,13 @@ HighsStatus normaliseHessian2(const HighsOptions& options,
   hessian.format_ = HessianFormat::kTriangular;
   hessian.index_.resize(num_hessian_el);
   hessian.value_.resize(num_hessian_el);
-  assert(111==999);
+  printf("normaliseHessian2: debug_num_duplicate = %d; num_non_symmetric = %d; num_summation = %d; num_upper_triangle = %d\n",
+	 int(debug_num_duplicate), int(num_non_symmetric), int(num_summation), int(num_upper_triangle));
+  assert(!debug_num_duplicate);
+  if (num_non_symmetric) return HighsStatus::kError;
+  if (num_summation) return HighsStatus::kWarning;
+  if (num_upper_triangle) return HighsStatus::kWarning;
+  return HighsStatus::kOk;
 }
 
 HighsStatus normaliseHessian(const HighsOptions& options,

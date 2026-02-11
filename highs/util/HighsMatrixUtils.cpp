@@ -280,8 +280,9 @@ HighsStatus assessMatrix(
   if (num_duplicate) {
     highsLogUser(log_options, HighsLogType::kInfo,
                  "%s matrix packed vector contains %" HIGHSINT_FORMAT
-                 " duplicate entris: summed\n",
-                 matrix_name.c_str(), num_duplicate);
+                 " duplicate entr%s: summed\n",
+                 matrix_name.c_str(), num_duplicate,
+		 num_duplicate == 1 ? "y" : "ies");
   }
   if (num_large_value) {
     highsLogUser(log_options, HighsLogType::kError,
