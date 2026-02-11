@@ -1,4 +1,4 @@
-name: sanitizers-bazel
+name: action-sanitizers-bazel
 
 on: workflow_dispatch
 
