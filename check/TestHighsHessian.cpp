@@ -159,7 +159,11 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
 
   // Now add tests for the new normaliseHessian method for Hessians
   // supplied by users or read from MPS files
-  //
+
+  HighsInt square_hessian_04_el = 12;
+  assert(square_hessian.index_[square_hessian_04_el] == 0);
+  assert(square_hessian.value_[square_hessian_04_el] == 2);
+
   // As defined, the triangular-format matrix is equivalent to
   // triangular_hessian0 (above), but it has three explicit zeros
   // which together with the upper triangular nonzero, can be accessed
@@ -192,27 +196,50 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
   assert(triangular_hessian.index_[triangular_hessian_34_el] == 3); 
   assert(triangular_hessian.value_[triangular_hessian_34_el] == 0); 
 
+  HighsHessian triangular_hessian1 = triangular_hessian;
+
   if (dev_run) {
     printf("\nOriginal\n");
     triangular_hessian.print();
   }
-  
-  HighsHessian triangular_hessian1 = triangular_hessian;
-
   REQUIRE(assessHessian(triangular_hessian, options) == HighsStatus::kOk);
   if (dev_run) {
     printf("\nReturned triangular Hessian\n");
     triangular_hessian.print();
   }
-  REQUIRE((triangular_hessian == triangular_hessian0));
+  REQUIRE(triangular_hessian == triangular_hessian0);
 
+  // Now replace the explicit zero in (4, 1) by -1 and the 1 in (1, 4)
+  // by 2 so they are summed to give the original 1 in (1, 4)
+  triangular_hessian = triangular_hessian1;
+  triangular_hessian.value_[triangular_hessian_41_el] = -1;
+  triangular_hessian.value_[triangular_hessian_14_el] = 2;
+  
+  if (dev_run) {
+    printf("\nOriginal\n");
+    triangular_hessian.print();
+  }
+  REQUIRE(assessHessian(triangular_hessian, options) == HighsStatus::kOk);
+  if (dev_run) {
+    printf("\nReturned triangular Hessian\n");
+    triangular_hessian.print();
+  }
+  REQUIRE(triangular_hessian == triangular_hessian0);
 
-  HighsInt square_hessian_04_el = 12;
-  assert(square_hessian.index_[square_hessian_04_el] == 0);
-  assert(square_hessian.value_[square_hessian_04_el] == 2);
+  // Now replace the explicit zeros in (1, 2) and (3, 4) by 1
+  triangular_hessian = triangular_hessian1;
+  triangular_hessian.value_[triangular_hessian_12_el] = -1;
+  triangular_hessian.value_[triangular_hessian_34_el] = -2;
   
-  
-  
+  if (dev_run) {
+    printf("\nOriginal\n");
+    triangular_hessian.print();
+  }
+  REQUIRE(assessHessian(triangular_hessian, options) == HighsStatus::kOk);
+  if (dev_run) {
+    printf("\nReturned triangular Hessian\n");
+    triangular_hessian.print();
+  }
 }
 
 const double double_equal_tolerance = 1e-5;
@@ -226,12 +253,22 @@ TEST_CASE("2821", "[highs_hessian]") {
   //  h.setOptionValue("output_flag", dev_run);
   const HighsInfo& info = h.getInfo();
   const std::string dirname = std::string(HIGHS_DIR) + "/check/instances/";
-  std::string filename = dirname + "2821-duplicate.mps";
+  std::string filename;
   const double optimal_objective_value = -6.0;
-  REQUIRE(h.readModel(filename) == HighsStatus::kOk);
-  REQUIRE(h.run() == HighsStatus::kOk);
-  REQUIRE(okValueDifference(info.objective_function_value, optimal_objective_value));
-  
+  for (HighsInt k = 0; k < 4; k++) {
+    if (k == 0) {
+      filename = dirname + "2821.mps";
+    } else if (k == 1) {
+      filename = dirname + "2821-quadobj.mps";
+    } else if (k == 2) {
+      filename = dirname + "2821-qmatrix.mps";
+    } else {
+      filename = dirname + "2821-duplicate.mps";
+    }
+    REQUIRE(h.readModel(filename) == HighsStatus::kOk);
+    REQUIRE(h.run() == HighsStatus::kOk);
+    REQUIRE(okValueDifference(info.objective_function_value, optimal_objective_value));
+  }
   h.resetGlobalScheduler(true);
 
 }

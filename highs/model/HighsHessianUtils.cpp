@@ -460,28 +460,33 @@ HighsStatus normaliseHessian2(const HighsOptions& options,
     hessian.value_[num_hessian_el] = lower_on_below_diagonal[iRow];
     num_hessian_el++;
     lower_on_below_diagonal[iRow] = 0;    
-    // Assign nonzeros below the diagonal, checking for asymmetry if
-    // the format is square
+    // Assign nonzeros below the diagonal
     for (HighsInt iEl = from_el; iEl < from_hessian.start_[iCol+1]; iEl++) {
       HighsInt iRow = from_hessian.index_[iEl];
       if (lower_on_below_diagonal[iRow]) {
 	hessian.index_[num_hessian_el] = iRow;
 	hessian.value_[num_hessian_el] = lower_on_below_diagonal[iRow];
 	num_hessian_el++;
-	if (upper_off_diagonal[iRow] != lower_on_below_diagonal[iRow])
-	  num_non_symmetric++;
 	lower_on_below_diagonal[iRow] = 0;
       }
     }
     // Assign nonzeros above the diagonal
     for (HighsInt iEl = upper.start_[iCol]; iEl < upper.start_[iCol+1]; iEl++) {
       HighsInt iRow = upper.index_[iEl];
-      if (triangular && upper_off_diagonal[iRow]) {
-	hessian.index_[num_hessian_el] = iRow;
-	hessian.value_[num_hessian_el] = upper_off_diagonal[iRow];
-	num_hessian_el++;
+      if (triangular) {
+	assert(!upper_off_diagonal[iRow]);
       }
-      upper_off_diagonal[iRow] = 0;    
+      // Look for nonzeros in lower_on_below_diagonal created by
+      // adding an entry that was in the upper triangle and added in
+      if (lower_on_below_diagonal[iRow]) {
+	hessian.index_[num_hessian_el] = iRow;
+	hessian.value_[num_hessian_el] = lower_on_below_diagonal[iRow];
+	num_hessian_el++;
+	lower_on_below_diagonal[iRow] = 0;
+      }
+      // Any upper entry retained for checking symmetry for square
+      // Hessians needs to be zeroed
+      upper_off_diagonal[iRow] = 0;
     }
     if (expensive_2821_check) {
       // Check that lower_on_below_diagonal and upper_off_diagonal
