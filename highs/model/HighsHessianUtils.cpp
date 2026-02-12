@@ -56,7 +56,7 @@ HighsStatus assessHessian(HighsHessian& hessian, const HighsOptions& options) {
   // Transform the Hessian to pure column-wise lower triangle format
   call_status = normaliseHessian(options, hessian);
   return_status = interpretCallStatus(options.log_options, call_status,
-				      return_status, "normaliseHessian");
+                                      return_status, "normaliseHessian");
   if (return_status == HighsStatus::kError) return return_status;
   // Assess values in Q
   call_status =
@@ -309,7 +309,7 @@ void triangularToSquareHessian(const HighsHessian& hessian,
 }
 
 HighsStatus normaliseHessian(const HighsOptions& options,
-			     HighsHessian& hessian) {
+                             HighsHessian& hessian) {
   HighsInt dim = hessian.dim_;
   const bool triangular = hessian.format_ == HessianFormat::kTriangular;
   const bool square = !triangular;

@@ -30,7 +30,7 @@ void completeHessianDiagonal(const HighsOptions& options,
 bool okHessianDiagonal(const HighsOptions& options, HighsHessian& hessian,
                        const ObjSense sense = ObjSense::kMinimize);
 HighsStatus normaliseHessian(const HighsOptions& options,
-                              HighsHessian& hessian);
+                             HighsHessian& hessian);
 HighsStatus extractTriangularHessian(const HighsOptions& options,
                                      HighsHessian& hessian);
 void triangularToSquareHessian(const HighsHessian& hessian,
