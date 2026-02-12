@@ -4894,7 +4894,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
   // check rows
   struct candidaterow {
-    HighsInt row;
+    HighsInt row = -1;
     std::tuple<uint64_t, HighsInt, HighsInt> score;
   };
   std::vector<candidaterow> rows;
@@ -4904,9 +4904,9 @@ HPresolve::Result HPresolve::enumerateSolutions(
     // skip redundant rows
     if (domain.isRedundantRow(row)) continue;
     // check row
+    candidaterow r;
     bool skiprow = false;
     size_t numnzs = 0;
-    std::tuple<uint64_t, HighsInt, HighsInt> rowProbingScore;
     for (HighsInt j = mipsolver->mipdata_->ARstart_[row];
          j < mipsolver->mipdata_->ARstart_[row + 1]; j++) {
       // get index
@@ -4919,15 +4919,16 @@ HPresolve::Result HPresolve::enumerateSolutions(
       if (skiprow) break;
       // update row score
       auto probingScore = computeProbingScore(col);
-      std::get<0>(rowProbingScore) += probingScore.first;
-      std::get<1>(rowProbingScore) += probingScore.second;
+      std::get<0>(r.score) += probingScore.first;
+      std::get<1>(r.score) += probingScore.second;
       numnzs++;
     }
     if (!skiprow) {
-      std::get<0>(rowProbingScore) /= numnzs;
-      std::get<1>(rowProbingScore) /= numnzs;
-      std::get<2>(rowProbingScore) = random.integer();
-      rows.push_back({row, rowProbingScore});
+      r.row = row;
+      std::get<0>(r.score) /= numnzs;
+      std::get<1>(r.score) /= numnzs;
+      std::get<2>(r.score) = random.integer();
+      rows.push_back(r);
     }
   }
 
