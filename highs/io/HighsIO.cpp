@@ -108,8 +108,12 @@ std::array<char, 32> highsDoubleToString(const double val,
 
 void highsLogUser(const HighsLogOptions& log_options_, const HighsLogType type,
                   const char* format, ...) {
-  if (!*log_options_.output_flag ||
-      (log_options_.log_stream == NULL && !*log_options_.log_to_console))
+  if (!*log_options_.output_flag)
+    return;
+  const bool use_log_callback =
+      log_options_.user_log_callback ||
+      (log_options_.user_callback && log_options_.user_callback_active);
+  if (log_options_.log_stream == NULL && !*log_options_.log_to_console && !use_log_callback)
     return;
   // highsLogUser should not be passed HighsLogType::kDetailed or
   // HighsLogType::kVerbose
@@ -120,9 +124,6 @@ void highsLogUser(const HighsLogOptions& log_options_, const HighsLogType type,
   va_list argptr;
   va_start(argptr, format);
   const bool flush_streams = true;
-  const bool use_log_callback =
-      log_options_.user_log_callback ||
-      (log_options_.user_callback && log_options_.user_callback_active);
 
   // Write to log file stream unless it is NULL
   if (log_options_.log_stream) {
