@@ -1576,6 +1576,18 @@ HPresolve::Result HPresolve::finaliseProbing(
   return checkLimits(postsolve_stack);
 }
 
+std::pair<int64_t, HighsInt> HPresolve::computeProbingScore(
+    HighsInt col) const {
+  HighsInt implicsUp =
+      mipsolver->mipdata_->cliquetable.getNumImplications(col, 1);
+  HighsInt implicsDown =
+      mipsolver->mipdata_->cliquetable.getNumImplications(col, 0);
+  return std::make_pair(
+      std::min(int64_t{5000}, static_cast<int64_t>(implicsUp) * implicsDown) /
+          (int64_t{1} + static_cast<int64_t>(numProbes[col])),
+      std::min(HighsInt{100}, implicsUp + implicsDown));
+}
+
 HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
   mipsolver->analysis_.mipTimerStart(kMipClockProbingPresolve);
   probingEarlyAbort = false;
@@ -1603,13 +1615,9 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
     HighsRandom random(options->random_seed);
     for (HighsInt i = 0; i != model->num_col_; ++i) {
       if (domain.isBinary(i)) {
-        HighsInt implicsUp = cliquetable.getNumImplications(i, 1);
-        HighsInt implicsDown = cliquetable.getNumImplications(i, 0);
-        binaries.emplace_back(
-            -std::min(int64_t{5000}, int64_t(implicsUp) * implicsDown) /
-                (int64_t{1} + static_cast<int64_t>(numProbes[i])),
-            -std::min(HighsInt{100}, implicsUp + implicsDown), random.integer(),
-            i);
+        auto probingScore = computeProbingScore(i);
+        binaries.emplace_back(-probingScore.first, -probingScore.second,
+                              random.integer(), i);
       }
     }
   }
