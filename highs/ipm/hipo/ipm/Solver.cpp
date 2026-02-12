@@ -287,7 +287,7 @@ bool Solver::prepareIpx() {
   assert(!model_.qp());
 
   ipx::Parameters ipx_param;
-  ipx_param.display = options_.display_ipx;
+  ipx_param.display = options_.display_ipx && options_.display;
   ipx_param.dualize = 0;
 
   if (options_.crossover == kOptionCrossoverOn)
