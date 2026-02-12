@@ -44,7 +44,7 @@ HighsStatus assessHessian(HighsHessian& hessian, const HighsOptions& options) {
                  hessian.start_[0]);
     return HighsStatus::kError;
   }
-  // Assess G, summing duplicates, but deferring the assessment of
+  // Assess Q, summing duplicates, but deferring the assessment of
   // values (other than those which are identically zero)
   const bool sum_duplicates = true;
   call_status = assessMatrix(options.log_options, "Hessian", hessian.dim_,
@@ -53,31 +53,12 @@ HighsStatus assessHessian(HighsHessian& hessian, const HighsOptions& options) {
   return_status = interpretCallStatus(options.log_options, call_status,
                                       return_status, "assessMatrix");
   if (return_status == HighsStatus::kError) return return_status;
-
-  const bool new_code = true;
-  if (new_code) {
-    call_status = normaliseHessian2(options, hessian);
-    return_status = interpretCallStatus(options.log_options, call_status,
-                                        return_status, "normaliseHessian2");
-    if (return_status == HighsStatus::kError) return return_status;
-  } else {
-    if (hessian.format_ == HessianFormat::kSquare) {
-      // Form Q = (G+G^T)/2
-      call_status = normaliseHessian(options, hessian);
-      return_status = interpretCallStatus(options.log_options, call_status,
-                                          return_status, "normaliseHessian");
-      if (return_status == HighsStatus::kError) return return_status;
-    }
-    // Extract the triangular part of Q: lower triangle column-wise
-    // or, equivalently, upper triangle row-wise, ensuring that the
-    // diagonal entry comes first, unless it's zero
-    call_status = extractTriangularHessian(options, hessian);
-    return_status =
-        interpretCallStatus(options.log_options, call_status, return_status,
-                            "extractTriangularHessian");
-    if (return_status == HighsStatus::kError) return return_status;
-  }
-  // Assess Q
+  // Transform the Hessian to pure column-wise lower triangle format
+  call_status = normaliseHessian(options, hessian);
+  return_status = interpretCallStatus(options.log_options, call_status,
+				      return_status, "normaliseHessian");
+  if (return_status == HighsStatus::kError) return return_status;
+  // Assess values in Q
   call_status =
       assessMatrix(options.log_options, "Hessian", hessian.dim_, hessian.dim_,
                    hessian.start_, hessian.index_, hessian.value_,
@@ -327,9 +308,8 @@ void triangularToSquareHessian(const HighsHessian& hessian,
     start[iCol + 1] = start[iCol] + length[iCol];
 }
 
-HighsStatus normaliseHessian2(const HighsOptions& options,
-                              HighsHessian& hessian) {
-  // Extract the entries in the upper triangle, storing them rowwise
+HighsStatus normaliseHessian(const HighsOptions& options,
+			     HighsHessian& hessian) {
   HighsInt dim = hessian.dim_;
   const bool triangular = hessian.format_ == HessianFormat::kTriangular;
   const bool square = !triangular;
@@ -539,165 +519,6 @@ HighsStatus normaliseHessian2(const HighsOptions& options,
     return_status = HighsStatus::kError;
   else if (warning_found)
     return_status = HighsStatus::kWarning;
-  return return_status;
-}
-
-HighsStatus normaliseHessian(const HighsOptions& options,
-                             HighsHessian& hessian) {
-  // Only relevant for a Hessian with format HessianFormat::kSquare
-  assert(hessian.format_ == HessianFormat::kSquare);
-  // Normalise the Hessian to be (Q + Q^T)/2, where Q is the matrix
-  // supplied. This guarantees that what's used internally is
-  // symmetric.
-  //
-  // So someone preferring to supply only the upper triangle would
-  // have to double its values..
-  HighsStatus return_status = HighsStatus::kOk;
-  const HighsInt dim = hessian.dim_;
-  const HighsInt hessian_num_nz = hessian.start_[dim];
-  if (hessian_num_nz <= 0) return HighsStatus::kOk;
-  bool warning_found = false;
-
-  HighsHessian transpose;
-  transpose.dim_ = dim;
-  transpose.start_.resize(dim + 1);
-  transpose.index_.resize(hessian_num_nz);
-  transpose.value_.resize(hessian_num_nz);
-  // Form transpose of Hessian
-  vector<HighsInt> qr_length;
-  qr_length.assign(dim, 0);
-  for (HighsInt iEl = 0; iEl < hessian_num_nz; iEl++)
-    qr_length[hessian.index_[iEl]]++;
-
-  transpose.start_[0] = 0;
-  for (HighsInt iRow = 0; iRow < dim; iRow++)
-    transpose.start_[iRow + 1] = transpose.start_[iRow] + qr_length[iRow];
-  for (HighsInt iCol = 0; iCol < dim; iCol++) {
-    for (HighsInt iEl = hessian.start_[iCol]; iEl < hessian.start_[iCol + 1];
-         iEl++) {
-      HighsInt iRow = hessian.index_[iEl];
-      HighsInt iRowEl = transpose.start_[iRow];
-      transpose.index_[iRowEl] = iCol;
-      transpose.value_[iRowEl] = hessian.value_[iEl];
-      transpose.start_[iRow]++;
-    }
-  }
-
-  transpose.start_[0] = 0;
-  for (HighsInt iRow = 0; iRow < dim; iRow++)
-    transpose.start_[iRow + 1] = transpose.start_[iRow] + qr_length[iRow];
-  // Instantiate a square format Hessian in which to accumulate (Q + Q^T)/2
-  HighsHessian normalised;
-  normalised.format_ = HessianFormat::kSquare;
-  HighsInt normalised_num_nz = 0;
-  HighsInt normalised_size = hessian_num_nz;
-  normalised.dim_ = dim;
-  normalised.start_.resize(dim + 1);
-  normalised.index_.resize(normalised_size);
-  normalised.value_.resize(normalised_size);
-  vector<double> column_value;
-  vector<HighsInt> column_index;
-  column_index.resize(dim);
-  column_value.assign(dim, 0.0);
-  const bool check_column_value_zero = false;
-  const double small_matrix_value = 0;
-  HighsInt num_small_values = 0;
-  double max_small_value = 0;
-  double min_small_value = kHighsInf;
-  normalised.start_[0] = 0;
-  for (HighsInt iCol = 0; iCol < dim; iCol++) {
-    HighsInt column_num_nz = 0;
-    for (HighsInt iEl = hessian.start_[iCol]; iEl < hessian.start_[iCol + 1];
-         iEl++) {
-      HighsInt iRow = hessian.index_[iEl];
-      column_value[iRow] = hessian.value_[iEl];
-      column_index[column_num_nz] = iRow;
-      column_num_nz++;
-    }
-    for (HighsInt iEl = transpose.start_[iCol];
-         iEl < transpose.start_[iCol + 1]; iEl++) {
-      HighsInt iRow = transpose.index_[iEl];
-      if (column_value[iRow]) {
-        column_value[iRow] += transpose.value_[iEl];
-      } else {
-        column_value[iRow] = transpose.value_[iEl];
-        column_index[column_num_nz] = iRow;
-        column_num_nz++;
-      }
-    }
-    if (normalised_num_nz + column_num_nz > normalised_size) {
-      normalised_size =
-          std::max(normalised_num_nz + column_num_nz, 2 * normalised_size);
-      normalised.index_.resize(normalised_size);
-      normalised.value_.resize(normalised_size);
-    }
-    // Halve the values, zeroing and accounting for any small ones
-    for (HighsInt ix = 0; ix < column_num_nz; ix++) {
-      HighsInt iRow = column_index[ix];
-      double value = 0.5 * column_value[iRow];
-      double abs_value = std::fabs(value);
-      bool ok_value = abs_value > small_matrix_value;
-      if (!ok_value) {
-        value = 0;
-        if (max_small_value < abs_value) max_small_value = abs_value;
-        if (min_small_value > abs_value) min_small_value = abs_value;
-        num_small_values++;
-      }
-      column_value[iRow] = value;
-    }
-    // Decide whether to exploit sparsity in extracting the indices
-    // and values of nonzeros
-    const HighsInt kDimTolerance = 10;
-    const double kDensityTolerance = 0.1;
-    const double density = (1.0 * column_num_nz) / (1.0 * dim);
-    HighsInt to_ix = dim;
-    const bool exploit_sparsity =
-        dim > kDimTolerance && density < kDensityTolerance;
-    if (exploit_sparsity) {
-      // Exploit sparsity
-      to_ix = column_num_nz;
-      sortSetData(column_num_nz, column_index, NULL, NULL);
-    } else {
-      to_ix = dim;
-    }
-    for (HighsInt ix = 0; ix < to_ix; ix++) {
-      HighsInt iRow;
-      if (exploit_sparsity) {
-        iRow = column_index[ix];
-      } else {
-        iRow = ix;
-      }
-      double value = column_value[iRow];
-      if (value) {
-        normalised.index_[normalised_num_nz] = iRow;
-        normalised.value_[normalised_num_nz] = value;
-        normalised_num_nz++;
-        column_value[iRow] = 0;
-      }
-    }
-    if (check_column_value_zero) {
-      for (HighsInt iRow = 0; iRow < dim; iRow++)
-        assert(column_value[iRow] == 0);
-    }
-    normalised.start_[iCol + 1] = normalised_num_nz;
-  }
-  if (num_small_values) {
-    highsLogUser(options.log_options, HighsLogType::kWarning,
-                 "Normalised Hessian contains %" HIGHSINT_FORMAT
-                 " |values| in [%g, %g] "
-                 "less than %g: ignored\n",
-                 num_small_values, min_small_value, max_small_value,
-                 small_matrix_value);
-    warning_found = true;
-  }
-  // Replace the Hessian by the normalised form
-  hessian = normalised;
-  assert(hessian.format_ == HessianFormat::kSquare);
-  if (warning_found)
-    return_status = HighsStatus::kWarning;
-  else
-    return_status = HighsStatus::kOk;
-
   return return_status;
 }
 
