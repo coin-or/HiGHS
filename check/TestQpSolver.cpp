@@ -94,7 +94,6 @@ TEST_CASE("qpsolver", "[qpsolver]") {
 
   Highs highs;
   highs.setOptionValue("output_flag", dev_run);
-  const HighsModel& model = highs.getModel();
   const HighsInfo& info = highs.getInfo();
   const HighsSolution& solution = highs.getSolution();
   const double& objective_function_value = info.objective_function_value;
@@ -222,7 +221,6 @@ TEST_CASE("test-qod", "[qpsolver]") {
 
   Highs highs;
   highs.setOptionValue("output_flag", dev_run);
-  const HighsModel& model = highs.getModel();
   const HighsInfo& info = highs.getInfo();
   const HighsSolution& solution = highs.getSolution();
   const double& objective_function_value = info.objective_function_value;
