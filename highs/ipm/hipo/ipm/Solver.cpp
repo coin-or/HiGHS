@@ -17,10 +17,105 @@ Int Solver::load(const HighsLp& lp, const HighsHessian& Q) {
   return kStatusOk;
 }
 
-void Solver::setOptions(const Options& options) {
-  options_orig_ = options;
+Int Solver::setOptions(const HighsOptions& highs_options,
+                       const HighsInfo& highs_info) {
+  options_.display = true;
+  if (!highs_options.output_flag | !highs_options.log_to_console)
+    options_.display = false;
+
+  options_.log_options = &highs_options.log_options;
+
+  // Debug option is already considered through log_options.log_dev_level in
+  // hipo::LogHighs::debug
+
+  options_.timeless_log = highs_options.timeless_log;
+  options_.feasibility_tol =
+      std::min(highs_options.primal_feasibility_tolerance,
+               highs_options.dual_feasibility_tolerance);
+  options_.optimality_tol = highs_options.ipm_optimality_tolerance;
+  options_.crossover_tol = highs_options.start_crossover_tolerance;
+
+  if (highs_options.kkt_tolerance != kDefaultKktTolerance) {
+    options_.feasibility_tol = highs_options.kkt_tolerance;
+    options_.optimality_tol = 1e-1 * highs_options.kkt_tolerance;
+    options_.crossover_tol = 1e-1 * highs_options.kkt_tolerance;
+  }
+
+  // hipo uses same timer as highs, so it is fine to pass the same time limit
+  options_.time_limit = highs_options.time_limit;
+
+  options_.max_iter =
+      highs_options.ipm_iteration_limit - highs_info.ipm_iteration_count;
+
+  if (highs_options.run_crossover == kHighsOnString)
+    options_.crossover = hipo::kOptionCrossoverOn;
+  else if (highs_options.run_crossover == kHighsOffString)
+    options_.crossover = hipo::kOptionCrossoverOff;
+  else {
+    assert(highs_options.run_crossover == kHighsChooseString);
+    options_.crossover = hipo::kOptionCrossoverChoose;
+  }
+
+  // Potentially control if ipx is used for refinement and if it is displayed
+  // options_.refine_with_ipx = true;
+  options_.display_ipx = true;
+
+  // if option parallel is on, it can be refined by option hipo_parallel_type
+  if (highs_options.parallel == kHighsOnString) {
+    if (highs_options.hipo_parallel_type == kHipoTreeString)
+      options_.parallel = hipo::kOptionParallelTreeOnly;
+    else if (highs_options.hipo_parallel_type == kHipoNodeString)
+      options_.parallel = hipo::kOptionParallelNodeOnly;
+    else if (highs_options.hipo_parallel_type == kHipoBothString)
+      options_.parallel = hipo::kOptionParallelOn;
+    else {
+      highsLogUser(highs_options.log_options, HighsLogType::kError,
+                   "Unknown value of option %s\n", kHipoParallelString.c_str());
+      return kStatusError;
+    }
+  }
+  // otherwise, option hipo_parallel_type is ignored
+  else if (highs_options.parallel == kHighsOffString)
+    options_.parallel = hipo::kOptionParallelOff;
+  else {
+    assert(highs_options.parallel == kHighsChooseString);
+    options_.parallel = hipo::kOptionParallelChoose;
+  }
+
+  // Parse hipo_system option
+  if (highs_options.hipo_system == kHipoAugmentedString) {
+    options_.nla = hipo::kOptionNlaAugmented;
+  } else if (highs_options.hipo_system == kHipoNormalEqString) {
+    options_.nla = hipo::kOptionNlaNormEq;
+  } else if (highs_options.hipo_system == kHighsChooseString) {
+    options_.nla = hipo::kOptionNlaChoose;
+  } else {
+    highsLogUser(highs_options.log_options, HighsLogType::kError,
+                 "Unknown value of option %s\n", kHipoSystemString.c_str());
+    return kStatusError;
+  }
+
+  // Reordering heuristic
+  if (highs_options.hipo_ordering != kHipoMetisString &&
+      highs_options.hipo_ordering != kHipoAmdString &&
+      highs_options.hipo_ordering != kHipoRcmString &&
+      highs_options.hipo_ordering != kHighsChooseString) {
+    highsLogUser(highs_options.log_options, HighsLogType::kError,
+                 "Unknown value of option %s\n", kHipoOrderingString.c_str());
+    return kStatusError;
+  }
+  options_.ordering = highs_options.hipo_ordering;
+
+  // block size option
+  options_.block_size = highs_options.hipo_block_size;
+
+  options_orig_ = options_;
+  Hoptions_ = highs_options;
   resetOptions();
+
+  return kStatusOk;
 }
+
 void Solver::resetOptions() {
   options_ = options_orig_;
   if (options_.display) logH_.setOptions(options_.log_options);
