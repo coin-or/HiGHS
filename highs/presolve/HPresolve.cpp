@@ -5020,8 +5020,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
 
   auto varsFormClique = [&](size_t numVars, size_t minNumActiveCols,
                             size_t maxNumActiveCols) {
-    return (maxNumActiveCols == 1 || (minNumActiveCols == numVars - 1 &&
-                                      maxNumActiveCols == numVars - 1));
+    return (maxNumActiveCols == 1 || minNumActiveCols == numVars - 1);
   };
 
   auto handleSolution = [&](size_t numVars, size_t& numSolutions,
