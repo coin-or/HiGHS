@@ -4895,16 +4895,18 @@ HPresolve::Result HPresolve::enumerateSolutions(
   // check rows
   struct candidaterow {
     HighsInt row;
-    size_t numnzs;
+    std::tuple<uint64_t, HighsInt, HighsInt> score;
   };
   std::vector<candidaterow> rows;
   rows.reserve(model->num_row_);
+  HighsRandom random(options->random_seed);
   for (HighsInt row = 0; row < mipsolver->numRow(); row++) {
     // skip redundant rows
     if (domain.isRedundantRow(row)) continue;
     // check row
     bool skiprow = false;
     size_t numnzs = 0;
+    std::tuple<uint64_t, HighsInt, HighsInt> rowProbingScore;
     for (HighsInt j = mipsolver->mipdata_->ARstart_[row];
          j < mipsolver->mipdata_->ARstart_[row + 1]; j++) {
       // get index
@@ -4915,17 +4917,30 @@ HPresolve::Result HPresolve::enumerateSolutions(
       // elements is reached
       skiprow = skiprow || !domain.isBinary(col) || numnzs >= maxRowSize;
       if (skiprow) break;
+      // update row score
+      auto probingScore = computeProbingScore(col);
+      std::get<0>(rowProbingScore) += probingScore.first;
+      std::get<1>(rowProbingScore) += probingScore.second;
       numnzs++;
     }
-    if (!skiprow) rows.push_back({row, numnzs});
+    if (!skiprow) {
+      std::get<0>(rowProbingScore) /= numnzs;
+      std::get<1>(rowProbingScore) /= numnzs;
+      std::get<2>(rowProbingScore) = random.integer();
+      rows.push_back({row, rowProbingScore});
+    }
   }
 
   // sort according to size
-  pdqsort(rows.begin(), rows.end(),
-          [&](const candidaterow& row1, const candidaterow& row2) {
-            return (row1.numnzs == row2.numnzs ? row1.row < row2.row
-                                               : row1.numnzs < row2.numnzs);
-          });
+  pdqsort(
+      rows.begin(), rows.end(),
+      [&](const candidaterow& row1, const candidaterow& row2) {
+        return (std::get<0>(row1.score) == std::get<0>(row2.score)
+                    ? (std::get<1>(row1.score) == std::get<1>(row2.score)
+                           ? std::get<2>(row1.score) < std::get<2>(row2.score)
+                           : std::get<1>(row1.score) > std::get<1>(row2.score))
+                    : std::get<0>(row1.score) > std::get<0>(row2.score));
+      });
 
   // vectors for storing branching decisions and solutions
   struct branch {
