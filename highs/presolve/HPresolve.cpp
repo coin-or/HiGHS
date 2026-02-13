@@ -4925,7 +4925,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
     }
     if (numnzs == 0) return false;
     if (binvars != nullptr)
-      pdqsort(binvars->begin(), binvars->begin() + numnzs - 1);
+      pdqsort(binvars->begin(), binvars->begin() + numnzs);
     return true;
   };
 
