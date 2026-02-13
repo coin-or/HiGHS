@@ -4891,22 +4891,19 @@ HPresolve::Result HPresolve::enumerateSolutions(
   const size_t maxRowSize = 8;
   const HighsInt maxNumRowsChecked = 400;
   const size_t maxNumSolutions = 1 << maxRowSize;
+  // maximum percentage of overlap
+  const size_t maxPercentageRowOverlap = 50;
+  // maximum number of consecutive fails
+  const HighsInt maxNumFails = 10;
 
-  // check rows
-  struct candidaterow {
-    HighsInt row = -1;
-    std::tuple<uint64_t, HighsInt, HighsInt> score;
-  };
-  std::vector<candidaterow> rows;
-  rows.reserve(model->num_row_);
-  HighsRandom random(options->random_seed);
-  for (HighsInt row = 0; row < mipsolver->numRow(); row++) {
-    // skip redundant rows
-    if (domain.isRedundantRow(row)) continue;
-    // check row
-    candidaterow r;
-    bool skiprow = false;
-    size_t numnzs = 0;
+  // lambda for handling binary rows
+  auto checkBinaryRow = [&](HighsInt row, size_t& numnzs,
+                            std::vector<HighsInt>* binvars = nullptr,
+                            int64_t* score = nullptr,
+                            HighsInt* score2 = nullptr) {
+    numnzs = 0;
+    if (score != nullptr) *score = 0;
+    if (score2 != nullptr) *score2 = 0;
     for (HighsInt j = mipsolver->mipdata_->ARstart_[row];
          j < mipsolver->mipdata_->ARstart_[row + 1]; j++) {
       // get index
@@ -4915,33 +4912,101 @@ HPresolve::Result HPresolve::enumerateSolutions(
       if (domain.isFixed(col)) continue;
       // skip row if there are non-binary variables or maximum number of
       // elements is reached
-      skiprow = skiprow || !domain.isBinary(col) || numnzs >= maxRowSize;
-      if (skiprow) break;
-      // update row score
-      auto probingScore = computeProbingScore(col);
-      std::get<0>(r.score) += probingScore.first;
-      std::get<1>(r.score) += probingScore.second;
+      if (!domain.isBinary(col) || numnzs >= maxRowSize) return false;
+      // store binary variable
+      if (binvars != nullptr) (*binvars)[numnzs] = col;
       numnzs++;
+      // update row score
+      if (score != nullptr && score2 != nullptr) {
+        auto probingScore = computeProbingScore(col);
+        *score += probingScore.first;
+        *score2 += probingScore.second;
+      }
     }
-    if (!skiprow) {
-      r.row = row;
-      std::get<0>(r.score) /= numnzs;
-      std::get<1>(r.score) /= numnzs;
-      std::get<2>(r.score) = random.integer();
-      rows.push_back(r);
+    if (numnzs == 0) return false;
+    if (binvars != nullptr)
+      pdqsort(binvars->begin(), binvars->begin() + numnzs - 1);
+    return true;
+  };
+
+  // lambda for computing overlap of two binary rows
+  auto computeOverlap = [&](const std::vector<HighsInt>& row,
+                            const std::vector<HighsInt>& row2, size_t numnzs,
+                            size_t numnzs2) {
+    size_t overlap = 0;
+    size_t ir = 0;
+    size_t ir2 = 0;
+    while (ir < numnzs && ir2 < numnzs2) {
+      if (row[ir] < row2[ir2])
+        ir++;
+      else if (row[ir] > row2[ir2])
+        ir2++;
+      else {
+        ir++;
+        ir2++;
+        overlap++;
+      }
     }
+    return overlap;
+  };
+
+  // lambda for removing similar rows
+  auto removeSimilarRows =
+      [&](std::vector<std::tuple<double, double, HighsInt, HighsInt>>& rows) {
+        if (rows.size() <= 1) return;
+        std::vector<HighsInt> row(maxRowSize);
+        std::vector<HighsInt> row2(maxRowSize);
+        size_t numnzs;
+        size_t numnzs2;
+        HighsInt numRowsRemoved = 0;
+        for (size_t i = 0; i < rows.size() - 1; i++) {
+          HighsInt r = std::get<3>(rows[i]);
+          if (r == -1) continue;
+          checkBinaryRow(r, numnzs, &row);
+          for (size_t ii = i + 1; ii < rows.size(); ii++) {
+            HighsInt& r2 = std::get<3>(rows[ii]);
+            if (r2 == -1) continue;
+            checkBinaryRow(r2, numnzs2, &row2);
+            if (200 * computeOverlap(row, row2, numnzs, numnzs2) /
+                    (numnzs + numnzs2) >
+                maxPercentageRowOverlap) {
+              numRowsRemoved++;
+              r2 = -1;
+            }
+          }
+        }
+        if (numRowsRemoved > 0)
+          rows.erase(
+              std::remove_if(
+                  rows.begin(), rows.end(),
+                  [](const std::tuple<double, double, HighsInt, HighsInt>& p) {
+                    return std::get<3>(p) == -1;
+                  }),
+              rows.end());
+      };
+
+  // check rows
+  std::vector<std::tuple<double, double, HighsInt, HighsInt>> rows;
+  rows.reserve(model->num_row_);
+  HighsRandom random(options->random_seed);
+  for (HighsInt row = 0; row < mipsolver->numRow(); row++) {
+    // skip redundant rows
+    if (domain.isRedundantRow(row)) continue;
+    // check row
+    size_t numnzs = 0;
+    int64_t score = 0;
+    HighsInt score2 = 0;
+    if (checkBinaryRow(row, numnzs, nullptr, &score, &score2))
+      rows.emplace_back(-score / static_cast<double>(numnzs),
+                        -score2 / static_cast<double>(numnzs), random.integer(),
+                        row);
   }
 
-  // sort according to size
-  pdqsort(
-      rows.begin(), rows.end(),
-      [&](const candidaterow& row1, const candidaterow& row2) {
-        return (std::get<0>(row1.score) == std::get<0>(row2.score)
-                    ? (std::get<1>(row1.score) == std::get<1>(row2.score)
-                           ? std::get<2>(row1.score) < std::get<2>(row2.score)
-                           : std::get<1>(row1.score) > std::get<1>(row2.score))
-                    : std::get<0>(row1.score) > std::get<0>(row2.score));
-      });
+  // sort
+  pdqsort(rows.begin(), rows.end());
+
+  // remove similar rows
+  removeSimilarRows(rows);
 
   // vectors for storing branching decisions and solutions
   struct branch {
@@ -5117,9 +5182,10 @@ HPresolve::Result HPresolve::enumerateSolutions(
   // loop over candidate rows
   HighsInt numRowsChecked = 0;
   HighsInt numCliquesFound = 0;
+  HighsInt numFails = 0;
   for (const auto& r : rows) {
     // get row index
-    HighsInt row = r.row;
+    HighsInt row = std::get<3>(r);
     // skip redundant rows
     if (domain.isRedundantRow(row)) continue;
     // increment counter
@@ -5173,8 +5239,11 @@ HPresolve::Result HPresolve::enumerateSolutions(
       // clang formatting on oronsay can put the ";" on the next line!
       while (doBacktrack(numBranches));
       // clang-format on
+      numFails++;
+      if (numFails > maxNumFails) break;
       continue;
-    }
+    } else
+      numFails = 0;
 
     // no solutions -> infeasible
     HPRESOLVE_CHECKED_CALL(handleInfeasibility(numSolutions == 0));
