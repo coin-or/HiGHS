@@ -1130,8 +1130,13 @@ bool Solver::checkBadIter() {
       info_.status = kStatusPrimalInfeasible;
       terminate = true;
     } else if (stagnation) {
-      // stagnation detected, abort the solver
-      info_.status = kStatusNoProgress;
+      // stagnation detected, solution may still be good for highs kktCheck
+      if (checkTerminationKkt()) {
+        logH_.printw("HiPO stagnated but HiGHS considers the solution acceptable\n");
+        logH_.print("=== Primal-dual feasible point found\n");
+        info_.status = kStatusPDFeas;
+      } else
+        info_.status = kStatusNoProgress;
       terminate = true;
     }
   }
