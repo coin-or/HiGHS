@@ -4,7 +4,9 @@
 #include <cmath>
 #include <iostream>
 
+#include "ipm/IpxWrapper.h"
 #include "ipm/hipo/auxiliary/Log.h"
+#include "lp_data/HighsSolution.h"
 #include "parallel/HighsParallel.h"
 
 namespace hipo {
@@ -1158,6 +1160,20 @@ bool Solver::checkTermination() {
         terminate = true;
       }
     } else {
+      HighsModelStatus model_status = HighsModelStatus::kOptimal;
+      HighsInfo highs_info;
+      HighsSolution highs_solution;
+
+      std::vector<double> rhs_orig;
+      std::vector<char> constraints_orig;
+      fillInRhsAndConstraints(*model_.lpOrig(), rhs_orig, constraints_orig);
+      getHipoNonVertexSolution(Hoptions_, *model_.lpOrig(), model_.n_orig(),
+                               model_.m_orig(), rhs_orig, constraints_orig,
+                               *this, model_status, highs_solution);
+
+      lpNoBasisKktCheck(model_status, highs_info, *model_.lpOrig(),
+                        highs_solution, Hoptions_, "");
+
       terminate = true;
     }
   }
