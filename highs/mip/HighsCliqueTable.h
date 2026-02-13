@@ -324,6 +324,8 @@ class HighsCliqueTable {
   HighsInt numCliques(HighsInt col, bool val) const {
     return numcliquesvar[CliqueVar(col, val).index()];
   }
+
+  bool isRedundant(const std::vector<CliqueVar>& clique);
 };
 
 #endif

@@ -2280,11 +2280,36 @@ void HighsCliqueTable::buildFrom(const HighsLp* origModel,
     if (clqBuffer.size() <= 1) continue;
 
     HighsInt origin = init.cliques[i].origin != kHighsIInf ? -1 : kHighsIInf;
-    newCliqueTable.doAddClique(clqBuffer.data(), clqBuffer.size(), false,
+    newCliqueTable.doAddClique(clqBuffer.data(),
+                               static_cast<HighsInt>(clqBuffer.size()), false,
                                origin);
   }
 
   newCliqueTable.colsubstituted = init.colsubstituted;
   newCliqueTable.substitutions = init.substitutions;
   *this = std::move(newCliqueTable);
+}
+
+bool HighsCliqueTable::isRedundant(const std::vector<CliqueVar>& clique) {
+  // collect indices of cliques that contain variables from the
+  // provided vector
+  collectCliques(clique);
+
+  // check if clique is redundant
+  bool redundant = false;
+  HighsInt numclqvars = static_cast<HighsInt>(clique.size());
+  for (HighsInt cliqueid : cliquehitinds) {
+    redundant = cliquehits[cliqueid] == numclqvars;
+    if (redundant) break;
+  }
+
+  // clean up
+  for (HighsInt cliqueid : cliquehitinds) cliquehits[cliqueid] = 0;
+
+  // clear vector of cliques indices
+  cliquehitinds.clear();
+
+  // redundant?
+  if (redundant) return true;
+  return false;
 }
