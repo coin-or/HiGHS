@@ -4952,7 +4952,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
     return overlap;
   };
 
-  // lambda for removing similar rows
+  // lambda for compiling candidate rows
   auto compileRows =
       [&](std::vector<std::tuple<double, double, HighsInt, HighsInt>>& rows) {
         std::vector<HighsInt> binvars(maxRowSize);
