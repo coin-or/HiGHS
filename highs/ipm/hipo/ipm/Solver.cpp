@@ -1434,9 +1434,7 @@ bool Solver::refinementIsOn() const {
   return options_.refine_with_ipx && !model_.qp();
 }
 bool Solver::crossoverIsOn() const {
-  return (options_.crossover == kOptionCrossoverOn ||
-          options_.crossover == kOptionCrossoverChoose) &&
-         !model_.qp();
+  return options_.crossover == kOptionCrossoverOn && !model_.qp();
 }
 bool Solver::solved() const { return statusIsSolved(); }
 bool Solver::stopped() const { return statusIsStopped(); }
