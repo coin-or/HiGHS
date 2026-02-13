@@ -4967,7 +4967,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
             HighsInt& r2 = std::get<3>(rows[ii]);
             if (r2 == -1) continue;
             checkBinaryRow(r2, numnzs2, &row2);
-            if (200 * computeOverlap(row, row2, numnzs, numnzs2) /
+            if ((200 * computeOverlap(row, row2, numnzs, numnzs2)) /
                     (numnzs + numnzs2) >
                 maxPercentageRowOverlap) {
               numRowsRemoved++;
