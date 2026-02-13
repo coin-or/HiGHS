@@ -11,6 +11,8 @@ namespace hipo {
 Int Model::init(const HighsLp& lp, const HighsHessian& Q) {
   fillInIpxData(lp, n_, m_, offset_, c_, lower_, upper_, A_.start_, A_.index_,
                 A_.value_, b_, constraints_);
+  rhs_orig_ = b_;
+  constraints_orig_ = constraints_;
   Q_ = Q;
   if (qp()) completeHessian(n_, Q_);
   sense_ = lp.sense_;

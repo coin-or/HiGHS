@@ -1147,36 +1147,55 @@ bool Solver::checkTermination() {
   bool terminate = false;
 
   if (feasible && optimal) {
-    if (info_.status != kStatusPDFeas)
-      logH_.print("=== Primal-dual feasible point found\n");
-
-    info_.status = kStatusPDFeas;
-
     if (crossoverIsOn()) {
+      if (info_.status != kStatusPDFeas)
+        logH_.print("=== Primal-dual feasible point found\n");
+      info_.status = kStatusPDFeas;
       bool ready_for_crossover =
           it_->infeasAfterDropping() < options_.crossover_tol;
       if (ready_for_crossover) {
         logH_.print("=== Ready for crossover\n");
         terminate = true;
       }
+
     } else {
-      HighsModelStatus model_status = HighsModelStatus::kOptimal;
-      HighsInfo highs_info;
-      HighsSolution highs_solution;
+      if (!model_.qp()) {
+        logH_.printDevInfo("Solution may be optimal, perform kktCheck\n");
+        HighsModelStatus model_status = HighsModelStatus::kOptimal;
+        HighsInfo highs_info;
+        HighsSolution highs_solution;
 
-      std::vector<double> rhs_orig;
-      std::vector<char> constraints_orig;
-      fillInRhsAndConstraints(*model_.lpOrig(), rhs_orig, constraints_orig);
-      getHipoNonVertexSolution(Hoptions_, *model_.lpOrig(), model_.n_orig(),
-                               model_.m_orig(), rhs_orig, constraints_orig,
-                               *this, model_status, highs_solution);
+        // Allow kktCheck to print only in debug mode (this is a copy of highs
+        // options, not the original)
+        Hoptions_.output_flag = logH_.debug(2);
 
-      lpNoBasisKktCheck(model_status, highs_info, *model_.lpOrig(),
-                        highs_solution, Hoptions_, "");
+        getHipoNonVertexSolution(Hoptions_, *model_.lpOrig(), model_.n_orig(),
+                                 model_.m_orig(), model_.rhsOrig(),
+                                 model_.constraintsOrig(), *this, model_status,
+                                 highs_solution);
 
-      terminate = true;
+        lpNoBasisKktCheck(model_status, highs_info, *model_.lpOrig(),
+                          highs_solution, Hoptions_, "During HiPO solve");
+
+        if (model_status == HighsModelStatus::kOptimal) {
+          logH_.printDevInfo("Check successfull\n");
+          terminate = true;
+        } else
+          logH_.printDevInfo("Check failed\n");
+
+      } else {
+        // kktCheck works only for LP for now
+        terminate = true;
+      }
+
+      if (terminate) {
+        assert(info_.status != kStatusPDFeas);
+        logH_.print("=== Primal-dual feasible point found\n");
+        info_.status = kStatusPDFeas;
+      }
     }
   }
+
   return terminate;
 }
 

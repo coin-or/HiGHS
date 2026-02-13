@@ -37,6 +37,8 @@ class Model {
   const HighsHessian* Q_orig_ = nullptr;
   double offset_;
   ObjSense sense_ = ObjSense::kMinimize;
+  std::vector<double> rhs_orig_;
+  std::vector<char> constraints_orig_;
 
   // data of reformulated problem
   Int n_{};
@@ -98,9 +100,11 @@ class Model {
   Int m_orig() const { return m_orig_; }
   const HighsLp* lpOrig() const { return lp_orig_; }
   const HighsHessian* QOrig() const { return Q_orig_; }
+  const std::vector<double>& rhsOrig() const { return rhs_orig_; }
+  const std::vector<char>& constraintsOrig() const { return constraints_orig_; }
   bool qp() const { return !Q_.empty(); }
   bool nonSeparableQp() const { return qp() && !Q_.isDiagonal(); }
-  double sense() const {return (double)sense_;}
+  double sense() const { return (double)sense_; }
   const HighsSparseMatrix& A() const { return A_; }
   const HighsHessian& Q() const { return Q_; }
   const std::vector<double>& b() const { return b_; }
