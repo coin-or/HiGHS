@@ -1159,35 +1159,7 @@ bool Solver::checkTermination() {
       }
 
     } else {
-      if (!model_.qp()) {
-        logH_.printDevInfo("Solution may be optimal, perform kktCheck\n");
-        HighsModelStatus model_status = HighsModelStatus::kOptimal;
-        HighsInfo highs_info;
-        HighsSolution highs_solution;
-
-        // Allow kktCheck to print only in debug mode (this is a copy of highs
-        // options, not the original)
-        Hoptions_.output_flag = logH_.debug(2);
-
-        getHipoNonVertexSolution(Hoptions_, *model_.lpOrig(), model_.n_orig(),
-                                 model_.m_orig(), model_.rhsOrig(),
-                                 model_.constraintsOrig(), *this, model_status,
-                                 highs_solution);
-
-        lpNoBasisKktCheck(model_status, highs_info, *model_.lpOrig(),
-                          highs_solution, Hoptions_, "During HiPO solve");
-
-        if (model_status == HighsModelStatus::kOptimal) {
-          logH_.printDevInfo("Check successfull\n");
-          terminate = true;
-        } else
-          logH_.printDevInfo("Check failed\n");
-
-      } else {
-        // kktCheck works only for LP for now
-        terminate = true;
-      }
-
+      terminate = model_.qp() ? true : checkTerminationKkt();
       if (terminate) {
         assert(info_.status != kStatusPDFeas);
         logH_.print("=== Primal-dual feasible point found\n");
@@ -1197,6 +1169,35 @@ bool Solver::checkTermination() {
   }
 
   return terminate;
+}
+
+bool Solver::checkTerminationKkt() {
+  assert(!model_.qp());
+
+  logH_.printDevInfo("Solution may be optimal, perform kktCheck\n");
+  HighsModelStatus model_status = HighsModelStatus::kOptimal;
+  HighsInfo highs_info;
+  HighsSolution highs_solution;
+
+  // Allow kktCheck to print only in debug mode (this is a copy of highs
+  // options, not the original)
+  Hoptions_.output_flag = logH_.debug(2);
+
+  getHipoNonVertexSolution(Hoptions_, *model_.lpOrig(), model_.n_orig(),
+                           model_.m_orig(), model_.rhsOrig(),
+                           model_.constraintsOrig(), *this, model_status,
+                           highs_solution);
+
+  lpNoBasisKktCheck(model_status, highs_info, *model_.lpOrig(), highs_solution,
+                    Hoptions_, "During HiPO solve");
+
+  if (model_status == HighsModelStatus::kOptimal) {
+    logH_.printDevInfo("Check successfull\n");
+    return true;
+  } else
+    logH_.printDevInfo("Check failed\n");
+
+  return false;
 }
 
 bool Solver::checkInterrupt() {

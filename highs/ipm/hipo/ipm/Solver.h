@@ -303,6 +303,7 @@ class Solver {
   //  - relative dual gap    < tolerance
   // ===================================================================================
   bool checkTermination();
+  bool checkTerminationKkt();
 
   // ===================================================================================
   // Check for user interrupt or time limit
