@@ -175,8 +175,8 @@ HighsInt HMpsFF::fillMatrix(const HighsLogOptions& log_options) {
 }
 
 HighsInt HMpsFF::fillHessian(const HighsLogOptions& log_options) {
-  const std::vector<Triplet>& qentries = q_all_entries;
-  size_t num_entries = qentries.size();
+  const std::vector<Triplet>& qentries = q_entries;
+  size_t num_entries = q_entries.size();
   if (!num_entries) {
     q_dim = 0;
     return 0;
@@ -195,7 +195,7 @@ HighsInt HMpsFF::fillHessian(const HighsLogOptions& log_options) {
   q_length.assign(q_dim, 0);
 
   for (size_t iEl = 0; iEl < num_entries; iEl++) {
-    HighsInt iCol = std::get<1>(qentries[iEl]);
+    HighsInt iCol = std::get<1>(q_entries[iEl]);
     q_length[iCol]++;
   }
   q_start[0] = 0;
@@ -205,9 +205,9 @@ HighsInt HMpsFF::fillHessian(const HighsLogOptions& log_options) {
   }
 
   for (size_t iEl = 0; iEl < num_entries; iEl++) {
-    HighsInt iRow = std::get<0>(qentries[iEl]);
-    HighsInt iCol = std::get<1>(qentries[iEl]);
-    double value = std::get<2>(qentries[iEl]);
+    HighsInt iRow = std::get<0>(q_entries[iEl]);
+    HighsInt iCol = std::get<1>(q_entries[iEl]);
+    double value = std::get<2>(q_entries[iEl]);
     q_index[q_length[iCol]] = iRow;
     q_value[q_length[iCol]] = value;
     q_length[iCol]++;
@@ -1744,6 +1744,11 @@ typename HMpsFF::Parsekey HMpsFF::parseHessian(
   } else if (keyword == HMpsFF::Parsekey::kQuadobj) {
     section_name = "QUADOBJ";
   }
+  // Store all nonzeros in the section, but QMATRIX should have all
+  // entries - so its format is HessianFormat::kSquare format -
+  // whereas every off-diagonal QUADOBJ entry also defines its entry
+  // in the opposite triangle, so its format is
+  // HessianFormat::kTriangular.
   q_format = qmatrix ? HessianFormat::kSquare : HessianFormat::kTriangular;
   std::string strline;
   std::string col_name;
@@ -1808,22 +1813,7 @@ typename HMpsFF::Parsekey HMpsFF::parseHessian(
             row_name.c_str(), col_name.c_str());
         return HMpsFF::Parsekey::kFail;
       }
-      if (coeff) {
-        q_all_entries.push_back(std::make_tuple(rowidx, colidx, coeff));
-        if (qmatrix) {
-          // QMATRIX has the whole Hessian, so store the entry if the
-          // entry is in the lower triangle
-          if (rowidx >= colidx)
-            q_entries.push_back(std::make_tuple(rowidx, colidx, coeff));
-        } else {
-          // QSECTION and QUADOBJ has the lower triangle of the
-          // Hessian
-          q_entries.push_back(std::make_tuple(rowidx, colidx, coeff));
-          //          if (rowidx != colidx)
-          //            q_entries.push_back(std::make_tuple(colidx, rowidx,
-          //            coeff));
-        }
-      }
+      if (coeff) q_entries.push_back(std::make_tuple(rowidx, colidx, coeff));
       end = end_coeff_name;
       // Don't read more if end of line reached
       if (end == strline.length()) break;
@@ -1845,6 +1835,12 @@ typename HMpsFF::Parsekey HMpsFF::parseQuadRows(
   } else {
     section_name = "QSECTION";
   }
+  // Store all nonzeros in the section, but QCMATRIX should have all
+  // entries - so its format is HessianFormat::kSquare format -
+  // whereas every off-diagonal QSECTION entry also defines its entry
+  // in the opposite triangle, so its format is
+  // HessianFormat::kTriangular.
+  q_format = qcmatrix ? HessianFormat::kSquare : HessianFormat::kTriangular;
   std::string strline;
   std::string col_name;
   std::string row_name;
@@ -1954,17 +1950,7 @@ typename HMpsFF::Parsekey HMpsFF::parseQuadRows(
             row_name.c_str(), col_name.c_str());
         return HMpsFF::Parsekey::kFail;
       }
-      if (coeff) {
-        if (qcmatrix) {
-          // QCMATRIX has the whole Hessian, so store the entry if the
-          // entry is in the lower triangle
-          if (qrowidx >= qcolidx)
-            qentries.push_back(std::make_tuple(qrowidx, qcolidx, coeff));
-        } else {
-          // QSECTION has the lower triangle of the Hessian
-          qentries.push_back(std::make_tuple(qrowidx, qcolidx, coeff));
-        }
-      }
+      if (coeff) q_entries.push_back(std::make_tuple(qrowidx, qcolidx, coeff));
       end = end_coeff_name;
       // Don't read more if end of line reached
       if (end == strline.length()) break;

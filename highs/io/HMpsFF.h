@@ -175,7 +175,6 @@ class HMpsFF {
   std::vector<Triplet> entries;
   HessianFormat q_format;
   std::vector<Triplet> q_entries;
-  std::vector<Triplet> q_all_entries;
   std::vector<std::vector<Triplet>> qrows_entries;
   std::vector<std::pair<HighsInt, double>> coeffobj;
 

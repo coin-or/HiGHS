@@ -500,8 +500,7 @@ HighsStatus normaliseHessian(const HighsOptions& options,
     assert(square);
     highsLogUser(options.log_options, HighsLogType::kError,
                  "Square Hessian contains %d non-symmetr%s\n",
-                 int(num_non_symmetric),
-		 num_non_symmetric == 1 ? "y" : "ies");
+                 int(num_non_symmetric), num_non_symmetric == 1 ? "y" : "ies");
     error_found = true;
   }
   if (num_upper_triangle) {

@@ -1175,7 +1175,7 @@ TEST_CASE("2489", "[qpsolver]") {
 
 TEST_CASE("2821", "[qpsolver]") {
   Highs h;
-  //  h.setOptionValue("output_flag", dev_run);
+  h.setOptionValue("output_flag", dev_run);
   const HighsInfo& info = h.getInfo();
   const std::string dirname = std::string(HIGHS_DIR) + "/check/instances/";
   std::string filename, model;
@@ -1212,15 +1212,15 @@ TEST_CASE("2821", "[qpsolver]") {
       model = "2821-asymmetric";
       read_status = HighsStatus::kError;
     }
-    //    if (dev_run)
-    printf("\nTest with model %s\n===============\n", model.c_str());
+    if (dev_run)
+      printf("\nTest with model %s\n===============\n", model.c_str());
     filename = dirname + model + ".mps";
     REQUIRE(h.readModel(filename) == read_status);
     if (read_status == HighsStatus::kOk ||
-	read_status == HighsStatus::kWarning) {
+        read_status == HighsStatus::kWarning) {
       REQUIRE(h.run() == HighsStatus::kOk);
       REQUIRE(okValueDifference(info.objective_function_value,
-				optimal_objective_value));
+                                optimal_objective_value));
     }
   }
   h.resetGlobalScheduler(true);
