@@ -4894,7 +4894,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
   // maximum percentage of overlap
   const size_t maxPercentageRowOverlap = 50;
   // maximum number of consecutive fails
-  const HighsInt maxNumFails = 10;
+  const HighsInt maxNumFails = 6;
 
   // lambda for checking binary rows
   auto getBinaryRow = [&](HighsInt row, std::vector<HighsInt>& binvars,
@@ -5115,10 +5115,8 @@ HPresolve::Result HPresolve::enumerateSolutions(
   };
 
   auto varsFormClique = [&](size_t numVars, size_t minNumActiveCols,
-                            size_t maxNumActiveCols, bool cliqueKnown,
-                            bool complCliqueKnown) {
-    return ((!cliqueKnown && maxNumActiveCols == 1) ||
-            (!complCliqueKnown && minNumActiveCols == numVars - 1));
+                            size_t maxNumActiveCols) {
+    return (maxNumActiveCols == 1 || minNumActiveCols == numVars - 1);
   };
 
   auto cliqueIsKnown = [&](size_t numVars, HighsInt val) {
@@ -5130,74 +5128,57 @@ HPresolve::Result HPresolve::enumerateSolutions(
     return cliquetable.isRedundant(clique);
   };
 
-  auto handleSolution = [&](size_t numVars, size_t& numSolutions,
-                            size_t& numWorstCaseBounds,
-                            size_t& minNumActiveCols, size_t& maxNumActiveCols,
-                            bool& noReductions, bool cliqueKnown,
-                            bool complCliqueKnown) {
-    // propagate
-    domain.propagate();
-    if (domain.infeasible()) return;
-    // handling of worst-case bounds
-    if (numSolutions == 0) {
-      // initialize
-      for (HighsInt col : domain.getChangedCols()) {
-        worstCaseBounds[numWorstCaseBounds++] = col;
-        worstCaseLowerBound[col] =
-            std::min(worstCaseLowerBound[col], domain.col_lower_[col]);
-        worstCaseUpperBound[col] =
-            std::max(worstCaseUpperBound[col], domain.col_upper_[col]);
-      }
-    } else {
-      size_t i = 0;
-      while (i < numWorstCaseBounds) {
-        HighsInt col = worstCaseBounds[i];
-        if (!domain.isChangedCol(col)) {
-          // no bound changes for this variable -> reset worst-case
-          // bounds and remove variable
-          removeWorstCaseBounds(i, numWorstCaseBounds);
+  auto handleSolution =
+      [&](size_t numVars, size_t& numSolutions, size_t& numWorstCaseBounds,
+          size_t& minNumActiveCols, size_t& maxNumActiveCols) {
+        // propagate
+        domain.propagate();
+        if (domain.infeasible()) return;
+        // handling of worst-case bounds
+        if (numSolutions == 0) {
+          // initialize
+          for (HighsInt col : domain.getChangedCols()) {
+            worstCaseBounds[numWorstCaseBounds++] = col;
+            worstCaseLowerBound[col] =
+                std::min(worstCaseLowerBound[col], domain.col_lower_[col]);
+            worstCaseUpperBound[col] =
+                std::max(worstCaseUpperBound[col], domain.col_upper_[col]);
+          }
         } else {
-          // update worst-case bounds
-          worstCaseLowerBound[col] =
-              std::min(worstCaseLowerBound[col], domain.col_lower_[col]);
-          worstCaseUpperBound[col] =
-              std::max(worstCaseUpperBound[col], domain.col_upper_[col]);
-          // remove worst-case bounds if they are equal to the global bounds
-          if (worstCaseLowerBound[col] <= col_lower[col] &&
-              worstCaseUpperBound[col] >= col_upper[col])
-            removeWorstCaseBounds(i, numWorstCaseBounds);
-          else
-            i++;
+          size_t i = 0;
+          while (i < numWorstCaseBounds) {
+            HighsInt col = worstCaseBounds[i];
+            if (!domain.isChangedCol(col)) {
+              // no bound changes for this variable -> reset worst-case
+              // bounds and remove variable
+              removeWorstCaseBounds(i, numWorstCaseBounds);
+            } else {
+              // update worst-case bounds
+              worstCaseLowerBound[col] =
+                  std::min(worstCaseLowerBound[col], domain.col_lower_[col]);
+              worstCaseUpperBound[col] =
+                  std::max(worstCaseUpperBound[col], domain.col_upper_[col]);
+              // remove worst-case bounds if they are equal to the global bounds
+              if (worstCaseLowerBound[col] <= col_lower[col] &&
+                  worstCaseUpperBound[col] >= col_upper[col])
+                removeWorstCaseBounds(i, numWorstCaseBounds);
+              else
+                i++;
+            }
+          }
         }
-      }
-    }
-    // store solution and compute minimum and maximum number of active variables
-    // (i.e. those having solution value of 1)
-    size_t numActiveCols = 0;
-    for (size_t i = 0; i < numVars; i++) {
-      HighsInt solValue = domain.col_lower_[vars[i]] == 0.0 ? 0 : 1;
-      solutions[i][numSolutions] = solValue;
-      if (solValue != 0) numActiveCols++;
-    }
-    minNumActiveCols = std::min(minNumActiveCols, numActiveCols);
-    maxNumActiveCols = std::max(maxNumActiveCols, numActiveCols);
-    numSolutions++;
-
-    // if no reductions are possible, stop enumerating solutions
-    noReductions = numWorstCaseBounds == 0 &&
-                   !varsFormClique(numVars, minNumActiveCols, maxNumActiveCols,
-                                   cliqueKnown, complCliqueKnown);
-    if (noReductions) {
-      for (size_t i = 0; i < numVars - 1; i++) {
-        for (size_t ii = i + 1; ii < numVars; ii++) {
-          noReductions = noReductions && !identicalVars(numSolutions, i, ii) &&
-                         !complementaryVars(numSolutions, i, ii);
-          if (!noReductions) break;
+        // store solution and compute minimum and maximum number of active
+        // variables (i.e. those having solution value of 1)
+        size_t numActiveCols = 0;
+        for (size_t i = 0; i < numVars; i++) {
+          HighsInt solValue = domain.col_lower_[vars[i]] == 0.0 ? 0 : 1;
+          solutions[i][numSolutions] = solValue;
+          if (solValue != 0) numActiveCols++;
         }
-        if (!noReductions) break;
-      }
-    }
-  };
+        minNumActiveCols = std::min(minNumActiveCols, numActiveCols);
+        maxNumActiveCols = std::max(maxNumActiveCols, numActiveCols);
+        numSolutions++;
+      };
 
   // loop over candidate rows
   HighsInt numRowsChecked = 0;
@@ -5234,8 +5215,6 @@ HPresolve::Result HPresolve::enumerateSolutions(
     size_t numSolutions = 0;
     size_t minNumActiveCols = numVars;
     size_t maxNumActiveCols = 0;
-    bool cliqueKnown = cliqueIsKnown(numVars, 1);
-    bool complCliqueKnown = cliqueIsKnown(numVars, 0);
     bool noReductions = false;
     while (true) {
       bool backtrack = domain.infeasible();
@@ -5243,9 +5222,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
         backtrack = solutionFound(numVars);
         if (backtrack) {
           handleSolution(numVars, numSolutions, numWorstCaseBounds,
-                         minNumActiveCols, maxNumActiveCols, noReductions,
-                         cliqueKnown, complCliqueKnown);
-          if (noReductions) break;
+                         minNumActiveCols, maxNumActiveCols);
         }
       }
       // branch or backtrack
@@ -5255,26 +5232,16 @@ HPresolve::Result HPresolve::enumerateSolutions(
         break;
     }
 
-    // no reductions for this row?
-    if (noReductions) {
-      // clang-format off
-      //
-      // clang formatting on oronsay can put the ";" on the next line!
-      while (doBacktrack(numBranches));
-      // clang-format on
-      // check if maximum number of consecutive fails is reached
-      numFails++;
-      if (numFails > maxNumFails) break;
-      continue;
-    } else
-      numFails = 0;
-
     // no solutions -> infeasible
     HPRESOLVE_CHECKED_CALL(handleInfeasibility(numSolutions == 0));
 
+    // store current number of bound changes etc.
+    size_t oldNumChangedCols = domain.getChangedCols().size();
+    HighsInt oldNumCliques = cliquetable.numCliques();
+    size_t oldNumSubstitutions = cliquetable.getSubstitutions().size();
+
     // check if all variables form a clique
-    if (varsFormClique(numVars, minNumActiveCols, maxNumActiveCols, cliqueKnown,
-                       complCliqueKnown)) {
+    if (varsFormClique(numVars, minNumActiveCols, maxNumActiveCols)) {
       numCliquesFound++;
       std::vector<HighsCliqueTable::CliqueVar> clique(numVars);
       for (size_t i = 0; i < numVars; i++)
@@ -5337,6 +5304,16 @@ HPresolve::Result HPresolve::enumerateSolutions(
           HPRESOLVE_CHECKED_CALL(handleInfeasibility(domain.infeasible()));
         }
       }
+    }
+
+    // check if solution enumeration failed
+    if (domain.getChangedCols().size() != oldNumChangedCols ||
+        cliquetable.numCliques() != oldNumCliques ||
+        cliquetable.getSubstitutions().size() != oldNumSubstitutions)
+      numFails = 0;
+    else {
+      numFails++;
+      if (numFails > maxNumFails) break;
     }
   }
 
