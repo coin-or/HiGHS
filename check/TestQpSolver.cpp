@@ -1175,27 +1175,53 @@ TEST_CASE("2489", "[qpsolver]") {
 
 TEST_CASE("2821", "[qpsolver]") {
   Highs h;
-  h.setOptionValue("output_flag", dev_run);
+  //  h.setOptionValue("output_flag", dev_run);
   const HighsInfo& info = h.getInfo();
   const std::string dirname = std::string(HIGHS_DIR) + "/check/instances/";
-  std::string filename;
+  std::string filename, model;
   const double optimal_objective_value = -6.0;
-  for (HighsInt k = 0; k < 5; k++) {
+  HighsStatus read_status;
+  // Warnings are not returned by readModel
+  HighsStatus read_warning_status = HighsStatus::kOk;
+  for (HighsInt k = 0; k < 6; k++) {
     if (k == 0) {
-      filename = dirname + "2821.mps";
+      // QUADOBJ with two upper triangular entries
+      model = "2821";
+      read_status = read_warning_status;
     } else if (k == 1) {
-      filename = dirname + "2821-quadobj.mps";
+      // QUADOBJ with two upper triangular entries, and not in
+      // conventional order
+      model = "2821-quadobj";
+      read_status = read_warning_status;
     } else if (k == 2) {
-      filename = dirname + "2821-qmatrix.mps";
+      // QMATRIX with entries not in conventional order
+      model = "2821-qmatrix";
+      read_status = HighsStatus::kOk;
     } else if (k == 3) {
-      filename = dirname + "2821-duplicate.mps";
+      // QUADOBJ with duplicate entries summed, and two upper
+      // triangular entries
+      model = "2821-duplicate";
+      read_status = read_warning_status;
+    } else if (k == 4) {
+      // QUADOBJ with two upper triangular entries, one leading to
+      // summation
+      model = "2821-summation";
+      read_status = read_warning_status;
     } else {
-      filename = dirname + "2821-summation.mps";
+      // QMATRIX with pair of asymmetric entries
+      model = "2821-asymmetric";
+      read_status = HighsStatus::kError;
     }
-    REQUIRE(h.readModel(filename) == HighsStatus::kOk);
-    REQUIRE(h.run() == HighsStatus::kOk);
-    REQUIRE(okValueDifference(info.objective_function_value,
-                              optimal_objective_value));
+    //    if (dev_run)
+    printf("\nTest with model %s\n===============\n", model.c_str());
+    filename = dirname + model + ".mps";
+    REQUIRE(h.readModel(filename) == read_status);
+    if (read_status == HighsStatus::kOk ||
+	read_status == HighsStatus::kWarning) {
+      REQUIRE(h.run() == HighsStatus::kOk);
+      REQUIRE(okValueDifference(info.objective_function_value,
+				optimal_objective_value));
+    }
   }
   h.resetGlobalScheduler(true);
 }

@@ -117,7 +117,7 @@ FreeFormatParserReturnCode HMpsFF::loadProblem(
   if (is_mip) lp.integrality_ = std::move(col_integrality);
 
   hessian.dim_ = q_dim;
-  hessian.format_ = HessianFormat::kTriangular;
+  hessian.format_ = q_format;
   hessian.start_ = std::move(q_start);
   hessian.index_ = std::move(q_index);
   hessian.value_ = std::move(q_value);
@@ -175,7 +175,7 @@ HighsInt HMpsFF::fillMatrix(const HighsLogOptions& log_options) {
 }
 
 HighsInt HMpsFF::fillHessian(const HighsLogOptions& log_options) {
-  std::vector<Triplet>& qentries = q_entries;
+  const std::vector<Triplet>& qentries = q_all_entries;
   size_t num_entries = qentries.size();
   if (!num_entries) {
     q_dim = 0;
