@@ -548,7 +548,7 @@ void PreprocessFormulation::print(std::stringstream& stream) const {
   stream << "Added " << n_post - n_pre << " slacks\n";
 }
 
-#define applyAction(T)                                       \
+#define APPLY_ACTION(T)                                       \
   stack.push_back(std::unique_ptr<PreprocessAction>(new T)); \
   stack.back()->apply(model);
 
@@ -556,10 +556,10 @@ void Preprocessor::apply(Model& model) {
   // Remove fixed variables before removing empty rows, because removing columns
   // may create empty rows
 
-  applyAction(PreprocessFixedVars);
-  applyAction(PreprocessEmptyRows);
-  applyAction(PreprocessScaling);
-  applyAction(PreprocessFormulation);
+  APPLY_ACTION(PreprocessFixedVars);
+  APPLY_ACTION(PreprocessEmptyRows);
+  APPLY_ACTION(PreprocessScaling);
+  APPLY_ACTION(PreprocessFormulation);
 }
 void Preprocessor::undo(PreprocessorPoint& point, const Model& model,
                         const Iterate& it) const {

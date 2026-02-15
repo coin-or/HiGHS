@@ -262,7 +262,7 @@ void Model::print(const LogHighs& log) const {
   if (qp()) {
     log_stream << textline("Range of Q:") << "[" << sci(Qmin, 5, 1) << ", "
                << sci(Qmax, 5, 1) << "], ratio ";
-    if (Amin != 0.0)
+    if (Qmin != 0.0)
       log_stream << sci(Qmax / Qmin, 0, 1) << '\n';
     else
       log_stream << "-\n";
@@ -283,8 +283,6 @@ void Model::print(const LogHighs& log) const {
     log_stream << "-\n";
 
   if (log.debug(1)) {
-    // log_stream << textline("Scaling CG iterations:")
-    //            << integer(CG_iter_scaling_) << '\n';
     log_stream << textline("Norm b unscaled") << sci(norm_unscaled_rhs_, 0, 1)
                << '\n';
     log_stream << textline("Norm b scaled") << sci(norm_scaled_rhs_, 0, 1)
