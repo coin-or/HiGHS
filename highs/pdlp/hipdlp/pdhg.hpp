@@ -146,6 +146,7 @@ class PDLPSolver {
   void computeStepSizeRatio(PrimalDualParams& working_params);
   void applyHalpernAveraging(std::vector<double>& x, std::vector<double>& y, std::vector<double>& ax, std::vector<double>& aty);
   void updateAverageIterates(const std::vector<double>& x, const std::vector<double>& y, int inner_iter);
+  void performHalpernPdhgStep(bool is_major);
 
   // Feasibility calculations
   double computePrimalFeasibility(const std::vector<double>& Ax_vector);
