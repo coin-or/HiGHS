@@ -5009,7 +5009,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
         // check if there is too much overlap
         size_t overlap = computeRowOverlap(binvars, binvars2, numnzs, numnzs2);
         if ((200 * overlap) / (numnzs + numnzs2) > maxPercentageRowOverlap) {
-          // remove row
+          // mark row for removal
           numRowsRemoved++;
           r2 = -1;
         }
