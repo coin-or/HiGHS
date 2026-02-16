@@ -5114,6 +5114,17 @@ HPresolve::Result HPresolve::enumerateSolutions(
     numWorstCaseBounds--;
   };
 
+  auto updateWorstCaseBounds = [&](HighsInt col) {
+    // update worst-case bounds
+    worstCaseLowerBound[col] =
+        std::min(worstCaseLowerBound[col], domain.col_lower_[col]);
+    worstCaseUpperBound[col] =
+        std::max(worstCaseUpperBound[col], domain.col_upper_[col]);
+    // check if worst-case bounds are tighter global bounds
+    return (worstCaseLowerBound[col] <= col_lower[col] &&
+            worstCaseUpperBound[col] >= col_upper[col]);
+  };
+
   auto handleSolution =
       [&](size_t numVars, size_t& numSolutions, size_t& numWorstCaseBounds,
           size_t& minNumActiveCols, size_t& maxNumActiveCols) {
@@ -5125,10 +5136,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
           // initialize
           for (HighsInt col : domain.getChangedCols()) {
             worstCaseBounds[numWorstCaseBounds++] = col;
-            worstCaseLowerBound[col] =
-                std::min(worstCaseLowerBound[col], domain.col_lower_[col]);
-            worstCaseUpperBound[col] =
-                std::max(worstCaseUpperBound[col], domain.col_upper_[col]);
+            updateWorstCaseBounds(col);
           }
         } else {
           size_t i = 0;
@@ -5140,13 +5148,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
               removeWorstCaseBounds(i, numWorstCaseBounds);
             } else {
               // update worst-case bounds
-              worstCaseLowerBound[col] =
-                  std::min(worstCaseLowerBound[col], domain.col_lower_[col]);
-              worstCaseUpperBound[col] =
-                  std::max(worstCaseUpperBound[col], domain.col_upper_[col]);
-              // remove worst-case bounds if they are equal to the global bounds
-              if (worstCaseLowerBound[col] <= col_lower[col] &&
-                  worstCaseUpperBound[col] >= col_upper[col])
+              if (updateWorstCaseBounds(col))
                 removeWorstCaseBounds(i, numWorstCaseBounds);
               else
                 i++;
@@ -5191,9 +5193,6 @@ HPresolve::Result HPresolve::enumerateSolutions(
       vars[numVars++] = col;
     }
     if (numVars == 0) continue;
-
-    // clear changed cols
-    domain.clearChangedCols();
 
     // main loop
     HighsInt numBranches = -1;
@@ -5242,7 +5241,6 @@ HPresolve::Result HPresolve::enumerateSolutions(
       HighsInt col = worstCaseBounds[i];
       if (worstCaseLowerBound[col] > domain.col_lower_[col]) {
         // tighten lower bound
-        col_lower[col] = worstCaseLowerBound[col];
         domain.changeBound(HighsBoundType::kLower, col,
                            worstCaseLowerBound[col],
                            HighsDomain::Reason::unspecified());
@@ -5250,7 +5248,6 @@ HPresolve::Result HPresolve::enumerateSolutions(
       }
       if (worstCaseUpperBound[col] < domain.col_upper_[col]) {
         // tighten upper bound
-        col_upper[col] = worstCaseUpperBound[col];
         domain.changeBound(HighsBoundType::kUpper, col,
                            worstCaseUpperBound[col],
                            HighsDomain::Reason::unspecified());
@@ -5290,8 +5287,18 @@ HPresolve::Result HPresolve::enumerateSolutions(
       }
     }
 
+    // update bounds
+    size_t numChangedCols = domain.getChangedCols().size();
+    for (HighsInt col : domain.getChangedCols()) {
+      col_lower[col] = domain.col_lower_[col];
+      col_upper[col] = domain.col_upper_[col];
+    }
+
+    // clear changed cols
+    domain.clearChangedCols();
+
     // check if solution enumeration failed
-    if (domain.getChangedCols().size() != oldNumChangedCols ||
+    if (numChangedCols != oldNumChangedCols ||
         cliquetable.numCliques() != oldNumCliques ||
         cliquetable.getSubstitutions().size() != oldNumSubstitutions)
       numFails = 0;
