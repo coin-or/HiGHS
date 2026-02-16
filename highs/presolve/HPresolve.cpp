@@ -5114,20 +5114,6 @@ HPresolve::Result HPresolve::enumerateSolutions(
     numWorstCaseBounds--;
   };
 
-  auto varsFormClique = [&](size_t numVars, size_t minNumActiveCols,
-                            size_t maxNumActiveCols) {
-    return (maxNumActiveCols == 1 || minNumActiveCols == numVars - 1);
-  };
-
-  auto cliqueIsKnown = [&](size_t numVars, HighsInt val) {
-    // check if clique is already known
-    std::vector<HighsCliqueTable::CliqueVar> clique(numVars);
-    for (size_t i = 0; i < numVars; i++) {
-      clique[i] = HighsCliqueTable::CliqueVar(vars[i], val);
-    }
-    return cliquetable.isRedundant(clique);
-  };
-
   auto handleSolution =
       [&](size_t numVars, size_t& numSolutions, size_t& numWorstCaseBounds,
           size_t& minNumActiveCols, size_t& maxNumActiveCols) {
@@ -5215,7 +5201,6 @@ HPresolve::Result HPresolve::enumerateSolutions(
     size_t numSolutions = 0;
     size_t minNumActiveCols = numVars;
     size_t maxNumActiveCols = 0;
-    bool noReductions = false;
     while (true) {
       bool backtrack = domain.infeasible();
       if (!backtrack) {
@@ -5241,7 +5226,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
     size_t oldNumSubstitutions = cliquetable.getSubstitutions().size();
 
     // check if all variables form a clique
-    if (varsFormClique(numVars, minNumActiveCols, maxNumActiveCols)) {
+    if (maxNumActiveCols == 1 || minNumActiveCols == numVars - 1) {
       numCliquesFound++;
       std::vector<HighsCliqueTable::CliqueVar> clique(numVars);
       for (size_t i = 0; i < numVars; i++)
