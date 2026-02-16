@@ -98,20 +98,20 @@ bool optionSolverOk(const HighsLogOptions& report_log_options,
 #ifdef HIPO
       value == kHipoString ||
 #endif
-      value == kIpxString || value == kPdlpString)
+      value == kIpxString || value == kPdlpString || value == kQpAsmString)
     return true;
   highsLogUser(report_log_options, HighsLogType::kError,
                "Value \"%s\" for LP solver option (\"%s\") is not one of "
 #ifdef HIPO
-               "\"%s\", "
+               "\"%s\","
 #endif
-               "\"%s\", \"%s\", \"%s\", \"%s\" or \"%s\"\n",
+               "\"%s\", \"%s\", \"%s\", \"%s\", \"%s\" or \"%s\"\n",
                value.c_str(), kSolverString.c_str(), kHighsChooseString.c_str(),
                kSimplexString.c_str(), kIpmString.c_str(),
 #ifdef HIPO
                kHipoString.c_str(),
 #endif
-               kIpxString.c_str(), kPdlpString.c_str());
+               kIpxString.c_str(), kPdlpString.c_str(), kQpAsmString.c_str());
   return false;
 }
 
@@ -1104,4 +1104,24 @@ void HighsOptions::setLogOptions() {
   this->log_options.output_flag = &this->output_flag;
   this->log_options.log_to_console = &this->log_to_console;
   this->log_options.log_dev_level = &this->log_dev_level;
+}
+
+void warnSolverInvalid(const HighsOptions& options,
+                       const std::string& problem_type) {
+  highsLogUser(options.log_options, HighsLogType::kWarning,
+               "Solver \"%s\" is not available for %s. Option \"%s\" ignored\n",
+               options.solver.c_str(), problem_type.c_str(),
+               kSolverString.c_str());
+}
+bool solverValidForLp(const std::string& solver) {
+  return solver == kHighsChooseString || solver == kSimplexString ||
+         solver == kIpmString || solver == kIpxString ||
+         solver == kHipoString || solver == kPdlpString;
+}
+bool solverValidForMip(const std::string& solver) {
+  return solver == kHighsChooseString;
+}
+bool solverValidForQp(const std::string& solver) {
+  return solver == kHighsChooseString || solver == kQpAsmString ||
+         solver == kIpmString || solver == kHipoString;
 }
