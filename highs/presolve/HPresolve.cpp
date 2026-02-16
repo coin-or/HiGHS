@@ -4974,12 +4974,13 @@ HPresolve::Result HPresolve::enumerateSolutions(
     for (HighsInt i = 0; i < mipsolver->numRow(); i++) {
       // skip redundant rows
       if (domain.isRedundantRow(i)) continue;
-      // check row
-      if (getBinaryRow(i, binvars, numnzs)) {
-        auto score = computeRowScore(binvars, numnzs);
-        rows.emplace_back(-score.first, -score.second, random.integer(), i,
-                          computeRowSignature(binvars, numnzs));
-      }
+      // skip non-binary rows
+      if (!getBinaryRow(i, binvars, numnzs)) continue;
+      // compute row score
+      auto score = computeRowScore(binvars, numnzs);
+      // add row to vector
+      rows.emplace_back(-score.first, -score.second, random.integer(), i,
+                        computeRowSignature(binvars, numnzs));
     }
   };
 
