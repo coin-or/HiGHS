@@ -719,13 +719,13 @@ class HighsOptions : public HighsOptionsStruct {
 
     record_string =
         new OptionRecordString(kSolverString,
-                               "LP solver option: \"choose\", \"simplex\", "
-                               "\"ipm\", \"ipx\", \"hipo\" or \"pdlp\"",
+                               "LP/QP solver: \"choose\", \"simplex\", "
+                               "\"ipm\", \"ipx\", \"hipo\", \"pdlp\" or \"qpasm\"",
                                advanced, &solver, kHighsChooseString);
     records.push_back(record_string);
 
     record_string = new OptionRecordString(
-        kParallelString, "Parallel option: \"off\", \"choose\" or \"on\"",
+        kParallelString, "Parallel: \"off\", \"choose\" or \"on\"",
         advanced, &parallel, kHighsChooseString);
     records.push_back(record_string);
 
@@ -1244,14 +1244,14 @@ class HighsOptions : public HighsOptionsStruct {
 
     record_string =
         new OptionRecordString(kMipLpSolverString,
-                               "MIP LP solver option: \"choose\", \"simplex\", "
+                               "MIP LP solver: \"choose\", \"simplex\", "
                                "\"ipm\", \"ipx\" or \"hipo\"",
                                advanced, &mip_lp_solver, kHighsChooseString);
     records.push_back(record_string);
 
     record_string = new OptionRecordString(
         kMipIpmSolverString,
-        "MIP IPM solver option: \"choose\", \"ipx\" or \"hipo\"", advanced,
+        "MIP IPM solver: \"choose\", \"ipx\" or \"hipo\"", advanced,
         &mip_ipm_solver, kHighsChooseString);
     records.push_back(record_string);
 
@@ -1292,7 +1292,7 @@ class HighsOptions : public HighsOptionsStruct {
     records.push_back(record_int);
 
     record_bool = new OptionRecordBool(
-        "pdlp_scaling", "Scaling option for PDLP solver: Default = true",
+        "pdlp_scaling", "Scaling for PDLP solver: Default = true",
         advanced, &pdlp_scaling, true);
     records.push_back(record_bool);
 
