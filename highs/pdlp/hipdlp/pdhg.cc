@@ -852,34 +852,53 @@ void PDLPSolver::performPdhgStep() {
 // Helper: Perform Halpern Step
 // ----------------------------------------------------------------------------
 void PDLPSolver::performHalpernPdhgStep(bool is_major) {
+  double primal_step = stepsize_.primal_step;
+  double dual_step = stepsize_.dual_step;
+  double rho = params_.halpern_gamma;
+  
   halpern_iteration_++;
-  // Calculate weight w = k / (k+1)
   double w = static_cast<double>(halpern_iteration_) / (halpern_iteration_ + 1.0);
 
-  for (size_t i = 0; i < x_next_.size(); i++) {
-    double q = ATy_cache_[i];
-    x_next_[i] = x_current_[i] - stepsize_.primal_step * (lp_.col_cost_[i] - q);
-    x_next_[i] = linalg::project_box(x_next_[i], lp_.col_lower_[i], lp_.col_upper_[i]);
-    x_next_[i] = 2*x_next_[i] - x_current_[i]; 
-    x_next_[i] = w * (params_.halpern_gamma * x_next_[i] + (1 - params_.halpern_gamma) * x_current_[i]) + (1 - w) * x_anchor_[i];
-  }
-/*
-  // CPU Blend
-  for (size_t i = 0; i < x_next_.size(); i++) {
-    double x_refl = 2.0 * x_next_[i] - x_current_[i];
-    x_current_[i] = w * x_refl + (1.0 - w) * x_anchor_[i];
-  }
-  for (size_t i = 0; i < y_next_.size(); i++) {
-    double y_refl = 2.0 * y_next_[i] - y_current_[i];
-    y_current_[i] = w * y_refl + (1.0 - w) * y_anchor_[i];
+  // --- STEP 1: Primal projection + reflection ---
+  // ATy_cache_ already holds A^T * y_current from previous iteration
+  std::vector<double> reflected_primal(lp_.num_col_);
+  for (HighsInt i = 0; i < lp_.num_col_; i++) {
+    double temp = x_current_[i] - primal_step * (lp_.col_cost_[i] - ATy_cache_[i]);
+    double temp_proj = linalg::project_box(temp, lp_.col_lower_[i], lp_.col_upper_[i]);
+    if (is_major) {
+      x_next_[i] = temp_proj;  // pdhg_primal (for convergence check)
+    }
+    reflected_primal[i] = 2.0 * temp_proj - x_current_[i];
   }
 
-  // Update matrix products for the new 'blended' current  
+  // --- STEP 2: SpMV on reflected primal ---
+  linalg::Ax(lp_, reflected_primal, Ax_next_);  // A * reflected_primal
+
+  // --- STEP 3: Dual projection + reflection ---
+  std::vector<double> reflected_dual(lp_.num_row_);
+  for (HighsInt j = 0; j < lp_.num_row_; j++) {
+    double dual_update = y_current_[j] + dual_step * (lp_.row_lower_[j] - Ax_next_[j]);
+    bool is_eq = (lp_.row_lower_[j] == lp_.row_upper_[j]);
+    double pdhg_dual_j = is_eq ? dual_update : std::max(0.0, dual_update);
+    if (is_major) {
+      y_next_[j] = pdhg_dual_j;  // pdhg_dual (for convergence check)
+    }
+    reflected_dual[j] = 2.0 * pdhg_dual_j - y_current_[j];
+  }
+
+  // --- STEP 4: Halpern blend → overwrite x_current_, y_current_ ---
+  for (HighsInt i = 0; i < lp_.num_col_; i++) {
+    double blended = rho * reflected_primal[i] + (1.0 - rho) * x_current_[i];
+    x_current_[i] = w * blended + (1.0 - w) * x_anchor_[i];
+  }
+  for (HighsInt j = 0; j < lp_.num_row_; j++) {
+    double blended = rho * reflected_dual[j] + (1.0 - rho) * y_current_[j];
+    y_current_[j] = w * blended + (1.0 - w) * y_anchor_[j];
+  }
+
+  // --- STEP 5: Recompute Ax, ATy for blended current ---
   linalg::Ax(lp_, x_current_, Ax_cache_);
   linalg::ATy(lp_, y_current_, ATy_cache_);
-  */
-  linalg::Ax(lp_, x_next_, Ax_next_);
-  linalg::ATy(lp_, y_next_, ATy_next_);
 }
 
 // ----------------------------------------------------------------------------
@@ -903,11 +922,11 @@ void PDLPSolver::accumulateAverages(size_t iter) {
     updateAverageIteratesGpu(inner_iter); 
   }
 #else
-  //if (params_.use_halpern_restart) {
-  //  updateAverageIterates(x_current_, y_current_, inner_iter);
-  //} else {
+  if (params_.use_halpern_restart) {
+    updateAverageIterates(x_current_, y_current_, inner_iter);
+  } else {
     updateAverageIterates(x_next_, y_next_, inner_iter);
-  //}
+  }
 #endif
 
 #if PDLP_PROFILE
@@ -919,10 +938,11 @@ void PDLPSolver::accumulateAverages(size_t iter) {
 // Helper: Prepare for Next Iteration
 // ----------------------------------------------------------------------------
 void PDLPSolver::prepareNextIteration() {
-  //if (params_.use_halpern_restart) {
+  if (params_.use_halpern_restart) {
     // Halpern update already wrote into x_current_, no swap needed
     // Just ensure caches are correct if not done in PerformHalpernStep
-  //} else {
+    return;
+  } else {
     // Standard PDHG: x_current becomes x_next
 #ifdef CUPDLP_GPU
     CUDA_CHECK(cudaMemcpy(d_x_current_, d_x_next_, lp_.num_col_ * sizeof(double), cudaMemcpyDeviceToDevice));
@@ -935,7 +955,7 @@ void PDLPSolver::prepareNextIteration() {
     Ax_cache_ = Ax_next_;
     ATy_cache_ = ATy_next_;
 #endif
-  //}
+  }
 }
 
 #ifdef CUPDLP_GPU
