@@ -5205,10 +5205,9 @@ HPresolve::Result HPresolve::enumerateSolutions(
       bool backtrack = domain.infeasible();
       if (!backtrack) {
         backtrack = solutionFound(numVars);
-        if (backtrack) {
+        if (backtrack)
           handleSolution(numVars, numSolutions, numWorstCaseBounds,
                          minNumActiveCols, maxNumActiveCols);
-        }
       }
       // branch or backtrack
       if (!backtrack)
