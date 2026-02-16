@@ -5202,16 +5202,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
     if (numRowsChecked > maxNumRowsChecked) break;
     // check row
     size_t numVars = 0;
-    for (HighsInt j = mipsolver->mipdata_->ARstart_[row];
-         j < mipsolver->mipdata_->ARstart_[row + 1]; j++) {
-      // get index
-      HighsInt col = mipsolver->mipdata_->ARindex_[j];
-      // skip fixed variables
-      if (domain.isFixed(col)) continue;
-      // store index of binary variable
-      vars[numVars++] = col;
-    }
-    if (numVars == 0) continue;
+    if (!getBinaryRow(row, vars, numVars)) continue;
 
     // main loop
     HighsInt numBranches = -1;
