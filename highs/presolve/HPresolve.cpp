@@ -4887,6 +4887,8 @@ HPresolve::Result HPresolve::enumerateSolutions(
   HighsDomain& domain = mipsolver->mipdata_->domain;
   HighsCliqueTable& cliquetable = mipsolver->mipdata_->cliquetable;
 
+  typedef std::tuple<double, double, HighsInt, HighsInt, uint32_t> candidateRow;
+
   // maximum size of a row and maximum number of rows that will be checked
   const size_t maxRowSize = 8;
   const HighsInt maxNumRowsChecked = 400;
@@ -4931,6 +4933,18 @@ HPresolve::Result HPresolve::enumerateSolutions(
                                           score2 / static_cast<double>(numnzs));
   };
 
+  // lambda for computing row signature
+  auto computeRowSignature = [&](const std::vector<HighsInt>& binvars,
+                                 size_t numnzs) {
+    uint32_t signature = 0;
+    for (size_t i = 0; i < numnzs; i++) {
+      HighsInt colHashedPos = (HighsHashHelpers::hash(binvars[i]) >> 59);
+      assert(colHashedPos < 32);
+      signature |= 1 << colHashedPos;
+    }
+    return signature;
+  };
+
   // lambda for computing overlap of two binary rows
   auto computeRowOverlap = [&](const std::vector<HighsInt>& binvars,
                                const std::vector<HighsInt>& binvars2,
@@ -4953,59 +4967,63 @@ HPresolve::Result HPresolve::enumerateSolutions(
   };
 
   // lambda for compiling candidate rows
-  auto compileRows =
-      [&](std::vector<std::tuple<double, double, HighsInt, HighsInt>>& rows) {
-        std::vector<HighsInt> binvars(maxRowSize);
-        size_t numnzs = 0;
-        HighsRandom random(options->random_seed);
-        for (HighsInt i = 0; i < mipsolver->numRow(); i++) {
-          // skip redundant rows
-          if (domain.isRedundantRow(i)) continue;
-          // check row
-          if (getBinaryRow(i, binvars, numnzs)) {
-            auto score = computeRowScore(binvars, numnzs);
-            rows.emplace_back(-score.first, -score.second, random.integer(), i);
-          }
-        }
-      };
+  auto compileRows = [&](std::vector<candidateRow>& rows) {
+    std::vector<HighsInt> binvars(maxRowSize);
+    size_t numnzs = 0;
+    HighsRandom random(options->random_seed);
+    for (HighsInt i = 0; i < mipsolver->numRow(); i++) {
+      // skip redundant rows
+      if (domain.isRedundantRow(i)) continue;
+      // check row
+      if (getBinaryRow(i, binvars, numnzs)) {
+        auto score = computeRowScore(binvars, numnzs);
+        rows.emplace_back(-score.first, -score.second, random.integer(), i,
+                          computeRowSignature(binvars, numnzs));
+      }
+    }
+  };
 
   // lambda for removing similar rows
-  auto removeSimilarRows =
-      [&](std::vector<std::tuple<double, double, HighsInt, HighsInt>>& rows) {
-        if (rows.size() <= 1) return;
-        std::vector<HighsInt> binvars(maxRowSize);
-        std::vector<HighsInt> binvars2(maxRowSize);
-        size_t numnzs;
-        size_t numnzs2;
-        HighsInt numRowsRemoved = 0;
-        for (size_t i = 0; i < rows.size() - 1; i++) {
-          HighsInt r = std::get<3>(rows[i]);
-          if (r == -1) continue;
-          getBinaryRow(r, binvars, numnzs);
-          for (size_t ii = i + 1; ii < rows.size(); ii++) {
-            HighsInt& r2 = std::get<3>(rows[ii]);
-            if (r2 == -1) continue;
-            getBinaryRow(r2, binvars2, numnzs2);
-            if ((200 * computeRowOverlap(binvars, binvars2, numnzs, numnzs2)) /
-                    (numnzs + numnzs2) >
-                maxPercentageRowOverlap) {
-              numRowsRemoved++;
-              r2 = -1;
-            }
-          }
+  auto removeSimilarRows = [&](std::vector<candidateRow>& rows) {
+    if (rows.size() <= 1) return;
+    std::vector<HighsInt> binvars(maxRowSize);
+    std::vector<HighsInt> binvars2(maxRowSize);
+    size_t numnzs;
+    size_t numnzs2;
+    HighsInt numRowsRemoved = 0;
+    for (size_t i = 0; i < rows.size() - 1; i++) {
+      // get row index and skip removed rows
+      HighsInt r = std::get<3>(rows[i]);
+      if (r == -1) continue;
+      // get indices of binary variables in the row
+      getBinaryRow(r, binvars, numnzs);
+      for (size_t ii = i + 1; ii < rows.size(); ii++) {
+        // get row index and skip removed rows
+        HighsInt& r2 = std::get<3>(rows[ii]);
+        if (r2 == -1) continue;
+        // compare signatures to see if there may be overlap
+        if ((std::get<4>(rows[i]) & std::get<4>(rows[ii])) == 0) continue;
+        // get indices of binary variables in the row
+        getBinaryRow(r2, binvars2, numnzs2);
+        // check if there is too much overlap
+        size_t overlap = computeRowOverlap(binvars, binvars2, numnzs, numnzs2);
+        if ((200 * overlap) / (numnzs + numnzs2) > maxPercentageRowOverlap) {
+          // remove row
+          numRowsRemoved++;
+          r2 = -1;
         }
-        if (numRowsRemoved > 0)
-          rows.erase(
-              std::remove_if(
-                  rows.begin(), rows.end(),
-                  [](const std::tuple<double, double, HighsInt, HighsInt>& p) {
-                    return std::get<3>(p) == -1;
-                  }),
-              rows.end());
-      };
+      }
+    }
+    if (numRowsRemoved > 0)
+      rows.erase(std::remove_if(rows.begin(), rows.end(),
+                                [](const candidateRow& p) {
+                                  return std::get<3>(p) == -1;
+                                }),
+                 rows.end());
+  };
 
   // vector of rows
-  std::vector<std::tuple<double, double, HighsInt, HighsInt>> rows;
+  std::vector<candidateRow> rows;
   rows.reserve(model->num_row_);
 
   // compile rows and sort them
