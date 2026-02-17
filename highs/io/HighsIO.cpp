@@ -110,11 +110,12 @@ void highsLogUser(const HighsLogOptions& log_options_, const HighsLogType type,
                   const char* format, ...) {
   if (!*log_options_.output_flag) return;
 
-  // Log to a file if log_stream is not NULL, and to console if
-  // log_to_console is true and log_stream is not to console
-  const bool log_to_file = log_options_.log_stream;
-  const bool log_to_console =
-      *log_options_.log_to_console && log_options_.log_stream != stdout;
+  // Log to a file if log_stream is not NULL or stdout, and to console
+  // if log_to_console is true
+  const bool log_to_file =
+    log_options_.log_stream &&
+    log_options_.log_stream != stdout;
+  const bool log_to_console = *log_options_.log_to_console;
   const bool log_to_callback =
       log_options_.user_log_callback ||
       (log_options_.user_callback && log_options_.user_callback_active);
@@ -184,11 +185,12 @@ void highsLogDev(const HighsLogOptions& log_options_, const HighsLogType type,
                  const char* format, ...) {
   if (!*log_options_.output_flag) return;
 
-  // Log to a file if log_stream is not NULL, and to console if
-  // log_to_console is true and log_stream is not to console
-  const bool log_to_file = log_options_.log_stream;
-  const bool log_to_console =
-      *log_options_.log_to_console && log_options_.log_stream != stdout;
+  // Log to a file if log_stream is not NULL or stdout, and to console
+  // if log_to_console is true
+  const bool log_to_file =
+    log_options_.log_stream &&
+    log_options_.log_stream != stdout;
+  const bool log_to_console = *log_options_.log_to_console;
   const bool log_to_callback =
       log_options_.user_log_callback ||
       (log_options_.user_callback && log_options_.user_callback_active);
