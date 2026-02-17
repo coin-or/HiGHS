@@ -801,7 +801,8 @@ void Analyse::snPattern() {
 
   // compute column pointers of L
   std::vector<Int64> work(sn_indices_.size());
-  for (Int i = 0; i < sn_indices_.size(); ++i) work[i] = sn_indices_[i];
+  for (Int i = 0; i < static_cast<Int>(sn_indices_.size()); ++i)
+    work[i] = sn_indices_[i];
   counts2Ptr(ptr_sn_, work);
 
   // consider each row
@@ -1079,7 +1080,7 @@ void Analyse::reorderChildren() {
 
     // modify linked lists with new order of children
     head[sn] = children.front().first;
-    for (Int i = 0; i < children.size() - 1; ++i) {
+    for (Int i = 0; i < static_cast<Int>(children.size()) - 1; ++i) {
       next[children[i].first] = children[i + 1].first;
     }
     next[children.back().first] = -1;

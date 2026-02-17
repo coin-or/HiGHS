@@ -50,14 +50,14 @@ template <typename T>
 void permuteVector(std::vector<T>& v, const std::vector<Int>& perm) {
   // Permute vector v according to permutation perm.
   std::vector<T> temp_v(v);
-  for (Int i = 0; i < v.size(); ++i) v[i] = temp_v[perm[i]];
+  for (Int i = 0; i < static_cast<Int>(v.size()); ++i) v[i] = temp_v[perm[i]];
 }
 
 template <typename T>
 void permuteVectorInverse(std::vector<T>& v, const std::vector<Int>& iperm) {
   // Permute vector v according to inverse permutation iperm.
   std::vector<T> temp_v(v);
-  for (Int i = 0; i < v.size(); ++i) v[iperm[i]] = temp_v[i];
+  for (Int i = 0; i < static_cast<Int>(v.size()); ++i) v[iperm[i]] = temp_v[i];
 }
 
 template <typename T>
