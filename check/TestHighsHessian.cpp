@@ -159,6 +159,7 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
   // supplied by users or read from MPS files
 
   HighsInt square_hessian_04_el = 12;
+  square_hessian = square_hessian0;
   assert(square_hessian.index_[square_hessian_04_el] == 0);
   assert(square_hessian.value_[square_hessian_04_el] == 2);
 
