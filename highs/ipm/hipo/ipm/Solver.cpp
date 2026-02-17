@@ -427,7 +427,7 @@ double Solver::stepToBoundary(const std::vector<double>& x,
   double alpha = 1.0;
   Int bl = -1;
 
-  for (Int i = 0; i < x.size(); ++i) {
+  for (Int i = 0; i < n_; ++i) {
     if ((lo && model_.hasLb(i)) || (!lo && model_.hasUb(i))) {
       double c = (cor ? (*cor)[i] * weight : 0.0);
       if (x[i] + alpha * (dx[i] + c) < 0.0) {
