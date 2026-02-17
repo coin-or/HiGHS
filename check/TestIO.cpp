@@ -96,7 +96,7 @@ HighsCallbackFunctionType userLoggingCallback =
       fprintf(static_cast<FILE*>(user_callback_data), "%s", message.c_str());
     };
 
-TEST_CASE("log-independence", "[highs_io]") {
+TEST_CASE("console-file-callback-log", "[highs_io]") {
   const std::string test_name = Catch::getResultCapture().getCurrentTestName();
   const std::string test_highs_log = test_name + ".log";
   const std::string test_user_log = test_name + ".ulog";
