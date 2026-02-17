@@ -113,8 +113,7 @@ void highsLogUser(const HighsLogOptions& log_options_, const HighsLogType type,
   // Log to a file if log_stream is not NULL or stdout, and to console
   // if log_to_console is true
   const bool log_to_file =
-    log_options_.log_stream &&
-    log_options_.log_stream != stdout;
+      log_options_.log_stream && log_options_.log_stream != stdout;
   const bool log_to_console = *log_options_.log_to_console;
   const bool log_to_callback =
       log_options_.user_log_callback ||
@@ -188,8 +187,7 @@ void highsLogDev(const HighsLogOptions& log_options_, const HighsLogType type,
   // Log to a file if log_stream is not NULL or stdout, and to console
   // if log_to_console is true
   const bool log_to_file =
-    log_options_.log_stream &&
-    log_options_.log_stream != stdout;
+      log_options_.log_stream && log_options_.log_stream != stdout;
   const bool log_to_console = *log_options_.log_to_console;
   const bool log_to_callback =
       log_options_.user_log_callback ||
