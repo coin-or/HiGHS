@@ -530,7 +530,7 @@ Int FactorHiGHSSolver::chooseOrdering(const std::vector<Int>& rows,
   std::vector<bool> status(orderings_to_try.size(), 0);
   Int num_success = 0;
 
-  for (Int i = 0; i < orderings_to_try.size(); ++i) {
+  for (Int i = 0; i < static_cast<Int>(orderings_to_try.size()); ++i) {
     clock.start();
     status[i] =
         FH_.analyse(symbolics[i], rows, ptr, signs, orderings_to_try[i]);
