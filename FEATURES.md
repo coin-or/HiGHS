@@ -20,5 +20,10 @@ any duplicate entries in the Hessian are now summed.
   number of any summations, and `Highs::readModel` or
   `Highs::passHessian` will return `HighsStatus::kWarning`.
 
+Following PR [#2854](https://github.com/ERGO-Code/HiGHS/pull/2854),
+HiPO is now capable of solving convex QP problems. Option
+solver="qpasm" selects the previous active-set QP solver, while
+solver="hipo" or solver="ipm" selects the HiPO solver.
+
 ## Build changes
 
