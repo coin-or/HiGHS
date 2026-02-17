@@ -88,3 +88,32 @@ TEST_CASE("log-callback", "[highs_io]") {
     REQUIRE(strlen(alt_printed_log) <= sizeof(alt_printed_log));
   }
 }
+
+HighsCallbackFunctionType userLoggingCallback =
+    [](int callback_type, const std::string& message,
+       const HighsCallbackOutput* data_out, HighsCallbackInput* data_in,
+       void* user_callback_data) {
+      fprintf(static_cast<FILE*>(user_callback_data), "%s", message.c_str());
+    };
+
+TEST_CASE("log-independence", "[highs_io]") {
+  const std::string test_name = Catch::getResultCapture().getCurrentTestName();
+  const std::string test_highs_log = test_name + ".log";
+  const std::string test_user_log = test_name + ".ulog";
+  std::string filename = std::string(HIGHS_DIR) + "/check/instances/avgas.mps";
+  Highs h;
+  //  h.setOptionValue("output_flag", dev_run);
+  h.setOptionValue("log_file", test_highs_log);
+  FILE* file = fopen(test_user_log.c_str(), "w");
+  //  void* p_user_callback_data = file;
+
+  h.setCallback(userLoggingCallback, file);  // p_user_callback_data);
+  h.startCallback(kCallbackLogging);
+
+  h.readModel(filename);
+  h.run();
+
+  std::remove(test_highs_log.c_str());
+  std::remove(test_user_log.c_str());
+  h.resetGlobalScheduler(true);
+}
