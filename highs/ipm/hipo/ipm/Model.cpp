@@ -20,7 +20,6 @@ Int Model::init(const HighsLp& lp, const HighsHessian& Q) {
   if (checkData()) return kStatusBadModel;
 
   lp_orig_ = &lp;
-  Q_orig_ = &Q;
   n_orig_ = n_;
   m_orig_ = m_;
   A_.num_col_ = n_;

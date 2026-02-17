@@ -1132,7 +1132,8 @@ bool Solver::checkBadIter() {
     } else if (stagnation) {
       // stagnation detected, solution may still be good for highs kktCheck
       if (checkTerminationKkt()) {
-        logH_.printw("HiPO stagnated but HiGHS considers the solution acceptable\n");
+        logH_.printw(
+            "HiPO stagnated but HiGHS considers the solution acceptable\n");
         logH_.print("=== Primal-dual feasible point found\n");
         info_.status = kStatusPDFeas;
       } else
@@ -1187,6 +1188,8 @@ bool Solver::checkTerminationKkt() {
   // Allow kktCheck to print only in debug mode (this is a copy of highs
   // options, not the original)
   Hoptions_.output_flag = logH_.debug(2);
+
+  if (!model_.lpOrig()) return false;
 
   getHipoNonVertexSolution(Hoptions_, *model_.lpOrig(), model_.n_orig(),
                            model_.m_orig(), model_.rhsOrig(),
@@ -1301,32 +1304,6 @@ void Solver::printSummary() const {
   if (info_.ipx_used)
     log_stream << textline("IPX iterations:") << integer(info_.ipx_info.iter)
                << "\n";
-
-  if (info_.status >= kStatusImprecise) {
-    log_stream << textline("Primal residual rel/abs:")
-               << sci(info_.p_res_rel, 0, 2) << " / "
-               << sci(info_.p_res_abs, 0, 2) << '\n';
-
-    log_stream << textline("Dual residual rel/abs:")
-               << sci(info_.d_res_rel, 0, 2) << " / "
-               << sci(info_.d_res_abs, 0, 2) << '\n';
-
-    log_stream << textline("Primal objective") << sci(info_.p_obj, 0, 8)
-               << '\n';
-    log_stream << textline("Dual objective") << sci(info_.d_obj, 0, 8) << '\n';
-
-    log_stream << textline("Primal-dual gap:") << sci(info_.pd_gap, 0, 2)
-               << '\n';
-  }
-
-  if (info_.ipx_used &&
-      (info_.ipx_info.status_crossover == IPX_STATUS_optimal ||
-       info_.ipx_info.status_crossover == IPX_STATUS_imprecise)) {
-    log_stream << textline("Basis solution primal infeas:")
-               << sci(info_.ipx_info.primal_infeas, 0, 2) << '\n';
-    log_stream << textline("Basis solution dual infeas:")
-               << sci(info_.ipx_info.dual_infeas, 0, 2) << '\n';
-  }
 
   if (logH_.debug(1)) {
     log_stream << textline("Correctors:") << integer(info_.correctors) << '\n';

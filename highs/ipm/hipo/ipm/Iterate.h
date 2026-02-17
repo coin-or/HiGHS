@@ -151,10 +151,6 @@ struct Iterate {
                              std::vector<double>& y_cmp,
                              std::vector<double>& z_cmp) const;
 
-  // ===================================================================================
-  // Compute residuals after solution has been found, postprocessed and
-  // unscaled.
-  // ===================================================================================
   Int finalResiduals(Info& info) const;
 
   // ===================================================================================
