@@ -4991,11 +4991,15 @@ HPresolve::Result HPresolve::enumerateSolutions(
     std::vector<HighsInt> binvars2(maxRowSize);
     size_t numnzs;
     size_t numnzs2;
+    HighsInt numRowsAccepted = 0;
     HighsInt numRowsRemoved = 0;
+    size_t numComparisons = 0;
     for (size_t i = 0; i < rows.size() - 1; i++) {
       // get row index and skip removed rows
       HighsInt r = std::get<3>(rows[i]);
       if (r == -1) continue;
+      // check if maximum number of rows is reached
+      if ((++numRowsAccepted) >= maxNumRowsChecked) break;
       // get indices of binary variables in the row
       getBinaryRow(r, binvars, numnzs);
       for (size_t ii = i + 1; ii < rows.size(); ii++) {
@@ -5007,6 +5011,7 @@ HPresolve::Result HPresolve::enumerateSolutions(
         // get indices of binary variables in the row
         getBinaryRow(r2, binvars2, numnzs2);
         // check if there is too much overlap
+        numComparisons++;
         size_t overlap = computeRowOverlap(binvars, binvars2, numnzs, numnzs2);
         if ((200 * overlap) / (numnzs + numnzs2) > maxPercentageRowOverlap) {
           // mark row for removal
@@ -5021,6 +5026,8 @@ HPresolve::Result HPresolve::enumerateSolutions(
                                   return std::get<3>(p) == -1;
                                 }),
                  rows.end());
+    if (rows.size() > static_cast<size_t>(maxNumRowsChecked))
+      rows.resize(maxNumRowsChecked);
   };
 
   // vector of rows
@@ -5188,7 +5195,6 @@ HPresolve::Result HPresolve::enumerateSolutions(
       };
 
   // loop over candidate rows
-  HighsInt numRowsChecked = 0;
   HighsInt numCliquesFound = 0;
   HighsInt numFails = 0;
   for (const auto& r : rows) {
@@ -5196,10 +5202,6 @@ HPresolve::Result HPresolve::enumerateSolutions(
     HighsInt row = std::get<3>(r);
     // skip redundant rows
     if (domain.isRedundantRow(row)) continue;
-    // increment counter
-    numRowsChecked++;
-    // check if maximum is reached
-    if (numRowsChecked > maxNumRowsChecked) break;
     // check row
     size_t numVars = 0;
     if (!getBinaryRow(row, vars, numVars)) continue;
