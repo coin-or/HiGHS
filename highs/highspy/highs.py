@@ -29,28 +29,12 @@ class Highs(_Highs):
     """
     HiGHS solver interface
     """
-    @staticmethod
-    def is_hipo_available() -> bool:
-        """
-        Check if the HiPO solver extension is available.
-        
-        Returns:
-            True if highspy-hipo is installed and the library is available.
-        """
-        try:
-            import highspy_hipo
-            return highspy_hipo.is_available()
-        except ImportError:
-            return False
-
-
     __handle_keyboard_interrupt: bool = False
     __handle_user_interrupt: bool = False
     __solver_should_stop: bool = False
     __solver_stopped: RLock = RLock()
     __solver_started: Lock = Lock()
     __solver_status: Optional[HighsStatus] = None
-    IsHipoAvailable: bool = is_hipo_available()
 
     def __init__(self):
         super().__init__()

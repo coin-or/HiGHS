@@ -151,7 +151,13 @@ sdist.exclude = [
 # # exclude patterns. This applies to the final paths in the wheel, and can
 # # exclude files from CMake output as well.  Editable installs may not respect
 # # this exclusion.
-# wheel.exclude = []
+wheel.exclude = [
+ "include",
+ "lib*/",
+ "bin",
+ "LICENSE.txt",
+ "README.md"
+]
 
 # # The build tag to use for the wheel. If empty, no build tag is used.
 # wheel.build-tag = ""

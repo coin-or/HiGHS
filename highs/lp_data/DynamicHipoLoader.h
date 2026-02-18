@@ -95,7 +95,7 @@ class DynamicHipoLoader {
    */
   const std::string& getLastError() const { return last_error_; }
 
- private:
+ public:
   DynamicHipoLoader();
   ~DynamicHipoLoader();
 
@@ -106,7 +106,7 @@ class DynamicHipoLoader {
   /**
    * Attempt to load the HiPO library from various locations.
    */
-  bool tryLoad();
+  bool tryLoad(const std::string path);
 
   /**
    * Load a library by path.
@@ -129,11 +129,6 @@ class DynamicHipoLoader {
    * Unload the library if loaded.
    */
   void unloadLibrary();
-
-  /**
-   * Get platform-specific library search paths.
-   */
-  std::vector<std::string> getSearchPaths() const;
 
   /**
    * Get platform-specific library filename.

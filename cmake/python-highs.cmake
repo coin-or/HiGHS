@@ -4,17 +4,17 @@ endif()
 
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 
-include(sources-python)
+#include(sources-python)
 
-set(sources_python ${highs_sources_python} 
-                   ${cupdlp_sources_python} 
-                   ${ipx_sources_python} 
-                   ${basiclu_sources_python})
+#set(sources_python ${highs_sources_python} 
+#                   ${cupdlp_sources_python} 
+#                   ${ipx_sources_python} 
+#                   ${basiclu_sources_python})
 
-set(headers_python ${highs_headers_python} 
-                   ${cupdlp_headers_python} 
-                   ${ipx_headers_python} 
-                   ${basiclu_headers_python})
+#set(headers_python ${highs_headers_python} 
+#                   ${cupdlp_headers_python} 
+#                   ${ipx_headers_python} 
+#                   ${basiclu_headers_python})
 
 # Find Python 3
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
@@ -40,16 +40,32 @@ python_add_library(_core MODULE highs/highs_bindings.cpp WITH_SOABI)
 # add module
 # pybind11_add_module(highspy highspy/highs_bindings.cpp)
 
-target_link_libraries(_core PRIVATE pybind11::headers)
+target_link_libraries(_core PRIVATE pybind11::headers highs)
+
+# Ensure the built Python extension can find libhighs in the same directory
+# Use $ORIGIN on Linux/Unix and @loader_path on macOS. Leave Windows alone.
+if (NOT WIN32)
+  if(APPLE)
+    set(target_rpath "@loader_path")
+  else()
+    set(target_rpath "\$ORIGIN")
+  endif()
+  set_target_properties(_core PROPERTIES
+    INSTALL_RPATH "${target_rpath}"
+    BUILD_RPATH "${target_rpath}"
+    INSTALL_RPATH_USE_LINK_PATH TRUE
+  )
+endif()
 
 # sources for python 
-target_sources(_core PUBLIC ${sources_python} ${headers_python})
+#target_sources(_core PUBLIC ${sources_python} ${headers_python})
 
 # include directories for python 
-target_include_directories(_core PUBLIC ${include_dirs_python})
+#target_include_directories(_core PUBLIC ${include_dirs_python})
 
 # This is passing in the version as a define just as an example
 target_compile_definitions(_core PRIVATE VERSION_INFO=${PROJECT_VERSION})
+target_link_libraries(_core PRIVATE ${CMAKE_DL_LIBS})
 
 if(MSVC)
   target_compile_options(_core PRIVATE "/bigobj")
@@ -71,4 +87,12 @@ endif()
 # endif()
 
 # The install directory is the output (wheel) directory
-install(TARGETS _core DESTINATION highspy)
+install(TARGETS _core
+        RUNTIME DESTINATION highspy
+        LIBRARY DESTINATION highspy)
+
+# Include highs library (but ignore .lib file)
+install(TARGETS highs
+        #RUNTIME DESTINATION highspy
+        LIBRARY DESTINATION highspy
+        NAMELINK_SKIP)

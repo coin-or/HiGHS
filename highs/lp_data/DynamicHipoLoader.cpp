@@ -36,10 +36,6 @@ DynamicHipoLoader::DynamicHipoLoader() = default;
 DynamicHipoLoader::~DynamicHipoLoader() { unloadLibrary(); }
 
 bool DynamicHipoLoader::isAvailable() {
-  if (!initialized_) {
-    initialized_ = true;
-    available_ = tryLoad();
-  }
   return available_;
 }
 
@@ -53,26 +49,6 @@ std::string DynamicHipoLoader::getLibraryFilename() const {
 #else
   return "libhighs_hipo.so";
 #endif
-}
-
-std::vector<std::string> DynamicHipoLoader::getSearchPaths() const {
-  std::vector<std::string> paths;
-  const std::string lib_name = getLibraryFilename();
-
-  // 1. Explicit path via environment variable (for testing/advanced users)
-  const char* explicit_path = std::getenv("HIGHS_HIPO_LIBRARY");
-  if (explicit_path && std::strlen(explicit_path) > 0) {
-    paths.push_back(std::string(explicit_path));
-  }
-
-  // 2. Python highspy_hipo package location
-  //    Set by highspy_hipo.__init__ when the package is imported
-  const char* pkg_path = std::getenv("HIGHSPY_HIPO_LIBRARY_PATH");
-  if (pkg_path && std::strlen(pkg_path) > 0) {
-    paths.push_back(std::string(pkg_path) + PATH_SEPARATOR + lib_name);
-  }
-
-  return paths;
 }
 
 bool DynamicHipoLoader::loadLibrary(const std::string& path) {
@@ -140,41 +116,46 @@ bool DynamicHipoLoader::resolveFunctions() {
   return true;
 }
 
-bool DynamicHipoLoader::tryLoad() {
-  const auto paths = getSearchPaths();
-
-  if (paths.empty()) {
+bool DynamicHipoLoader::tryLoad(const std::string path) {
+  if (path.empty()) {
     last_error_ = "HiPO not available. Install with: pip install highspy[hipo]";
     return false;
   }
 
-  for (const auto& path : paths) {
-    if (loadLibrary(path)) {
+  if (!initialized_) {
+    initialized_ = true;
+    available_ = false;
+
+    if (loadLibrary(path + PATH_SEPARATOR + getLibraryFilename())) {
       if (resolveFunctions()) {
         // Check ABI compatibility
         int loaded_abi_version = fn_get_abi_version_();
         if (loaded_abi_version != kHipoAbiVersion) {
-          last_error_ = "HiPO ABI version mismatch: expected " +
-                        std::to_string(kHipoAbiVersion) + ", got " +
-                        std::to_string(loaded_abi_version) +
-                        ". Please reinstall: pip install --force-reinstall highspy[hipo]";
+          last_error_ =
+              "HiPO ABI version mismatch: expected " +
+              std::to_string(kHipoAbiVersion) + ", got " +
+              std::to_string(loaded_abi_version) +
+              ". Please reinstall: pip install --force-reinstall highspy[hipo]";
           unloadLibrary();
-          continue;
+          return false;
         }
 
         // Get version string
         const char* ver = fn_get_version_();
         version_ = ver ? ver : "";
-
+        available_ = true;
         return true;
       }
       unloadLibrary();
     }
-  }
 
-  if (last_error_.empty()) {
-    last_error_ = "HiPO not available. Install with: pip install highspy[hipo]";
-  }
+    if (last_error_.empty()) {
+      last_error_ =
+          "HiPO not available. Install with: pip install highspy[hipo]";
+    }
+  } else
+    return available_;
+
   return false;
 }
 

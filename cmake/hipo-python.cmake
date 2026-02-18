@@ -5,28 +5,27 @@ if (NOT HIPO_PYTHON_BUILD)
   return()
 endif()
 
-include(sources-python)
+include(sources-python)  
+include(FindHipoDeps)
 
 # could use subset of sources, but this is easier to maintain
-set(sources_python ${highs_sources_python} 
-                   ${cupdlp_sources_python} 
-                   ${ipx_sources_python} 
-                   ${basiclu_sources_python})
+#set(sources_python ${highs_sources_python} 
+#                   ${cupdlp_sources_python} 
+#                   ${ipx_sources_python} 
+#                   ${basiclu_sources_python})
 
-set(headers_python ${highs_headers_python} 
-                   ${cupdlp_headers_python} 
-                   ${ipx_headers_python} 
-                   ${basiclu_headers_python})
+#set(headers_python ${highs_headers_python} 
+#                   ${cupdlp_headers_python} 
+#                   ${ipx_headers_python} 
+#                   ${basiclu_headers_python})
 
 # Create shared library
 add_library(highs_hipo SHARED 
-    ${sources_python}
     ${hipo_sources}
     ${factor_highs_sources}
     ${hipo_util_sources}
     ${hipo_orderings_sources}
 
-    ${headers_python}
     ${hipo_headers}
     ${factor_highs_headers}
     ${hipo_util_headers}
@@ -37,7 +36,22 @@ target_include_directories(highs_hipo PRIVATE
     ${include_dirs_python} 
 )
 
-target_compile_definitions(highs_hipo PRIVATE HIPO_LIBRARY_BUILD)
+target_compile_definitions(highs_hipo PRIVATE HIPO_LIBRARY_BUILD HIPO)
+
+# Ensure the built Python extension can find libhighs in the same directory
+# Use $ORIGIN on Linux/Unix and @loader_path on macOS. Leave Windows alone.
+if (NOT WIN32)
+  if(APPLE)
+    set(target_rpath "@loader_path")
+  else()
+    set(target_rpath "\$ORIGIN")
+  endif()
+  set_target_properties(highs_hipo PROPERTIES
+    INSTALL_RPATH "${target_rpath}"
+    BUILD_RPATH "${target_rpath}"
+    INSTALL_RPATH_USE_LINK_PATH TRUE
+  )
+endif()
 
 # Dependencies
 find_package(ZLIB)
@@ -45,6 +59,7 @@ if(ZLIB_FOUND)
     target_link_libraries(highs_hipo PRIVATE ZLIB::ZLIB)
 endif()
 
+target_link_libraries(highs_hipo PRIVATE highs)
 
 if (NOT USE_CMAKE_FIND_BLAS)
     if(APPLE)
@@ -128,5 +143,4 @@ endif()
 install(TARGETS highs_hipo
     LIBRARY DESTINATION highspy_hipo
     RUNTIME DESTINATION highspy_hipo
-    ARCHIVE DESTINATION highspy_hipo
 )

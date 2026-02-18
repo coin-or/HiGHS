@@ -72,6 +72,34 @@ HIPO_API const char* hipo_get_version(void);
 #include "lp_data/HighsStatus.h"
 #include "util/HighsTimer.h"
 
+#include "ipm/hipo/ipm/Solver.h"
+
+HighsStatus solveLpHipo(HighsLpSolverObject& solver_object);
+
+HighsStatus solveLpHipo(const HighsOptions& options, HighsTimer& timer,
+                        const HighsLp& lp, HighsBasis& highs_basis,
+                        HighsSolution& highs_solution,
+                        HighsModelStatus& model_status, HighsInfo& highs_info,
+                        HighsCallback& callback);
+
+HighsStatus reportHipoStatus(const HighsOptions& options,
+                             const hipo::Int status, const hipo::Solver& hipo);
+
+HighsStatus reportHipoCrossoverStatus(const HighsOptions& options,
+                                      const ipx::Int status);
+
+void reportHipoNoProgress(const HighsOptions& options,
+                          const hipo::Info& hipo_info);
+
+void getHipoNonVertexSolution(const HighsOptions& options, const HighsLp& lp,
+                              const hipo::Int num_col, const hipo::Int num_row,
+                              const std::vector<double>& rhs,
+                              const std::vector<char>& constraint_type,
+                              const hipo::Solver& hipo,
+                              const HighsModelStatus model_status,
+                              HighsSolution& highs_solution);
+
+
 /**
  * Solve an LP using the HiPO solver.
  * 
