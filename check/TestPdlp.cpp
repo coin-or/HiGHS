@@ -484,12 +484,12 @@ TEST_CASE("hi-pdlp-halpern", "[pdlp]") {
   REQUIRE(h.readModel(model_file) != HighsStatus::kError);
   h.setOptionValue("solver", kHiPdlpString);
   h.setOptionValue("kkt_tolerance", kkt_tolerance);
-  h.setOptionValue("presolve", "off");
+  h.setOptionValue("presolve", "on");
 
   HighsInt pdlp_features_off = 0
       //+kPdlpScalingOff
       //+kPdlpRestartOff
-      //+kPdlpAdaptiveStepSizeOff 
+      +kPdlpAdaptiveStepSizeOff 
       ;
   h.setOptionValue("pdlp_features_off", pdlp_features_off);
 
@@ -498,13 +498,13 @@ TEST_CASE("hi-pdlp-halpern", "[pdlp]") {
       //+ kPdlpScalingL2cm
       + kPdlpScalingPC;
   h.setOptionValue("pdlp_scaling_mode", pdlp_scaling);
-  h.setOptionValue("pdlp_step_size_strategy", 1);
-  h.setOptionValue("pdlp_restart_strategy",  kPdlpRestartStrategyHalpern); // kPdlpRestartStrategyHalpern; kPdlpRestartStrategyAdaptive
+  h.setOptionValue("pdlp_step_size_strategy", 0);
+  h.setOptionValue("pdlp_restart_strategy", kPdlpRestartStrategyHalpern); // kPdlpRestartStrategyHalpern; kPdlpRestartStrategyAdaptive kPdlpRestartStrategyOff
   //turn on log
   //h.setOptionValue("log_dev_level", kHighsLogDevLevelVerbose);
-  h.setOptionValue("pdlp_iteration_limit", 20000);
+  h.setOptionValue("pdlp_iteration_limit", 5000);
   // h.setOptionValue("pdlp_time_limit", 60);
-  //    h.setOptionValue("log_dev_level", kHighsLogDevLevelVerbose);
+      h.setOptionValue("log_dev_level", kHighsLogDevLevelVerbose);
   auto start_hipdlp = std::chrono::high_resolution_clock::now();
   HighsStatus run_status = h.run();
   auto end_hipdlp = std::chrono::high_resolution_clock::now();
