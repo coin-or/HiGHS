@@ -193,6 +193,8 @@ bool Solver::prepareIpx() {
 
   ipx::Parameters ipx_param;
   ipx_param.display = options_.display_ipx;
+  ipx_param.highs_logging = true;
+  ipx_param.log_options = options_.log_options;
   ipx_param.dualize = 0;
 
   if (options_.crossover == kOptionCrossoverOn)
