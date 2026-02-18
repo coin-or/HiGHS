@@ -182,8 +182,7 @@ void highsLogUser(const HighsLogOptions& log_options_, const HighsLogType type,
 
 void highsLogDev(const HighsLogOptions& log_options_, const HighsLogType type,
                  const char* format, ...) {
-  if (!*log_options_.output_flag ||
-      !*log_options_.log_dev_level) return;
+  if (!*log_options_.output_flag || !*log_options_.log_dev_level) return;
 
   // Log to a file if log_stream is not NULL or stdout, and to console
   // if log_to_console is true
