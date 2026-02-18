@@ -5,7 +5,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "model.hpp"
+#include "io/filereaderlp/model.hpp"
 
 struct Builder {
   std::unordered_map<std::string, std::shared_ptr<Variable>> variables;

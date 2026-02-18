@@ -564,7 +564,7 @@ void HighsLpRelaxation::removeCuts(HighsInt ndelcuts,
     assert(lpsolver.getLp().num_row_ == (HighsInt)lprows.size());
     basis.debug_origin_name = "HighsLpRelaxation::removeCuts";
     lpsolver.setBasis(basis);
-    lpsolver.run();
+    lpsolver.optimizeLp();
     if (!mipsolver.submip) {
       const HighsSubSolverCallTime& sub_solver_call_time =
           lpsolver.getSubSolverCallTime();
@@ -1141,7 +1141,7 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
       fflush(stdout);
       exit(1);
     }
-    callstatus = lpsolver.run();
+    callstatus = lpsolver.optimizeLp();
     if (ipm_logging) lpsolver.setOptionValue("output_flag", false);
     if (callstatus == HighsStatus::kError) {
       highsLogDev(
@@ -1153,7 +1153,7 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
     }
   }
   if (use_simplex) {
-    callstatus = lpsolver.run();
+    callstatus = lpsolver.optimizeLp();
   }
   // Revert the value of lpsolver.options_.solver
   lpsolver.setOptionValue("solver", solver);
@@ -1357,7 +1357,7 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
           (void)output_flag;
           ipm.setOptionValue("output_flag", !mipsolver.submip);
         }
-        ipm.run();
+        ipm.optimizeLp();
         if (ipm_logging) ipm.setOptionValue("output_flag", false);
         if (use_hipo && !ipm.getBasis().valid) {
           // HiPO has failed to get a solution, so try IPX
@@ -1366,7 +1366,7 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
                       "basis: status = %s Try IPX\n",
                       ipm.modelStatusToString(ipm.getModelStatus()).c_str());
           ipm.setOptionValue("solver", kIpxString);
-          ipm.run();
+          ipm.optimizeLp();
         }
         const HighsSubSolverCallTime& sub_solver_call_time =
             ipm.getSubSolverCallTime();

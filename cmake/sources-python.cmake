@@ -9,6 +9,7 @@ set(include_dirs_python
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/highs>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/highs/interfaces>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/highs/io>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/highs/io/filereader>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/highs/ipm>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/highs/ipm/ipx>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/highs/ipm/basiclu>
@@ -327,7 +328,6 @@ set(hipo_orderings_headers
     extern/rcm/rcm.h)
 
 set(highs_sources_python
-    extern/filereaderlp/reader.cpp
     highs/interfaces/highs_c_api.cpp
     highs/io/Filereader.cpp
     highs/io/FilereaderEms.cpp
@@ -337,6 +337,7 @@ set(highs_sources_python
     highs/io/HMpsFF.cpp
     highs/io/HMPSIO.cpp
     highs/io/LoadOptions.cpp
+    highs/io/filereaderlp/reader.cpp
     highs/ipm/IpxWrapper.cpp
     highs/lp_data/Highs.cpp
     highs/lp_data/HighsCallback.cpp
@@ -437,10 +438,6 @@ set(highs_sources_python
     highs/util/stringutil.cpp)
 
 set(highs_headers_python
-    extern/filereaderlp/builder.hpp
-    extern/filereaderlp/def.hpp
-    extern/filereaderlp/model.hpp
-    extern/filereaderlp/reader.hpp
     extern/pdqsort/pdqsort.h
     highs/interfaces/highs_c_api.h
     highs/io/Filereader.h
@@ -451,6 +448,10 @@ set(highs_headers_python
     highs/io/HMpsFF.h
     highs/io/HMPSIO.h
     highs/io/LoadOptions.h
+    highs/io/filereaderlp/builder.hpp
+    highs/io/filereaderlp/def.hpp
+    highs/io/filereaderlp/model.hpp
+    highs/io/filereaderlp/reader.hpp
     highs/ipm/IpxSolution.h
     highs/ipm/IpxWrapper.h
     highs/lp_data/HConst.h

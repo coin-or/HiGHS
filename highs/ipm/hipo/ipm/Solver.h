@@ -19,13 +19,13 @@
 #include "ipm/hipo/factorhighs/FactorHiGHS.h"
 #include "ipm/ipx/lp_solver.h"
 #include "lp_data/HighsCallback.h"
+#include "lp_data/HighsLp.h"
 #include "util/HighsSparseMatrix.h"
 #include "util/HighsTimer.h"
 
 namespace hipo {
 
 class Solver {
-  // LP model
   Model model_;
 
   // Linear solver interface
@@ -38,7 +38,7 @@ class Solver {
   Int m_{}, n_{};
 
   // Iterations counters
-  Int iter_{}, bad_iter_{};
+  Int iter_{};
 
   // Stepsizes
   double alpha_primal_{}, alpha_dual_{};
@@ -56,6 +56,7 @@ class Solver {
 
   // Run-time options
   Options options_{};
+  Options options_orig_{};
 
   // Interface to ipx
   ipx::LpSolver ipx_lps_;
@@ -67,9 +68,9 @@ class Solver {
 
  public:
   // ===================================================================================
-  // Load an LP:
+  // Load an LP or QP:
   //
-  //  min   obj^T * x
+  //  min   obj^T * x + 1/2 * x^T * Q * x
   //  s.t.  Ax {<=,=,>=} rhs
   //        lower <= x <= upper
   //
@@ -77,18 +78,7 @@ class Solver {
   //  <= : add slack    0 <= s_i <= +inf
   //  >= : add slack -inf <= s_i <=    0
   // ===================================================================================
-  Int load(const Int num_var,        // number of variables
-           const Int num_con,        // number of constraints
-           const double* obj,        // objective function c
-           const double* rhs,        // rhs vector b
-           const double* lower,      // lower bound vector
-           const double* upper,      // upper bound vector
-           const Int* A_ptr,         // column pointers of A
-           const Int* A_rows,        // row indices of A
-           const double* A_vals,     // values of A
-           const char* constraints,  // type of constraints
-           double offset             // offset from presolve
-  );
+  Int load(const HighsLp& lp, const HighsHessian& Q);
 
   // ===================================================================================
   // Specify options, callback and timer.
@@ -98,7 +88,7 @@ class Solver {
   void setTimer(const HighsTimer& timer);
 
   // ===================================================================================
-  // Solve the LP
+  // Solve the LP or QP
   // ===================================================================================
   void solve();
 
@@ -112,9 +102,8 @@ class Solver {
   Int getBasicSolution(std::vector<double>& x, std::vector<double>& slack,
                        std::vector<double>& y, std::vector<double>& z,
                        Int* cbasis, Int* vbasis) const;
-  void getSolution(std::vector<double>& x, std::vector<double>& slack,
-                   std::vector<double>& y, std::vector<double>& z) const;
   const Info& getInfo() const;
+  void getOriginalDims(Int& num_row, Int& num_col) const;
 
   // check the status of the solver
   bool solved() const;
@@ -148,12 +137,6 @@ class Solver {
   void refineWithIpx();
 
   // ===================================================================================
-  // Run crossover with ipx directly from the last iterate, without refining it
-  // with ipx.
-  // ===================================================================================
-  void runCrossover();
-
-  // ===================================================================================
   // Determine the maximum number of correctors to use, based on the relative
   // cost of factorisation and solve. Based on the heuristic in "Multiple
   // Centrality Corrections in a Primal-Dual Method for Linear Programming".
@@ -165,8 +148,8 @@ class Solver {
   //
   // ___Augmented system___
   //
-  //      [ -Theta^{-1}  A^T ] [ Deltax ] = [ res7 ]
-  //      [ A            0   ] [ Deltay ] = [ res1 ]
+  //      [ -Theta^{-1}-Q  A^T ] [ Deltax ] = [ res7 ]
+  //      [ A              0   ] [ Deltay ] = [ res1 ]
   //
   // with:
   //  res7 = res4 - Xl^{-1} * (res5 + Zl * res2) + Xu^{-1} * (res6 - Zu * res3)
@@ -179,11 +162,13 @@ class Solver {
   //
   // ___Normal equations___
   //
-  //      A * Theta * A^T * Deltay = res8
-  //      Delta x = Theta * (A^T* Deltay - res7)
+  //      A * (Theta^{-1}+Q)^{-1} * A^T * Deltay = res8
+  //      Delta x = (Theta^{-1}+Q)^{-1} * (A^T* Deltay - res7)
   //
   // with:
-  //  res8 = res1 + A * Theta * res7
+  //  res8 = res1 + A * (Theta^{-1}+Q)^{-1} * res7
+  //
+  // NB: normal equations available only if Q is zero or diagonal.
   // ===================================================================================
   bool solveNewtonSystem(NewtonDir& delta);
   bool solve2x2(NewtonDir& delta, const Residuals& rhs);
@@ -303,9 +288,10 @@ class Solver {
   bool checkIterate();
 
   // ===================================================================================
-  // If too many bad iterations happened consecutively, abort the iterations.
-  // Also, detect if the problem is primal or dual infeasible.
+  // Stop if detection is detected, or if the problem is primal or dual
+  // infeasible.
   // ===================================================================================
+  bool checkStagnation();
   bool checkBadIter();
 
   // ===================================================================================
@@ -329,6 +315,7 @@ class Solver {
   bool statusIsFailed() const;
   bool statusNeedsRefinement() const;
   bool statusAllowsCrossover() const;
+  bool refinementIsOn() const;
   bool crossoverIsOn() const;
 
   // ===================================================================================
@@ -338,6 +325,9 @@ class Solver {
   void printHeader() const;
   void printOutput() const;
   void printSummary() const;
+
+  void resetOptions();
+  void reset();
 };
 
 }  // namespace hipo

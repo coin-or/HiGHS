@@ -9,6 +9,7 @@ set(include_dirs
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/highs>
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/highs/interfaces>
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/highs/io>
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/highs/io/filereader>
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/highs/ipm>
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/highs/ipm/ipx>
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/highs/ipm/basiclu>
@@ -187,6 +188,7 @@ set(hipo_sources
     ipm/hipo/ipm/Iterate.cpp 
     ipm/hipo/ipm/LogHighs.cpp
     ipm/hipo/ipm/Model.cpp
+    ipm/hipo/ipm/PreProcess.cpp
     ipm/hipo/ipm/Refine.cpp
     ipm/hipo/ipm/Solver.cpp)
 
@@ -202,6 +204,7 @@ set(hipo_headers
     ipm/hipo/ipm/LogHighs.h
     ipm/hipo/ipm/Model.h
     ipm/hipo/ipm/Options.h
+    ipm/hipo/ipm/PreProcess.h
     ipm/hipo/ipm/Solver.h
     ipm/hipo/ipm/Status.h)
 
@@ -257,6 +260,7 @@ set(hipo_util_headers
     ipm/hipo/auxiliary/KrylovMethods.h
     ipm/hipo/auxiliary/Log.h
     ipm/hipo/auxiliary/mycblas.h
+    ipm/hipo/auxiliary/OrderingPrint.h
     ipm/hipo/auxiliary/VectorOperations.h)
 
 set(hipo_orderings_sources
@@ -328,10 +332,9 @@ set(hipo_orderings_headers
     ../extern/rcm/rcm.h)
 
 # redefinition of 'kHighsInf'
-set_source_files_properties (../extern/filereaderlp/reader.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+set_source_files_properties (io/filereaderlp/reader.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
 
 set(highs_sources
-    ../extern/filereaderlp/reader.cpp
     interfaces/highs_c_api.cpp
     io/Filereader.cpp
     io/FilereaderEms.cpp
@@ -341,6 +344,7 @@ set(highs_sources
     io/HMpsFF.cpp
     io/HMPSIO.cpp
     io/LoadOptions.cpp
+    io/filereaderlp/reader.cpp
     ipm/IpxWrapper.cpp
     lp_data/Highs.cpp
     lp_data/HighsCallback.cpp
@@ -443,10 +447,6 @@ set(highs_sources
 
 # add catch header?
 set(highs_headers
-    ../extern/filereaderlp/builder.hpp
-    ../extern/filereaderlp/def.hpp
-    ../extern/filereaderlp/model.hpp
-    ../extern/filereaderlp/reader.hpp
     ../extern/pdqsort/pdqsort.h
     ../extern/zstr/strict_fstream.hpp
     ../extern/zstr/zstr.hpp
@@ -459,6 +459,10 @@ set(highs_headers
     io/HMpsFF.h
     io/HMPSIO.h
     io/LoadOptions.h
+    io/filereaderlp/builder.hpp
+    io/filereaderlp/def.hpp
+    io/filereaderlp/model.hpp
+    io/filereaderlp/reader.hpp
     ipm/IpxSolution.h
     ipm/IpxWrapper.h
     lp_data/HConst.h
