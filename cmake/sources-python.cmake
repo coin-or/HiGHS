@@ -187,6 +187,7 @@ set(hipo_sources_python
     highs/ipm/hipo/ipm/Iterate.cpp
     highs/ipm/hipo/ipm/LogHighs.cpp
     highs/ipm/hipo/ipm/Model.cpp
+    highs/ipm/hipo/ipm/PreProcess.cpp
     highs/ipm/hipo/ipm/Refine.cpp
     highs/ipm/hipo/ipm/Solver.cpp)
 
@@ -202,6 +203,7 @@ set(hipo_headers_python
     highs/ipm/hipo/ipm/LogHighs.h
     highs/ipm/hipo/ipm/Model.h
     highs/ipm/hipo/ipm/Options.h
+    highs/ipm/hipo/ipm/PreProcess.h
     highs/ipm/hipo/ipm/Solver.h
     highs/ipm/hipo/ipm/Status.h)
 
@@ -257,6 +259,7 @@ set(hipo_util_headers_python
     highs/ipm/hipo/auxiliary/KrylovMethods.h
     highs/ipm/hipo/auxiliary/Log.h
     highs/ipm/hipo/auxiliary/mycblas.h
+    highs/ipm/hipo/auxiliary/OrderingPrint.h
     highs/ipm/hipo/auxiliary/VectorOperations.h)
 
 set(hipo_orderings_sources_python
