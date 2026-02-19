@@ -2,6 +2,7 @@
 #define FACTORHIGHS_TREE_SPLITTING_H
 
 #include <vector>
+#include <memory>
 
 #include "ipm/hipo/auxiliary/IntConfig.h"
 
