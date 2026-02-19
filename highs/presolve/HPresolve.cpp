@@ -1675,11 +1675,53 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
       };
     }
 
+    HighsInt iBin = -1;
+    HighsInt num_binary = binaries.size();
+    double log_tt_interval = 5.0;
+    double tt0 = this->timer->read();
+    double log_tt = tt0;
+    double time_remaining = options->time_limit - tt0;
+    double probing_time_limit = 0.1 * time_remaining;
+    if (probing_time_limit < kHighsInf && !options->timeless_log)
+      highsLogUser(options->log_options, HighsLogType::kInfo,
+                   "   Probing %d binaries with a time limit of %s\n",
+                   int(num_binary),
+                   highsTimeSecondToString(probing_time_limit).c_str());
+
     for (const auto& binvar : binaries) {
+      iBin++;
       HighsInt i = std::get<3>(binvar);
 
       if (cliquetable.getSubstitution(i) != nullptr || !domain.isBinary(i))
         continue;
+
+      //      Result time_check = checkTimeLimit();
+      //      if (time_check == Result::kStopped) return time_check;
+      double tt = this->timer->read();
+      if (tt > log_tt + log_tt_interval) {
+        if (tt > probing_time_limit) {
+          highsLogUser(options->log_options, HighsLogType::kWarning,
+                       "   Probing time limit reached: solver behaviour may be "
+                       "non-deterministic\n");
+          return Result::kStopped;
+        }
+        if (!options->timeless_log) {
+          assert(iBin > 0);
+          double rate = (tt - tt0) / double(iBin);
+          std::string rate_str =
+              " (rate " + highsTimeToString(1e3 * rate) + "/ms";
+          double expected_probing_time = rate * num_binary;
+          std::string expected_probing_time_str =
+              " => expected probing time " +
+              highsTimeSecondToString(expected_probing_time) + ")";
+          std::string time_str = highsTimeSecondToString(tt);
+          highsLogUser(options->log_options, HighsLogType::kInfo,
+                       "   Probed %d / %d binaries%s%s %s\n", int(iBin),
+                       int(num_binary), rate_str.c_str(),
+                       expected_probing_time_str.c_str(), time_str.c_str());
+          log_tt = tt;
+        }
+      }
 
       bool tightenLimits = (numProbed - oldNumProbed) >= 2500;
 
@@ -1753,9 +1795,6 @@ HPresolve::Result HPresolve::runProbing(HighsPostsolveStack& postsolve_stack) {
       if (numLiftOpps >= maxNumLiftOpps)
         implications.storeLiftingOpportunity = nullptr;
 
-      // printf("nprobed: %" HIGHSINT_FORMAT ", numCliques: %" HIGHSINT_FORMAT
-      // "\n", nprobed,
-      //       cliquetable.numCliques());
       if (domain.infeasible()) {
         mipsolver->analysis_.mipTimerStop(kMipClockProbingPresolve);
         return Result::kPrimalInfeasible;
@@ -5383,16 +5422,11 @@ HPresolve::Result HPresolve::presolve(HighsPostsolveStack& postsolve_stack) {
             static_cast<HighsInt>(Avalue.size() - freeslots.size());
         // Only read the run time if it's to be printed
         const double run_time = options->output_flag ? this->timer->read() : 0;
-#ifndef NDEBUG
-        std::string time_str = " " + std::to_string(run_time) + "s";
-#else
-        std::string time_str =
-            " " + std::to_string(static_cast<int>(run_time)) + "s";
-#endif
+        std::string time_str = highsTimeSecondToString(run_time);
         if (options->timeless_log) time_str = "";
         highsLogUser(options->log_options, HighsLogType::kInfo,
                      "%" HIGHSINT_FORMAT " rows, %" HIGHSINT_FORMAT
-                     " cols, %" HIGHSINT_FORMAT " nonzeros %s\n",
+                     " cols, %" HIGHSINT_FORMAT " nonzeros  %s\n",
                      numRow, numCol, numNonz, time_str.c_str());
       }
     };
