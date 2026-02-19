@@ -1299,23 +1299,18 @@ void HighsCliqueTable::extractCliques(HighsMipSolver& mipsolver,
         if (globaldom.col_upper_[col] == 0.0 &&
             globaldom.col_lower_[col] == 0.0)
           continue;
-        if (!globaldom.isBinary(col)) {
-          issetppc = false;
-          break;
-        }
 
-        if (mipsolver.mipdata_->ARvalue_[j] != 1.0) {
-          issetppc = false;
-          break;
-        }
+        issetppc =
+            globaldom.isBinary(col) && mipsolver.mipdata_->ARvalue_[j] == 1.0;
+        if (!issetppc) break;
 
         clique.emplace_back(col, 1);
       }
 
       if (issetppc) {
-        bool equality = mipsolver.rowLower(i) == 1.0;
         addClique(mipsolver, clique.data(),
-                  static_cast<HighsInt>(clique.size()), equality, i);
+                  static_cast<HighsInt>(clique.size()),
+                  mipsolver.rowLower(i) == 1.0, i);
         if (globaldom.infeasible()) return;
         continue;
       }
@@ -1331,8 +1326,9 @@ void HighsCliqueTable::extractCliques(HighsMipSolver& mipsolver,
       entries[col] += val;
     }
 
-    if (mipsolver.rowUpper(i) != kHighsInf) {
-      rhs = mipsolver.rowUpper(i) - offset;
+    auto checkRow = [&](double rhs, HighsInt direction) {
+      if (direction * rhs == kHighsInf) return;
+      rhs = direction * (rhs - offset);
       inds.clear();
       vals.clear();
       complementation.clear();
@@ -1341,27 +1337,23 @@ void HighsCliqueTable::extractCliques(HighsMipSolver& mipsolver,
 
       for (const auto& entry : entries) {
         HighsInt col = entry.key();
-        double val = entry.value();
+        double val = direction * entry.value();
 
         if (std::abs(val) < mipsolver.mipdata_->epsilon) continue;
 
         if (globaldom.isBinary(col)) ++nbin;
 
         if (val < 0) {
-          if (globaldom.col_upper_[col] == kHighsInf) {
-            freevar = true;
-            break;
-          }
+          freevar = globaldom.col_upper_[col] == kHighsInf;
+          if (freevar) break;
 
           vals.push_back(-val);
           inds.push_back(col);
           complementation.push_back(-1);
           rhs -= val * globaldom.col_upper_[col];
         } else {
-          if (globaldom.col_lower_[col] == -kHighsInf) {
-            freevar = true;
-            break;
-          }
+          freevar = globaldom.col_lower_[col] == -kHighsInf;
+          if (freevar) break;
 
           vals.push_back(val);
           inds.push_back(col);
@@ -1371,62 +1363,14 @@ void HighsCliqueTable::extractCliques(HighsMipSolver& mipsolver,
       }
 
       if (!freevar && nbin != 0) {
-        // printf("extracting cliques from this row:\n");
-        // printRow(globaldom, inds.data(), vals.data(), inds.size(),
-        //         -kHighsInf, rhs);
         extractCliques(mipsolver, inds, vals, complementation, rhs, nbin, perm,
                        clique, mipsolver.mipdata_->feastol);
         if (globaldom.infeasible()) return;
       }
-    }
+    };
 
-    if (mipsolver.rowLower(i) != -kHighsInf) {
-      rhs = -mipsolver.rowLower(i) + offset;
-      inds.clear();
-      vals.clear();
-      complementation.clear();
-      bool freevar = false;
-      HighsInt nbin = 0;
-
-      for (const auto& entry : entries) {
-        HighsInt col = entry.key();
-        double val = -entry.value();
-        if (std::abs(val) < mipsolver.mipdata_->epsilon) continue;
-
-        if (globaldom.isBinary(col)) ++nbin;
-
-        if (val < 0) {
-          if (globaldom.col_upper_[col] == kHighsInf) {
-            freevar = true;
-            break;
-          }
-
-          vals.push_back(-val);
-          inds.push_back(col);
-          complementation.push_back(-1);
-          rhs -= val * globaldom.col_upper_[col];
-        } else {
-          if (globaldom.col_lower_[col] == -kHighsInf) {
-            freevar = true;
-            break;
-          }
-
-          vals.push_back(val);
-          inds.push_back(col);
-          complementation.push_back(1);
-          rhs -= val * globaldom.col_lower_[col];
-        }
-      }
-
-      if (!freevar && nbin != 0) {
-        // printf("extracting cliques from this row:\n");
-        // printRow(globaldom, inds.data(), vals.data(), inds.size(),
-        //         -kHighsInf, rhs);
-        extractCliques(mipsolver, inds, vals, complementation, rhs, nbin, perm,
-                       clique, mipsolver.mipdata_->feastol);
-        if (globaldom.infeasible()) return;
-      }
-    }
+    checkRow(mipsolver.rowUpper(i), HighsInt{1});
+    checkRow(mipsolver.rowLower(i), HighsInt{-1});
 
     entries.clear();
   }
