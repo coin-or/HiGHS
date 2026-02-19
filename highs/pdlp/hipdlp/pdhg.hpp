@@ -147,6 +147,7 @@ class PDLPSolver {
   void applyHalpernAveraging(std::vector<double>& x, std::vector<double>& y, std::vector<double>& ax, std::vector<double>& aty);
   void updateAverageIterates(const std::vector<double>& x, const std::vector<double>& y, int inner_iter);
   void performHalpernPdhgStep(bool is_major);
+  void updatePrimalWeightAtRestart(const SolverResults& results);
 
   // Feasibility calculations
   double computePrimalFeasibility(const std::vector<double>& Ax_vector);
@@ -213,6 +214,13 @@ class PDLPSolver {
   double sum_weights_ = 0.0;
   double current_eta_ = 0.0;
   double ratio_last_two_step_sizes_ = 1.0;
+
+  // PID
+  double primal_weight_ = 1.0;
+  double best_primal_weight_ = 1.0;
+  double primal_weight_error_sum_ = 0.0;
+  double primal_weight_last_error_ = 0.0;
+  double best_primal_dual_residual_gap_ = std::numeric_limits<double>::infinity();
 
   Timer total_timer;
 

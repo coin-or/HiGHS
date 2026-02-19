@@ -753,15 +753,18 @@ bool PDLPSolver::runConvergenceCheckAndRestart(size_t iter,
       restart_scheme_.duality_gap_last_restart_ = current_results.duality_gap;
     }
       */
-      if (params_.use_halpern_restart ) {
+
+    
+    if (params_.use_halpern_restart ) {
+      updatePrimalWeightAtRestart(current_results);
 #ifdef CUPDLP_GPU
-    if (d_pdhg_primal_ != nullptr) {
-      // Halpern: always restart to pdhg iterate (matching cuPDLPx)
-      CUDA_CHECK(cudaMemcpy(d_x_current_, d_pdhg_primal_, 
-                 lp_.num_col_ * sizeof(double), cudaMemcpyDeviceToDevice));
-      CUDA_CHECK(cudaMemcpy(d_y_current_, d_pdhg_dual_,
-                 lp_.num_row_ * sizeof(double), cudaMemcpyDeviceToDevice));
-    }
+      if (d_pdhg_primal_ != nullptr) {
+        // Halpern: always restart to pdhg iterate (matching cuPDLPx)
+        CUDA_CHECK(cudaMemcpy(d_x_current_, d_pdhg_primal_, 
+                  lp_.num_col_ * sizeof(double), cudaMemcpyDeviceToDevice));
+        CUDA_CHECK(cudaMemcpy(d_y_current_, d_pdhg_dual_,
+                  lp_.num_row_ * sizeof(double), cudaMemcpyDeviceToDevice));
+      }
 #else
     // CPU Halpern: restart to pdhg iterate (x_next_/y_next_ hold the 
     // last projected PDHG solution, before Halpern blending)
@@ -1758,6 +1761,66 @@ void PDLPSolver::initializeStepSizes() {
                  "Initial step sizes from matrix inf-norm = %g: primal = %g; "
                  "dual = %g\n",
                  mat_elem_norm_inf, stepsize_.primal_step, stepsize_.dual_step);
+  }
+}
+
+void PDLPSolver::updatePrimalWeightAtRestart(const SolverResults& results) {
+  // Compute delta = pdhg_iterate - anchor
+  double primal_dist = 0.0;
+  double dual_dist = 0.0;
+  
+#ifdef CUPDLP_GPU
+  // to do 
+#else
+  // CPU version
+  for (size_t i = 0; i < lp_.num_col_; ++i) {
+    double diff = x_next_[i] - x_anchor_[i];
+    primal_dist += diff * diff;
+  }
+  for (size_t j = 0; j < lp_.num_row_; ++j) {
+    double diff = y_next_[j] - y_anchor_[j];
+    dual_dist += diff * diff;
+  }
+  primal_dist = std::sqrt(primal_dist);
+  dual_dist = std::sqrt(dual_dist);
+#endif
+
+  // Compute residual ratio
+  double ratio = results.dual_feasibility / (results.primal_feasibility + 1e-30);
+
+  // cuPDLPx-style weight update (PID control)
+  if (primal_dist > 1e-16 && dual_dist > 1e-16 &&
+      primal_dist < 1e12 && dual_dist < 1e12 &&
+      ratio > 1e-8 && ratio < 1e8) {
+    
+    double error = std::log(dual_dist) - std::log(primal_dist) - std::log(primal_weight_);
+    
+    primal_weight_error_sum_ = params_.i_smooth * primal_weight_error_sum_ + error;
+    double delta_error = error - primal_weight_last_error_;
+    
+    primal_weight_ *= std::exp(
+        params_.k_p * error +
+        params_.k_i * primal_weight_error_sum_ +
+        params_.k_d * delta_error
+    );
+    
+    primal_weight_last_error_ = error;
+    
+    logger_.info("Primal weight updated: " + std::to_string(primal_weight_));
+  } else {
+    // Revert to best known weight
+    primal_weight_ = best_primal_weight_;
+    primal_weight_error_sum_ = 0.0;
+    primal_weight_last_error_ = 0.0;
+    logger_.info("Weight update failed (bad norms/ratio), reverted to best: " + 
+                 std::to_string(primal_weight_));
+  }
+
+  // Track best weight
+  double gap = std::abs(std::log10(results.dual_feasibility / (results.primal_feasibility + 1e-30)));
+  if (gap < best_primal_dual_residual_gap_) {
+    best_primal_dual_residual_gap_ = gap;
+    best_primal_weight_ = primal_weight_;
   }
 }
 

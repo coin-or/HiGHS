@@ -83,6 +83,10 @@ struct PrimalDualParams {
 
   // Step sizes strategy
   StepSizeStrategy step_size_strategy = StepSizeStrategy::FIXED;
+  double k_p = 0.99;
+  double k_i = 0.01;
+  double k_d = 0.0;
+  double i_smooth = 0.3;
 
   MalitskyPockParams malitsky_pock_params;
   AdaptiveLinesearchParams adaptive_linesearch_params;
