@@ -510,7 +510,7 @@ Int FactorHiGHSSolver::chooseOrdering(const std::vector<Int>& rows,
     // rcm is much worse in general, so no point in trying for now
   }
 
-  std::vector<Symbolic> symbolics(orderings_to_try.size(), S);
+  std::vector<Symbolic> symbolics(orderings_to_try.size());
   std::vector<bool> status(orderings_to_try.size(), 0);
   Int num_success = 0;
 

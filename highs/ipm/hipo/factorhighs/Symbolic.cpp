@@ -46,7 +46,9 @@ const std::vector<Int>& Symbolic::iperm() const { return iperm_; }
 const std::vector<Int>& Symbolic::snParent() const { return sn_parent_; }
 const std::vector<Int>& Symbolic::snStart() const { return sn_start_; }
 const std::vector<Int>& Symbolic::pivotSign() const { return pivot_sign_; }
-const TreeSplitting& Symbolic::treeSplitting() const { return tree_splitting_; }
+const NodeData* Symbolic::treeSplitting(Int sn) const {
+  return tree_splitting_.find(sn);
+}
 
 static std::string memoryString(double mem) {
   std::stringstream ss;

@@ -1,7 +1,6 @@
 #ifndef FACTORHIGHS_TREE_SPLITTING_H
 #define FACTORHIGHS_TREE_SPLITTING_H
 
-#include <map>
 #include <vector>
 
 #include "ipm/hipo/auxiliary/IntConfig.h"
@@ -16,21 +15,17 @@ struct NodeData {
 };
 
 class TreeSplitting {
-  // Information to split the elimination tree. Each entry in split_
-  // correspond to a task that is executed in parallel.
-  // split_ contains pairs (sn, data):
-  // - If data.type is single, then the task processes only the supernode sn.
-  // - If data.type is subtree, then the task processes each subtree rooted at
-  //    data.group[i]. Each subtree requires processing supernodes j,
-  //    data.firstdesc[i] <= j <= data.group[i].
-  std::map<Int, NodeData> split_;
-
-  // For each supernode, belong[sn] is true if sn is found in the split_ data
-  // structure. Avoids too many lookups into the map.
-  std::vector<bool> belong_;
+  // Information to split the elimination tree.
+  // If split_[sn] is not null, then a task is associated with the supernode sn.
+  // - If type is single, then the task processes only the supernode sn.
+  // - If type is subtree, then the task processes each subtree rooted at
+  //   group[i]. Each subtree requires processing supernodes j,
+  //    firstdesc[i] <= j <= group[i].
+  std::vector<std::unique_ptr<NodeData>> split_;
 
  private:
   NodeData& insert(Int sn);
+  Int task_count_{};
 
  public:
   void resize(Int sn_count);
@@ -40,8 +35,7 @@ class TreeSplitting {
 
   const NodeData* find(Int sn) const;
 
-  bool belong(Int sn) const { return belong_[sn]; }
-  Int tasks() const { return split_.size(); }
+  Int tasks() const { return task_count_; }
 };
 
 // Consider a supernode p, with children {a,b,c,d,e,f,g}.
@@ -54,11 +48,13 @@ class TreeSplitting {
 // subtree. So, split_ looks like this:
 // p -> {single, -, -}
 // a -> {subtree, {Fa,Fb,Fd}, {a,b,d}}
+// b -> null
 // c -> {single, -, -}
+// d -> null
 // e -> {subtree, {Fe, Fg}, {e,g}}
 // f -> {single, -, -}
+// g -> null
 // where Fj is the first descendant of node j.
-// belong_[j] is true for j=p,a,c,e,f and false for j=b,d,g.
 //
 // - When a is run, a task is executed that executes the whole subtree of nodes
 //   a, b and d.

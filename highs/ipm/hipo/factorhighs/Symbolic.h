@@ -1,7 +1,6 @@
 #ifndef FACTORHIGHS_SYMBOLIC_H
 #define FACTORHIGHS_SYMBOLIC_H
 
-#include <map>
 #include <vector>
 
 #include "TreeSplitting.h"
@@ -137,7 +136,7 @@ class Symbolic {
   const std::vector<Int>& snParent() const;
   const std::vector<Int>& snStart() const;
   const std::vector<Int>& pivotSign() const;
-  const TreeSplitting& treeSplitting() const;
+  const NodeData* treeSplitting(Int sn) const;
 
   void print(const Log& log, bool verbose = false) const;
 };

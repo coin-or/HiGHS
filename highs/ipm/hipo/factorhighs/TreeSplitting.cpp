@@ -2,13 +2,12 @@
 
 namespace hipo {
 
-void TreeSplitting::resize(Int sn_count) { belong_.resize(sn_count, false); }
+void TreeSplitting::resize(Int sn_count) { split_.resize(sn_count); }
 
 NodeData& TreeSplitting::insert(Int sn) {
-  auto res_insert = split_.insert({sn, {}});
-  NodeData& data = res_insert.first->second;
-  belong_[sn] = true;
-  return data;
+  if (!split_[sn]) task_count_++;
+  split_[sn].reset(new NodeData);
+  return *split_[sn];
 }
 
 NodeData& TreeSplitting::insertSingle(Int sn) {
@@ -23,10 +22,6 @@ NodeData& TreeSplitting::insertSubtree(Int sn) {
   return data;
 }
 
-const NodeData* TreeSplitting::find(Int sn) const {
-  const NodeData* ptr = nullptr;
-  if (belong_[sn]) ptr = &(split_.find(sn)->second);
-  return ptr;
-}
+const NodeData* TreeSplitting::find(Int sn) const { return split_[sn].get(); }
 
 }  // namespace hipo

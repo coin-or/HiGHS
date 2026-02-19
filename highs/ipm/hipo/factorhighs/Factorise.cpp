@@ -379,7 +379,7 @@ void Factorise::spawn(Int sn, const TaskGroupSpecial& tg, bool do_spawn) {
   // a single child.
 
   if (S_.useSplitting()) {
-    const NodeData* data = S_.treeSplitting().find(sn);
+    const NodeData* data = S_.treeSplitting(sn);
 
     if (!data) {
       // sn is head of small subtree, but not the first subtree in the group.
@@ -432,7 +432,7 @@ void Factorise::sync(Int sn, const TaskGroupSpecial& tg) {
   // This happens only if sn is found in the treeSplitting data structure.
 
   if (S_.useSplitting()) {
-    if (S_.treeSplitting().belong(sn)) tg.sync();
+    if (S_.treeSplitting(sn)) tg.sync();
   } else {
     tg.sync();
   }
