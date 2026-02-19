@@ -1033,6 +1033,9 @@ void PDLPSolver::performHalpernPdhgStepGpu(bool is_major) {
   launchKernelHalpernBlend_wrapper(
       d_y_current_, d_y_next_ /*reflected*/, d_y_anchor_,
       w, rho, a_num_rows_);
+
+  linalgGpuAx(d_x_current_, d_ax_current_);
+  linalgGpuATy(d_y_current_, d_aty_current_);
 }
 #endif
 
@@ -1770,7 +1773,8 @@ void PDLPSolver::updatePrimalWeightAtRestart(const SolverResults& results) {
   double dual_dist = 0.0;
   
 #ifdef CUPDLP_GPU
-  // to do 
+  primal_dist = computeDiffNormCuBLAS(d_pdhg_primal_, d_x_anchor_, a_num_cols_);
+  dual_dist   = computeDiffNormCuBLAS(d_pdhg_dual_,   d_y_anchor_, a_num_rows_);  
 #else
   // CPU version
   for (size_t i = 0; i < lp_.num_col_; ++i) {
@@ -1822,6 +1826,12 @@ void PDLPSolver::updatePrimalWeightAtRestart(const SolverResults& results) {
     best_primal_dual_residual_gap_ = gap;
     best_primal_weight_ = primal_weight_;
   }
+
+  double eta = std::sqrt(stepsize_.primal_step * stepsize_.dual_step); // invariant
+  stepsize_.beta = primal_weight_ * primal_weight_;
+  stepsize_.primal_step = eta / primal_weight_;
+  stepsize_.dual_step   = eta * primal_weight_;
+  restart_scheme_.UpdateBeta(stepsize_.beta);
 }
 
 std::vector<double> PDLPSolver::updateX(const std::vector<double>& x,
