@@ -1033,8 +1033,8 @@ void PDLPSolver::performHalpernPdhgStepGpu(bool is_major) {
       d_y_current_, d_y_next_ /*reflected*/, d_y_anchor_,
       w, rho, a_num_rows_);
 
-  linalgGpuAx(d_x_current_, d_ax_current_);
-  linalgGpuATy(d_y_current_, d_aty_current_);
+  //linalgGpuAx(d_x_current_, d_ax_current_);
+  //linalgGpuATy(d_y_current_, d_aty_current_);
 }
 #endif
 
