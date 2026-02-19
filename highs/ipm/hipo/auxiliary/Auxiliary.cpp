@@ -9,7 +9,7 @@ void inversePerm(const std::vector<Int>& perm, std::vector<Int>& iperm) {
   // perm[i] : i-th entry to use in the new order.
   // iperm[i]: where entry i is located in the new order.
 
-  for (Int i = 0; i < perm.size(); ++i) {
+  for (Int i = 0; i < static_cast<Int>(perm.size()); ++i) {
     iperm[perm[i]] = i;
   }
 }
@@ -210,8 +210,9 @@ Int64 getDiagStart(Int n, Int k, Int nb, Int n_blocks,
 
 Int maxDepthTree(const std::vector<Int>& parent) {
   Int max_depth = 0;
-  std::vector<Int> depth(parent.size(), -1);
-  for (Int i = 0; i < parent.size(); ++i) {
+  Int n = parent.size();
+  std::vector<Int> depth(n, -1);
+  for (Int i = 0; i < n; ++i) {
     Int node = i;
     Int value = 1;
     while (node != -1) {

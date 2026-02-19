@@ -564,12 +564,12 @@ void Iterate::residuals6x6(const NewtonDir& d) {
 }
 
 void Iterate::assertConsistency(Int n, Int m) const {
-  assert(x.size() == n);
-  assert(xl.size() == n);
-  assert(xu.size() == n);
-  assert(y.size() == m);
-  assert(zl.size() == n);
-  assert(zu.size() == n);
+  assert(static_cast<Int>(x.size()) == n);
+  assert(static_cast<Int>(xl.size()) == n);
+  assert(static_cast<Int>(xu.size()) == n);
+  assert(static_cast<Int>(y.size()) == m);
+  assert(static_cast<Int>(zl.size()) == n);
+  assert(static_cast<Int>(zu.size()) == n);
 }
 
 void Iterate::makeStep(double alpha_primal, double alpha_dual) {

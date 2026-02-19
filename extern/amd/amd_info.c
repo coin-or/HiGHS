@@ -13,8 +13,9 @@
  */
 
 #include "amd_internal.h"
+#include "ipm/hipo/auxiliary/OrderingPrint.h"
 
-#define PRI(format,x) { if (x >= 0) { printf (format, x) ; }}
+#define PRI(format,x) { if (x >= 0) { HIGHS_ORDERING_PRINT (format, x) ; }}
 
 void Highs_amd_info
 (
@@ -23,7 +24,7 @@ void Highs_amd_info
 {
     double n, ndiv, nmultsubs_ldl, nmultsubs_lu, lnz, lnzd ;
 
-    printf ("\nAMD version %d.%d.%d, %s, results:\n",
+    HIGHS_ORDERING_PRINT ("\nAMD version %d.%d.%d, %s, results:\n",
 	AMD_MAIN_VERSION, AMD_SUB_VERSION, AMD_SUBSUB_VERSION, AMD_DATE) ;
 
     if (!Info)
@@ -39,26 +40,26 @@ void Highs_amd_info
     lnzd = (n >= 0 && lnz >= 0) ? (n + lnz) : (-1) ;
 
     /* AMD return status */
-    printf ("    status: ") ;
+    HIGHS_ORDERING_PRINT ("    status: ") ;
     if (Info [AMD_STATUS] == AMD_OK)
     {
-	printf ("OK\n") ;
+	HIGHS_ORDERING_PRINT ("OK\n") ;
     }
     else if (Info [AMD_STATUS] == AMD_OUT_OF_MEMORY)
     {
-	printf ("out of memory\n") ;
+	HIGHS_ORDERING_PRINT ("out of memory\n") ;
     }
     else if (Info [AMD_STATUS] == AMD_INVALID)
     {
-	printf ("invalid matrix\n") ;
+	HIGHS_ORDERING_PRINT ("invalid matrix\n") ;
     }
     else if (Info [AMD_STATUS] == AMD_OK_BUT_JUMBLED)
     {
-	printf ("OK, but jumbled\n") ;
+	HIGHS_ORDERING_PRINT ("OK, but jumbled\n") ;
     }
     else
     {
-	printf ("unknown\n") ;
+	HIGHS_ORDERING_PRINT ("unknown\n") ;
     }
 
     /* statistics about the input matrix */
@@ -81,7 +82,7 @@ void Highs_amd_info
 	Info [AMD_NCMPA]) ;
 
     /* statistics about the ordering quality */
-    printf ("\n"
+    HIGHS_ORDERING_PRINT ("\n"
 	"    The following approximate statistics are for a subsequent\n"
 	"    factorization of A(P,P) + A(P,P)'.  They are slight upper\n"
 	"    bounds if there are no dense rows/columns in A+A', and become\n"
@@ -104,7 +105,7 @@ void Highs_amd_info
 
     if (n >= 0 && ndiv >= 0 && nmultsubs_ldl >= 0 && nmultsubs_lu >= 0)
     {
-	printf ("\n"
+	HIGHS_ORDERING_PRINT ("\n"
 	"    chol flop count for real A, sqrt counted as 1 flop: %.20g\n"
 	"    LDL' flop count for real A:                         %.20g\n"
 	"    LDL' flop count for complex A:                      %.20g\n"

@@ -49,10 +49,13 @@ Int Model::checkData() const {
   if (n_ <= 0 || m_ < 0) return kStatusBadModel;
 
   // Vectors are of correct size
-  if (c_.size() != n_ || b_.size() != m_ || lower_.size() != n_ ||
-      upper_.size() != n_ || constraints_.size() != m_ ||
-      A_.start_.size() != n_ + 1 || A_.index_.size() != A_.start_.back() ||
-      A_.value_.size() != A_.start_.back())
+  if (static_cast<Int>(c_.size()) != n_ || static_cast<Int>(b_.size()) != m_ ||
+      static_cast<Int>(lower_.size()) != n_ ||
+      static_cast<Int>(upper_.size()) != n_ ||
+      static_cast<Int>(constraints_.size()) != m_ ||
+      static_cast<Int>(A_.start_.size()) != n_ + 1 ||
+      static_cast<Int>(A_.index_.size()) != A_.start_.back() ||
+      static_cast<Int>(A_.value_.size()) != A_.start_.back())
     return kStatusBadModel;
 
   // Hessian is ok, for QPs only
@@ -263,7 +266,7 @@ void Model::print(const LogHighs& log) const {
   if (qp()) {
     log_stream << textline("Range of Q:") << "[" << sci(Qmin, 5, 1) << ", "
                << sci(Qmax, 5, 1) << "], ratio ";
-    if (Amin != 0.0)
+    if (Qmin != 0.0)
       log_stream << sci(Qmax / Qmin, 0, 1) << '\n';
     else
       log_stream << "-\n";
@@ -284,8 +287,6 @@ void Model::print(const LogHighs& log) const {
     log_stream << "-\n";
 
   if (log.debug(1)) {
-    // log_stream << textline("Scaling CG iterations:")
-    //            << integer(CG_iter_scaling_) << '\n';
     log_stream << textline("Norm b unscaled") << sci(norm_unscaled_rhs_, 0, 1)
                << '\n';
     log_stream << textline("Norm b scaled") << sci(norm_scaled_rhs_, 0, 1)
