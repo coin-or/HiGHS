@@ -58,10 +58,6 @@ Int Solver::setOptions(const HighsOptions& highs_options,
     options_.crossover = hipo::kOptionCrossoverChoose;
   }
 
-  // Potentially control if ipx is used for refinement and if it is displayed
-  // options_.refine_with_ipx = true;
-  options_.display_ipx = true;
-
   // if option parallel is on, it can be refined by option hipo_parallel_type
   if (highs_options.parallel == kHighsOnString) {
     if (highs_options.hipo_parallel_type == kHipoTreeString)
@@ -289,7 +285,7 @@ bool Solver::prepareIpx() {
   assert(!model_.qp());
 
   ipx::Parameters ipx_param;
-  ipx_param.display = options_.display_ipx && options_.display;
+  ipx_param.display = options_.display;
   ipx_param.dualize = 0;
 
   if (options_.crossover == kOptionCrossoverOn)
