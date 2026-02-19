@@ -113,7 +113,7 @@ class HighsCliqueTable {
 
   void cliqueSubsumption(const std::vector<CliqueVar>& clique, bool& redundant,
                          HighsInt& dominatingOrigin,
-                         std::vector<HighsInt>& cliquesToRemove);
+                         std::function<void(HighsInt)> removeCliqueCallback);
 
   void collectCliques(const std::vector<CliqueVar>& clique);
 

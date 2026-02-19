@@ -103,19 +103,18 @@ HighsInt HighsCliqueTable::runCliqueSubsumption(
   // return if clique does not have enough elements
   if (clique.size() <= 2) return 0;
 
-  // check clique
-  bool redundant;
-  HighsInt dominatingOrigin;
-  std::vector<HighsInt> cliquesToRemove;
-  cliqueSubsumption(clique, redundant, dominatingOrigin, cliquesToRemove);
-
-  // remove cliques
+  // callback for removing cliques
   HighsInt nremoved = 0;
-  for (HighsInt cliqueid : cliquesToRemove) {
+  auto removeCliques = [&](HighsInt cliqueid) {
     ++nremoved;
     cliques[cliqueid].origin = kHighsIInf;
     removeClique(cliqueid);
-  }
+  };
+
+  // check clique
+  bool redundant;
+  HighsInt dominatingOrigin;
+  cliqueSubsumption(clique, redundant, dominatingOrigin, removeCliques);
 
   if (redundant) clique.clear();
 
@@ -131,7 +130,8 @@ HighsInt HighsCliqueTable::runCliqueSubsumption(
 
 void HighsCliqueTable::cliqueSubsumption(
     const std::vector<CliqueVar>& clique, bool& redundant,
-    HighsInt& dominatingOrigin, std::vector<HighsInt>& cliquesToRemove) {
+    HighsInt& dominatingOrigin,
+    std::function<void(HighsInt)> removeCliqueCallback) {
   // collect indices of cliques that contain variables from the
   // provided vector
   collectCliques(clique);
@@ -166,7 +166,7 @@ void HighsCliqueTable::cliqueSubsumption(
       } else {
         // clique from clique table contains a subset of the variables, thus it
         // can be removed
-        cliquesToRemove.push_back(cliqueid);
+        removeCliqueCallback(cliqueid);
       }
     }
   }
@@ -2142,15 +2142,14 @@ void HighsCliqueTable::runCliqueMerging(HighsDomain& globaldomain) {
           extensionvars.end());
       removeClique(k);
 
+      // callback for removing cliques
+      auto removeCliques = [&](HighsInt cliqueid) { removeClique(cliqueid); };
+
       // check extension
       bool redundant;
       HighsInt dominatingOrigin;
-      std::vector<HighsInt> cliquesToRemove;
       cliqueSubsumption(extensionvars, redundant, dominatingOrigin,
-                        cliquesToRemove);
-
-      // remove cliques
-      for (HighsInt cliqueid : cliquesToRemove) removeClique(cliqueid);
+                        removeCliques);
 
       if (!redundant) {
         for (size_t i = 0; i < numExtensions; ++i)
