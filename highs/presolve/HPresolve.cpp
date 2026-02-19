@@ -5023,8 +5023,9 @@ HPresolve::Result HPresolve::enumerateSolutions(
           r2 = -1;
         }
       }
-      // stop iterating if all remaining rows were removed
-      if (numRowsRemoved - oldNumRowsRemoved >= numRowsActive) break;
+      // stop iterating if at most one of the remaining rows is active (not
+      // deleted)
+      if (numRowsActive - numRowsRemoved + oldNumRowsRemoved <= 1) break;
     }
     if (numRowsRemoved > 0)
       rows.erase(std::remove_if(rows.begin(), rows.end(),
