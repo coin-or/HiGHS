@@ -926,8 +926,7 @@ void PDLPSolver::performHalpernPdhgStep(bool is_major) {
     y_current_[j] = w * blended + (1.0 - w) * y_anchor_[j];
   }
 
-  // --- STEP 5: Recompute Ax, ATy for blended current ---
-  linalg::Ax(lp_, x_current_, Ax_cache_);
+  // --- STEP 5: Recompute ATy for blended current ---
   linalg::ATy(lp_, y_current_, ATy_cache_);
 }
 
