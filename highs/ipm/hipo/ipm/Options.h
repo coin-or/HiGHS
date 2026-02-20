@@ -3,6 +3,7 @@
 
 #include "Parameters.h"
 #include "io/HighsIO.h"
+#include "lp_data/HighsOptions.h"
 
 namespace hipo {
 
@@ -15,22 +16,12 @@ enum OptionNla {
   kOptionNlaDefault = kOptionNlaChoose
 };
 
-enum OptionParallel {
-  kOptionParallelMin = 0,
-  kOptionParallelOff = kOptionParallelMin,  // tree off     node off
-  kOptionParallelOn,                        // tree on      node on
-  kOptionParallelChoose,                    // tree choose  node choose
-  kOptionParallelTreeOnly,                  // tree on      node off
-  kOptionParallelNodeOnly,                  // tree off     node on
-  kOptionParallelMax = kOptionParallelNodeOnly,
-  kOptionParallelDefault = kOptionParallelChoose
-};
-
 struct Options {
   // Solver options
   OptionNla nla = kOptionNlaDefault;
   std::string crossover = kHighsOffString;
-  OptionParallel parallel = kOptionParallelDefault;
+  std::string parallel = kHighsChooseString;
+  std::string parallel_type = kHipoBothString;
   std::string ordering = kHighsChooseString;
 
   // Ipm parameters

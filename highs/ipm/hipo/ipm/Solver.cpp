@@ -47,28 +47,8 @@ Int Solver::setOptions(const HighsOptions& highs_options) {
 
   options_.max_iter = highs_options.ipm_iteration_limit;
   options_.crossover = highs_options.run_crossover;
-
-  // if option parallel is on, it can be refined by option hipo_parallel_type
-  if (highs_options.parallel == kHighsOnString) {
-    if (highs_options.hipo_parallel_type == kHipoTreeString)
-      options_.parallel = hipo::kOptionParallelTreeOnly;
-    else if (highs_options.hipo_parallel_type == kHipoNodeString)
-      options_.parallel = hipo::kOptionParallelNodeOnly;
-    else if (highs_options.hipo_parallel_type == kHipoBothString)
-      options_.parallel = hipo::kOptionParallelOn;
-    else {
-      highsLogUser(highs_options.log_options, HighsLogType::kError,
-                   "Unknown value of option %s\n", kHipoParallelString.c_str());
-      return kStatusError;
-    }
-  }
-  // otherwise, option hipo_parallel_type is ignored
-  else if (highs_options.parallel == kHighsOffString)
-    options_.parallel = hipo::kOptionParallelOff;
-  else {
-    assert(highs_options.parallel == kHighsChooseString);
-    options_.parallel = hipo::kOptionParallelChoose;
-  }
+  options_.parallel = highs_options.parallel;
+  options_.parallel_type = highs_options.hipo_parallel_type;
 
   // Parse hipo_system option
   if (highs_options.hipo_system == kHipoAugmentedString) {
@@ -212,7 +192,6 @@ void Solver::terminate() {
   if (info_.status == kStatusNotRun) info_.status = kStatusMaxIter;
 
   info_.option_nla = options_.nla;
-  info_.option_par = options_.parallel;
   info_.num_dense_cols = model_.numDenseCols();
   info_.max_col_density = model_.maxColDensity();
 }
@@ -1265,7 +1244,7 @@ void Solver::printInfo() const {
   log_stream << "\nRunning HiPO\n";
 
   // Print number of threads
-  if (options_.parallel == kOptionParallelOff)
+  if (options_.parallel == kHighsOffString)
     log_stream << textline("Threads:") << 1 << '\n';
   else
     log_stream << textline("Threads:") << highs::parallel::num_threads()
