@@ -19,7 +19,7 @@ Int Solver::load(const HighsLp& lp, const HighsHessian& Q) {
   return kStatusOk;
 }
 
-Int Solver::setOptions(const HighsOptions& highs_options) {
+void Solver::setOptions(const HighsOptions& highs_options) {
   options_.display = true;
   if (!highs_options.output_flag | !highs_options.log_to_console)
     options_.display = false;
@@ -56,8 +56,6 @@ Int Solver::setOptions(const HighsOptions& highs_options) {
   options_orig_ = options_;
   Hoptions_ = highs_options;
   resetOptions();
-
-  return kStatusOk;
 }
 
 void Solver::resetOptions() {
