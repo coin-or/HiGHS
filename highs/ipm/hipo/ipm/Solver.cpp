@@ -1096,7 +1096,7 @@ bool Solver::checkBadIter() {
       terminate = true;
     } else if (stagnation) {
       // stagnation detected, solution may still be good for highs kktCheck
-      if (checkTerminationKkt()) {
+      if (info_.status != kStatusPDFeas && checkTerminationKkt()) {
         logH_.printw(
             "HiPO stagnated but HiGHS considers the solution acceptable\n");
         logH_.print("=== Primal-dual feasible point found\n");
