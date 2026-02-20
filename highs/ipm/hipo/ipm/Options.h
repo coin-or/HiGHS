@@ -7,18 +7,9 @@
 
 namespace hipo {
 
-enum OptionNla {
-  kOptionNlaMin = 0,
-  kOptionNlaAugmented = kOptionNlaMin,
-  kOptionNlaNormEq,
-  kOptionNlaChoose,
-  kOptionNlaMax = kOptionNlaChoose,
-  kOptionNlaDefault = kOptionNlaChoose
-};
-
 struct Options {
   // Solver options
-  OptionNla nla = kOptionNlaDefault;
+  std::string nla = kHighsChooseString;
   std::string crossover = kHighsOffString;
   std::string parallel = kHighsChooseString;
   std::string parallel_type = kHipoBothString;

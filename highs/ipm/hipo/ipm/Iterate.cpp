@@ -485,12 +485,12 @@ Int Iterate::finalResiduals(Info& info) const {
   return kStatusOk;
 }
 
-void Iterate::getReg(LinearSolver& LS, OptionNla opt) {
+void Iterate::getReg(LinearSolver& LS, const std::string& nla) {
   // extract regularisation
   LS.getReg(total_reg);
 
   // easy access to primal/dual regularisation
-  if (opt == kOptionNlaNormEq) {
+  if (nla == kHipoNormalEqString) {
     Rp = nullptr;
     Rd = total_reg.data();
   } else {

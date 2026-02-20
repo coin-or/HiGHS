@@ -162,7 +162,7 @@ struct Iterate {
 
   bool stagnation(std::stringstream& log_stream);
 
-  void getReg(LinearSolver& LS, OptionNla opt);
+  void getReg(LinearSolver& LS, const std::string& nla);
 
   void assertConsistency(Int n, Int m) const;
 };

@@ -49,19 +49,7 @@ Int Solver::setOptions(const HighsOptions& highs_options) {
   options_.crossover = highs_options.run_crossover;
   options_.parallel = highs_options.parallel;
   options_.parallel_type = highs_options.hipo_parallel_type;
-
-  // Parse hipo_system option
-  if (highs_options.hipo_system == kHipoAugmentedString) {
-    options_.nla = hipo::kOptionNlaAugmented;
-  } else if (highs_options.hipo_system == kHipoNormalEqString) {
-    options_.nla = hipo::kOptionNlaNormEq;
-  } else if (highs_options.hipo_system == kHighsChooseString) {
-    options_.nla = hipo::kOptionNlaChoose;
-  } else {
-    highsLogUser(highs_options.log_options, HighsLogType::kError,
-                 "Unknown value of option %s\n", kHipoSystemString.c_str());
-    return kStatusError;
-  }
+  options_.nla = highs_options.hipo_system;
 
   // Reordering heuristic
   if (highs_options.hipo_ordering != kHipoMetisString &&
@@ -191,7 +179,6 @@ void Solver::terminate() {
   info_.ipm_iter = iter_;
   if (info_.status == kStatusNotRun) info_.status = kStatusMaxIter;
 
-  info_.option_nla = options_.nla;
   info_.num_dense_cols = model_.numDenseCols();
   info_.max_col_density = model_.maxColDensity();
 }
@@ -357,7 +344,7 @@ bool Solver::solve2x2(NewtonDir& delta, const Residuals& rhs) {
   std::vector<double> res7 = it_->residual7(rhs);
 
   // NORMAL EQUATIONS
-  if (options_.nla == kOptionNlaNormEq) {
+  if (options_.nla == kHipoNormalEqString) {
     std::vector<double> res8 = it_->residual8(rhs, res7);
 
     // factorise normal equations, if not yet done
@@ -644,7 +631,7 @@ bool Solver::startingPoint() {
   y = model_.b();
   if (norm2(y) < 1e-6) vectorAdd(y, 1e-3);
 
-  if (options_.nla == kOptionNlaNormEq) {
+  if (options_.nla == kHipoNormalEqString) {
     // use y to store b-A*x
     model_.A().alphaProductPlusY(-1.0, x, y);
 
@@ -664,7 +651,7 @@ bool Solver::startingPoint() {
       return true;
     }
 
-  } else if (options_.nla == kOptionNlaAugmented) {
+  } else if (options_.nla == kHipoAugmentedString) {
     // obtain solution of A*A^T * dx = b-A*x by solving
     // [ -I  A^T] [...] = [ -x]
     // [  A   0 ] [ dx] = [ b ]
@@ -732,7 +719,7 @@ bool Solver::startingPoint() {
   double max_norm_x = std::max(infNorm(x), std::max(infNorm(xl), infNorm(xu)));
   if (infNorm(cPlusQx) > max_norm_x * 1e3) cPlusQx = model_.c();
 
-  if (options_.nla == kOptionNlaNormEq) {
+  if (options_.nla == kHipoNormalEqString) {
     // compute A*(c+Qx)
     std::fill(temp_m.begin(), temp_m.end(), 0.0);
     model_.A().alphaProductPlusY(1.0, cPlusQx, temp_m);
@@ -743,7 +730,7 @@ bool Solver::startingPoint() {
       return true;
     }
 
-  } else if (options_.nla == kOptionNlaAugmented) {
+  } else if (options_.nla == kHipoAugmentedString) {
     // obtain solution of A*A^T * y = A*(c+Qx) by solving
     // [ -I  A^T] [...] = [ c+Qx ]
     // [  A   0 ] [ y ] = [   0  ]
