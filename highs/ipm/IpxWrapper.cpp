@@ -476,7 +476,7 @@ HighsStatus solveHipo(const HighsOptions& options, HighsTimer& timer,
                  1e-1 * options.kkt_tolerance);
   }
 
-  if (hipo.setOptions(options, highs_info)) {
+  if (hipo.setOptions(options)) {
     model_status = HighsModelStatus::kSolveError;
     return HighsStatus::kError;
   }

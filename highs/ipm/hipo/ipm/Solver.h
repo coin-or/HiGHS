@@ -85,7 +85,7 @@ class Solver {
   // ===================================================================================
   // Specify options, callback and timer.
   // ===================================================================================
-  Int setOptions(const HighsOptions& highs_options, const HighsInfo& info);
+  Int setOptions(const HighsOptions& highs_options);
   void setCallback(HighsCallback& callback);
   void setTimer(const HighsTimer& timer);
 

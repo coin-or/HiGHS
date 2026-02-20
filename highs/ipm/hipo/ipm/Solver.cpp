@@ -19,8 +19,7 @@ Int Solver::load(const HighsLp& lp, const HighsHessian& Q) {
   return kStatusOk;
 }
 
-Int Solver::setOptions(const HighsOptions& highs_options,
-                       const HighsInfo& highs_info) {
+Int Solver::setOptions(const HighsOptions& highs_options) {
   options_.display = true;
   if (!highs_options.output_flag | !highs_options.log_to_console)
     options_.display = false;
@@ -46,8 +45,7 @@ Int Solver::setOptions(const HighsOptions& highs_options,
   // hipo uses same timer as highs, so it is fine to pass the same time limit
   options_.time_limit = highs_options.time_limit;
 
-  options_.max_iter =
-      highs_options.ipm_iteration_limit - highs_info.ipm_iteration_count;
+  options_.max_iter = highs_options.ipm_iteration_limit;
 
   if (highs_options.run_crossover == kHighsOnString)
     options_.crossover = hipo::kOptionCrossoverOn;
