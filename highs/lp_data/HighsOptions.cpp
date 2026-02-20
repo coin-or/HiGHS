@@ -185,6 +185,19 @@ bool optionMipIpmSolverOk(const HighsLogOptions& report_log_options,
   return false;
 }
 
+bool optionHipoParallelTypeOk(const HighsLogOptions& report_log_options,
+                              const string& value) {
+  if (value == kHipoNodeString || value == kHipoTreeString ||
+      value == kHipoBothString)
+    return true;
+  highsLogUser(
+      report_log_options, HighsLogType::kError,
+      "Value \"%s\" for %s option is not one of \"%s\", \"%s\" or \"%s\"\n",
+      value.c_str(), kHipoParallelString.c_str(), kHipoTreeString.c_str(),
+      kHipoNodeString.c_str(), kHipoBothString.c_str());
+  return false;
+}
+
 bool boolFromString(std::string value, bool& bool_value) {
   std::transform(value.begin(), value.end(), value.begin(),
                  [](unsigned char c) { return std::tolower(c); });
@@ -463,6 +476,9 @@ OptionStatus checkOptionValue(const HighsLogOptions& report_log_options,
       return OptionStatus::kIllegalValue;
   } else if (option.name == kRangingString) {
     if (!optionOffOnOk(report_log_options, option.name, value))
+      return OptionStatus::kIllegalValue;
+  } else if (option.name == kHipoParallelString) {
+    if (!optionHipoParallelTypeOk(report_log_options, value))
       return OptionStatus::kIllegalValue;
   }
   return OptionStatus::kOk;
