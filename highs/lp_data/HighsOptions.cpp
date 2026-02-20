@@ -80,16 +80,23 @@ bool optionOffOnOk(const HighsLogOptions& report_log_options,
   return false;
 }
 
+#ifndef HIPO
+static void noHipoErrorLog(const HighsLogOptions& report_log_options,
+                           const string& option_name) {
+  highsLogUser(
+      report_log_options, HighsLogType::kError,
+      "The HiPO solver was requested via the \"%s\" option, but this build "
+      "was compiled without HiPO support. Reconfigure with -DFAST_BUILD=ON "
+      "and -DHIPO=ON to enable HiPO.\n",
+      option_name.c_str());
+}
+#endif
+
 bool optionSolverOk(const HighsLogOptions& report_log_options,
                     const string& value) {
 #ifndef HIPO
   if (value == kHipoString) {
-    highsLogUser(
-        report_log_options, HighsLogType::kError,
-        "The HiPO solver was requested via the \"%s\" option, but this build "
-        "was compiled without HiPO support. Reconfigure with FAST_BUILD=ON "
-        "and -DHIPO=ON to enable HiPO.\n",
-        kSolverString.c_str());
+    noHipoErrorLog(report_log_options, kSolverString);
     return false;
   }
 #endif
@@ -119,12 +126,7 @@ bool optionMipLpSolverOk(const HighsLogOptions& report_log_options,
                          const string& value) {
 #ifndef HIPO
   if (value == kHipoString) {
-    highsLogUser(
-        report_log_options, HighsLogType::kError,
-        "The HiPO solver was requested via the \"%s\" option, but this build "
-        "was compiled without HiPO support. Reconfigure with FAST_BUILD=ON "
-        "and -DHIPO=ON to enable HiPO.\n",
-        kMipLpSolverString.c_str());
+    noHipoErrorLog(report_log_options, kMipLpSolverString);
     return false;
   }
 #endif
@@ -155,12 +157,7 @@ bool optionMipIpmSolverOk(const HighsLogOptions& report_log_options,
                           const string& value) {
 #ifndef HIPO
   if (value == kHipoString) {
-    highsLogUser(
-        report_log_options, HighsLogType::kError,
-        "The HiPO solver was requested via the \"%s\" option, but this build "
-        "was compiled without HiPO support. Reconfigure with FAST_BUILD=ON "
-        "and -DHIPO=ON to enable HiPO.\n",
-        kMipIpmSolverString.c_str());
+    noHipoErrorLog(report_log_options, kMipIpmSolverString);
     return false;
   }
 #endif
