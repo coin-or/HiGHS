@@ -211,6 +211,20 @@ bool optionHipoSystemOk(const HighsLogOptions& report_log_options,
   return false;
 }
 
+bool optionHipoOrderingOk(const HighsLogOptions& report_log_options,
+                          const string& value) {
+  if (value == kHipoAmdString || value == kHipoMetisString ||
+      value == kHipoRcmString || value == kHighsChooseString)
+    return true;
+  highsLogUser(report_log_options, HighsLogType::kError,
+               "Value \"%s\" for %s option is not one of \"%s\", \"%s\", "
+               "\"%s\" or \"%s\"\n",
+               value.c_str(), kHipoOrderingString.c_str(),
+               kHipoAmdString.c_str(), kHipoMetisString.c_str(),
+               kHipoRcmString.c_str(), kHighsChooseString.c_str());
+  return false;
+}
+
 bool boolFromString(std::string value, bool& bool_value) {
   std::transform(value.begin(), value.end(), value.begin(),
                  [](unsigned char c) { return std::tolower(c); });
@@ -495,6 +509,9 @@ OptionStatus checkOptionValue(const HighsLogOptions& report_log_options,
       return OptionStatus::kIllegalValue;
   } else if (option.name == kHipoSystemString) {
     if (!optionHipoSystemOk(report_log_options, value))
+      return OptionStatus::kIllegalValue;
+  } else if (option.name == kHipoOrderingString) {
+    if (!optionHipoOrderingOk(report_log_options, value))
       return OptionStatus::kIllegalValue;
   }
   return OptionStatus::kOk;

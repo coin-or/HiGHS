@@ -50,19 +50,7 @@ Int Solver::setOptions(const HighsOptions& highs_options) {
   options_.parallel = highs_options.parallel;
   options_.parallel_type = highs_options.hipo_parallel_type;
   options_.nla = highs_options.hipo_system;
-
-  // Reordering heuristic
-  if (highs_options.hipo_ordering != kHipoMetisString &&
-      highs_options.hipo_ordering != kHipoAmdString &&
-      highs_options.hipo_ordering != kHipoRcmString &&
-      highs_options.hipo_ordering != kHighsChooseString) {
-    highsLogUser(highs_options.log_options, HighsLogType::kError,
-                 "Unknown value of option %s\n", kHipoOrderingString.c_str());
-    return kStatusError;
-  }
   options_.ordering = highs_options.hipo_ordering;
-
-  // block size option
   options_.block_size = highs_options.hipo_block_size;
 
   options_orig_ = options_;

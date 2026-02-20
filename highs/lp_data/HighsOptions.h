@@ -142,6 +142,8 @@ bool optionHipoParallelTypeOk(const HighsLogOptions& report_log_options,
                               const string& value);
 bool optionHipoSystemOk(const HighsLogOptions& report_log_options,
                         const string& value);
+bool optionHipoOrderingOk(const HighsLogOptions& report_log_options,
+                          const string& value);
 
 bool boolFromString(std::string value, bool& bool_value);
 
