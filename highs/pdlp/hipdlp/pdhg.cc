@@ -756,7 +756,9 @@ bool PDLPSolver::runConvergenceCheckAndRestart(size_t iter,
 
     
     if (params_.use_halpern_restart ) {
-      updatePrimalWeightAtRestart(current_results);
+      if (params_.step_size_strategy == StepSizeStrategy::PID) {
+	updatePrimalWeightAtRestart(current_results);
+      }
 #ifdef CUPDLP_GPU
       if (d_pdhg_primal_ != nullptr) {
         // Halpern: always restart to pdhg iterate (matching cuPDLPx)
@@ -863,6 +865,8 @@ void PDLPSolver::performPdhgStep() {
       // Note: Error handling for MP failure simplified for brevity
       updateIteratesMalitskyPock(false); 
       break;
+    case StepSizeStrategy::PID:
+      assert(111==999);
   }
   
 #if PDLP_PROFILE
@@ -1636,6 +1640,9 @@ void PDLPSolver::setup(const HighsOptions& options, HighsTimer& timer) {
     } else if (options.pdlp_step_size_strategy ==
                kPdlpStepSizeStrategyMalitskyPock) {
       params_.step_size_strategy = StepSizeStrategy::MALITSKY_POCK;
+    } else if (options.pdlp_step_size_strategy ==
+               kPdlpStepSizeStrategyPid) {
+      params_.step_size_strategy = StepSizeStrategy::PID;
     }
   }
   //  params_.malitsky_pock_params.initialise(); Not set in parse_options_file
@@ -1791,6 +1798,7 @@ void PDLPSolver::updatePrimalWeightAtRestart(const SolverResults& results) {
   // Compute residual ratio
   double ratio = results.dual_feasibility / (results.primal_feasibility + 1e-30);
 
+  const bool silent = true;
   // cuPDLPx-style weight update (PID control)
   if (primal_dist > 1e-16 && dual_dist > 1e-16 &&
       primal_dist < 1e12 && dual_dist < 1e12 &&
@@ -1808,14 +1816,15 @@ void PDLPSolver::updatePrimalWeightAtRestart(const SolverResults& results) {
     );
     
     primal_weight_last_error_ = error;
-    
-    logger_.info("Primal weight updated: " + std::to_string(primal_weight_));
+    if (!silent)
+      logger_.info("Primal weight updated: " + std::to_string(primal_weight_));
   } else {
     // Revert to best known weight
     primal_weight_ = best_primal_weight_;
     primal_weight_error_sum_ = 0.0;
     primal_weight_last_error_ = 0.0;
-    logger_.info("Weight update failed (bad norms/ratio), reverted to best: " + 
+    if (!silent)
+      logger_.info("Weight update failed (bad norms/ratio), reverted to best: " + 
                  std::to_string(primal_weight_));
   }
 
