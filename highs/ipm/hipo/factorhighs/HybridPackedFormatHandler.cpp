@@ -141,31 +141,14 @@ void HybridPackedFormatHandler::assembleChild(Int child_sn,
 
   bool parallel = S_->parTree() || S_->parNode();
 
-  if (parallel && child_clique_size > kParallelAssemblyThresh) {
-    // The loop over the columns of the child clique has completely independent
-    // iterations. The loop is split evenly among the available threads.
-
-    TaskGroupSpecial tg;
-    const Int threads = highs::parallel::num_threads();
-    const double ops_per_thread =
-        (double)child_clique_size * (child_clique_size + 1) / 2 / threads;
-    double ops_current = 0;
-    Int next_col = 0;
-    for (Int last_col = 0; last_col < child_clique_size; ++last_col) {
-      ops_current += child_clique_size - last_col;
-
-      if (ops_current > ops_per_thread || last_col == child_clique_size - 1) {
-        tg.spawn([=]() {
-          for (Int col = next_col; col <= last_col; ++col) {
+  if (parallel) {
+    highs::parallel::for_each(
+        0, child_clique_size,
+        [=](Int start, Int end) {
+          for (Int col = start; col < end; ++col)
             assembleChildSingleCol(child_sn, child, child_clique_size, col);
-          }
-        });
-        next_col = last_col + 1;
-        ops_current = 0;
-      }
-    }
-    tg.taskWait();
-
+        },
+        kParallelAssemblyThresh);
   } else {
     for (Int col = 0; col < child_clique_size; ++col)
       assembleChildSingleCol(child_sn, child, child_clique_size, col);
