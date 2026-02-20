@@ -46,15 +46,7 @@ Int Solver::setOptions(const HighsOptions& highs_options) {
   options_.time_limit = highs_options.time_limit;
 
   options_.max_iter = highs_options.ipm_iteration_limit;
-
-  if (highs_options.run_crossover == kHighsOnString)
-    options_.crossover = hipo::kOptionCrossoverOn;
-  else if (highs_options.run_crossover == kHighsOffString)
-    options_.crossover = hipo::kOptionCrossoverOff;
-  else {
-    assert(highs_options.run_crossover == kHighsChooseString);
-    options_.crossover = hipo::kOptionCrossoverChoose;
-  }
+  options_.crossover = highs_options.run_crossover;
 
   // if option parallel is on, it can be refined by option hipo_parallel_type
   if (highs_options.parallel == kHighsOnString) {
@@ -288,14 +280,12 @@ bool Solver::prepareIpx() {
   ipx_param.log_options = options_.log_options;
   ipx_param.dualize = 0;
 
-  if (options_.crossover == kOptionCrossoverOn)
+  if (options_.crossover == kHighsOnString)
     ipx_param.run_crossover = 1;
-  else if (options_.crossover == kOptionCrossoverOff)
+  else if (options_.crossover == kHighsOffString)
     ipx_param.run_crossover = 0;
-  else {
-    assert(options_.crossover == kOptionCrossoverChoose);
+  else
     ipx_param.run_crossover = -1;
-  }
 
   ipx_param.ipm_feasibility_tol = options_.feasibility_tol;
   ipx_param.ipm_optimality_tol = options_.optimality_tol;
@@ -1413,7 +1403,7 @@ bool Solver::refinementIsOn() const {
   return options_.refine_with_ipx && !model_.qp();
 }
 bool Solver::crossoverIsOn() const {
-  return options_.crossover == kOptionCrossoverOn && !model_.qp();
+  return options_.crossover == kHighsOnString && !model_.qp();
 }
 bool Solver::solved() const { return statusIsSolved(); }
 bool Solver::stopped() const { return statusIsStopped(); }

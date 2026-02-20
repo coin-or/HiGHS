@@ -15,15 +15,6 @@ enum OptionNla {
   kOptionNlaDefault = kOptionNlaChoose
 };
 
-enum OptionCrossover {
-  kOptionCrossoverMin = 0,
-  kOptionCrossoverOff = kOptionCrossoverMin,
-  kOptionCrossoverOn,
-  kOptionCrossoverChoose,
-  kOptionCrossoverMax = kOptionCrossoverChoose,
-  kOptionCrossoverDefault = kOptionCrossoverOff
-};
-
 enum OptionParallel {
   kOptionParallelMin = 0,
   kOptionParallelOff = kOptionParallelMin,  // tree off     node off
@@ -38,7 +29,7 @@ enum OptionParallel {
 struct Options {
   // Solver options
   OptionNla nla = kOptionNlaDefault;
-  OptionCrossover crossover = kOptionCrossoverDefault;
+  std::string crossover = kHighsOffString;
   OptionParallel parallel = kOptionParallelDefault;
   std::string ordering = kHighsChooseString;
 
