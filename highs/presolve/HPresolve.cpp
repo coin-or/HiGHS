@@ -5057,11 +5057,15 @@ HPresolve::Result HPresolve::enumerateSolutions(
       if ((++numRowsAccepted) >= maxNumRowsChecked) break;
       // get indices of binary variables in the row
       getBinaryRow(r, binvars, numnzs);
+      // initialise counters
+      HighsInt numRowsActive = 0;
+      HighsInt oldNumRowsRemoved = numRowsRemoved;
       for (size_t ii = i + 1; ii < rows.size(); ii++) {
         // get row index and skip removed rows
         HighsInt& r2 = std::get<3>(rows[ii]);
         if (r2 == -1) continue;
         // compare signatures to see if there may be overlap
+        numRowsActive++;
         if ((std::get<4>(rows[i]) & std::get<4>(rows[ii])) == 0) continue;
         // get indices of binary variables in the row
         getBinaryRow(r2, binvars2, numnzs2);
@@ -5074,6 +5078,9 @@ HPresolve::Result HPresolve::enumerateSolutions(
           r2 = -1;
         }
       }
+      // stop iterating if at most one of the remaining rows is active (not
+      // deleted)
+      if (numRowsActive - numRowsRemoved + oldNumRowsRemoved <= 1) break;
     }
     if (numRowsRemoved > 0)
       rows.erase(std::remove_if(rows.begin(), rows.end(),
