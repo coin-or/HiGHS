@@ -863,3 +863,15 @@ TEST_CASE("dual-bound-tightening", "[highs_test_presolve]") {
   highs.passModel(lp);
   REQUIRE(highs.presolve() == HighsStatus::kOk);
 }
+
+TEST_CASE("presolve-rule-off", "[highs_test_presolve]") {
+  std::string model_file =
+      std::string(HIGHS_DIR) + "/check/instances/flugpl.mps";
+  Highs h;
+  //  h.setOptionValue("output_flag", dev_run);
+  h.readModel(model_file);
+  h.setOptionValue("log_dev_level", 1);
+  h.run();
+
+  h.resetGlobalScheduler(true);
+}
