@@ -83,6 +83,10 @@ sdist.exclude = [
 HIPO_EXTRAS_LIBRARY_BUILD="ON"
 BUILD_OPENBLAS="ON"
 
+[[tool.scikit-build.overrides]]
+if.platform-system = "darwin"
+cmake.define.BUILD_OPENBLAS = "OFF"
+
 [tool.cibuildwheel]
 build = "*"
 archs = ["auto64", "auto32"]
