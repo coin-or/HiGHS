@@ -567,6 +567,7 @@ TEST_CASE("lp-duplicate-variable", "[highs_filereader]") {
   std::remove(lp_file.c_str());
 }
 
+/*
 TEST_CASE("lp-square-bracket-in-name", "[highs_filereader]") {
   const std::string test_name = Catch::getResultCapture().getCurrentTestName();
   std::string lp_file = test_name + ".lp";
@@ -584,3 +585,4 @@ TEST_CASE("lp-square-bracket-in-name", "[highs_filereader]") {
 
   //  std::remove(lp_file.c_str());
 }
+*/

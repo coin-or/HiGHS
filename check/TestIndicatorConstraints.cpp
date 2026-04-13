@@ -4,7 +4,7 @@
 #include "lp_data/HConst.h"
 
 const double inf = kHighsInf;
-const bool dev_run = true;//false;
+const bool dev_run = false;
 const double double_equal_tolerance = 1e-5;
 
 void solveWriteReadSolve(Highs& highs, const double objective_value,
@@ -170,7 +170,7 @@ TEST_CASE("indicator-range", "[highs_test_indicator]") {
   //      z binary, x in [0, 10]
   // Optimal: z=0, x=0, obj=0
   Highs highs;
-  //  highs.setOptionValue("output_flag", dev_run);
+  highs.setOptionValue("output_flag", dev_run);
 
   highs.addVar(0.0, 10.0);  // x (col 0)
   highs.addVar(0.0, 1.0);   // z (col 1)
