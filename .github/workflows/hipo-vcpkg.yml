@@ -7,65 +7,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  win-vcpkg:
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Configure CMake
-        shell: pwsh
-        run: |
-          cmake `
-          -S "$env:GITHUB_WORKSPACE" `
-          -B "${{ github.workspace }}/build" `
-          -DHIPO=ON `
-          -DALL_TESTS=OFF `
-          -DHIGHS_VCPKG=ON
-
-      - name: Build Release
-        shell: pwsh
-        working-directory: ${{github.workspace}}/build
-        run: |
-          cmake --build . --parallel --config Release
-
-      - name: Test executable (Release)
-        shell: pwsh
-        working-directory: ${{github.workspace}}/build
-        run: |
-          & ".\Release\bin\highs.exe" --solver=hipo `
-          "$env:GITHUB_WORKSPACE/check/instances/afiro.mps"
-
-      - name: Ctest (Release)
-        shell: pwsh
-        working-directory: ${{github.workspace}}/build
-        run: |
-          ctest --parallel --timeout 300 --output-on-failure -C Release
-
-      - name: Build Debug
-        shell: pwsh
-        working-directory: ${{github.workspace}}/build
-        run: |
-          cmake --build . --parallel --config Debug
-
-      - name: Test executable (Debug)
-        shell: pwsh
-        working-directory: ${{github.workspace}}/build
-        run: |
-          & ".\Debug\bin\highs.exe" --solver=hipo `
-          "$env:GITHUB_WORKSPACE/check/instances/afiro.mps"
-
-      - name: Ctest (Debug)
-        shell: pwsh
-        working-directory: ${{github.workspace}}/build
-        run: |
-          ctest --parallel --timeout 300 --output-on-failure -C Debug
 
   ubuntu_vcpkg:
-    runs-on: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
         config: [Release, Debug]
         all_tests: [OFF, ON]
 
