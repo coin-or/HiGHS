@@ -42,14 +42,7 @@ jobs:
         working-directory: ${{github.workspace}}/build
         run: ./bin/highs --solver=hipo $GITHUB_WORKSPACE/check/instances/afiro.mps
 
-      - name: Debug through SSH
-        uses: edipizarro/runner-open-ssh @main
-        with:
-          sshPublicKey: ${{ secrets.SSH_PUBLIC_KEY }}
-          gatewayPrivateKey: ${{ secrets.GATEWAY_PRIVATE_KEY }}
-          gatewayIP: ${{ secrets.GATEWAY_IP }}
-          gatewayUser: ${{ secrets.GATEWAY_USER }}
-          maxLifeTime: 30
-          port: 2222  # Optional: defaults to 2222
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
 
 
