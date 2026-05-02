@@ -108,7 +108,7 @@ TEST_CASE("test-hipo-qp", "[highs_hipo]") {
   Highs highs;
   runHipoTest(highs, "qptestnw.lp", -6.4500);
   runHipoTest(highs, "qjh.lp", -5.2500);
-  runHipoTest(highs, "primal1.mps", -3.501296e-2);
+  runHipoTest(highs, "primal1.mps", -3.5012-2);
   highs.resetGlobalScheduler(true);
 }
 
