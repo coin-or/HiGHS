@@ -13,10 +13,11 @@
 
 #include <string>
 
+#include "highs_export.h"
 #include "lp_data/HStruct.h"
 #include "util/HighsSparseMatrix.h"
 
-class HighsLp {
+class HIGHS_EXPORT HighsLp {
  public:
   HighsLp() { clear(); }
   // Model data

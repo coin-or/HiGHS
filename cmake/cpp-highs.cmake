@@ -43,8 +43,6 @@ set_target_properties(highs PROPERTIES
 ## Install rules ##
 ###################
 include(GNUInstallDirs)
-include(GenerateExportHeader)
-GENERATE_EXPORT_HEADER(highs)
 install(FILES ${PROJECT_BINARY_DIR}/highs_export.h
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 

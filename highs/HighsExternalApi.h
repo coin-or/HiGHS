@@ -15,6 +15,7 @@
 #include <tuple>
 #include <type_traits>
 
+#include "highs_export.h"
 #include "HConfig.h"
 #include "HighsExternalDeps.h"
 #include "HighsExtrasApi.h"
@@ -116,7 +117,7 @@ struct trait_pack_ops<Trait, Rest...> {
  * This class handles runtime / static / missing external dependencies
  * those that have a different license from HiGHS.
  */
-struct HighsExternalApi {
+struct HIGHS_EXPORT HighsExternalApi {
  public:
   HighsExternalApi() = default;
   ~HighsExternalApi() { unload(); }

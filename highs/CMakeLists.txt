@@ -7,6 +7,22 @@ include(sources)
 set(sources ${highs_sources} ${cupdlp_sources} ${ipx_sources} ${basiclu_sources} ${hipo_sources} ${factor_highs_sources} ${hipo_util_sources})
 set(headers ${highs_headers} ${cupdlp_headers} ${ipx_headers} ${basiclu_headers} ${hipo_headers} ${factor_highs_headers} ${hipo_util_headers})
 
+include(GenerateExportHeader)
+
+function(highs_configure_shared_exports target_name)
+  generate_export_header(${target_name}
+    BASE_NAME HIGHS
+    EXPORT_FILE_NAME "${PROJECT_BINARY_DIR}/highs_export.h"
+    STATIC_DEFINE LIBHIGHS_STATIC_DEFINE)
+
+  if(BUILD_SHARED_LIBS)
+    set_target_properties(${target_name} PROPERTIES
+      CXX_VISIBILITY_PRESET hidden
+      C_VISIBILITY_PRESET hidden
+      VISIBILITY_INLINES_HIDDEN ON)
+  endif()
+endfunction()
+
 # Configure the config windows version file
 if(MSVC)
   string(REPLACE "." ","  PROJECT_RC_VERSION "${PROJECT_VERSION}")
@@ -21,6 +37,7 @@ endif()
 if(NOT FAST_BUILD)
 
   add_library(libhighs ${sources} ${headers} ${win_version_file})
+  highs_configure_shared_exports(libhighs)
   target_include_directories(libhighs PRIVATE ${include_dirs})
 
   if(${BUILD_SHARED_LIBS})
@@ -132,6 +149,7 @@ else()
   # Define library in modern CMake using target_*()
   # No interfaces (apart from c); No ipx; New (short) ctest instances.
   add_library(highs)
+  highs_configure_shared_exports(highs)
 
   add_library(${PROJECT_NAMESPACE}::highs ALIAS highs)
 

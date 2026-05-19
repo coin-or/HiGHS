@@ -13,13 +13,14 @@
 
 #include <vector>
 
+#include "highs_export.h"
 #include "lp_data/HConst.h"
 #include "util/HighsCDouble.h"
 #include "util/HighsUtils.h"
 
 // class HighsHessian;
 
-class HighsHessian {
+class HIGHS_EXPORT HighsHessian {
  public:
   HighsHessian() { clear(); }
   HighsInt dim_;

@@ -14,6 +14,7 @@
 #include <array>
 #include <iostream>
 
+#include "highs_export.h"
 #include "lp_data/HighsCallback.h"
 
 class HighsOptions;
@@ -36,7 +37,7 @@ enum LogDevLevel {
   kHighsLogDevLevelMax = kHighsLogDevLevelVerbose
 };
 
-struct HighsLogOptions {
+struct HIGHS_EXPORT HighsLogOptions {
   FILE* log_stream;
   bool* output_flag;
   bool* log_to_console;
@@ -55,58 +56,62 @@ struct HighsLogOptions {
         user_log_callback(nullptr),
         user_log_callback_data(nullptr),
         user_callback_data(nullptr),
-        user_callback_active(false){};
+        user_callback_active(false) {};
 };
 
 /**
  * @brief Write the HiGHS version and copyright statement
  */
-void highsLogHeader(const HighsLogOptions& log_options, const bool log_githash);
+HIGHS_EXPORT void highsLogHeader(const HighsLogOptions& log_options,
+                                 const bool log_githash);
 
 /**
  * @brief Convert a double number to a string using given tolerance
  */
-std::array<char, 32> highsDoubleToString(const double val,
-                                         const double tolerance);
+HIGHS_EXPORT std::array<char, 32> highsDoubleToString(const double val,
+                                                      const double tolerance);
 
 /**
  * @brief For _single-line_ user logging with message type notification
  */
 // Printing format: must contain exactly one "\n" at end of format
-void highsLogUser(const HighsLogOptions& log_options_, const HighsLogType type,
-                  const char* format, ...);
+HIGHS_EXPORT void highsLogUser(const HighsLogOptions& log_options_,
+                               const HighsLogType type, const char* format,
+                               ...);
 
 /**
  * @brief For development logging
  */
-void highsLogDev(const HighsLogOptions& log_options_, const HighsLogType type,
-                 const char* format, ...);
+HIGHS_EXPORT void highsLogDev(const HighsLogOptions& log_options_,
+                              const HighsLogType type, const char* format, ...);
 
 /**
  * @brief Gets filename extension
  */
-std::string getFilenameExt(const std::string& filename);
+HIGHS_EXPORT std::string getFilenameExt(const std::string& filename);
 
 /**
  * @brief Replaces fprintf(file,... so that when file=stdout highsLogUser is
  * used
  */
 // Printing format: must contain exactly one "\n" at end of format
-void highsFprintfString(FILE* file, const HighsLogOptions& log_options_,
-                        const std::string& s);
+HIGHS_EXPORT void highsFprintfString(FILE* file,
+                                     const HighsLogOptions& log_options_,
+                                     const std::string& s);
 
 /**
  * @brief For development logging when true log_options may not be available -
  * indicated by null pointer
  */
-void highsReportDevInfo(const HighsLogOptions* log_options,
-                        const std::string& line);
+HIGHS_EXPORT void highsReportDevInfo(const HighsLogOptions* log_options,
+                                     const std::string& line);
 
-void highsOpenLogFile(HighsOptions& options, const std::string& log_file);
+HIGHS_EXPORT void highsOpenLogFile(HighsOptions& options,
+                                   const std::string& log_file);
 
-void highsReportLogOptions(const HighsLogOptions& log_options_);
+HIGHS_EXPORT void highsReportLogOptions(const HighsLogOptions& log_options_);
 
-std::string highsFormatToString(const char* format, ...);
+HIGHS_EXPORT std::string highsFormatToString(const char* format, ...);
 
 const std::string highsBoolToString(const bool b,
                                     const HighsInt field_width = 2);

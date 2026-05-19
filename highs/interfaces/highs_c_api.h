@@ -21,6 +21,7 @@
 // instance of the C++ Highs class, and then use any of a large number
 // of models for which this pointer is the first parameter.
 //
+#include "highs_export.h"
 #include "lp_data/HighsCallbackStruct.h"
 
 static const HighsInt kHighsMaximumStringLength = 512;
@@ -212,16 +213,15 @@ extern "C" {
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_lpCall(const HighsInt num_col, const HighsInt num_row,
-                      const HighsInt num_nz, const HighsInt a_format,
-                      const HighsInt sense, const double offset,
-                      const double* col_cost, const double* col_lower,
-                      const double* col_upper, const double* row_lower,
-                      const double* row_upper, const HighsInt* a_start,
-                      const HighsInt* a_index, const double* a_value,
-                      double* col_value, double* col_dual, double* row_value,
-                      double* row_dual, HighsInt* col_basis_status,
-                      HighsInt* row_basis_status, HighsInt* model_status);
+HIGHS_EXPORT HighsInt Highs_lpCall(
+    const HighsInt num_col, const HighsInt num_row, const HighsInt num_nz,
+    const HighsInt a_format, const HighsInt sense, const double offset,
+    const double* col_cost, const double* col_lower, const double* col_upper,
+    const double* row_lower, const double* row_upper, const HighsInt* a_start,
+    const HighsInt* a_index, const double* a_value, double* col_value,
+    double* col_dual, double* row_value, double* row_dual,
+    HighsInt* col_basis_status, HighsInt* row_basis_status,
+    HighsInt* model_status);
 
 /**
  * Formulate and solve a mixed-integer linear program using HiGHS.
@@ -235,15 +235,13 @@ HighsInt Highs_lpCall(const HighsInt num_col, const HighsInt num_row,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_mipCall(const HighsInt num_col, const HighsInt num_row,
-                       const HighsInt num_nz, const HighsInt a_format,
-                       const HighsInt sense, const double offset,
-                       const double* col_cost, const double* col_lower,
-                       const double* col_upper, const double* row_lower,
-                       const double* row_upper, const HighsInt* a_start,
-                       const HighsInt* a_index, const double* a_value,
-                       const HighsInt* integrality, double* col_value,
-                       double* row_value, HighsInt* model_status);
+HIGHS_EXPORT HighsInt Highs_mipCall(
+    const HighsInt num_col, const HighsInt num_row, const HighsInt num_nz,
+    const HighsInt a_format, const HighsInt sense, const double offset,
+    const double* col_cost, const double* col_lower, const double* col_upper,
+    const double* row_lower, const double* row_upper, const HighsInt* a_start,
+    const HighsInt* a_index, const double* a_value, const HighsInt* integrality,
+    double* col_value, double* row_value, HighsInt* model_status);
 
 /**
  * Formulate and solve a quadratic program using HiGHS.
@@ -267,7 +265,7 @@ HighsInt Highs_mipCall(const HighsInt num_col, const HighsInt num_row,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_qpCall(
+HIGHS_EXPORT HighsInt Highs_qpCall(
     const HighsInt num_col, const HighsInt num_row, const HighsInt num_nz,
     const HighsInt q_num_nz, const HighsInt a_format, const HighsInt q_format,
     const HighsInt sense, const double offset, const double* col_cost,
@@ -285,7 +283,7 @@ HighsInt Highs_qpCall(
  *
  * @returns A pointer to the Highs instance.
  */
-void* Highs_create(void);
+HIGHS_EXPORT void* Highs_create(void);
 
 /**
  * Destroy the model `highs` created by `Highs_create` and free all
@@ -295,42 +293,42 @@ void* Highs_create(void);
  *
  * @param highs     A pointer to the Highs instance.
  */
-void Highs_destroy(void* highs);
+HIGHS_EXPORT void Highs_destroy(void* highs);
 
 /**
  * Return the HiGHS version number as a string of the form "vX.Y.Z".
  *
  * @returns The HiGHS version as a `char*`.
  */
-const char* Highs_version(void);
+HIGHS_EXPORT const char* Highs_version(void);
 
 /**
  * Return the HiGHS major version number.
  *
  * @returns The HiGHS major version number.
  */
-HighsInt Highs_versionMajor(void);
+HIGHS_EXPORT HighsInt Highs_versionMajor(void);
 
 /**
  * Return the HiGHS minor version number.
  *
  * @returns The HiGHS minor version number.
  */
-HighsInt Highs_versionMinor(void);
+HIGHS_EXPORT HighsInt Highs_versionMinor(void);
 
 /**
  * Return the HiGHS patch version number.
  *
  * @returns The HiGHS patch version number.
  */
-HighsInt Highs_versionPatch(void);
+HIGHS_EXPORT HighsInt Highs_versionPatch(void);
 
 /**
  * Return the HiGHS githash.
  *
  * @returns The HiGHS githash.
  */
-const char* Highs_githash(void);
+HIGHS_EXPORT const char* Highs_githash(void);
 
 /**
  * Read a model from `filename` into `highs`.
@@ -340,7 +338,7 @@ const char* Highs_githash(void);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_readModel(void* highs, const char* filename);
+HIGHS_EXPORT HighsInt Highs_readModel(void* highs, const char* filename);
 
 /**
  * Write the model in `highs` to `filename`.
@@ -350,7 +348,7 @@ HighsInt Highs_readModel(void* highs, const char* filename);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_writeModel(void* highs, const char* filename);
+HIGHS_EXPORT HighsInt Highs_writeModel(void* highs, const char* filename);
 
 /**
  * Write the presolved model in `highs` to `filename`.
@@ -360,7 +358,8 @@ HighsInt Highs_writeModel(void* highs, const char* filename);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_writePresolvedModel(void* highs, const char* filename);
+HIGHS_EXPORT HighsInt Highs_writePresolvedModel(void* highs,
+                                                const char* filename);
 
 /**
  * Reset the options and then call `clearModel`.
@@ -371,7 +370,7 @@ HighsInt Highs_writePresolvedModel(void* highs, const char* filename);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_clear(void* highs);
+HIGHS_EXPORT HighsInt Highs_clear(void* highs);
 
 /**
  * Remove all variables and constraints from the model `highs`, but do not
@@ -382,7 +381,7 @@ HighsInt Highs_clear(void* highs);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_clearModel(void* highs);
+HIGHS_EXPORT HighsInt Highs_clearModel(void* highs);
 
 /**
  * Clear all solution data associated with the model.
@@ -393,7 +392,7 @@ HighsInt Highs_clearModel(void* highs);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_clearSolver(void* highs);
+HIGHS_EXPORT HighsInt Highs_clearSolver(void* highs);
 
 /**
  * Presolve a model.
@@ -402,7 +401,7 @@ HighsInt Highs_clearSolver(void* highs);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_presolve(void* highs);
+HIGHS_EXPORT HighsInt Highs_presolve(void* highs);
 
 /**
  * Optimize a model. The algorithm used by HiGHS depends on the options that
@@ -412,7 +411,7 @@ HighsInt Highs_presolve(void* highs);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_run(void* highs);
+HIGHS_EXPORT HighsInt Highs_run(void* highs);
 
 /**
  * Postsolve a model using a primal (and possibly dual) solution. The
@@ -429,8 +428,9 @@ HighsInt Highs_run(void* highs);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_postsolve(void* highs, const double* col_value,
-                         const double* col_dual, const double* row_dual);
+HIGHS_EXPORT HighsInt Highs_postsolve(void* highs, const double* col_value,
+                                      const double* col_dual,
+                                      const double* row_dual);
 
 /**
  * Write the solution information (including dual and basis status, if
@@ -443,7 +443,8 @@ HighsInt Highs_postsolve(void* highs, const double* col_value,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_writeSolution(const void* highs, const char* filename);
+HIGHS_EXPORT HighsInt Highs_writeSolution(const void* highs,
+                                          const char* filename);
 
 /**
  * Write the solution information (including dual and basis status, if
@@ -457,7 +458,8 @@ HighsInt Highs_writeSolution(const void* highs, const char* filename);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_writeSolutionPretty(const void* highs, const char* filename);
+HIGHS_EXPORT HighsInt Highs_writeSolutionPretty(const void* highs,
+                                                const char* filename);
 
 /**
  * Pass a linear program (LP) to HiGHS in a single function call.
@@ -468,14 +470,12 @@ HighsInt Highs_writeSolutionPretty(const void* highs, const char* filename);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_passLp(void* highs, const HighsInt num_col,
-                      const HighsInt num_row, const HighsInt num_nz,
-                      const HighsInt a_format, const HighsInt sense,
-                      const double offset, const double* col_cost,
-                      const double* col_lower, const double* col_upper,
-                      const double* row_lower, const double* row_upper,
-                      const HighsInt* a_start, const HighsInt* a_index,
-                      const double* a_value);
+HIGHS_EXPORT HighsInt Highs_passLp(
+    void* highs, const HighsInt num_col, const HighsInt num_row,
+    const HighsInt num_nz, const HighsInt a_format, const HighsInt sense,
+    const double offset, const double* col_cost, const double* col_lower,
+    const double* col_upper, const double* row_lower, const double* row_upper,
+    const HighsInt* a_start, const HighsInt* a_index, const double* a_value);
 
 /**
  * Pass a mixed-integer linear program (MILP) to HiGHS in a single function
@@ -486,14 +486,13 @@ HighsInt Highs_passLp(void* highs, const HighsInt num_col,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_passMip(void* highs, const HighsInt num_col,
-                       const HighsInt num_row, const HighsInt num_nz,
-                       const HighsInt a_format, const HighsInt sense,
-                       const double offset, const double* col_cost,
-                       const double* col_lower, const double* col_upper,
-                       const double* row_lower, const double* row_upper,
-                       const HighsInt* a_start, const HighsInt* a_index,
-                       const double* a_value, const HighsInt* integrality);
+HIGHS_EXPORT HighsInt Highs_passMip(
+    void* highs, const HighsInt num_col, const HighsInt num_row,
+    const HighsInt num_nz, const HighsInt a_format, const HighsInt sense,
+    const double offset, const double* col_cost, const double* col_lower,
+    const double* col_upper, const double* row_lower, const double* row_upper,
+    const HighsInt* a_start, const HighsInt* a_index, const double* a_value,
+    const HighsInt* integrality);
 
 /**
  * Pass a model to HiGHS in a single function call. This is faster than
@@ -545,17 +544,15 @@ HighsInt Highs_passMip(void* highs, const HighsInt num_col,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_passModel(void* highs, const HighsInt num_col,
-                         const HighsInt num_row, const HighsInt num_nz,
-                         const HighsInt q_num_nz, const HighsInt a_format,
-                         const HighsInt q_format, const HighsInt sense,
-                         const double offset, const double* col_cost,
-                         const double* col_lower, const double* col_upper,
-                         const double* row_lower, const double* row_upper,
-                         const HighsInt* a_start, const HighsInt* a_index,
-                         const double* a_value, const HighsInt* q_start,
-                         const HighsInt* q_index, const double* q_value,
-                         const HighsInt* integrality);
+HIGHS_EXPORT HighsInt Highs_passModel(
+    void* highs, const HighsInt num_col, const HighsInt num_row,
+    const HighsInt num_nz, const HighsInt q_num_nz, const HighsInt a_format,
+    const HighsInt q_format, const HighsInt sense, const double offset,
+    const double* col_cost, const double* col_lower, const double* col_upper,
+    const double* row_lower, const double* row_upper, const HighsInt* a_start,
+    const HighsInt* a_index, const double* a_value, const HighsInt* q_start,
+    const HighsInt* q_index, const double* q_value,
+    const HighsInt* integrality);
 
 /**
  * Set the Hessian matrix for a quadratic objective.
@@ -580,10 +577,12 @@ HighsInt Highs_passModel(void* highs, const HighsInt num_col,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_passHessian(void* highs, const HighsInt dim,
-                           const HighsInt num_nz, const HighsInt format,
-                           const HighsInt* start, const HighsInt* index,
-                           const double* value);
+HIGHS_EXPORT HighsInt Highs_passHessian(void* highs, const HighsInt dim,
+                                        const HighsInt num_nz,
+                                        const HighsInt format,
+                                        const HighsInt* start,
+                                        const HighsInt* index,
+                                        const double* value);
 
 /**
  * Passes multiple linear objective data to HiGHS, clearing any such
@@ -607,13 +606,11 @@ HighsInt Highs_passHessian(void* highs, const HighsInt dim,
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
 
-HighsInt Highs_passLinearObjectives(const void* highs,
-                                    const HighsInt num_linear_objective,
-                                    const double* weight, const double* offset,
-                                    const double* coefficients,
-                                    const double* abs_tolerance,
-                                    const double* rel_tolerance,
-                                    const HighsInt* priority);
+HIGHS_EXPORT HighsInt Highs_passLinearObjectives(
+    const void* highs, const HighsInt num_linear_objective,
+    const double* weight, const double* offset, const double* coefficients,
+    const double* abs_tolerance, const double* rel_tolerance,
+    const HighsInt* priority);
 
 /**
  * Adds linear objective data to HiGHS
@@ -635,12 +632,10 @@ HighsInt Highs_passLinearObjectives(const void* highs,
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
 
-HighsInt Highs_addLinearObjective(const void* highs, const double weight,
-                                  const double offset,
-                                  const double* coefficients,
-                                  const double abs_tolerance,
-                                  const double rel_tolerance,
-                                  const HighsInt priority);
+HIGHS_EXPORT HighsInt Highs_addLinearObjective(
+    const void* highs, const double weight, const double offset,
+    const double* coefficients, const double abs_tolerance,
+    const double rel_tolerance, const HighsInt priority);
 
 /**
  * Clears any multiple linear objective data in HiGHS
@@ -650,7 +645,7 @@ HighsInt Highs_addLinearObjective(const void* highs, const double weight,
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
 
-HighsInt Highs_clearLinearObjectives(const void* highs);
+HIGHS_EXPORT HighsInt Highs_clearLinearObjectives(const void* highs);
 /**
  * Pass the name of a row.
  *
@@ -660,8 +655,8 @@ HighsInt Highs_clearLinearObjectives(const void* highs);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_passRowName(const void* highs, const HighsInt row,
-                           const char* name);
+HIGHS_EXPORT HighsInt Highs_passRowName(const void* highs, const HighsInt row,
+                                        const char* name);
 
 /**
  * Pass the name of a column.
@@ -672,8 +667,8 @@ HighsInt Highs_passRowName(const void* highs, const HighsInt row,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_passColName(const void* highs, const HighsInt col,
-                           const char* name);
+HIGHS_EXPORT HighsInt Highs_passColName(const void* highs, const HighsInt col,
+                                        const char* name);
 
 /**
  * Pass the name of the model.
@@ -683,7 +678,7 @@ HighsInt Highs_passColName(const void* highs, const HighsInt col,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_passModelName(const void* highs, const char* name);
+HIGHS_EXPORT HighsInt Highs_passModelName(const void* highs, const char* name);
 
 /**
  * Read the option values from file.
@@ -693,7 +688,8 @@ HighsInt Highs_passModelName(const void* highs, const char* name);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_readOptions(const void* highs, const char* filename);
+HIGHS_EXPORT HighsInt Highs_readOptions(const void* highs,
+                                        const char* filename);
 
 /**
  * Set a boolean-valued option.
@@ -704,8 +700,8 @@ HighsInt Highs_readOptions(const void* highs, const char* filename);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_setBoolOptionValue(void* highs, const char* option,
-                                  const HighsInt value);
+HIGHS_EXPORT HighsInt Highs_setBoolOptionValue(void* highs, const char* option,
+                                               const HighsInt value);
 
 /**
  * Set an int-valued option.
@@ -716,8 +712,8 @@ HighsInt Highs_setBoolOptionValue(void* highs, const char* option,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_setIntOptionValue(void* highs, const char* option,
-                                 const HighsInt value);
+HIGHS_EXPORT HighsInt Highs_setIntOptionValue(void* highs, const char* option,
+                                              const HighsInt value);
 
 /**
  * Set a double-valued option.
@@ -728,8 +724,9 @@ HighsInt Highs_setIntOptionValue(void* highs, const char* option,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_setDoubleOptionValue(void* highs, const char* option,
-                                    const double value);
+HIGHS_EXPORT HighsInt Highs_setDoubleOptionValue(void* highs,
+                                                 const char* option,
+                                                 const double value);
 
 /**
  * Set a string-valued option.
@@ -740,8 +737,9 @@ HighsInt Highs_setDoubleOptionValue(void* highs, const char* option,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_setStringOptionValue(void* highs, const char* option,
-                                    const char* value);
+HIGHS_EXPORT HighsInt Highs_setStringOptionValue(void* highs,
+                                                 const char* option,
+                                                 const char* value);
 
 /**
  * Get a boolean-valued option.
@@ -753,8 +751,9 @@ HighsInt Highs_setStringOptionValue(void* highs, const char* option,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getBoolOptionValue(const void* highs, const char* option,
-                                  HighsInt* value);
+HIGHS_EXPORT HighsInt Highs_getBoolOptionValue(const void* highs,
+                                               const char* option,
+                                               HighsInt* value);
 
 /**
  * Get an int-valued option.
@@ -766,8 +765,9 @@ HighsInt Highs_getBoolOptionValue(const void* highs, const char* option,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getIntOptionValue(const void* highs, const char* option,
-                                 HighsInt* value);
+HIGHS_EXPORT HighsInt Highs_getIntOptionValue(const void* highs,
+                                              const char* option,
+                                              HighsInt* value);
 
 /**
  * Get a double-valued option.
@@ -779,8 +779,9 @@ HighsInt Highs_getIntOptionValue(const void* highs, const char* option,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getDoubleOptionValue(const void* highs, const char* option,
-                                    double* value);
+HIGHS_EXPORT HighsInt Highs_getDoubleOptionValue(const void* highs,
+                                                 const char* option,
+                                                 double* value);
 
 /**
  * Get a string-valued option.
@@ -793,8 +794,9 @@ HighsInt Highs_getDoubleOptionValue(const void* highs, const char* option,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getStringOptionValue(const void* highs, const char* option,
-                                    char* value);
+HIGHS_EXPORT HighsInt Highs_getStringOptionValue(const void* highs,
+                                                 const char* option,
+                                                 char* value);
 
 /**
  * Get the type expected by an option.
@@ -806,8 +808,8 @@ HighsInt Highs_getStringOptionValue(const void* highs, const char* option,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getOptionType(const void* highs, const char* option,
-                             HighsInt* type);
+HIGHS_EXPORT HighsInt Highs_getOptionType(const void* highs, const char* option,
+                                          HighsInt* type);
 
 /**
  * Reset all options to their default value.
@@ -816,7 +818,7 @@ HighsInt Highs_getOptionType(const void* highs, const char* option,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_resetOptions(void* highs);
+HIGHS_EXPORT HighsInt Highs_resetOptions(void* highs);
 
 /**
  * Write the current options to file.
@@ -826,7 +828,8 @@ HighsInt Highs_resetOptions(void* highs);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_writeOptions(const void* highs, const char* filename);
+HIGHS_EXPORT HighsInt Highs_writeOptions(const void* highs,
+                                         const char* filename);
 
 /**
  * Write the value of non-default options to file.
@@ -839,14 +842,15 @@ HighsInt Highs_writeOptions(const void* highs, const char* filename);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_writeOptionsDeviations(const void* highs, const char* filename);
+HIGHS_EXPORT HighsInt Highs_writeOptionsDeviations(const void* highs,
+                                                   const char* filename);
 
 /**
  * Return the number of options
  *
  * @param highs     A pointer to the Highs instance.
  */
-HighsInt Highs_getNumOptions(const void* highs);
+HIGHS_EXPORT HighsInt Highs_getNumOptions(const void* highs);
 
 /**
  * Get the name of an option identified by index
@@ -857,8 +861,8 @@ HighsInt Highs_getNumOptions(const void* highs);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getOptionName(const void* highs, const HighsInt index,
-                             char** name);
+HIGHS_EXPORT HighsInt Highs_getOptionName(const void* highs,
+                                          const HighsInt index, char** name);
 
 /**
  * Get the current and default values of a bool option
@@ -869,9 +873,10 @@ HighsInt Highs_getOptionName(const void* highs, const HighsInt index,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getBoolOptionValues(const void* highs, const char* option,
-                                   HighsInt* current_value,
-                                   HighsInt* default_value);
+HIGHS_EXPORT HighsInt Highs_getBoolOptionValues(const void* highs,
+                                                const char* option,
+                                                HighsInt* current_value,
+                                                HighsInt* default_value);
 /**
  * Get the current and default values of a HighsInt option
  *
@@ -883,9 +888,9 @@ HighsInt Highs_getBoolOptionValues(const void* highs, const char* option,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getIntOptionValues(const void* highs, const char* option,
-                                  HighsInt* current_value, HighsInt* min_value,
-                                  HighsInt* max_value, HighsInt* default_value);
+HIGHS_EXPORT HighsInt Highs_getIntOptionValues(
+    const void* highs, const char* option, HighsInt* current_value,
+    HighsInt* min_value, HighsInt* max_value, HighsInt* default_value);
 
 /**
  * Get the current and default values of a double option
@@ -898,9 +903,9 @@ HighsInt Highs_getIntOptionValues(const void* highs, const char* option,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getDoubleOptionValues(const void* highs, const char* option,
-                                     double* current_value, double* min_value,
-                                     double* max_value, double* default_value);
+HIGHS_EXPORT HighsInt Highs_getDoubleOptionValues(
+    const void* highs, const char* option, double* current_value,
+    double* min_value, double* max_value, double* default_value);
 
 /**
  * Get the current and default values of a string option
@@ -911,8 +916,10 @@ HighsInt Highs_getDoubleOptionValues(const void* highs, const char* option,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getStringOptionValues(const void* highs, const char* option,
-                                     char* current_value, char* default_value);
+HIGHS_EXPORT HighsInt Highs_getStringOptionValues(const void* highs,
+                                                  const char* option,
+                                                  char* current_value,
+                                                  char* default_value);
 
 /**
  * Get an int-valued info value.
@@ -923,8 +930,8 @@ HighsInt Highs_getStringOptionValues(const void* highs, const char* option,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getIntInfoValue(const void* highs, const char* info,
-                               HighsInt* value);
+HIGHS_EXPORT HighsInt Highs_getIntInfoValue(const void* highs, const char* info,
+                                            HighsInt* value);
 
 /**
  * Get a double-valued info value.
@@ -935,8 +942,8 @@ HighsInt Highs_getIntInfoValue(const void* highs, const char* info,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getDoubleInfoValue(const void* highs, const char* info,
-                                  double* value);
+HIGHS_EXPORT HighsInt Highs_getDoubleInfoValue(const void* highs,
+                                               const char* info, double* value);
 
 /**
  * Get an int64-valued info value.
@@ -947,8 +954,8 @@ HighsInt Highs_getDoubleInfoValue(const void* highs, const char* info,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getInt64InfoValue(const void* highs, const char* info,
-                                 int64_t* value);
+HIGHS_EXPORT HighsInt Highs_getInt64InfoValue(const void* highs,
+                                              const char* info, int64_t* value);
 
 /**
  * Get the type expected by an info item.
@@ -960,7 +967,8 @@ HighsInt Highs_getInt64InfoValue(const void* highs, const char* info,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getInfoType(const void* highs, const char* info, HighsInt* type);
+HIGHS_EXPORT HighsInt Highs_getInfoType(const void* highs, const char* info,
+                                        HighsInt* type);
 
 /**
  * Get the primal and dual solution from an optimized model.
@@ -977,9 +985,9 @@ HighsInt Highs_getInfoType(const void* highs, const char* info, HighsInt* type);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getSolution(const void* highs, double* col_value,
-                           double* col_dual, double* row_value,
-                           double* row_dual);
+HIGHS_EXPORT HighsInt Highs_getSolution(const void* highs, double* col_value,
+                                        double* col_dual, double* row_value,
+                                        double* row_dual);
 
 /**
  * Given a linear program with a basic feasible solution, get the column and row
@@ -995,8 +1003,8 @@ HighsInt Highs_getSolution(const void* highs, double* col_value,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getBasis(const void* highs, HighsInt* col_status,
-                        HighsInt* row_status);
+HIGHS_EXPORT HighsInt Highs_getBasis(const void* highs, HighsInt* col_status,
+                                     HighsInt* row_status);
 
 /**
  * Return the optimization status of the model in the form of a
@@ -1006,7 +1014,7 @@ HighsInt Highs_getBasis(const void* highs, HighsInt* col_status,
  *
  * @returns An integer corresponding to the `kHighsModelStatus` constant
  */
-HighsInt Highs_getModelStatus(const void* highs);
+HIGHS_EXPORT HighsInt Highs_getModelStatus(const void* highs);
 
 /**
  * Indicates whether a dual ray that is a certificate of primal
@@ -1021,8 +1029,9 @@ HighsInt Highs_getModelStatus(const void* highs);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getDualRay(const void* highs, HighsInt* has_dual_ray,
-                          double* dual_ray_value);
+HIGHS_EXPORT HighsInt Highs_getDualRay(const void* highs,
+                                       HighsInt* has_dual_ray,
+                                       double* dual_ray_value);
 
 /**
  * Indicates whether a dual unboundedness direction (corresponding to a
@@ -1040,7 +1049,7 @@ HighsInt Highs_getDualRay(const void* highs, HighsInt* has_dual_ray,
  *                                                filled with the unboundedness
  *                                                direction.
  */
-HighsInt Highs_getDualUnboundednessDirection(
+HIGHS_EXPORT HighsInt Highs_getDualUnboundednessDirection(
     const void* highs, HighsInt* has_dual_unboundedness_direction,
     double* dual_unboundedness_direction_value);
 
@@ -1057,8 +1066,9 @@ HighsInt Highs_getDualUnboundednessDirection(
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getPrimalRay(const void* highs, HighsInt* has_primal_ray,
-                            double* primal_ray_value);
+HIGHS_EXPORT HighsInt Highs_getPrimalRay(const void* highs,
+                                         HighsInt* has_primal_ray,
+                                         double* primal_ray_value);
 
 /**
  * Get the primal objective function value.
@@ -1067,7 +1077,7 @@ HighsInt Highs_getPrimalRay(const void* highs, HighsInt* has_primal_ray,
  *
  * @returns The primal objective function value
  */
-double Highs_getObjectiveValue(const void* highs);
+HIGHS_EXPORT double Highs_getObjectiveValue(const void* highs);
 
 /**
  * Get the indices of the rows and columns that make up the basis matrix ``B``
@@ -1092,7 +1102,8 @@ double Highs_getObjectiveValue(const void* highs);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getBasicVariables(const void* highs, HighsInt* basic_variables);
+HIGHS_EXPORT HighsInt Highs_getBasicVariables(const void* highs,
+                                              HighsInt* basic_variables);
 
 /**
  * Get a row of the inverse basis matrix ``B^{-1}``.
@@ -1113,9 +1124,11 @@ HighsInt Highs_getBasicVariables(const void* highs, HighsInt* basic_variables);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getBasisInverseRow(const void* highs, const HighsInt row,
-                                  double* row_vector, HighsInt* row_num_nz,
-                                  HighsInt* row_index);
+HIGHS_EXPORT HighsInt Highs_getBasisInverseRow(const void* highs,
+                                               const HighsInt row,
+                                               double* row_vector,
+                                               HighsInt* row_num_nz,
+                                               HighsInt* row_index);
 
 /**
  * Get a column of the inverse basis matrix ``B^{-1}``.
@@ -1136,9 +1149,11 @@ HighsInt Highs_getBasisInverseRow(const void* highs, const HighsInt row,
 
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getBasisInverseCol(const void* highs, const HighsInt col,
-                                  double* col_vector, HighsInt* col_num_nz,
-                                  HighsInt* col_index);
+HIGHS_EXPORT HighsInt Highs_getBasisInverseCol(const void* highs,
+                                               const HighsInt col,
+                                               double* col_vector,
+                                               HighsInt* col_num_nz,
+                                               HighsInt* col_index);
 
 /**
  * Compute ``\mathbf{x}=B^{-1}\mathbf{b}`` for a given vector
@@ -1160,9 +1175,10 @@ HighsInt Highs_getBasisInverseCol(const void* highs, const HighsInt col,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getBasisSolve(const void* highs, const double* rhs,
-                             double* solution_vector, HighsInt* solution_num_nz,
-                             HighsInt* solution_index);
+HIGHS_EXPORT HighsInt Highs_getBasisSolve(const void* highs, const double* rhs,
+                                          double* solution_vector,
+                                          HighsInt* solution_num_nz,
+                                          HighsInt* solution_index);
 
 /**
  * Compute ``\mathbf{x}=B^{-T}\mathbf{b}`` for a given vector
@@ -1184,10 +1200,11 @@ HighsInt Highs_getBasisSolve(const void* highs, const double* rhs,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getBasisTransposeSolve(const void* highs, const double* rhs,
-                                      double* solution_vector,
-                                      HighsInt* solution_nz,
-                                      HighsInt* solution_index);
+HIGHS_EXPORT HighsInt Highs_getBasisTransposeSolve(const void* highs,
+                                                   const double* rhs,
+                                                   double* solution_vector,
+                                                   HighsInt* solution_nz,
+                                                   HighsInt* solution_index);
 
 /**
  * Compute a row of ``B^{-1}A``.
@@ -1208,9 +1225,10 @@ HighsInt Highs_getBasisTransposeSolve(const void* highs, const double* rhs,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getReducedRow(const void* highs, const HighsInt row,
-                             double* row_vector, HighsInt* row_num_nz,
-                             HighsInt* row_index);
+HIGHS_EXPORT HighsInt Highs_getReducedRow(const void* highs, const HighsInt row,
+                                          double* row_vector,
+                                          HighsInt* row_num_nz,
+                                          HighsInt* row_index);
 
 /**
  * Compute a column of ``B^{-1}A``.
@@ -1231,9 +1249,11 @@ HighsInt Highs_getReducedRow(const void* highs, const HighsInt row,
 
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getReducedColumn(const void* highs, const HighsInt col,
-                                double* col_vector, HighsInt* col_num_nz,
-                                HighsInt* col_index);
+HIGHS_EXPORT HighsInt Highs_getReducedColumn(const void* highs,
+                                             const HighsInt col,
+                                             double* col_vector,
+                                             HighsInt* col_num_nz,
+                                             HighsInt* col_index);
 
 /**
  * Set a basic feasible solution by passing the column and row basis statuses to
@@ -1247,8 +1267,8 @@ HighsInt Highs_getReducedColumn(const void* highs, const HighsInt col,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_setBasis(void* highs, const HighsInt* col_status,
-                        const HighsInt* row_status);
+HIGHS_EXPORT HighsInt Highs_setBasis(void* highs, const HighsInt* col_status,
+                                     const HighsInt* row_status);
 
 /**
  * Set a logical basis in the model.
@@ -1257,7 +1277,7 @@ HighsInt Highs_setBasis(void* highs, const HighsInt* col_status,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_setLogicalBasis(void* highs);
+HIGHS_EXPORT HighsInt Highs_setLogicalBasis(void* highs);
 
 /**
  * Set a solution by passing the column and row primal and dual solution values.
@@ -1274,9 +1294,10 @@ HighsInt Highs_setLogicalBasis(void* highs);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_setSolution(void* highs, const double* col_value,
-                           const double* row_value, const double* col_dual,
-                           const double* row_dual);
+HIGHS_EXPORT HighsInt Highs_setSolution(void* highs, const double* col_value,
+                                        const double* row_value,
+                                        const double* col_dual,
+                                        const double* row_dual);
 
 /**
  * Set a partial primal solution by passing values for a set of variables
@@ -1288,8 +1309,10 @@ HighsInt Highs_setSolution(void* highs, const double* col_value,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_setSparseSolution(void* highs, const HighsInt num_entries,
-                                 const HighsInt* index, const double* value);
+HIGHS_EXPORT HighsInt Highs_setSparseSolution(void* highs,
+                                              const HighsInt num_entries,
+                                              const HighsInt* index,
+                                              const double* value);
 
 /**
  * Set the callback method to use for HiGHS
@@ -1300,8 +1323,9 @@ HighsInt Highs_setSparseSolution(void* highs, const HighsInt num_entries,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_setCallback(void* highs, HighsCCallbackType user_callback,
-                           void* user_callback_data);
+HIGHS_EXPORT HighsInt Highs_setCallback(void* highs,
+                                        HighsCCallbackType user_callback,
+                                        void* user_callback_data);
 
 /**
  * Start callback of given type
@@ -1311,7 +1335,8 @@ HighsInt Highs_setCallback(void* highs, HighsCCallbackType user_callback,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_startCallback(void* highs, const HighsInt callback_type);
+HIGHS_EXPORT HighsInt Highs_startCallback(void* highs,
+                                          const HighsInt callback_type);
 
 /**
  * Stop callback of given type
@@ -1321,7 +1346,8 @@ HighsInt Highs_startCallback(void* highs, const HighsInt callback_type);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_stopCallback(void* highs, const HighsInt callback_type);
+HIGHS_EXPORT HighsInt Highs_stopCallback(void* highs,
+                                         const HighsInt callback_type);
 
 /**
  * Return the cumulative wall-clock time spent in `Highs_run`.
@@ -1330,7 +1356,7 @@ HighsInt Highs_stopCallback(void* highs, const HighsInt callback_type);
  *
  * @returns The cumulative wall-clock time spent in `Highs_run`
  */
-double Highs_getRunTime(const void* highs);
+HIGHS_EXPORT double Highs_getRunTime(const void* highs);
 
 /**
  * Reset the clocks in a `highs` model.
@@ -1348,7 +1374,7 @@ double Highs_getRunTime(const void* highs);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_zeroAllClocks(const void* highs);
+HIGHS_EXPORT HighsInt Highs_zeroAllClocks(const void* highs);
 
 /**
  * Add a new column (variable) to the model.
@@ -1363,9 +1389,10 @@ HighsInt Highs_zeroAllClocks(const void* highs);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_addCol(void* highs, const double cost, const double lower,
-                      const double upper, const HighsInt num_new_nz,
-                      const HighsInt* index, const double* value);
+HIGHS_EXPORT HighsInt Highs_addCol(void* highs, const double cost,
+                                   const double lower, const double upper,
+                                   const HighsInt num_new_nz,
+                                   const HighsInt* index, const double* value);
 
 /**
  * Add multiple columns (variables) to the model.
@@ -1387,11 +1414,12 @@ HighsInt Highs_addCol(void* highs, const double cost, const double lower,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_addCols(void* highs, const HighsInt num_new_col,
-                       const double* costs, const double* lower,
-                       const double* upper, const HighsInt num_new_nz,
-                       const HighsInt* starts, const HighsInt* index,
-                       const double* value);
+HIGHS_EXPORT HighsInt Highs_addCols(void* highs, const HighsInt num_new_col,
+                                    const double* costs, const double* lower,
+                                    const double* upper,
+                                    const HighsInt num_new_nz,
+                                    const HighsInt* starts,
+                                    const HighsInt* index, const double* value);
 
 /**
  * Add a new variable to the model.
@@ -1402,7 +1430,8 @@ HighsInt Highs_addCols(void* highs, const HighsInt num_new_col,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_addVar(void* highs, const double lower, const double upper);
+HIGHS_EXPORT HighsInt Highs_addVar(void* highs, const double lower,
+                                   const double upper);
 
 /**
  * Add multiple variables to the model.
@@ -1414,8 +1443,8 @@ HighsInt Highs_addVar(void* highs, const double lower, const double upper);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_addVars(void* highs, const HighsInt num_new_var,
-                       const double* lower, const double* upper);
+HIGHS_EXPORT HighsInt Highs_addVars(void* highs, const HighsInt num_new_var,
+                                    const double* lower, const double* upper);
 
 /**
  * Add a new row (a linear constraint) to the model.
@@ -1429,9 +1458,10 @@ HighsInt Highs_addVars(void* highs, const HighsInt num_new_var,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_addRow(void* highs, const double lower, const double upper,
-                      const HighsInt num_new_nz, const HighsInt* index,
-                      const double* value);
+HIGHS_EXPORT HighsInt Highs_addRow(void* highs, const double lower,
+                                   const double upper,
+                                   const HighsInt num_new_nz,
+                                   const HighsInt* index, const double* value);
 
 /**
  * Add multiple rows (linear constraints) to the model.
@@ -1453,10 +1483,11 @@ HighsInt Highs_addRow(void* highs, const double lower, const double upper,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_addRows(void* highs, const HighsInt num_new_row,
-                       const double* lower, const double* upper,
-                       const HighsInt num_new_nz, const HighsInt* starts,
-                       const HighsInt* index, const double* value);
+HIGHS_EXPORT HighsInt Highs_addRows(void* highs, const HighsInt num_new_row,
+                                    const double* lower, const double* upper,
+                                    const HighsInt num_new_nz,
+                                    const HighsInt* starts,
+                                    const HighsInt* index, const double* value);
 
 /**
  * Ensure that the constraint matrix of the incumbent model is stored
@@ -1466,7 +1497,7 @@ HighsInt Highs_addRows(void* highs, const HighsInt num_new_row,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_ensureColwise(void* highs);
+HIGHS_EXPORT HighsInt Highs_ensureColwise(void* highs);
 
 /**
  * Ensure that the constraint matrix of the incumbent model is stored row-wise.
@@ -1475,7 +1506,7 @@ HighsInt Highs_ensureColwise(void* highs);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_ensureRowwise(void* highs);
+HIGHS_EXPORT HighsInt Highs_ensureRowwise(void* highs);
 
 /**
  * Change the objective sense of the model.
@@ -1486,7 +1517,8 @@ HighsInt Highs_ensureRowwise(void* highs);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeObjectiveSense(void* highs, const HighsInt sense);
+HIGHS_EXPORT HighsInt Highs_changeObjectiveSense(void* highs,
+                                                 const HighsInt sense);
 
 /**
  * Change the objective offset of the model.
@@ -1496,7 +1528,8 @@ HighsInt Highs_changeObjectiveSense(void* highs, const HighsInt sense);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeObjectiveOffset(void* highs, const double offset);
+HIGHS_EXPORT HighsInt Highs_changeObjectiveOffset(void* highs,
+                                                  const double offset);
 
 /**
  * Change the integrality of a column.
@@ -1508,8 +1541,9 @@ HighsInt Highs_changeObjectiveOffset(void* highs, const double offset);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeColIntegrality(void* highs, const HighsInt col,
-                                    const HighsInt integrality);
+HIGHS_EXPORT HighsInt Highs_changeColIntegrality(void* highs,
+                                                 const HighsInt col,
+                                                 const HighsInt integrality);
 
 /**
  * Change the integrality of multiple adjacent columns.
@@ -1524,10 +1558,9 @@ HighsInt Highs_changeColIntegrality(void* highs, const HighsInt col,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeColsIntegralityByRange(void* highs,
-                                            const HighsInt from_col,
-                                            const HighsInt to_col,
-                                            const HighsInt* integrality);
+HIGHS_EXPORT HighsInt Highs_changeColsIntegralityByRange(
+    void* highs, const HighsInt from_col, const HighsInt to_col,
+    const HighsInt* integrality);
 
 /**
  * Change the integrality of multiple columns given by an array of indices.
@@ -1542,10 +1575,9 @@ HighsInt Highs_changeColsIntegralityByRange(void* highs,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeColsIntegralityBySet(void* highs,
-                                          const HighsInt num_set_entries,
-                                          const HighsInt* set,
-                                          const HighsInt* integrality);
+HIGHS_EXPORT HighsInt Highs_changeColsIntegralityBySet(
+    void* highs, const HighsInt num_set_entries, const HighsInt* set,
+    const HighsInt* integrality);
 
 /**
  * Change the integrality of multiple columns given by a mask.
@@ -1559,8 +1591,8 @@ HighsInt Highs_changeColsIntegralityBySet(void* highs,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeColsIntegralityByMask(void* highs, const HighsInt* mask,
-                                           const HighsInt* integrality);
+HIGHS_EXPORT HighsInt Highs_changeColsIntegralityByMask(
+    void* highs, const HighsInt* mask, const HighsInt* integrality);
 
 /**
  * Clear the integrality of all columns
@@ -1569,7 +1601,7 @@ HighsInt Highs_changeColsIntegralityByMask(void* highs, const HighsInt* mask,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_clearIntegrality(void* highs);
+HIGHS_EXPORT HighsInt Highs_clearIntegrality(void* highs);
 
 /**
  * Change the objective coefficient of a column.
@@ -1580,8 +1612,8 @@ HighsInt Highs_clearIntegrality(void* highs);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeColCost(void* highs, const HighsInt col,
-                             const double cost);
+HIGHS_EXPORT HighsInt Highs_changeColCost(void* highs, const HighsInt col,
+                                          const double cost);
 
 /**
  * Change the cost coefficients of multiple adjacent columns.
@@ -1594,8 +1626,10 @@ HighsInt Highs_changeColCost(void* highs, const HighsInt col,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeColsCostByRange(void* highs, const HighsInt from_col,
-                                     const HighsInt to_col, const double* cost);
+HIGHS_EXPORT HighsInt Highs_changeColsCostByRange(void* highs,
+                                                  const HighsInt from_col,
+                                                  const HighsInt to_col,
+                                                  const double* cost);
 
 /**
  * Change the cost of multiple columns given by an array of indices.
@@ -1609,8 +1643,10 @@ HighsInt Highs_changeColsCostByRange(void* highs, const HighsInt from_col,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeColsCostBySet(void* highs, const HighsInt num_set_entries,
-                                   const HighsInt* set, const double* cost);
+HIGHS_EXPORT HighsInt Highs_changeColsCostBySet(void* highs,
+                                                const HighsInt num_set_entries,
+                                                const HighsInt* set,
+                                                const double* cost);
 
 /**
  * Change the cost of multiple columns given by a mask.
@@ -1622,8 +1658,9 @@ HighsInt Highs_changeColsCostBySet(void* highs, const HighsInt num_set_entries,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeColsCostByMask(void* highs, const HighsInt* mask,
-                                    const double* cost);
+HIGHS_EXPORT HighsInt Highs_changeColsCostByMask(void* highs,
+                                                 const HighsInt* mask,
+                                                 const double* cost);
 
 /**
  * Change the variable bounds of a column.
@@ -1635,8 +1672,9 @@ HighsInt Highs_changeColsCostByMask(void* highs, const HighsInt* mask,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeColBounds(void* highs, const HighsInt col,
-                               const double lower, const double upper);
+HIGHS_EXPORT HighsInt Highs_changeColBounds(void* highs, const HighsInt col,
+                                            const double lower,
+                                            const double upper);
 
 /**
  * Change the variable bounds of multiple adjacent columns.
@@ -1651,10 +1689,11 @@ HighsInt Highs_changeColBounds(void* highs, const HighsInt col,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeColsBoundsByRange(void* highs, const HighsInt from_col,
-                                       const HighsInt to_col,
-                                       const double* lower,
-                                       const double* upper);
+HIGHS_EXPORT HighsInt Highs_changeColsBoundsByRange(void* highs,
+                                                    const HighsInt from_col,
+                                                    const HighsInt to_col,
+                                                    const double* lower,
+                                                    const double* upper);
 
 /**
  * Change the bounds of multiple columns given by an array of indices.
@@ -1670,10 +1709,9 @@ HighsInt Highs_changeColsBoundsByRange(void* highs, const HighsInt from_col,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeColsBoundsBySet(void* highs,
-                                     const HighsInt num_set_entries,
-                                     const HighsInt* set, const double* lower,
-                                     const double* upper);
+HIGHS_EXPORT HighsInt Highs_changeColsBoundsBySet(
+    void* highs, const HighsInt num_set_entries, const HighsInt* set,
+    const double* lower, const double* upper);
 
 /**
  * Change the variable bounds of multiple columns given by a mask.
@@ -1686,8 +1724,10 @@ HighsInt Highs_changeColsBoundsBySet(void* highs,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeColsBoundsByMask(void* highs, const HighsInt* mask,
-                                      const double* lower, const double* upper);
+HIGHS_EXPORT HighsInt Highs_changeColsBoundsByMask(void* highs,
+                                                   const HighsInt* mask,
+                                                   const double* lower,
+                                                   const double* upper);
 
 /**
  * Change the bounds of a row.
@@ -1699,8 +1739,9 @@ HighsInt Highs_changeColsBoundsByMask(void* highs, const HighsInt* mask,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeRowBounds(void* highs, const HighsInt row,
-                               const double lower, const double upper);
+HIGHS_EXPORT HighsInt Highs_changeRowBounds(void* highs, const HighsInt row,
+                                            const double lower,
+                                            const double upper);
 
 /**
  * Change the variable bounds of multiple adjacent rows.
@@ -1715,10 +1756,11 @@ HighsInt Highs_changeRowBounds(void* highs, const HighsInt row,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeRowsBoundsByRange(void* highs, const HighsInt from_row,
-                                       const HighsInt to_row,
-                                       const double* lower,
-                                       const double* upper);
+HIGHS_EXPORT HighsInt Highs_changeRowsBoundsByRange(void* highs,
+                                                    const HighsInt from_row,
+                                                    const HighsInt to_row,
+                                                    const double* lower,
+                                                    const double* upper);
 
 /**
  * Change the bounds of multiple rows given by an array of indices.
@@ -1734,10 +1776,9 @@ HighsInt Highs_changeRowsBoundsByRange(void* highs, const HighsInt from_row,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeRowsBoundsBySet(void* highs,
-                                     const HighsInt num_set_entries,
-                                     const HighsInt* set, const double* lower,
-                                     const double* upper);
+HIGHS_EXPORT HighsInt Highs_changeRowsBoundsBySet(
+    void* highs, const HighsInt num_set_entries, const HighsInt* set,
+    const double* lower, const double* upper);
 
 /**
  * Change the bounds of multiple rows given by a mask.
@@ -1750,8 +1791,10 @@ HighsInt Highs_changeRowsBoundsBySet(void* highs,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeRowsBoundsByMask(void* highs, const HighsInt* mask,
-                                      const double* lower, const double* upper);
+HIGHS_EXPORT HighsInt Highs_changeRowsBoundsByMask(void* highs,
+                                                   const HighsInt* mask,
+                                                   const double* lower,
+                                                   const double* upper);
 
 /**
  * Change a coefficient in the constraint matrix.
@@ -1763,8 +1806,8 @@ HighsInt Highs_changeRowsBoundsByMask(void* highs, const HighsInt* mask,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_changeCoeff(void* highs, const HighsInt row, const HighsInt col,
-                           const double value);
+HIGHS_EXPORT HighsInt Highs_changeCoeff(void* highs, const HighsInt row,
+                                        const HighsInt col, const double value);
 
 /**
  * Get the objective sense.
@@ -1775,7 +1818,8 @@ HighsInt Highs_changeCoeff(void* highs, const HighsInt row, const HighsInt col,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getObjectiveSense(const void* highs, HighsInt* sense);
+HIGHS_EXPORT HighsInt Highs_getObjectiveSense(const void* highs,
+                                              HighsInt* sense);
 
 /**
  * Get the objective offset.
@@ -1786,7 +1830,8 @@ HighsInt Highs_getObjectiveSense(const void* highs, HighsInt* sense);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getObjectiveOffset(const void* highs, double* offset);
+HIGHS_EXPORT HighsInt Highs_getObjectiveOffset(const void* highs,
+                                               double* offset);
 
 /**
  * Get data associated with multiple adjacent columns from the model.
@@ -1824,11 +1869,11 @@ HighsInt Highs_getObjectiveOffset(const void* highs, double* offset);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getColsByRange(const void* highs, const HighsInt from_col,
-                              const HighsInt to_col, HighsInt* num_col,
-                              double* costs, double* lower, double* upper,
-                              HighsInt* num_nz, HighsInt* matrix_start,
-                              HighsInt* matrix_index, double* matrix_value);
+HIGHS_EXPORT HighsInt Highs_getColsByRange(
+    const void* highs, const HighsInt from_col, const HighsInt to_col,
+    HighsInt* num_col, double* costs, double* lower, double* upper,
+    HighsInt* num_nz, HighsInt* matrix_start, HighsInt* matrix_index,
+    double* matrix_value);
 
 /**
  * Get data associated with multiple columns given by an array.
@@ -1836,17 +1881,17 @@ HighsInt Highs_getColsByRange(const void* highs, const HighsInt from_col,
  * This function is identical to `Highs_getColsByRange`, except for how the
  * columns are specified.
  *
- * @param num_set_indices   The number of indices in `set`.
+ * @param num_set_entries   The number of indices in `set`.
  * @param set               An array of size [num_set_entries] with the column
  *                          indices to get.
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getColsBySet(const void* highs, const HighsInt num_set_entries,
-                            const HighsInt* set, HighsInt* num_col,
-                            double* costs, double* lower, double* upper,
-                            HighsInt* num_nz, HighsInt* matrix_start,
-                            HighsInt* matrix_index, double* matrix_value);
+HIGHS_EXPORT HighsInt Highs_getColsBySet(
+    const void* highs, const HighsInt num_set_entries, const HighsInt* set,
+    HighsInt* num_col, double* costs, double* lower, double* upper,
+    HighsInt* num_nz, HighsInt* matrix_start, HighsInt* matrix_index,
+    double* matrix_value);
 
 /**
  * Get data associated with multiple columns given by a mask.
@@ -1859,11 +1904,10 @@ HighsInt Highs_getColsBySet(const void* highs, const HighsInt num_set_entries,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getColsByMask(const void* highs, const HighsInt* mask,
-                             HighsInt* num_col, double* costs, double* lower,
-                             double* upper, HighsInt* num_nz,
-                             HighsInt* matrix_start, HighsInt* matrix_index,
-                             double* matrix_value);
+HIGHS_EXPORT HighsInt Highs_getColsByMask(
+    const void* highs, const HighsInt* mask, HighsInt* num_col, double* costs,
+    double* lower, double* upper, HighsInt* num_nz, HighsInt* matrix_start,
+    HighsInt* matrix_index, double* matrix_value);
 
 /**
  * Get data associated with multiple adjacent rows from the model.
@@ -1899,11 +1943,10 @@ HighsInt Highs_getColsByMask(const void* highs, const HighsInt* mask,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getRowsByRange(const void* highs, const HighsInt from_row,
-                              const HighsInt to_row, HighsInt* num_row,
-                              double* lower, double* upper, HighsInt* num_nz,
-                              HighsInt* matrix_start, HighsInt* matrix_index,
-                              double* matrix_value);
+HIGHS_EXPORT HighsInt Highs_getRowsByRange(
+    const void* highs, const HighsInt from_row, const HighsInt to_row,
+    HighsInt* num_row, double* lower, double* upper, HighsInt* num_nz,
+    HighsInt* matrix_start, HighsInt* matrix_index, double* matrix_value);
 
 /**
  * Get data associated with multiple rows given by an array.
@@ -1917,11 +1960,10 @@ HighsInt Highs_getRowsByRange(const void* highs, const HighsInt from_row,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getRowsBySet(const void* highs, const HighsInt num_set_entries,
-                            const HighsInt* set, HighsInt* num_row,
-                            double* lower, double* upper, HighsInt* num_nz,
-                            HighsInt* matrix_start, HighsInt* matrix_index,
-                            double* matrix_value);
+HIGHS_EXPORT HighsInt Highs_getRowsBySet(
+    const void* highs, const HighsInt num_set_entries, const HighsInt* set,
+    HighsInt* num_row, double* lower, double* upper, HighsInt* num_nz,
+    HighsInt* matrix_start, HighsInt* matrix_index, double* matrix_value);
 
 /**
  * Get data associated with multiple rows given by a mask.
@@ -1934,10 +1976,10 @@ HighsInt Highs_getRowsBySet(const void* highs, const HighsInt num_set_entries,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getRowsByMask(const void* highs, const HighsInt* mask,
-                             HighsInt* num_row, double* lower, double* upper,
-                             HighsInt* num_nz, HighsInt* matrix_start,
-                             HighsInt* matrix_index, double* matrix_value);
+HIGHS_EXPORT HighsInt Highs_getRowsByMask(
+    const void* highs, const HighsInt* mask, HighsInt* num_row, double* lower,
+    double* upper, HighsInt* num_nz, HighsInt* matrix_start,
+    HighsInt* matrix_index, double* matrix_value);
 /**
  * Get the name of a row.
  *
@@ -1947,7 +1989,8 @@ HighsInt Highs_getRowsByMask(const void* highs, const HighsInt* mask,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getRowName(const void* highs, const HighsInt row, char* name);
+HIGHS_EXPORT HighsInt Highs_getRowName(const void* highs, const HighsInt row,
+                                       char* name);
 
 /**
  * Get the index of a row from its name.
@@ -1960,7 +2003,8 @@ HighsInt Highs_getRowName(const void* highs, const HighsInt row, char* name);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getRowByName(const void* highs, const char* name, HighsInt* row);
+HIGHS_EXPORT HighsInt Highs_getRowByName(const void* highs, const char* name,
+                                         HighsInt* row);
 
 /**
  * Get the name of a column.
@@ -1971,7 +2015,8 @@ HighsInt Highs_getRowByName(const void* highs, const char* name, HighsInt* row);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getColName(const void* highs, const HighsInt col, char* name);
+HIGHS_EXPORT HighsInt Highs_getColName(const void* highs, const HighsInt col,
+                                       char* name);
 
 /**
  * Get the index of a column from its name.
@@ -1984,7 +2029,8 @@ HighsInt Highs_getColName(const void* highs, const HighsInt col, char* name);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getColByName(const void* highs, const char* name, HighsInt* col);
+HIGHS_EXPORT HighsInt Highs_getColByName(const void* highs, const char* name,
+                                         HighsInt* col);
 
 /**
  * Get the integrality of a column.
@@ -1996,8 +2042,9 @@ HighsInt Highs_getColByName(const void* highs, const char* name, HighsInt* col);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getColIntegrality(const void* highs, const HighsInt col,
-                                 HighsInt* integrality);
+HIGHS_EXPORT HighsInt Highs_getColIntegrality(const void* highs,
+                                              const HighsInt col,
+                                              HighsInt* integrality);
 
 /**
  * Delete multiple adjacent columns.
@@ -2008,8 +2055,9 @@ HighsInt Highs_getColIntegrality(const void* highs, const HighsInt col,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_deleteColsByRange(void* highs, const HighsInt from_col,
-                                 const HighsInt to_col);
+HIGHS_EXPORT HighsInt Highs_deleteColsByRange(void* highs,
+                                              const HighsInt from_col,
+                                              const HighsInt to_col);
 
 /**
  * Delete multiple columns given by an array of indices.
@@ -2021,8 +2069,9 @@ HighsInt Highs_deleteColsByRange(void* highs, const HighsInt from_col,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_deleteColsBySet(void* highs, const HighsInt num_set_entries,
-                               const HighsInt* set);
+HIGHS_EXPORT HighsInt Highs_deleteColsBySet(void* highs,
+                                            const HighsInt num_set_entries,
+                                            const HighsInt* set);
 
 /**
  * Delete multiple columns given by a mask.
@@ -2033,7 +2082,7 @@ HighsInt Highs_deleteColsBySet(void* highs, const HighsInt num_set_entries,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_deleteColsByMask(void* highs, HighsInt* mask);
+HIGHS_EXPORT HighsInt Highs_deleteColsByMask(void* highs, HighsInt* mask);
 
 /**
  * Delete multiple adjacent rows.
@@ -2044,8 +2093,9 @@ HighsInt Highs_deleteColsByMask(void* highs, HighsInt* mask);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_deleteRowsByRange(void* highs, const HighsInt from_row,
-                                 const HighsInt to_row);
+HIGHS_EXPORT HighsInt Highs_deleteRowsByRange(void* highs,
+                                              const HighsInt from_row,
+                                              const HighsInt to_row);
 
 /**
  * Delete multiple rows given by an array of indices.
@@ -2057,8 +2107,9 @@ HighsInt Highs_deleteRowsByRange(void* highs, const HighsInt from_row,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_deleteRowsBySet(void* highs, const HighsInt num_set_entries,
-                               const HighsInt* set);
+HIGHS_EXPORT HighsInt Highs_deleteRowsBySet(void* highs,
+                                            const HighsInt num_set_entries,
+                                            const HighsInt* set);
 
 /**
  * Delete multiple rows given by a mask.
@@ -2070,7 +2121,7 @@ HighsInt Highs_deleteRowsBySet(void* highs, const HighsInt num_set_entries,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_deleteRowsByMask(void* highs, HighsInt* mask);
+HIGHS_EXPORT HighsInt Highs_deleteRowsByMask(void* highs, HighsInt* mask);
 
 /**
  * Scale a column by a constant.
@@ -2085,7 +2136,8 @@ HighsInt Highs_deleteRowsByMask(void* highs, HighsInt* mask);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_scaleCol(void* highs, const HighsInt col, const double scaleval);
+HIGHS_EXPORT HighsInt Highs_scaleCol(void* highs, const HighsInt col,
+                                     const double scaleval);
 
 /**
  * Scale a row by a constant.
@@ -2097,7 +2149,8 @@ HighsInt Highs_scaleCol(void* highs, const HighsInt col, const double scaleval);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_scaleRow(void* highs, const HighsInt row, const double scaleval);
+HIGHS_EXPORT HighsInt Highs_scaleRow(void* highs, const HighsInt row,
+                                     const double scaleval);
 
 /**
  * Return the value of infinity used by HiGHS.
@@ -2106,7 +2159,7 @@ HighsInt Highs_scaleRow(void* highs, const HighsInt row, const double scaleval);
  *
  * @returns The value of infinity used by HiGHS.
  */
-double Highs_getInfinity(const void* highs);
+HIGHS_EXPORT double Highs_getInfinity(const void* highs);
 
 /**
  * Return the size of integers used by HiGHS.
@@ -2115,7 +2168,7 @@ double Highs_getInfinity(const void* highs);
  *
  * @returns The size of integers used by HiGHS.
  */
-HighsInt Highs_getSizeofHighsInt(const void* highs);
+HIGHS_EXPORT HighsInt Highs_getSizeofHighsInt(const void* highs);
 
 /**
  * Return the number of columns in the model.
@@ -2124,7 +2177,7 @@ HighsInt Highs_getSizeofHighsInt(const void* highs);
  *
  * @returns The number of columns in the model.
  */
-HighsInt Highs_getNumCol(const void* highs);
+HIGHS_EXPORT HighsInt Highs_getNumCol(const void* highs);
 
 /**
  * Return the number of rows in the model.
@@ -2133,7 +2186,7 @@ HighsInt Highs_getNumCol(const void* highs);
  *
  * @returns The number of rows in the model.
  */
-HighsInt Highs_getNumRow(const void* highs);
+HIGHS_EXPORT HighsInt Highs_getNumRow(const void* highs);
 
 /**
  * Return the number of nonzeros in the constraint matrix of the model.
@@ -2142,7 +2195,7 @@ HighsInt Highs_getNumRow(const void* highs);
  *
  * @returns The number of nonzeros in the constraint matrix of the model.
  */
-HighsInt Highs_getNumNz(const void* highs);
+HIGHS_EXPORT HighsInt Highs_getNumNz(const void* highs);
 
 /**
  * Return the number of nonzeroes in the Hessian matrix of the model.
@@ -2151,7 +2204,7 @@ HighsInt Highs_getNumNz(const void* highs);
  *
  * @returns The number of nonzeroes in the Hessian matrix of the model.
  */
-HighsInt Highs_getHessianNumNz(const void* highs);
+HIGHS_EXPORT HighsInt Highs_getHessianNumNz(const void* highs);
 
 /**
  * Return the number of columns in the presolved model.
@@ -2160,7 +2213,7 @@ HighsInt Highs_getHessianNumNz(const void* highs);
  *
  * @returns The number of columns in the presolved model.
  */
-HighsInt Highs_getPresolvedNumCol(const void* highs);
+HIGHS_EXPORT HighsInt Highs_getPresolvedNumCol(const void* highs);
 
 /**
  * Return the number of rows in the presolved model.
@@ -2169,7 +2222,7 @@ HighsInt Highs_getPresolvedNumCol(const void* highs);
  *
  * @returns The number of rows in the presolved model.
  */
-HighsInt Highs_getPresolvedNumRow(const void* highs);
+HIGHS_EXPORT HighsInt Highs_getPresolvedNumRow(const void* highs);
 
 /**
  * Return the number of nonzeros in the constraint matrix of the presolved
@@ -2180,7 +2233,7 @@ HighsInt Highs_getPresolvedNumRow(const void* highs);
  * @returns The number of nonzeros in the constraint matrix of the presolved
  * model.
  */
-HighsInt Highs_getPresolvedNumNz(const void* highs);
+HIGHS_EXPORT HighsInt Highs_getPresolvedNumNz(const void* highs);
 
 /**
  * Get the data from a HiGHS model.
@@ -2198,15 +2251,13 @@ HighsInt Highs_getPresolvedNumNz(const void* highs);
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getModel(const void* highs, const HighsInt a_format,
-                        const HighsInt q_format, HighsInt* num_col,
-                        HighsInt* num_row, HighsInt* num_nz,
-                        HighsInt* hessian_num_nz, HighsInt* sense,
-                        double* offset, double* col_cost, double* col_lower,
-                        double* col_upper, double* row_lower, double* row_upper,
-                        HighsInt* a_start, HighsInt* a_index, double* a_value,
-                        HighsInt* q_start, HighsInt* q_index, double* q_value,
-                        HighsInt* integrality);
+HIGHS_EXPORT HighsInt Highs_getModel(
+    const void* highs, const HighsInt a_format, const HighsInt q_format,
+    HighsInt* num_col, HighsInt* num_row, HighsInt* num_nz,
+    HighsInt* hessian_num_nz, HighsInt* sense, double* offset, double* col_cost,
+    double* col_lower, double* col_upper, double* row_lower, double* row_upper,
+    HighsInt* a_start, HighsInt* a_index, double* a_value, HighsInt* q_start,
+    HighsInt* q_index, double* q_value, HighsInt* integrality);
 
 /**
  * Get the data from a HiGHS LP.
@@ -2223,12 +2274,14 @@ HighsInt Highs_getModel(const void* highs, const HighsInt a_format,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getLp(const void* highs, const HighsInt a_format,
-                     HighsInt* num_col, HighsInt* num_row, HighsInt* num_nz,
-                     HighsInt* sense, double* offset, double* col_cost,
-                     double* col_lower, double* col_upper, double* row_lower,
-                     double* row_upper, HighsInt* a_start, HighsInt* a_index,
-                     double* a_value, HighsInt* integrality);
+HIGHS_EXPORT HighsInt Highs_getLp(const void* highs, const HighsInt a_format,
+                                  HighsInt* num_col, HighsInt* num_row,
+                                  HighsInt* num_nz, HighsInt* sense,
+                                  double* offset, double* col_cost,
+                                  double* col_lower, double* col_upper,
+                                  double* row_lower, double* row_upper,
+                                  HighsInt* a_start, HighsInt* a_index,
+                                  double* a_value, HighsInt* integrality);
 
 /**
  * Get the data from a HiGHS presolved LP.
@@ -2245,14 +2298,12 @@ HighsInt Highs_getLp(const void* highs, const HighsInt a_format,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getPresolvedLp(const void* highs, const HighsInt a_format,
-                              HighsInt* num_col, HighsInt* num_row,
-                              HighsInt* num_nz, HighsInt* sense, double* offset,
-                              double* col_cost, double* col_lower,
-                              double* col_upper, double* row_lower,
-                              double* row_upper, HighsInt* a_start,
-                              HighsInt* a_index, double* a_value,
-                              HighsInt* integrality);
+HIGHS_EXPORT HighsInt Highs_getPresolvedLp(
+    const void* highs, const HighsInt a_format, HighsInt* num_col,
+    HighsInt* num_row, HighsInt* num_nz, HighsInt* sense, double* offset,
+    double* col_cost, double* col_lower, double* col_upper, double* row_lower,
+    double* row_upper, HighsInt* a_start, HighsInt* a_index, double* a_value,
+    HighsInt* integrality);
 /**
  * Get the name of a column of the presolved LP.
  *
@@ -2262,8 +2313,8 @@ HighsInt Highs_getPresolvedLp(const void* highs, const HighsInt a_format,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getPresolvedColName(const void* highs, const HighsInt col,
-                                   char* name);
+HIGHS_EXPORT HighsInt Highs_getPresolvedColName(const void* highs,
+                                                const HighsInt col, char* name);
 
 /**
  * Get the name of a row of the presolved LP.
@@ -2274,8 +2325,8 @@ HighsInt Highs_getPresolvedColName(const void* highs, const HighsInt col,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getPresolvedRowName(const void* highs, const HighsInt row,
-                                   char* name);
+HIGHS_EXPORT HighsInt Highs_getPresolvedRowName(const void* highs,
+                                                const HighsInt row, char* name);
 
 /**
  * Get the data from a HiGHS IIS LP.
@@ -2292,12 +2343,14 @@ HighsInt Highs_getPresolvedRowName(const void* highs, const HighsInt row,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getIisLp(const void* highs, const HighsInt a_format,
-                        HighsInt* num_col, HighsInt* num_row, HighsInt* num_nz,
-                        HighsInt* sense, double* offset, double* col_cost,
-                        double* col_lower, double* col_upper, double* row_lower,
-                        double* row_upper, HighsInt* a_start, HighsInt* a_index,
-                        double* a_value, HighsInt* integrality);
+HIGHS_EXPORT HighsInt Highs_getIisLp(const void* highs, const HighsInt a_format,
+                                     HighsInt* num_col, HighsInt* num_row,
+                                     HighsInt* num_nz, HighsInt* sense,
+                                     double* offset, double* col_cost,
+                                     double* col_lower, double* col_upper,
+                                     double* row_lower, double* row_upper,
+                                     HighsInt* a_start, HighsInt* a_index,
+                                     double* a_value, HighsInt* integrality);
 
 /**
  * Get the LP corresponding to a MIP with non-continuous variables
@@ -2315,13 +2368,11 @@ HighsInt Highs_getIisLp(const void* highs, const HighsInt a_format,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getFixedLp(const void* highs, const HighsInt a_format,
-                          HighsInt* num_col, HighsInt* num_row,
-                          HighsInt* num_nz, HighsInt* sense, double* offset,
-                          double* col_cost, double* col_lower,
-                          double* col_upper, double* row_lower,
-                          double* row_upper, HighsInt* a_start,
-                          HighsInt* a_index, double* a_value);
+HIGHS_EXPORT HighsInt Highs_getFixedLp(
+    const void* highs, const HighsInt a_format, HighsInt* num_col,
+    HighsInt* num_row, HighsInt* num_nz, HighsInt* sense, double* offset,
+    double* col_cost, double* col_lower, double* col_upper, double* row_lower,
+    double* row_upper, HighsInt* a_start, HighsInt* a_index, double* a_value);
 
 /**
  * Set a primal (and possibly dual) solution as a starting point, then run
@@ -2341,9 +2392,11 @@ HighsInt Highs_getFixedLp(const void* highs, const HighsInt a_format,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_crossover(void* highs, const HighsInt num_col,
-                         const HighsInt num_row, const double* col_value,
-                         const double* col_dual, const double* row_dual);
+HIGHS_EXPORT HighsInt Highs_crossover(void* highs, const HighsInt num_col,
+                                      const HighsInt num_row,
+                                      const double* col_value,
+                                      const double* col_dual,
+                                      const double* row_dual);
 
 /**
  * Compute the ranging information for all costs and bounds. For
@@ -2393,21 +2446,21 @@ HighsInt Highs_crossover(void* highs, const HighsInt num_col,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getRanging(
-    void* highs,
-    //
-    double* col_cost_up_value, double* col_cost_up_objective,
-    HighsInt* col_cost_up_in_var, HighsInt* col_cost_up_ou_var,
-    double* col_cost_dn_value, double* col_cost_dn_objective,
-    HighsInt* col_cost_dn_in_var, HighsInt* col_cost_dn_ou_var,
-    double* col_bound_up_value, double* col_bound_up_objective,
-    HighsInt* col_bound_up_in_var, HighsInt* col_bound_up_ou_var,
-    double* col_bound_dn_value, double* col_bound_dn_objective,
-    HighsInt* col_bound_dn_in_var, HighsInt* col_bound_dn_ou_var,
-    double* row_bound_up_value, double* row_bound_up_objective,
-    HighsInt* row_bound_up_in_var, HighsInt* row_bound_up_ou_var,
-    double* row_bound_dn_value, double* row_bound_dn_objective,
-    HighsInt* row_bound_dn_in_var, HighsInt* row_bound_dn_ou_var);
+HIGHS_EXPORT HighsInt
+Highs_getRanging(void* highs,
+                 //
+                 double* col_cost_up_value, double* col_cost_up_objective,
+                 HighsInt* col_cost_up_in_var, HighsInt* col_cost_up_ou_var,
+                 double* col_cost_dn_value, double* col_cost_dn_objective,
+                 HighsInt* col_cost_dn_in_var, HighsInt* col_cost_dn_ou_var,
+                 double* col_bound_up_value, double* col_bound_up_objective,
+                 HighsInt* col_bound_up_in_var, HighsInt* col_bound_up_ou_var,
+                 double* col_bound_dn_value, double* col_bound_dn_objective,
+                 HighsInt* col_bound_dn_in_var, HighsInt* col_bound_dn_ou_var,
+                 double* row_bound_up_value, double* row_bound_up_objective,
+                 HighsInt* row_bound_up_in_var, HighsInt* row_bound_up_ou_var,
+                 double* row_bound_dn_value, double* row_bound_dn_objective,
+                 HighsInt* row_bound_dn_in_var, HighsInt* row_bound_dn_ou_var);
 
 /**
  * Compute the solution corresponding to a (possibly weighted) sum of
@@ -2433,13 +2486,11 @@ HighsInt Highs_getRanging(
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
 
-HighsInt Highs_feasibilityRelaxation(void* highs,
-                                     const double global_lower_penalty,
-                                     const double global_upper_penalty,
-                                     const double global_rhs_penalty,
-                                     const double* local_lower_penalty,
-                                     const double* local_upper_penalty,
-                                     const double* local_rhs_penalty);
+HIGHS_EXPORT HighsInt Highs_feasibilityRelaxation(
+    void* highs, const double global_lower_penalty,
+    const double global_upper_penalty, const double global_rhs_penalty,
+    const double* local_lower_penalty, const double* local_upper_penalty,
+    const double* local_rhs_penalty);
 
 /**
  * Attempt to compute an irreducible infeasibility subsystem (IIS) for
@@ -2470,10 +2521,11 @@ HighsInt Highs_feasibilityRelaxation(void* highs,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_getIis(void* highs, HighsInt* iis_num_col, HighsInt* iis_num_row,
-                      HighsInt* col_index, HighsInt* row_index,
-                      HighsInt* col_bound, HighsInt* row_bound,
-                      HighsInt* col_status, HighsInt* row_status);
+HIGHS_EXPORT HighsInt Highs_getIis(void* highs, HighsInt* iis_num_col,
+                                   HighsInt* iis_num_row, HighsInt* col_index,
+                                   HighsInt* row_index, HighsInt* col_bound,
+                                   HighsInt* row_bound, HighsInt* col_status,
+                                   HighsInt* row_status);
 /**
  * Releases all resources held by the global scheduler instance.
  *
@@ -2499,7 +2551,7 @@ HighsInt Highs_getIis(void* highs, HighsInt* iis_num_col, HighsInt* iis_num_row,
  * undefined behavior and may cause crashes, but cannot be detected and hence
  * is fully in the callers responsibility.
  */
-void Highs_resetGlobalScheduler(const HighsInt blocking);
+HIGHS_EXPORT void Highs_resetGlobalScheduler(const HighsInt blocking);
 
 /**
  * Get a void* pointer to a callback data item
@@ -2510,8 +2562,8 @@ void Highs_resetGlobalScheduler(const HighsInt blocking);
  * @returns A void* pointer to the callback data item, or NULL if item_name not
  * valid
  */
-const void* Highs_getCallbackDataOutItem(const HighsCallbackDataOut* data_out,
-                                         const char* item_name);
+HIGHS_EXPORT const void* Highs_getCallbackDataOutItem(
+    const HighsCallbackDataOut* data_out, const char* item_name);
 
 /**
  * Set a solution within a callback by passing a subset of the values.
@@ -2525,9 +2577,9 @@ const void* Highs_getCallbackDataOutItem(const HighsCallbackDataOut* data_out,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_setCallbackSolution(HighsCallbackDataIn* data_in,
-                                   const HighsInt num_entries,
-                                   const double* value);
+HIGHS_EXPORT HighsInt Highs_setCallbackSolution(HighsCallbackDataIn* data_in,
+                                                const HighsInt num_entries,
+                                                const double* value);
 
 /**
  * Set a partial primal solution by passing values for a set of variables,
@@ -2540,10 +2592,9 @@ HighsInt Highs_setCallbackSolution(HighsCallbackDataIn* data_in,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_setCallbackSparseSolution(HighsCallbackDataIn* data_in,
-                                         const HighsInt num_entries,
-                                         const HighsInt* index,
-                                         const double* value);
+HIGHS_EXPORT HighsInt Highs_setCallbackSparseSolution(
+    HighsCallbackDataIn* data_in, const HighsInt num_entries,
+    const HighsInt* index, const double* value);
 
 /**
  * Finds a feasible solution for a given (partial) primal user solution,
@@ -2554,7 +2605,8 @@ HighsInt Highs_setCallbackSparseSolution(HighsCallbackDataIn* data_in,
  *
  * @returns A `kHighsStatus` constant indicating whether the call succeeded.
  */
-HighsInt Highs_repairCallbackSolution(HighsCallbackDataIn* data_in);
+HIGHS_EXPORT HighsInt
+Highs_repairCallbackSolution(HighsCallbackDataIn* data_in);
 
 // *********************
 // * Deprecated methods*
@@ -2573,76 +2625,86 @@ static const HighsInt HighsStatuskError = -1;
 static const HighsInt HighsStatuskOk = 0;
 static const HighsInt HighsStatuskWarning = 1;
 
-HighsInt Highs_call(const HighsInt num_col, const HighsInt num_row,
-                    const HighsInt num_nz, const double* col_cost,
-                    const double* col_lower, const double* col_upper,
-                    const double* row_lower, const double* row_upper,
-                    const HighsInt* a_start, const HighsInt* a_index,
-                    const double* a_value, double* col_value, double* col_dual,
-                    double* row_value, double* row_dual,
-                    HighsInt* col_basis_status, HighsInt* row_basis_status,
-                    HighsInt* model_status);
+HIGHS_EXPORT HighsInt Highs_call(
+    const HighsInt num_col, const HighsInt num_row, const HighsInt num_nz,
+    const double* col_cost, const double* col_lower, const double* col_upper,
+    const double* row_lower, const double* row_upper, const HighsInt* a_start,
+    const HighsInt* a_index, const double* a_value, double* col_value,
+    double* col_dual, double* row_value, double* row_dual,
+    HighsInt* col_basis_status, HighsInt* row_basis_status,
+    HighsInt* model_status);
 
-HighsInt Highs_runQuiet(void* highs);
+HIGHS_EXPORT HighsInt Highs_runQuiet(void* highs);
 
-HighsInt Highs_setHighsLogfile(void* highs, const void* logfile);
+HIGHS_EXPORT HighsInt Highs_setHighsLogfile(void* highs, const void* logfile);
 
-HighsInt Highs_setHighsOutput(void* highs, const void* outputfile);
+HIGHS_EXPORT HighsInt Highs_setHighsOutput(void* highs, const void* outputfile);
 
-HighsInt Highs_getIterationCount(const void* highs);
+HIGHS_EXPORT HighsInt Highs_getIterationCount(const void* highs);
 
-HighsInt Highs_getSimplexIterationCount(const void* highs);
+HIGHS_EXPORT HighsInt Highs_getSimplexIterationCount(const void* highs);
 
-HighsInt Highs_setHighsBoolOptionValue(void* highs, const char* option,
-                                       const HighsInt value);
+HIGHS_EXPORT HighsInt Highs_setHighsBoolOptionValue(void* highs,
+                                                    const char* option,
+                                                    const HighsInt value);
 
-HighsInt Highs_setHighsIntOptionValue(void* highs, const char* option,
-                                      const HighsInt value);
+HIGHS_EXPORT HighsInt Highs_setHighsIntOptionValue(void* highs,
+                                                   const char* option,
+                                                   const HighsInt value);
 
-HighsInt Highs_setHighsDoubleOptionValue(void* highs, const char* option,
-                                         const double value);
+HIGHS_EXPORT HighsInt Highs_setHighsDoubleOptionValue(void* highs,
+                                                      const char* option,
+                                                      const double value);
 
-HighsInt Highs_setHighsStringOptionValue(void* highs, const char* option,
-                                         const char* value);
+HIGHS_EXPORT HighsInt Highs_setHighsStringOptionValue(void* highs,
+                                                      const char* option,
+                                                      const char* value);
 
-HighsInt Highs_setHighsOptionValue(void* highs, const char* option,
-                                   const char* value);
+HIGHS_EXPORT HighsInt Highs_setHighsOptionValue(void* highs, const char* option,
+                                                const char* value);
 
-HighsInt Highs_getHighsBoolOptionValue(const void* highs, const char* option,
-                                       HighsInt* value);
+HIGHS_EXPORT HighsInt Highs_getHighsBoolOptionValue(const void* highs,
+                                                    const char* option,
+                                                    HighsInt* value);
 
-HighsInt Highs_getHighsIntOptionValue(const void* highs, const char* option,
-                                      HighsInt* value);
+HIGHS_EXPORT HighsInt Highs_getHighsIntOptionValue(const void* highs,
+                                                   const char* option,
+                                                   HighsInt* value);
 
-HighsInt Highs_getHighsDoubleOptionValue(const void* highs, const char* option,
-                                         double* value);
+HIGHS_EXPORT HighsInt Highs_getHighsDoubleOptionValue(const void* highs,
+                                                      const char* option,
+                                                      double* value);
 
-HighsInt Highs_getHighsStringOptionValue(const void* highs, const char* option,
-                                         char* value);
+HIGHS_EXPORT HighsInt Highs_getHighsStringOptionValue(const void* highs,
+                                                      const char* option,
+                                                      char* value);
 
-HighsInt Highs_getHighsOptionType(const void* highs, const char* option,
-                                  HighsInt* type);
+HIGHS_EXPORT HighsInt Highs_getHighsOptionType(const void* highs,
+                                               const char* option,
+                                               HighsInt* type);
 
-HighsInt Highs_resetHighsOptions(void* highs);
+HIGHS_EXPORT HighsInt Highs_resetHighsOptions(void* highs);
 
-HighsInt Highs_getHighsIntInfoValue(const void* highs, const char* info,
-                                    HighsInt* value);
+HIGHS_EXPORT HighsInt Highs_getHighsIntInfoValue(const void* highs,
+                                                 const char* info,
+                                                 HighsInt* value);
 
-HighsInt Highs_getHighsDoubleInfoValue(const void* highs, const char* info,
-                                       double* value);
+HIGHS_EXPORT HighsInt Highs_getHighsDoubleInfoValue(const void* highs,
+                                                    const char* info,
+                                                    double* value);
 
-HighsInt Highs_getNumCols(const void* highs);
+HIGHS_EXPORT HighsInt Highs_getNumCols(const void* highs);
 
-HighsInt Highs_getNumRows(const void* highs);
+HIGHS_EXPORT HighsInt Highs_getNumRows(const void* highs);
 
-double Highs_getHighsInfinity(const void* highs);
+HIGHS_EXPORT double Highs_getHighsInfinity(const void* highs);
 
-double Highs_getHighsRunTime(const void* highs);
+HIGHS_EXPORT double Highs_getHighsRunTime(const void* highs);
 
-HighsInt Highs_setOptionValue(void* highs, const char* option,
-                              const char* value);
+HIGHS_EXPORT HighsInt Highs_setOptionValue(void* highs, const char* option,
+                                           const char* value);
 
-HighsInt Highs_getScaledModelStatus(const void* highs);
+HIGHS_EXPORT HighsInt Highs_getScaledModelStatus(const void* highs);
 
 #ifdef __cplusplus
 }

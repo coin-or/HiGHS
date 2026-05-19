@@ -11,10 +11,11 @@
 #ifndef HIGHS_EXTERNAL_DEPS_H_
 #define HIGHS_EXTERNAL_DEPS_H_
 
+#include "highs_export.h"
 #include "HighsExtrasApi.h"
 
 namespace HighsExtras {
-struct highs_family {
+struct HIGHS_EXPORT highs_family {
   static const HighsExtrasFeatureInfo* getInfo();
 };
 

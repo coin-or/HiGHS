@@ -13,6 +13,7 @@
 
 #include <sstream>
 
+#include "highs_export.h"
 #include "lp_data/HighsCallback.h"
 #include "lp_data/HighsIis.h"
 #include "lp_data/HighsLpUtils.h"
@@ -25,21 +26,21 @@
 /**
  * @brief Return the version
  */
-const char* highsVersion();
+HIGHS_EXPORT const char* highsVersion();
 
 /**
  * @brief Return detailed version information, githash and compilation
  * date
  */
-HighsInt highsVersionMajor();
-HighsInt highsVersionMinor();
-HighsInt highsVersionPatch();
-const char* highsGithash();
+HIGHS_EXPORT HighsInt highsVersionMajor();
+HIGHS_EXPORT HighsInt highsVersionMinor();
+HIGHS_EXPORT HighsInt highsVersionPatch();
+HIGHS_EXPORT const char* highsGithash();
 
 /**
  * @brief Class to set parameters and run HiGHS
  */
-class Highs {
+class HIGHS_EXPORT Highs {
  public:
   Highs();
   virtual ~Highs() { this->closeLogFile(); }

@@ -13,12 +13,13 @@
 
 #include <vector>
 
+#include "highs_export.h"
 #include "lp_data/HighsLp.h"
 #include "model/HighsHessian.h"
 
 class HighsModel;
 
-class HighsModel {
+class HIGHS_EXPORT HighsModel {
  public:
   HighsLp lp_;
   HighsHessian hessian_;

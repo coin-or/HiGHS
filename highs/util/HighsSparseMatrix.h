@@ -13,6 +13,7 @@
 
 #include <vector>
 
+#include "highs_export.h"
 #include "lp_data/HConst.h"
 #include "lp_data/HStruct.h"  //For  HighsScale
 #include "lp_data/HighsStatus.h"
@@ -26,7 +27,7 @@ const double kHyperPriceDensity = 0.1;
 const HighsInt kDebugReportOff = -2;
 const HighsInt kDebugReportAll = -1;
 
-class HighsSparseMatrix {
+class HIGHS_EXPORT HighsSparseMatrix {
  public:
   HighsSparseMatrix() { clear(); }
   MatrixFormat format_;
