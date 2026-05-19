@@ -94,6 +94,9 @@ if (FORTRAN OR CSHARP)
   set(BUILD_SHARED_LIBS ON)
 endif()
 
+
+set(BUILD_SHARED_LIBS OFF) # try static link?
+
 option(HIPO "Build HIPO" OFF)
 message(STATUS "Build HIPO: ${HIPO}")
 
@@ -226,6 +229,7 @@ if(BUILD_STATIC_EXE)
   # endif()
 endif()
 
+set(BUILD_SHARED_LIBS OFF) # try static link?
 
 if (BUILD_CXX)
   # Default Build Type to be Release
@@ -356,6 +360,9 @@ if (BUILD_CXX)
     check_ipo_supported(RESULT ipo_supported OUTPUT check_ipo_support_output)
     message(STATUS "IPO / LTO supported by compiler: ${ipo_supported}")
   endif()
+
+  # check CMAKE_OSX_ARCHITECTURES
+  message(STATUS "CMAKE_OSX_ARCHITECTURES: ${CMAKE_OSX_ARCHITECTURES}")
 
   if(DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
     # The user explicitly requested IPO. If it's not supported, CMake *should*
