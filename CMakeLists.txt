@@ -97,9 +97,6 @@ endif()
 
 set(BUILD_SHARED_LIBS OFF) # try static link?
 
-if(APPLE)
-  target_link_options(highs PRIVATE LINKER:-ld_classic)
-endif()
 
 option(HIPO "Build HIPO" OFF)
 message(STATUS "Build HIPO: ${HIPO}")
@@ -538,6 +535,7 @@ if(MSVC)
     add_link_options("$<$<COMPILE_LANGUAGE:C,CXX>:/DEBUG:FASTLINK>")
   endif()
 
+  
   if(STDCALL)
     # /Gz - stdcall calling convention
     add_definitions(/Gz)

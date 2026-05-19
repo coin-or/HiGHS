@@ -22,6 +22,9 @@ if(NOT FAST_BUILD)
 
   add_library(libhighs ${sources} ${headers} ${win_version_file})
   target_include_directories(libhighs PRIVATE ${include_dirs})
+if(APPLE)
+  target_link_options(libhighs PRIVATE LINKER:-ld_classic)
+endif()
 
   if(${BUILD_SHARED_LIBS})
     # put version information into shared library file
@@ -133,6 +136,9 @@ else()
   # No interfaces (apart from c); No ipx; New (short) ctest instances.
   add_library(highs)
 
+  if(APPLE)
+  target_link_options(highs PRIVATE LINKER:-ld_classic)
+endif()
   add_library(${PROJECT_NAMESPACE}::highs ALIAS highs)
 
   if(${BUILD_SHARED_LIBS})
