@@ -333,7 +333,7 @@ if (BUILD_CXX)
 
   # Use current CMAKE_C_FLAGS and CMAKE_CXX_FLAGS when checking for IPO support,
   # instead of defaults: https://cmake.org/cmake/help/latest/policy/CMP0138.html
-  if(MSVC AND BUILD_SHARED_LIBS)
+  if(BUILD_SHARED_LIBS)
     # MSVC does support LTO, but WINDOWS_EXPORT_ALL_SYMBOLS does not work if
     # LTO is enabled.
     set(ipo_supported NO)
