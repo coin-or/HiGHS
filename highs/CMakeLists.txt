@@ -23,7 +23,7 @@ if(NOT FAST_BUILD)
   add_library(libhighs ${sources} ${headers} ${win_version_file})
   target_include_directories(libhighs PRIVATE ${include_dirs})
 if(APPLE)
-  target_link_options(libhighs PRIVATE LINKER:-ld_classic)
+  target_link_options(libhighs PRIVATE LINKER:-no_deduplicate)
 endif()
 
   if(${BUILD_SHARED_LIBS})
@@ -137,8 +137,9 @@ else()
   add_library(highs)
 
   if(APPLE)
-  target_link_options(highs PRIVATE LINKER:-ld_classic)
-endif()
+    target_link_options(highs PRIVATE LINKER:-no_deduplicate)
+  endif()
+
   add_library(${PROJECT_NAMESPACE}::highs ALIAS highs)
 
   if(${BUILD_SHARED_LIBS})
