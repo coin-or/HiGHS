@@ -47,7 +47,7 @@ jobs:
           export LD_LIBRARY_PATH=build/lib
           ./example
 
-macos:
+  macos:
     runs-on: macos-latest
     strategy:
       fail-fast: false
