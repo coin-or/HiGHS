@@ -57,4 +57,4 @@ jobs:
         working-directory: ${{github.workspace}}
         run: |
           export LD_LIBRARY_PATH=install/lib:build/lib
-          ./example
+          ./example ; echo "exit code: $?"
