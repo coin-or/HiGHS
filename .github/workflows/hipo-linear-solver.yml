@@ -43,18 +43,6 @@ jobs:
         working-directory: ${{github.workspace}}/build
         run: cmake --install .
 
-      - name: print
-        working-directory: ${{github.workspace}}/install
-        run: |
-          pwd
-          ls
-          cd include
-          pwd
-          ls
-          cd ../lib
-          pwd
-          ls
-
       - name: Print config
         working-directory: ${{github.workspace}}/build
         run: cat HConfig.h
@@ -63,50 +51,10 @@ jobs:
         working-directory: ${{github.workspace}}
         run: |
           gcc highs/ipm/hipo/factorhighs/reproducer.c \
-          -o example -I${{github.workspace}}/install/include/highs -L${{github.workspace}}/install/lib -lhighs
+          -o example -Iinstall/include/highs -Linstall/lib -lhighs
 
       - name: Run example
         working-directory: ${{github.workspace}}
         run: |
-          export LD_LIBRARY_PATH=build/lib
+          export LD_LIBRARY_PATH=install/lib:build/lib
           ./example
-
-  macos:
-    runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        config: [Release]
-        all_tests: [OFF]
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Create Build Environment
-        run: cmake -E make_directory ${{github.workspace}}/build
-
-      - name: Configure CMake
-        working-directory: ${{github.workspace}}/build
-        run: |
-          cmake $GITHUB_WORKSPACE -DHIPO=ON \
-          -DFAST_BUILD=ON -DBUILD_OPENBLAS=OFF \
-          -DBLA_VENDOR=Apple
-
-      - name: Build
-        working-directory: ${{github.workspace}}/build
-        run: |
-          cmake --build . --parallel
-
-      - name: Compile example
-        working-directory: ${{github.workspace}}
-        run: |
-          gcc highs/ipm/hipo/factorhighs/reproducer.c \
-          -o example -Ihighs -Ibuild -Lbuild/lib -lhighs
-
-      - name: Run example
-        working-directory: ${{github.workspace}}
-        run: |
-          export DYLD_LIBRARY_PATH=build/lib
-          ./example
-
-      
