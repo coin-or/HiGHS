@@ -36,14 +36,15 @@ jobs:
           init-shell: >-
             bash
             zsh
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+
       - name: Build and test
         shell: bash -l {0}
         run: |
           meson setup bbdir -Duse_zlib=enabled -Dwith_tests=True
           meson test -C bbdir
-
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       
       # highspy no longer compiled with meson
       # see if it can be done separately if it is needed for meson projects
