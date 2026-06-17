@@ -23,17 +23,37 @@ jobs:
       - name: Create Build Environment
         run: cmake -E make_directory ${{github.workspace}}/build
 
+      - name: Create install
+        working-directory: ${{github.workspace}}
+        run: mkdir install
+
       - name: Configure CMake
         working-directory: ${{github.workspace}}/build
         run: |
           cmake $GITHUB_WORKSPACE -DHIPO=ON \
           -DFAST_BUILD=ON -DBUILD_OPENBLAS=OFF \
-          -DBLA_VENDOR=OpenBLAS
+          -DBLA_VENDOR=OpenBLAS -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install
 
       - name: Build
         working-directory: ${{github.workspace}}/build
         run: |
           cmake --build . --parallel
+
+      - name: install
+        working-directory: ${{github.workspace}}/build
+        run: cmake --install .
+
+      - name: print
+        working-directory: ${{github.workspace}}/install
+        run: |
+          pwd
+          ls
+          cd include
+          pwd
+          ls
+          cd ../lib
+          pwd
+          ls
 
       - name: Print config
         working-directory: ${{github.workspace}}/build
@@ -43,7 +63,7 @@ jobs:
         working-directory: ${{github.workspace}}
         run: |
           gcc highs/ipm/hipo/factorhighs/reproducer.c \
-          -o example -Ihighs -Ibuild -Lbuild/lib -lhighs
+          -o example -I${{github.workspace}}/install/include/highs -L${{github.workspace}}/install/lib -lhighs
 
       - name: Run example
         working-directory: ${{github.workspace}}
