@@ -14,7 +14,7 @@ FHsolver::~FHsolver() {
     data_.printTimes(*logger_);
     data_.printIter(*logger_);
   }
-  if (local_logger_ && logger_) delete logger_;
+  if (local_logger_) delete local_logger_;
 }
 
 void FHsolver::newIter() { data_.append(); }
@@ -55,13 +55,13 @@ void FHsolver::setBlockSize(Int nb) {
 void FHsolver::setPivoting(bool pivoting) { options_.pivoting = pivoting; }
 
 void FHsolver::setLogger(const Logger* logger, bool use_printf) {
-  if (local_logger_ && logger_) delete logger_;
-  local_logger_ = false;
+  if (local_logger_) delete local_logger_;
+  local_logger_ = nullptr;
 
   logger_ = logger;
   if (!logger_) {
-    logger_ = new Logger(use_printf);
-    if (logger_) local_logger_ = true;
+    local_logger_ = new Logger(use_printf);
+    logger_ = local_logger_;
   }
 
 #ifdef HIPO_COLLECT_EXPENSIVE_DATA

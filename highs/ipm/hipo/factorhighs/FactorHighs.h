@@ -70,11 +70,11 @@ via the Symbolic object, S.iperm().
 namespace hipo {
 
 class FHsolver {
-  const Logger* logger_;
+  const Logger* logger_ = nullptr;
+  const Logger* local_logger_ = nullptr;
   DataCollector data_;
   Numeric N_;
   CliqueStack serial_stack_;
-  bool local_logger_ = false;
 
   FHoptions options_{};
 

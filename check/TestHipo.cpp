@@ -153,10 +153,8 @@ TEST_CASE("test-hipo-linear-solver", "[highs_hipo]") {
   const int num_threads = 0;
   int initialise_status = FactorHighs_initialise(num_threads);
   REQUIRE(initialise_status == 0);
-  void* S = FactorHighs_symbolic_create();
   void* FH = FactorHighs_create();
-
- 
+  void* S = FactorHighs_symbolic_create();
 
   // terminate
   FactorHighs_symbolic_destroy(S);
