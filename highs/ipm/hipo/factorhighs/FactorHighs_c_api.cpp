@@ -9,7 +9,10 @@ HighsInt FactorHighs_initialise(HighsInt threads) {
   return !HighsExternalApi::isAvailable<HighsExtras::hipo>();
 }
 
-void FactorHighs_terminate(void) { HighsTaskExecutor::shutdown(true); }
+void FactorHighs_terminate(void) {
+  HighsExternalApi::unload();
+  HighsTaskExecutor::shutdown(true);
+}
 
 void* FactorHighs_create(void) { return new hipo::FHsolver(); }
 void FactorHighs_destroy(void* FH) { delete (hipo::FHsolver*)FH; }

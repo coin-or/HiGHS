@@ -37,9 +37,6 @@ jobs:
             bash
             zsh
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-
       - name: Build and test
         shell: bash -l {0}
         run: |
