@@ -12,7 +12,7 @@
 #include "lp_data/HighsCallback.h"
 #include "parallel/HighsParallel.h"
 
-const bool dev_run = false;
+const bool dev_run = true;
 
 void runHipoTest(
     Highs& highs, const std::string& model, const double expected_obj,
@@ -199,6 +199,7 @@ TEST_CASE("test-hipo-linear-solver", "[highs_hipo]") {
   double error = 0.0;
   for (int i = 0; i < n; ++i) error += fabs(rhs[i] - lhs[i]);
   REQUIRE(error < 1e-12);
+  if (dev_run) printf("Error %e\n", error);
 
   // terminate
   FactorHighs_symbolic_destroy(S);
