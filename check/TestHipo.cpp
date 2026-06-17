@@ -131,7 +131,35 @@ TEST_CASE("test-hipo-freevar", "[highs_hipo]") {
 }
 
 TEST_CASE("test-hipo-linear-solver", "[highs_hipo]") {
-  int initialise_status = FactorHighs_initialise(0);
+  // problem size
+  const int n = 5;
+  const int nz = 10;
 
+  // define the lower triangle in CSC format, with 0-based indexing
+  int ptr[n + 1] = {0, 3, 5, 8, 9, 10};
+  int rows[nz] = {0, 2, 3, 1, 2, 2, 3, 4, 3, 4};
+  double vals[nz] = {5, 3, 4, 3, 2, 9, -1, 1, 8, 1};
+
+  // matrix is spd, so expect all pivots to be positive
+  int signs[n] = {1, 1, 1, 1, 1};
+
+  // rhs and expected solution
+  double rhs[n] = {1, 2, 3, 4, 5};
+  const double lhs[n] = {0.457627118644068, 1.118644067796610,
+                         -0.677966101694915, 0.186440677966102,
+                         5.677966101694915};
+
+  // initialise with default number of threads
+  const int num_threads = 0;
+  int initialise_status = FactorHighs_initialise(num_threads);
+  REQUIRE(initialise_status == 0);
+  void* S = FactorHighs_symbolic_create();
+  void* FH = FactorHighs_create();
+
+ 
+
+  // terminate
+  FactorHighs_symbolic_destroy(S);
+  FactorHighs_destroy(FH);
   FactorHighs_terminate();
 }
