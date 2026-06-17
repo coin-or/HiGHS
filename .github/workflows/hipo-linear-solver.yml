@@ -28,7 +28,7 @@ jobs:
         run: |
           cmake $GITHUB_WORKSPACE -DHIPO=ON \
           -DFAST_BUILD=ON -DBUILD_OPENBLAS=OFF \
-          -DBLA_VENDOR=OpenBLAS -DBLAS_LIBRARIES=<openblas>
+          -DBLA_VENDOR=OpenBLAS
 
       - name: Build
         working-directory: ${{github.workspace}}/build
