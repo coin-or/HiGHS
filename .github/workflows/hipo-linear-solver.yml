@@ -27,13 +27,17 @@ jobs:
         working-directory: ${{github.workspace}}/build
         run: |
           cmake $GITHUB_WORKSPACE -DHIPO=ON \
-          -DCMAKE_BUILD_TYPE=${{ matrix.config }} \
-          -DALL_TESTS=${{ matrix.all_tests }}
+          -DFAST_BUILD=ON -DBUILD_OPENBLAS=OFF \
+          -DBLA_VENDOR=OpenBLAS -DBLAS_LIBRARIES=<openblas>
 
       - name: Build
         working-directory: ${{github.workspace}}/build
         run: |
           cmake --build . --parallel
+
+      - name: Print config
+        working-directory: ${{github.workspace}}/build
+        run: cat HConfig.h
 
       - name: Compile example
         working-directory: ${{github.workspace}}
@@ -65,8 +69,8 @@ jobs:
         working-directory: ${{github.workspace}}/build
         run: |
           cmake $GITHUB_WORKSPACE -DHIPO=ON \
-          -DCMAKE_BUILD_TYPE=${{ matrix.config }} \
-          -DALL_TESTS=${{ matrix.all_tests }}
+          -DFAST_BUILD=ON -DBUILD_OPENBLAS=OFF \
+          -DBLA_VENDOR=Apple
 
       - name: Build
         working-directory: ${{github.workspace}}/build
