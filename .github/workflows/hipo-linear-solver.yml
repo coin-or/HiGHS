@@ -38,7 +38,7 @@ jobs:
       - name: Compile example
         working-directory: ${{github.workspace}}
         run: |
-          clang highs/ipm/hipo/factorhighs/FactorHighs_c_api_example.c \
+          gcc highs/ipm/hipo/factorhighs/reproducer.c \
           -o example -Ihighs -Ibuild -Lbuild/lib -lhighs
 
       - name: Run example
@@ -76,12 +76,13 @@ jobs:
       - name: Compile example
         working-directory: ${{github.workspace}}
         run: |
-          clang highs/ipm/hipo/factorhighs/FactorHighs_c_api_example.c \
-          -o example -Ihighs -Ibuild -Lbuild/lib -lhighs \
-          -Wl,-rpath,build/lib
+          gcc highs/ipm/hipo/factorhighs/reproducer.c \
+          -o example -Ihighs -Ibuild -Lbuild/lib -lhighs
 
       - name: Run example
         working-directory: ${{github.workspace}}
-        run: ./example
+        run: |
+          export DYLD_LIBRARY_PATH=build/lib
+          ./example
 
       
