@@ -751,7 +751,7 @@ restart:
     worker.resetSepaStats();
   };
 
-  auto checkRestart = [&]() -> bool {
+  auto checkRestart = [&](bool inRampUp) -> bool {
     if (!submip && mipdata_->num_nodes >= nextCheck) {
       auto nTreeRestarts = mipdata_->numRestarts - mipdata_->numRestartsRoot;
       double currNodeEstim =
@@ -793,7 +793,9 @@ restart:
                 activeIntegerRatio * 20 *
                     (mipdata_->num_nodes - mipdata_->num_nodes_before_run)) {
           nextCheck = mipdata_->num_nodes + 100;
-          ++numHugeTreeEstim;
+          if (!inRampUp) {
+            numHugeTreeEstim += std::ceil(num_workers / 2.0);
+          }
         } else {
           numHugeTreeEstim = 0;
           treeweightLastCheck = double(mipdata_->pruned_treeweight);
@@ -949,7 +951,7 @@ restart:
                               mipdata_->nodequeue.numNodes() > num_workers;
     resetGlobalDomain(spawn_more_workers, mipdata_->hasMultipleWorkers());
 
-    if (checkRestart()) goto restart;
+    if (checkRestart(nodeLim != kHighsIInf)) goto restart;
 
     if (spawn_more_workers) {
       HighsInt new_max_num_workers =
