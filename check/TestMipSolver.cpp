@@ -1553,7 +1553,7 @@ TEST_CASE("issue-3118a", "[highs_test_mip_solver]") {
   //
   // For b = 0:
   //
-  // For b = 1: 
+  // For b = 1:
   //
   // For b = 1.5:
 
@@ -1579,11 +1579,11 @@ TEST_CASE("issue-3118a", "[highs_test_mip_solver]") {
   double b = 0;
   for (HighsInt k = 0; k < 3; k++) {
     if (k == 0) {
-      b = 0; 
+      b = 0;
     } else if (k == 1) {
-      b = 1; 
+      b = 1;
     } else {
-      b = 1.5; 
+      b = 1.5;
     }
     lp.row_upper_[1] = b;
 
@@ -1594,19 +1594,19 @@ TEST_CASE("issue-3118a", "[highs_test_mip_solver]") {
     //  if (dev_run)
     // highs.writeModel("3118a.mps");
     highs.setOptionValue("solve_relaxation", false);
-    std::vector<double> solution_values = {0, 1/M};
+    std::vector<double> solution_values = {0, 1 / M};
     highs.setSolution(2, nullptr, solution_values.data());
 
     bool valid, integral, feasible;
     REQUIRE(highs.assessPrimalSolution(valid, integral, feasible) ==
-	    HighsStatus::kOk);
+            HighsStatus::kOk);
 
     highs.run();
     highs.writeSolution("", 1);
     // Frig this so all unit tests can be expected to pass
     REQUIRE(highs.getModelStatus() == HighsModelStatus::kOptimal);
     //  REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
-    
+
     // Solve as LP
     printf("==================\nCase b = %3.1f (LP)\n==================\n", b);
     highs.setOptionValue("solve_relaxation", true);
@@ -1618,8 +1618,10 @@ TEST_CASE("issue-3118a", "[highs_test_mip_solver]") {
     solution_values = highs.getSolution().col_value;
     highs.setSolution(2, nullptr, solution_values.data());
 
-    HighsStatus require_status = k == 2 ? HighsStatus::kWarning : HighsStatus::kOk;
-    REQUIRE(highs.assessPrimalSolution(valid, integral, feasible) == require_status);    
+    HighsStatus require_status =
+        k == 2 ? HighsStatus::kWarning : HighsStatus::kOk;
+    REQUIRE(highs.assessPrimalSolution(valid, integral, feasible) ==
+            require_status);
   }
 
   highs.resetGlobalScheduler(true);
