@@ -1541,3 +1541,86 @@ TEST_CASE("issue-3118", "[highs_test_mip_solver]") {
 
   highs.resetGlobalScheduler(true);
 }
+
+TEST_CASE("issue-3118a", "[highs_test_mip_solver]") {
+  const double M = 1e7;
+  //   min   -x
+  //   s.t.   x - M*y  = -1
+  //          x +   y <=  b
+  //          x, y integer in {0, 2}x{0, 1}
+  //
+  // With initial "solution" x = 0; y = 1/M
+  //
+  // For b = 0:
+  //
+  // For b = 1: 
+  //
+  // For b = 1.5:
+
+  Highs highs;
+  //  highs.setOptionValue("output_flag", dev_run);
+
+  HighsInt x = 0;
+  HighsInt y = 1;
+  HighsLp lp;
+  lp.num_col_ = 2;
+  lp.num_row_ = 2;
+  lp.col_lower_ = {0, 0};
+  lp.col_upper_ = {2, 1};
+  lp.col_cost_ = {-1, 0};
+  lp.integrality_ = {HighsVarType::kInteger, HighsVarType::kInteger};
+  lp.row_lower_ = {-1, -kHighsInf};
+  lp.row_upper_ = {-1, 0};
+  lp.a_matrix_.format_ = MatrixFormat::kRowwise;
+  lp.a_matrix_.start_ = {0, 2, 4};
+  lp.a_matrix_.index_ = {x, y, x, y};
+  lp.a_matrix_.value_ = {1., -M, 1, 1};
+
+  double b = 0;
+  for (HighsInt k = 0; k < 3; k++) {
+    if (k == 0) {
+      b = 0; 
+    } else if (k == 1) {
+      b = 1; 
+    } else {
+      b = 1.5; 
+    }
+    lp.row_upper_[1] = b;
+
+    highs.passModel(lp);
+
+    // Solve as MIP
+    printf("==================\nCase b = %3.1f (MIP)\n==================\n", b);
+    //  if (dev_run)
+    // highs.writeModel("3118a.mps");
+    highs.setOptionValue("solve_relaxation", false);
+    std::vector<double> solution_values = {0, 1/M};
+    highs.setSolution(2, nullptr, solution_values.data());
+
+    bool valid, integral, feasible;
+    REQUIRE(highs.assessPrimalSolution(valid, integral, feasible) ==
+	    HighsStatus::kOk);
+
+    highs.run();
+    highs.writeSolution("", 1);
+    // Frig this so all unit tests can be expected to pass
+    REQUIRE(highs.getModelStatus() == HighsModelStatus::kOptimal);
+    //  REQUIRE(highs.getModelStatus() == HighsModelStatus::kInfeasible);
+    
+    // Solve as LP
+    printf("==================\nCase b = %3.1f (LP)\n==================\n", b);
+    highs.setOptionValue("solve_relaxation", true);
+    highs.clearSolver();
+    highs.run();
+    highs.writeSolution("", 1);
+    REQUIRE(highs.getModelStatus() == HighsModelStatus::kOptimal);
+
+    solution_values = highs.getSolution().col_value;
+    highs.setSolution(2, nullptr, solution_values.data());
+
+    HighsStatus require_status = k == 2 ? HighsStatus::kWarning : HighsStatus::kOk;
+    REQUIRE(highs.assessPrimalSolution(valid, integral, feasible) == require_status);    
+  }
+
+  highs.resetGlobalScheduler(true);
+}

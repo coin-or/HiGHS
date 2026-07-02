@@ -2581,7 +2581,7 @@ HighsStatus Highs::setSolution(const HighsInt num_entries,
     if (!ok_num_entries) {
       highsLogUser(options_.log_options, HighsLogType::kError,
                    "setSolution: Packed user solution has %d < 0 entries\n",
-		   int(num_entries));
+                   int(num_entries));
       assert(ok_num_entries);
       return HighsStatus::kError;
     }
@@ -2590,7 +2590,7 @@ HighsStatus Highs::setSolution(const HighsInt num_entries,
     if (!ok_num_entries) {
       highsLogUser(options_.log_options, HighsLogType::kError,
                    "setSolution: Packed user solution has %d != %d entries\n",
-		   int(num_entries), int(model_.lp_.num_col_));
+                   int(num_entries), int(model_.lp_.num_col_));
       assert(ok_num_entries);
       return HighsStatus::kError;
     }
