@@ -1,0 +1,50 @@
+name: lib-only
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+ unix:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Create Build Environment
+        run: cmake -E make_directory ${{github.workspace}}/build
+
+      - name: Configure CMake
+        working-directory: ${{github.workspace}}/build
+        run: |
+          cmake $GITHUB_WORKSPACE -DBUILD_CXX_EXE=OFF -DBUILD_EXAMPLES=OFF
+
+      - name: Build
+        working-directory: ${{github.workspace}}/build
+        run: cmake --build . --parallel
+
+
+ win:
+    runs-on: windows-2022
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          cmake `
+          -S "$env:GITHUB_WORKSPACE" `
+          -B "${{ github.workspace }}/build" `
+          -DBUILD_CXX_EXE=OFF -DBUILD_EXAMPLES=OFF
+
+      - name: Build
+        shell: pwsh
+        working-directory: ${{github.workspace}}/build
+        run: |
+          cmake --build . --parallel --config ${{ matrix.config }}
