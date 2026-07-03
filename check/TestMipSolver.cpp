@@ -1649,6 +1649,7 @@ TEST_CASE("issue-3118a", "[highs_test_mip_solver]") {
 
     printf("===================\nCase b = %3.1f (MIP1)\n===================\n",
            b);
+    highs.setOptionValue("solve_relaxation", false);
     highs.run();
     highs.writeSolution("", 1);
     // Frig this so all unit tests can be expected to pass
