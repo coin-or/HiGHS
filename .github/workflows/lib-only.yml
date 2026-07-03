@@ -47,4 +47,4 @@ jobs:
         shell: pwsh
         working-directory: ${{github.workspace}}/build
         run: |
-          cmake --build . --parallel --config ${{ matrix.config }}
+          cmake --build . --parallel --config Release
