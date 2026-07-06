@@ -45,6 +45,8 @@ const double kAlphaBK = 0.01;  //(sqrt(17.0) + 1.0) / 8.0;
 const Int kBlockGrainSize = 1;
 const Int kBlockParallelThreshold = 5;
 
+const Int kTinySupernodeSize = 4;
+
 const Int kMinConsecutiveSums = 1;
 
 // regularisation

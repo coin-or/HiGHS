@@ -1277,6 +1277,15 @@ Int Analyse::run(Symbolic& S) {
     if (i <= 100) S.sn_size_100_++;
   }
 
+  // count tiny supernodes, i.e., sn with small size and with clique that fits
+  // in a single block.
+  for (Int i = 0; i < sn_count_; ++i) {
+    if (sn_size[i] <= kTinySupernodeSize &&
+        (ptr_sn_[i + 1] - ptr_sn_[i]) <= sn_size[i] + nb_) {
+      S.sn_tiny_++;
+    }
+  }
+
   if (checkOverflow()) {
     if (logger_) logger_->printe("Integer overflow in analyse phase\n");
     return kRetIntOverflow;

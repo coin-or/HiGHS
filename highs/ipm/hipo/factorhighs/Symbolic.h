@@ -33,6 +33,7 @@ class Symbolic {
   Int sn_size_1_{};
   Int sn_size_10_{};
   Int sn_size_100_{};
+  Int sn_tiny_{};
 
   // Inverse permutation
   std::vector<Int> iperm_{};
