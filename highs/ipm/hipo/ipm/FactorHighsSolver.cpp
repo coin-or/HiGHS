@@ -53,7 +53,7 @@ Int FactorHighsSolver::analyseAS(Symbolic& S) {
   Clock clock;
   Int status = chooseOrdering(kkt_.rowsAS, kkt_.ptrAS, pivot_signs, S,
                               ordering_AS_, "AS");
-  info_.analyse_AS_time += clock.stop();
+  info_.times[kAnalyseTime_AS] += clock.stop();
 
   return status;
 }
@@ -72,7 +72,7 @@ Int FactorHighsSolver::analyseNE(Symbolic& S) {
   Clock clock;
   Int status = chooseOrdering(kkt_.rowsNE, kkt_.ptrNE, pivot_signs, S,
                               ordering_NE_, "NE");
-  info_.analyse_NE_time += clock.stop();
+  info_.times[kAnalyseTime_NE] += clock.stop();
 
   return status;
 }
@@ -94,7 +94,7 @@ Int FactorHighsSolver::factorAS(const std::vector<double>& scaling) {
   if (FH_.factorise(kkt_.S, kkt_.n(), kkt_.nz(), kkt_.rowsAS.data(),
                     kkt_.ptrAS.data(), kkt_.valAS.data()))
     return kErrorFactorise;
-  info_.factor_time += clock.stop();
+  info_.times[kFactoriseTime] += clock.stop();
   info_.factor_number++;
 
   this->valid_ = true;
@@ -114,7 +114,7 @@ Int FactorHighsSolver::factorNE(const std::vector<double>& scaling) {
   if (FH_.factorise(kkt_.S, kkt_.n(), kkt_.nz(), kkt_.rowsNE.data(),
                     kkt_.ptrNE.data(), kkt_.valNE.data()))
     return kErrorFactorise;
-  info_.factor_time += clock.stop();
+  info_.times[kFactoriseTime] += clock.stop();
   info_.factor_number++;
 
   this->valid_ = true;
@@ -134,20 +134,23 @@ Int FactorHighsSolver::solveAS(const std::vector<double>& rhs_x,
 
   Int n = rhs_x.size();
 
+  Clock clock;
   std::vector<double> rhs;
   rhs.insert(rhs.end(), rhs_x.begin(), rhs_x.end());
   rhs.insert(rhs.end(), rhs_y.begin(), rhs_y.end());
+  info_.times[kInsertSplitTime] += clock.stop();
 
-  Clock clock;
+  clock.start();
   if (FH_.solve(rhs.data())) return kErrorSolve;
-
-  info_.solve_time += clock.stop();
+  info_.times[kSolveTime] += clock.stop();
   info_.solve_number++;
 
   data_.back().num_solves++;
 
+  clock.start();
   lhs_x = std::vector<double>(rhs.begin(), rhs.begin() + n);
   lhs_y = std::vector<double>(rhs.begin() + n, rhs.end());
+  info_.times[kInsertSplitTime] += clock.stop();
 
   return kOk;
 }
@@ -161,8 +164,7 @@ Int FactorHighsSolver::solveNE(const std::vector<double>& rhs,
 
   Clock clock;
   if (FH_.solve(lhs.data())) return kErrorSolve;
-
-  info_.solve_time += clock.stop();
+  info_.times[kSolveTime] += clock.stop();
   info_.solve_number++;
 
   data_.back().num_solves++;
@@ -175,16 +177,16 @@ Int FactorHighsSolver::solveNE(const std::vector<double>& rhs,
 // =========================================================================
 
 Int FactorHighsSolver::setup() {
-  Clock clock;
-
   if (kkt_.S.empty()) {
+    Clock clock;
     if (Int status = setNla()) return status;
     setParallel();
+    info_.times[kAnalyseTime] += clock.stop();
 
     if (!options_.timeless_log) {
       std::stringstream log_stream;
-      log_stream << textline("Analyse time:") << fix(clock.stop(), 0, 2)
-                 << '\n';
+      log_stream << textline("Analyse time:")
+                 << fix(info_.times[kAnalyseTime], 0, 2) << '\n';
       logger_.print(log_stream.str().c_str());
     }
 
