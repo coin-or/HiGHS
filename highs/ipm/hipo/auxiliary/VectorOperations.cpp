@@ -53,11 +53,9 @@ double norm2(const std::vector<double>& x) {
 }
 
 double infNorm(const std::vector<double>& x) {
-  double norm{};
-  for (Int i = 0; i < static_cast<Int>(x.size()); ++i) {
-    norm = std::max(norm, std::fabs(x[i]));
-  }
-  return norm;
+  size_t index = HighsExtras::blas::idamax(x.size(), x.data(), 1);
+  double value = std::abs(x[index]);
+  return value;
 }
 
 bool isNanVector(const std::vector<double>& x) {

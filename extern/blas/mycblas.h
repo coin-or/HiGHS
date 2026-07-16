@@ -3,6 +3,7 @@
 
 // Provide definition for cblas functions
 // Based on Netlib implementation
+#include <stddef.h>
 #include <stdint.h>
 
 enum CBLAS_ORDER { CblasRowMajor = 101, CblasColMajor = 102 };
@@ -31,6 +32,7 @@ void cblas_dscal(const blasint n, const double alpha, double* x,
                  const blasint incx);
 void cblas_dswap(const blasint n, double* x, const blasint incx, double* y,
                  const blasint incy);
+size_t cblas_idamax(const blasint n, const double* x, const blasint incx);
 
 // level 2
 

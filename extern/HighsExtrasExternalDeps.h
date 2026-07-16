@@ -64,9 +64,9 @@ using amd_methods =
 
 using blas_methods = std::tuple<
     decltype(&cblas_daxpy), decltype(&cblas_dcopy), decltype(&cblas_dscal),
-    decltype(&cblas_dswap), decltype(&cblas_dgemv), decltype(&cblas_dtpsv),
-    decltype(&cblas_dtrsv), decltype(&cblas_dger), decltype(&cblas_dgemm),
-    decltype(&cblas_dsyrk), decltype(&cblas_dtrsm),
+    decltype(&cblas_dswap), decltype(&cblas_idamax), decltype(&cblas_dgemv),
+    decltype(&cblas_dtpsv), decltype(&cblas_dtrsv), decltype(&cblas_dger),
+    decltype(&cblas_dgemm), decltype(&cblas_dsyrk), decltype(&cblas_dtrsm),
     decltype(&highs_openblas_set_num_threads)>;
 
 using metis_methods = std::tuple<decltype(&Highs_METIS_SetDefaultOptions),
@@ -132,31 +132,35 @@ struct blas : extras_feature<1> {
     impl::template fn<3>()(n, dx, incx, dy, incy);
   }
 
+  static size_t idamax(blasint n, const double* dx, blasint incx) {
+    return impl::template fn<4>()(n, dx, incx);
+  }
+
   static void dgemv(enum CBLAS_ORDER order, enum CBLAS_TRANSPOSE transa,
                     blasint M, blasint n, double alpha, const double* A,
                     blasint lda, const double* x, blasint incx, double beta,
                     double* y, blasint incy) {
-    impl::template fn<4>()(order, transa, M, n, alpha, A, lda, x, incx, beta, y,
+    impl::template fn<5>()(order, transa, M, n, alpha, A, lda, x, incx, beta, y,
                            incy);
   }
 
   static void dtpsv(enum CBLAS_ORDER order, enum CBLAS_UPLO uplo,
                     enum CBLAS_TRANSPOSE transa, enum CBLAS_DIAG diag,
                     blasint n, const double* ap, double* x, blasint incx) {
-    impl::template fn<5>()(order, uplo, transa, diag, n, ap, x, incx);
+    impl::template fn<6>()(order, uplo, transa, diag, n, ap, x, incx);
   }
 
   static void dtrsv(enum CBLAS_ORDER order, enum CBLAS_UPLO uplo,
                     enum CBLAS_TRANSPOSE transa, enum CBLAS_DIAG diag,
                     blasint n, const double* A, blasint lda, double* x,
                     blasint incx) {
-    impl::template fn<6>()(order, uplo, transa, diag, n, A, lda, x, incx);
+    impl::template fn<7>()(order, uplo, transa, diag, n, A, lda, x, incx);
   }
 
   static void dger(enum CBLAS_ORDER order, blasint m, blasint n, double alpha,
                    const double* x, blasint incx, const double* y, blasint incy,
                    double* A, blasint lda) {
-    impl::template fn<7>()(order, m, n, alpha, x, incx, y, incy, A, lda);
+    impl::template fn<8>()(order, m, n, alpha, x, incx, y, incy, A, lda);
   }
 
   static void dgemm(enum CBLAS_ORDER order, enum CBLAS_TRANSPOSE transa,
@@ -164,7 +168,7 @@ struct blas : extras_feature<1> {
                     blasint k, double alpha, const double* A, blasint lda,
                     const double* B, blasint ldb, double beta, double* C,
                     blasint ldc) {
-    impl::template fn<8>()(order, transa, transb, m, n, k, alpha, A, lda, B,
+    impl::template fn<9>()(order, transa, transb, m, n, k, alpha, A, lda, B,
                            ldb, beta, C, ldc);
   }
 
@@ -172,20 +176,20 @@ struct blas : extras_feature<1> {
                     enum CBLAS_TRANSPOSE trans, blasint n, blasint k,
                     double alpha, const double* A, blasint lda, double beta,
                     double* C, blasint ldc) {
-    impl::template fn<9>()(order, uplo, trans, n, k, alpha, A, lda, beta, C,
-                           ldc);
+    impl::template fn<10>()(order, uplo, trans, n, k, alpha, A, lda, beta, C,
+                            ldc);
   }
 
   static void dtrsm(enum CBLAS_ORDER order, enum CBLAS_SIDE side,
                     enum CBLAS_UPLO uplo, enum CBLAS_TRANSPOSE transa,
                     enum CBLAS_DIAG diag, blasint m, blasint n, double alpha,
                     const double* A, blasint lda, double* B, blasint ldb) {
-    impl::template fn<10>()(order, side, uplo, transa, diag, m, n, alpha, A,
+    impl::template fn<11>()(order, side, uplo, transa, diag, m, n, alpha, A,
                             lda, B, ldb);
   }
 
   static void openblas_set_num_threads(int num_threads) {
-    impl::template fn<11>()(num_threads);
+    impl::template fn<12>()(num_threads);
   }
 };
 
