@@ -3,13 +3,19 @@
 #include <cassert>
 #include <cmath>
 
+#include "HighsExternalApi.h"
+
 namespace hipo {
+
+void vectorAdd(std::vector<double>& v1, const std::vector<double>& v2,
+               double alpha) {
+  HighsExtras::blas::daxpy(v1.size(), alpha, v2.data(), 1, v1.data(), 1);
+}
 
 void vectorAdd(std::vector<double>& v1, double alpha,
                const std::vector<double>& v2, double beta) {
-  for (Int i = 0; i < static_cast<Int>(v1.size()); ++i) {
-    v1[i] = alpha * v1[i] + beta * v2[i];
-  }
+  HighsExtras::blas::dscal(v1.size(), alpha, v1.data(), 1);
+  HighsExtras::blas::daxpy(v1.size(), beta, v2.data(), 1, v1.data(), 1);
 }
 
 void vectorAdd(std::vector<double>& v1, const double alpha) {
