@@ -33,6 +33,8 @@ void cblas_dscal(const blasint n, const double alpha, double* x,
 void cblas_dswap(const blasint n, double* x, const blasint incx, double* y,
                  const blasint incy);
 size_t cblas_idamax(const blasint n, const double* x, const blasint incx);
+double cblas_ddot(const blasint n, const double* x, const blasint incx,
+                  const double* y, const blasint incy);
 
 // level 2
 

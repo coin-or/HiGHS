@@ -37,11 +37,7 @@ void vectorScale(std::vector<double>& v1, double alpha) {
 }
 
 double dotProd(const std::vector<double>& v1, const std::vector<double>& v2) {
-  double result{};
-  for (Int i = 0; i < static_cast<Int>(v1.size()); ++i) {
-    result += v1[i] * v2[i];
-  }
-  return result;
+  return HighsExtras::blas::ddot(v1.size(), v1.data(), 1, v2.data(), 1);
 }
 
 double norm2(const std::vector<double>& x) {
