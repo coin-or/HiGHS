@@ -44,7 +44,7 @@ double norm2(const std::vector<double>& x) {
 
 double infNorm(const std::vector<double>& x) {
   size_t index = HighsExtras::blas::idamax(x.size(), x.data(), 1);
-  double value = std::abs(x[index]);
+  double value = x.empty() ? 0 : std::abs(x[index]);
   return value;
 }
 
