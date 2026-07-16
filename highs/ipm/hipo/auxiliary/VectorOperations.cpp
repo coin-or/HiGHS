@@ -39,11 +39,7 @@ double dotProd(const std::vector<double>& v1, const std::vector<double>& v2) {
 }
 
 double norm2(const std::vector<double>& x) {
-  double norm{};
-  for (Int i = 0; i < static_cast<Int>(x.size()); ++i) {
-    norm += (x[i] * x[i]);
-  }
-  return std::sqrt(norm);
+  return HighsExtras::blas::dnrm2(x.size(), x.data(), 1);
 }
 
 double infNorm(const std::vector<double>& x) {

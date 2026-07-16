@@ -35,6 +35,7 @@ void cblas_dswap(const blasint n, double* x, const blasint incx, double* y,
 size_t cblas_idamax(const blasint n, const double* x, const blasint incx);
 double cblas_ddot(const blasint n, const double* x, const blasint incx,
                   const double* y, const blasint incy);
+double cblas_dnrm2(const blasint n, const double* x, const blasint incx);
 
 // level 2
 
