@@ -31,9 +31,7 @@ void vectorDivide(std::vector<double>& v1, const std::vector<double>& v2) {
 }
 
 void vectorScale(std::vector<double>& v1, double alpha) {
-  for (Int i = 0; i < static_cast<Int>(v1.size()); ++i) {
-    v1[i] *= alpha;
-  }
+  HighsExtras::blas::dscal(v1.size(), alpha, v1.data(), 1);
 }
 
 double dotProd(const std::vector<double>& v1, const std::vector<double>& v2) {
