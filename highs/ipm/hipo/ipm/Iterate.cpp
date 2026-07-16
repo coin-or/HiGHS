@@ -204,34 +204,46 @@ void Iterate::dualInfeasUnscaled() {
 void Iterate::residual1234() {
   Clock clock;
 
-  // res1
-  res.r1 = model.b();
-  model.A().alphaProductPlusY(-1.0, x, res.r1);
+  highs::parallel::TaskGroup tg;
 
-  // res2
-  for (Int i = 0; i < model.n(); ++i) {
-    if (model.hasLb(i))
-      res.r2[i] = model.lb(i) - x[i] + xl[i];
-    else
-      res.r2[i] = 0.0;
-  }
+  tg.spawn([&]() {
+    // res1
+    res.r1 = model.b();
+    model.A().alphaProductPlusY(-1.0, x, res.r1);
+  });
 
-  // res3
-  for (Int i = 0; i < model.n(); ++i) {
-    if (model.hasUb(i))
-      res.r3[i] = model.ub(i) - x[i] - xu[i];
-    else
-      res.r3[i] = 0.0;
-  }
+  tg.spawn([&]() {
+    // res2
+    for (Int i = 0; i < model.n(); ++i) {
+      if (model.hasLb(i))
+        res.r2[i] = model.lb(i) - x[i] + xl[i];
+      else
+        res.r2[i] = 0.0;
+    }
+  });
 
-  // res4
-  res.r4 = model.c();
-  model.A().alphaProductPlusY(-1.0, y, res.r4, true);
-  for (Int i = 0; i < model.n(); ++i) {
-    if (model.hasLb(i)) res.r4[i] -= zl[i];
-    if (model.hasUb(i)) res.r4[i] += zu[i];
-  }
-  if (model.qp()) model.Q().alphaProductPlusY(model.sense(), x, res.r4);
+  tg.spawn([&]() {
+    // res3
+    for (Int i = 0; i < model.n(); ++i) {
+      if (model.hasUb(i))
+        res.r3[i] = model.ub(i) - x[i] - xu[i];
+      else
+        res.r3[i] = 0.0;
+    }
+  });
+
+  tg.spawn([&]() {
+    // res4
+    res.r4 = model.c();
+    model.A().alphaProductPlusY(-1.0, y, res.r4, true);
+    for (Int i = 0; i < model.n(); ++i) {
+      if (model.hasLb(i)) res.r4[i] -= zl[i];
+      if (model.hasUb(i)) res.r4[i] += zu[i];
+    }
+    if (model.qp()) model.Q().alphaProductPlusY(model.sense(), x, res.r4);
+  });
+
+  tg.taskWait();
 
   info.times[kResidualsTime] += clock.stop();
 }
