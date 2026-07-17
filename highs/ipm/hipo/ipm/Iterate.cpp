@@ -204,46 +204,34 @@ void Iterate::dualInfeasUnscaled() {
 void Iterate::residual1234() {
   Clock clock;
 
-  highs::parallel::TaskGroup tg;
+  // res1
+  res.r1 = model.b();
+  model.A().alphaProductPlusY(-1.0, x, res.r1);
 
-  tg.spawn([&]() {
-    // res1
-    res.r1 = model.b();
-    model.A().alphaProductPlusY(-1.0, x, res.r1);
-  });
+  // res2
+  for (Int i = 0; i < model.n(); ++i) {
+    if (model.hasLb(i))
+      res.r2[i] = model.lb(i) - x[i] + xl[i];
+    else
+      res.r2[i] = 0.0;
+  }
 
-  tg.spawn([&]() {
-    // res2
-    for (Int i = 0; i < model.n(); ++i) {
-      if (model.hasLb(i))
-        res.r2[i] = model.lb(i) - x[i] + xl[i];
-      else
-        res.r2[i] = 0.0;
-    }
-  });
+  // res3
+  for (Int i = 0; i < model.n(); ++i) {
+    if (model.hasUb(i))
+      res.r3[i] = model.ub(i) - x[i] - xu[i];
+    else
+      res.r3[i] = 0.0;
+  }
 
-  tg.spawn([&]() {
-    // res3
-    for (Int i = 0; i < model.n(); ++i) {
-      if (model.hasUb(i))
-        res.r3[i] = model.ub(i) - x[i] - xu[i];
-      else
-        res.r3[i] = 0.0;
-    }
-  });
-
-  tg.spawn([&]() {
-    // res4
-    res.r4 = model.c();
-    model.A().alphaProductPlusY(-1.0, y, res.r4, true);
-    for (Int i = 0; i < model.n(); ++i) {
-      if (model.hasLb(i)) res.r4[i] -= zl[i];
-      if (model.hasUb(i)) res.r4[i] += zu[i];
-    }
-    if (model.qp()) model.Q().alphaProductPlusY(model.sense(), x, res.r4);
-  });
-
-  tg.taskWait();
+  // res4
+  res.r4 = model.c();
+  model.A().alphaProductPlusY(-1.0, y, res.r4, true);
+  for (Int i = 0; i < model.n(); ++i) {
+    if (model.hasLb(i)) res.r4[i] -= zl[i];
+    if (model.hasUb(i)) res.r4[i] += zu[i];
+  }
+  if (model.qp()) model.Q().alphaProductPlusY(model.sense(), x, res.r4);
 
   info.times[kResidualsTime] += clock.stop();
 }
@@ -538,71 +526,55 @@ void Iterate::residuals6x6(const NewtonDir& d) {
 
   // res1,2,3,4,5,6 contain the rhs of the linear system
 
-  highs::parallel::TaskGroup tg;
+  // ires1 = res1 - A * dx - Rd * dy
+  ires.r1 = res.r1;
+  model.A().alphaProductPlusY(-1.0, dx, ires.r1);
+  for (Int i = 0; i < m; ++i) {
+    ires.r1[i] -= Rd[i] * dy[i];
+  }
 
-  tg.spawn([&]() {
-    // ires1 = res1 - A * dx - Rd * dy
-    ires.r1 = res.r1;
-    model.A().alphaProductPlusY(-1.0, dx, ires.r1);
-    for (Int i = 0; i < m; ++i) {
-      ires.r1[i] -= Rd[i] * dy[i];
-    }
-  });
+  // ires2 = res2 - dx + dxl
+  for (Int i = 0; i < n; ++i)
+    if (model.hasLb(i))
+      ires.r2[i] = res.r2[i] - dx[i] + dxl[i];
+    else
+      ires.r2[i] = 0.0;
 
-  tg.spawn([&]() {
-    // ires2 = res2 - dx + dxl
-    for (Int i = 0; i < n; ++i)
-      if (model.hasLb(i))
-        ires.r2[i] = res.r2[i] - dx[i] + dxl[i];
-      else
-        ires.r2[i] = 0.0;
-  });
+  // ires3 = res3 - dx - dxu
+  for (Int i = 0; i < n; ++i)
+    if (model.hasUb(i))
+      ires.r3[i] = res.r3[i] - dx[i] - dxu[i];
+    else
+      ires.r3[i] = 0.0;
 
-  tg.spawn([&]() {
-    // ires3 = res3 - dx - dxu
-    for (Int i = 0; i < n; ++i)
-      if (model.hasUb(i))
-        ires.r3[i] = res.r3[i] - dx[i] - dxu[i];
-      else
-        ires.r3[i] = 0.0;
-  });
+  // ires4 = res4 - A^T * dy - dzl + dzu + Q * dx + Rp * dx
+  ires.r4 = res.r4;
+  for (Int i = 0; i < n; ++i) {
+    if (model.hasLb(i)) ires.r4[i] -= dzl[i];
+    if (model.hasUb(i)) ires.r4[i] += dzu[i];
+  }
+  model.A().alphaProductPlusY(-1.0, dy, ires.r4, true);
+  for (Int i = 0; i < n; ++i) {
+    double reg_p = Rp ? Rp[i] : regul.primal;
+    ires.r4[i] += reg_p * dx[i];
+  }
+  if (model.qp()) model.Q().alphaProductPlusY(model.sense(), dx, ires.r4);
 
-  tg.spawn([&]() {
-    // ires4 = res4 - A^T * dy - dzl + dzu + Q * dx + Rp * dx
-    ires.r4 = res.r4;
-    for (Int i = 0; i < n; ++i) {
-      if (model.hasLb(i)) ires.r4[i] -= dzl[i];
-      if (model.hasUb(i)) ires.r4[i] += dzu[i];
-    }
-    model.A().alphaProductPlusY(-1.0, dy, ires.r4, true);
-    for (Int i = 0; i < n; ++i) {
-      double reg_p = Rp ? Rp[i] : regul.primal;
-      ires.r4[i] += reg_p * dx[i];
-    }
-    if (model.qp()) model.Q().alphaProductPlusY(model.sense(), dx, ires.r4);
-  });
+  // ires5 = res5 - zl * dxl - xl * dzl
+  for (Int i = 0; i < n; ++i) {
+    if (model.hasLb(i))
+      ires.r5[i] = res.r5[i] - zl[i] * dxl[i] - xl[i] * dzl[i];
+    else
+      ires.r5[i] = 0.0;
+  }
 
-  tg.spawn([&]() {
-    // ires5 = res5 - zl * dxl - xl * dzl
-    for (Int i = 0; i < n; ++i) {
-      if (model.hasLb(i))
-        ires.r5[i] = res.r5[i] - zl[i] * dxl[i] - xl[i] * dzl[i];
-      else
-        ires.r5[i] = 0.0;
-    }
-  });
-
-  tg.spawn([&]() {
-    // ires6 = res6 - zu * dxu - xu * dzu
-    for (Int i = 0; i < n; ++i) {
-      if (model.hasUb(i))
-        ires.r6[i] = res.r6[i] - zu[i] * dxu[i] - xu[i] * dzu[i];
-      else
-        ires.r6[i] = 0.0;
-    }
-  });
-
-  tg.taskWait();
+  // ires6 = res6 - zu * dxu - xu * dzu
+  for (Int i = 0; i < n; ++i) {
+    if (model.hasUb(i))
+      ires.r6[i] = res.r6[i] - zu[i] * dxu[i] - xu[i] * dzu[i];
+    else
+      ires.r6[i] = 0.0;
+  }
 }
 
 void Iterate::assertConsistency(Int n, Int m) const {
