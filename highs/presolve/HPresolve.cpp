@@ -5199,6 +5199,105 @@ HPresolve::Result HPresolve::singletonColStuffing(
     return Result::kOk;
   };
 
+  auto computeEqualityCandidates =
+      [&](HighsInt row, std::vector<candidate>& candidates,
+          HighsCDouble& sumLower, HighsCDouble& sumUpper, bool& sumLowerFinite,
+          bool& sumUpperFinite, size_t& numIntegerCandidates, double& minWeight,
+          double& maxWeight, bool allowIntegerCandidates) {
+        // vectors for candidates and activity bounds
+        candidates.clear();
+        candidates.reserve(rowsize[row]);
+        sumLower = 0.0;
+        sumUpper = 0.0;
+        sumLowerFinite = true;
+        sumUpperFinite = true;
+        numIntegerCandidates = 0;
+        minWeight = kHighsInf;
+        maxWeight = -kHighsInf;
+
+        for (auto& nz : getRowVector(row)) {
+          // get column index, coefficient, cost and bounds
+          HighsInt j = nz.index();
+          double aj = nz.value();
+          double cj = model->col_cost_[j];
+          double sumLowerBound = model->col_lower_[j];
+          double sumUpperBound = model->col_upper_[j];
+          bool isCandidate = allowIntegerCandidates ||
+                             model->integrality_[j] != HighsVarType::kInteger;
+
+          if (isSingleton(j)) {
+            // check singleton
+            if (aj > 0) {
+              if (cj > 0 && isCandidate) {
+                sumUpperBound = sumLowerBound;
+                addCandidate(candidates, j, aj, HighsInt{1}, minWeight,
+                             maxWeight, numIntegerCandidates);
+              }
+            } else {
+              // aj < 0
+              assert(aj < 0);
+              if (cj > 0 && isCandidate) {
+                sumUpperBound = sumLowerBound;
+                addCandidate(candidates, j, aj, HighsInt{-1}, minWeight,
+                             maxWeight, numIntegerCandidates);
+              }
+            }
+          }
+          // update activities
+          if (aj < 0) std::swap(sumLowerBound, sumUpperBound);
+          updateActivityBounds(sumLower, sumUpper, sumLowerFinite,
+                               sumUpperFinite, aj, sumLowerBound,
+                               sumUpperBound);
+          if (!sumLowerFinite && !sumUpperFinite) return false;
+        }
+        return true;
+      };
+
+  auto checkRowEquality = [&](HighsInt row, double rhs) {
+    std::vector<candidate> candidates;
+    size_t numIntegerCandidates;
+    HighsCDouble sumLower;
+    HighsCDouble sumUpper;
+    bool sumLowerFinite;
+    bool sumUpperFinite;
+    double minWeight;
+    double maxWeight;
+
+    // compute candidates
+    if (!computeEqualityCandidates(
+            row, candidates, sumLower, sumUpper, sumLowerFinite, sumUpperFinite,
+            numIntegerCandidates, minWeight, maxWeight, true))
+      return Result::kOk;
+
+    if (numIntegerCandidates > 0 &&
+        (numIntegerCandidates != candidates.size() || minWeight != maxWeight)) {
+      if (!computeEqualityCandidates(row, candidates, sumLower, sumUpper,
+                                     sumLowerFinite, sumUpperFinite,
+                                     numIntegerCandidates, minWeight, maxWeight,
+                                     false))
+        return Result::kOk;
+    }
+
+    if (candidates.empty()) return Result::kOk;
+
+    if (sumLowerFinite && sumLower >= rhs) {
+      for (const auto& t : candidates) {
+        if (t.multiplier == 1) {
+          numFixedCols++;
+          HPRESOLVE_CHECKED_CALL(fixCol(t.col, -1));
+        }
+      }
+    } else if (sumUpperFinite && sumUpper <= rhs) {
+      for (const auto& t : candidates) {
+        if (t.multiplier == -1) {
+          numFixedCols++;
+          HPRESOLVE_CHECKED_CALL(fixCol(t.col, -1));
+        }
+      }
+    }
+    return Result::kOk;
+  };
+
   // consider only non-fixed singleton columns
   if (!isSingleton(col)) return Result::kOk;
 
@@ -5206,11 +5305,20 @@ HPresolve::Result HPresolve::singletonColStuffing(
   HighsInt row = Arow[colhead[col]];
 
   // return if we have an empty or singleton row or row is ranged
-  if (rowsize[row] <= 1 || isRanged(row)) return Result::kOk;
+  if (rowsize[row] <= 1) return Result::kOk;
 
-  // check row
-  HPRESOLVE_CHECKED_CALL(checkRow(row, model->row_upper_[row], HighsInt{1}));
-  HPRESOLVE_CHECKED_CALL(checkRow(row, model->row_lower_[row], HighsInt{-1}));
+  if (isRanged(row)) {
+    if (isEquation(row) && model->row_upper_[row] != kHighsInf) {
+      // Check if one side of signed penalty slack can be removed.
+      HPRESOLVE_CHECKED_CALL(checkRowEquality(row, model->row_upper_[row]));
+    } else {
+      return Result::kOk;
+    }
+  } else {
+    // check row
+    HPRESOLVE_CHECKED_CALL(checkRow(row, model->row_upper_[row], HighsInt{1}));
+    HPRESOLVE_CHECKED_CALL(checkRow(row, model->row_lower_[row], HighsInt{-1}));
+  }
 
   if (numFixedCols > 0)
     highsLogDev(options->log_options, HighsLogType::kDetailed,
