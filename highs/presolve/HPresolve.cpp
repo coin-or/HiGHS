@@ -5202,8 +5202,8 @@ HPresolve::Result HPresolve::singletonColStuffing(
   auto computeEqualityCandidates =
       [&](HighsInt row, std::vector<candidate>& candidates,
           HighsCDouble& sumLower, HighsCDouble& sumUpper, bool& sumLowerFinite,
-          bool& sumUpperFinite, size_t& numIntegerCandidates, double& minWeight,
-          double& maxWeight, bool allowIntegerCandidates) {
+          bool& sumUpperFinite, size_t& numIntegerCandidates,
+          bool allowIntegerCandidates) {
         // vectors for candidates and activity bounds
         candidates.clear();
         candidates.reserve(rowsize[row]);
@@ -5212,8 +5212,7 @@ HPresolve::Result HPresolve::singletonColStuffing(
         sumLowerFinite = true;
         sumUpperFinite = true;
         numIntegerCandidates = 0;
-        minWeight = kHighsInf;
-        maxWeight = -kHighsInf;
+        bool allInteger = true;
 
         for (auto& nz : getRowVector(row)) {
           // get column index, coefficient, cost and bounds
@@ -5222,24 +5221,34 @@ HPresolve::Result HPresolve::singletonColStuffing(
           double cj = model->col_cost_[j];
           double sumLowerBound = model->col_lower_[j];
           double sumUpperBound = model->col_upper_[j];
-          bool isCandidate = allowIntegerCandidates ||
-                             model->integrality_[j] != HighsVarType::kInteger;
+          bool colInteger = model->integrality_[j] == HighsVarType::kInteger;
+          bool isCandidate = allowIntegerCandidates || !colInteger;
+
+          if (allInteger) {
+            if (std::floor(aj) != aj || !colInteger) allInteger = false;
+          }
 
           if (isSingleton(j)) {
             // check singleton
             if (aj > 0) {
               if (cj > 0 && isCandidate) {
+                if (allInteger && (!colInteger || (colInteger && aj != 1)))
+                  allInteger = false;
                 sumUpperBound = sumLowerBound;
-                addCandidate(candidates, j, aj, HighsInt{1}, minWeight,
-                             maxWeight, numIntegerCandidates);
+                if (model->integrality_[j] == HighsVarType::kInteger)
+                  numIntegerCandidates++;
+                candidates.push_back(candidate{j, 0, HighsInt{1}});
               }
             } else {
               // aj < 0
               assert(aj < 0);
               if (cj > 0 && isCandidate) {
+                if (allInteger && (!colInteger || (colInteger && aj != -1)))
+                  allInteger = false;
                 sumUpperBound = sumLowerBound;
-                addCandidate(candidates, j, aj, HighsInt{-1}, minWeight,
-                             maxWeight, numIntegerCandidates);
+                if (model->integrality_[j] == HighsVarType::kInteger)
+                  numIntegerCandidates++;
+                candidates.push_back(candidate{j, 0, HighsInt{-1}});
               }
             }
           }
@@ -5249,6 +5258,7 @@ HPresolve::Result HPresolve::singletonColStuffing(
                                sumUpperFinite, aj, sumLowerBound,
                                sumUpperBound);
           if (!sumLowerFinite && !sumUpperFinite) return false;
+          if (!allInteger && numIntegerCandidates > 0) return false;
         }
         return true;
       };
@@ -5260,22 +5270,20 @@ HPresolve::Result HPresolve::singletonColStuffing(
     HighsCDouble sumUpper;
     bool sumLowerFinite;
     bool sumUpperFinite;
-    double minWeight;
-    double maxWeight;
 
     // compute candidates
-    if (!computeEqualityCandidates(
-            row, candidates, sumLower, sumUpper, sumLowerFinite, sumUpperFinite,
-            numIntegerCandidates, minWeight, maxWeight, true))
-      return Result::kOk;
-
-    if (numIntegerCandidates > 0 &&
-        (numIntegerCandidates != candidates.size() || minWeight != maxWeight)) {
-      if (!computeEqualityCandidates(row, candidates, sumLower, sumUpper,
-                                     sumLowerFinite, sumUpperFinite,
-                                     numIntegerCandidates, minWeight, maxWeight,
-                                     false))
+    if (!computeEqualityCandidates(row, candidates, sumLower, sumUpper,
+                                   sumLowerFinite, sumUpperFinite,
+                                   numIntegerCandidates, true)) {
+      if (numIntegerCandidates > 0) {
+        if (!computeEqualityCandidates(row, candidates, sumLower, sumUpper,
+                                       sumLowerFinite, sumUpperFinite,
+                                       numIntegerCandidates, false)) {
+          return Result::kOk;
+        }
+      } else {
         return Result::kOk;
+      }
     }
 
     if (candidates.empty()) return Result::kOk;
