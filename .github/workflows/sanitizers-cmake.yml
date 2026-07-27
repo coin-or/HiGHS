@@ -42,7 +42,8 @@ jobs:
         run: |
           cmake --build . -j2
 
-      - name: Run 6-10
+      - name: Run 1-5
+        working-directory: ${{github.workspace}}/build
         if: ${{ matrix.iteration <= 5 }}
         run: |
           echo "hipo_system=normaleq" > options1.opt
@@ -50,7 +51,8 @@ jobs:
           ./bin/highs --solver=hipo --options_file=options1.opt $GITHUB_WORKSPACE/check/instances/afiro.mps
           ./bin/highs --solver=hipo --options_file=options2.opt $GITHUB_WORKSPACE/check/instances/afiro.mps
 
-      - name: Run 1-5
+      - name: Run 6-10
+        working-directory: ${{github.workspace}}/build
         if: ${{ matrix.iteration > 5 }}
         run: |
           echo "hipo_system=normaleq" > options1.opt
