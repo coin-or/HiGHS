@@ -5199,6 +5199,7 @@ HPresolve::Result HPresolve::singletonColStuffing(
     return Result::kOk;
   };
 
+  // lambda for getting candidates of one-sided penalty equality stuffing
   auto computeEqualityCandidates =
       [&](HighsInt row, std::vector<candidate>& candidates,
           HighsCDouble& sumLower, HighsCDouble& sumUpper, bool& sumLowerFinite,
@@ -5222,35 +5223,31 @@ HPresolve::Result HPresolve::singletonColStuffing(
           double sumLowerBound = model->col_lower_[j];
           double sumUpperBound = model->col_upper_[j];
           bool colInteger = model->integrality_[j] == HighsVarType::kInteger;
-          bool isCandidate = allowIntegerCandidates || !colInteger;
+          bool isCandidate = (allowIntegerCandidates || !colInteger) && cj != 0;
 
           if (allInteger) {
             if (std::floor(aj) != aj || !colInteger) allInteger = false;
           }
 
-          if (isSingleton(j)) {
+          if (isSingleton(j) && isCandidate) {
             // check singleton
-            if (aj > 0) {
-              if (cj > 0 && isCandidate) {
-                if (allInteger && (!colInteger || (colInteger && aj != 1)))
-                  allInteger = false;
-                sumUpperBound = sumLowerBound;
-                if (model->integrality_[j] == HighsVarType::kInteger)
-                  numIntegerCandidates++;
-                candidates.push_back(candidate{j, 0, HighsInt{1}});
-              }
-            } else {
-              // aj < 0
-              assert(aj < 0);
-              if (cj > 0 && isCandidate) {
-                if (allInteger && (!colInteger || (colInteger && aj != -1)))
-                  allInteger = false;
-                sumUpperBound = sumLowerBound;
-                if (model->integrality_[j] == HighsVarType::kInteger)
-                  numIntegerCandidates++;
-                candidates.push_back(candidate{j, 0, HighsInt{-1}});
-              }
+            const double objSign = std::signbit(cj) ? -1.0 : 1.0;
+            aj *= objSign;
+            if (allInteger && (!colInteger || std::abs(aj) != 1)) {
+              allInteger = false;
             }
+
+            if (objSign == 1.0) {
+              sumUpperBound = sumLowerBound;
+            } else {
+              sumUpperBound = -sumUpperBound;
+              sumLowerBound = sumUpperBound;
+            }
+
+            if (model->integrality_[j] == HighsVarType::kInteger)
+              numIntegerCandidates++;
+            candidates.push_back(
+                candidate{j, -objSign, aj > 0 ? HighsInt{1} : HighsInt{-1}});
           }
           // update activities
           if (aj < 0) std::swap(sumLowerBound, sumUpperBound);
@@ -5263,6 +5260,7 @@ HPresolve::Result HPresolve::singletonColStuffing(
         return true;
       };
 
+  // lambda for stuffing one-sided penalty columns of equality row
   auto checkRowEquality = [&](HighsInt row, double rhs) {
     std::vector<candidate> candidates;
     size_t numIntegerCandidates;
@@ -5292,14 +5290,14 @@ HPresolve::Result HPresolve::singletonColStuffing(
       for (const auto& t : candidates) {
         if (t.multiplier == 1) {
           numFixedCols++;
-          HPRESOLVE_CHECKED_CALL(fixCol(t.col, -1));
+          HPRESOLVE_CHECKED_CALL(fixCol(t.col, t.val));
         }
       }
     } else if (sumUpperFinite && sumUpper <= rhs) {
       for (const auto& t : candidates) {
         if (t.multiplier == -1) {
           numFixedCols++;
-          HPRESOLVE_CHECKED_CALL(fixCol(t.col, -1));
+          HPRESOLVE_CHECKED_CALL(fixCol(t.col, t.val));
         }
       }
     }
