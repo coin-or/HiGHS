@@ -20,21 +20,34 @@ static TempTimer diagTimer("diag");
 Int Numeric::prepare() {
   if (!sn_columns_ || !S_ || !data_ || !options_) return kRetInvalidPointer;
 
-  if (options_->parallel_solve) {
-    SH_.reset(new ParallelHybridSolveHandler(
-        *S_, *sn_columns_, swaps_, any_swaps_, pivot_2x2_, *data_, *options_));
-  } else {
-    SH_.reset(new HybridSolveHandler(*S_, *sn_columns_, swaps_, any_swaps_,
-                                     pivot_2x2_, gemv_workspace_, *data_,
-                                     *options_));
+  serial_SH_.reset(new HybridSolveHandler(*S_, *sn_columns_, swaps_, any_swaps_,
+                                          pivot_2x2_, gemv_workspace_, *data_,
+                                          *options_));
 
-    // memory allocation should happen only the first time, then memory is
-    // reused. No need to zero memory each time, as it is overwritten by
-    // solveHandler.
-    gemv_workspace_.resize(S_->largestFront());
-  }
+  parallel_SH_.reset(new ParallelHybridSolveHandler(
+      *S_, *sn_columns_, swaps_, any_swaps_, pivot_2x2_, *data_, *options_));
 
-  if (!SH_) return kRetGeneric;
+  // memory allocation should happen only the first time, then memory is
+  // reused. No need to zero memory each time, as it is overwritten by
+  // solveHandler.
+  gemv_workspace_.resize(S_->largestFront());
+
+  if (!serial_SH_ || !parallel_SH_) return kRetGeneric;
+
+  if (S_->size() > 1e4)
+    diag_SH_ = parallel_SH_;
+  else
+    diag_SH_ = serial_SH_;
+
+  if (S_->size() > 1e4 && S_->solveTreeSpeedup() > 2)
+    forward_SH_ = parallel_SH_;
+  else
+    forward_SH_ = serial_SH_;
+
+  if (S_->size() > 1e4 && S_->solveTreeSpeedup() > 1.2)
+    backward_SH_ = parallel_SH_;
+  else
+    backward_SH_ = serial_SH_;
 
   // compute which blocks of columns require swaps
   if (options_->pivoting) {
@@ -63,7 +76,7 @@ Int Numeric::prepare() {
 Int Numeric::solve(double* x) const {
   // Return the number of solves performed
 
-  if (!SH_) return kRetGeneric;
+  if (!serial_SH_ || !parallel_SH_) return kRetGeneric;
 
   HIPO_CLOCK_CREATE;
 
@@ -76,15 +89,15 @@ Int Numeric::solve(double* x) const {
   HIPO_CLOCK_START(2);
 
   forwardTimer.start();
-  SH_->forwardSolve(x);
+  forward_SH_->forwardSolve(x);
   forwardTimer.stop();
 
   diagTimer.start();
-  SH_->diagSolve(x);
+  diag_SH_->diagSolve(x);
   diagTimer.stop();
 
   backwardTimer.start();
-  SH_->backwardSolve(x);
+  backward_SH_->backwardSolve(x);
   backwardTimer.stop();
 
   HIPO_CLOCK_STOP(2, *data_, kTimeSolveSolve);
@@ -99,19 +112,19 @@ Int Numeric::solve(double* x) const {
 }
 
 Int Numeric::forwardSolve(double* x) const {
-  if (!SH_) return kRetGeneric;
+  if (!forward_SH_) return kRetGeneric;
   permuteVectorInverse(x, S_->iperm());
-  SH_->forwardSolve(x);
+  forward_SH_->forwardSolve(x);
   return kRetOk;
 }
 Int Numeric::diagSolve(double* x) const {
-  if (!SH_) return kRetGeneric;
-  SH_->diagSolve(x);
+  if (!diag_SH_) return kRetGeneric;
+  diag_SH_->diagSolve(x);
   return kRetOk;
 }
 Int Numeric::backwardSolve(double* x) const {
-  if (!SH_) return kRetGeneric;
-  SH_->backwardSolve(x);
+  if (!backward_SH_) return kRetGeneric;
+  backward_SH_->backwardSolve(x);
   permuteVector(x, S_->iperm());
   return kRetOk;
 }
@@ -147,8 +160,8 @@ void Numeric::getReg(double* reg) {
 }
 
 void Numeric::inertia(Int& pos, Int& neg, Int& zero, double tol) const {
-  if (!SH_) return;
-  SH_->inertia(pos, neg, zero, tol);
+  if (!serial_SH_) return;
+  serial_SH_->inertia(pos, neg, zero, tol);
 }
 
 }  // namespace hipo

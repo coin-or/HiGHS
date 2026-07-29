@@ -489,7 +489,7 @@ void ParallelHybridSolveHandler::diagSolve(double* x) const {
           }
         }
       },
-      1024);
+      std::ceil((double)S_.size() / 32));
 }
 
 }  // namespace hipo

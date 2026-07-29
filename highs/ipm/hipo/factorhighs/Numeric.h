@@ -31,8 +31,13 @@ class Numeric {
   const Symbolic* S_;
   DataCollector* data_ = nullptr;
   const FHoptions* options_;
-  std::unique_ptr<SolveHandler> SH_;
   std::vector<double> gemv_workspace_;
+
+  std::shared_ptr<SolveHandler> serial_SH_;
+  std::shared_ptr<SolveHandler> parallel_SH_;
+  std::shared_ptr<SolveHandler> forward_SH_;
+  std::shared_ptr<SolveHandler> diag_SH_;
+  std::shared_ptr<SolveHandler> backward_SH_;
 
   friend class Factorise;
 
