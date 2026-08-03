@@ -617,8 +617,8 @@ restart:
     const HighsInt numNodesPerWorker =
         indices.size() > 1 &&
                 static_cast<size_t>(mipdata_->nodequeue.numActiveNodes()) >=
-                    2 * indices.size()
-            ? 2
+                    3 * indices.size()
+            ? 3
             : 1;
     for (HighsInt j = 0; j != numNodesPerWorker; j++) {
       for (const HighsInt i : indices) {
