@@ -2022,6 +2022,7 @@ if (valid) {
 } else {
     printf("  ❌ RKO solution is NOT a valid feasible solution for formLp.\n");
 }
+
 // ============================================================
   // Sort results
   std::sort(results.begin(), results.end(),
