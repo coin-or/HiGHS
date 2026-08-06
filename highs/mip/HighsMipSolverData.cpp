@@ -2404,7 +2404,11 @@ restart:
     if (checkLimits()) return clockOff(profiling);
     if (mipsolver.options_mip_->mip_heuristic_run_rens) {
       profiling->start(kMipClockRootHeuristicsRens);
-      heuristics.RENS(worker, rootlpsol);
+      if (incumbent.empty()) {
+        heuristics.RENS(worker, rootlpsol);
+      } else {
+        heuristics.RINS(worker, rootlpsol);
+      }
       profiling->stop(kMipClockRootHeuristicsRens);
       heuristics.flushStatistics(mipsolver, worker);
     }
