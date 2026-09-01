@@ -7236,6 +7236,11 @@ HighsModelStatus HPresolve::run(HighsPostsolveStack& postsolve_stack) {
                 "Exception %s in Presolve::presolve\n", exception.what());
     result = Result::kOutOfMemory;
   }
+  // Stop any presolve rule logging that is currently running, check
+  // the presolve rule logging for errors, and analyse it
+  analysis_.stopPresolveRuleLog();
+  assert(analysis_.analysePresolveRuleLog());
+  analysis_.analysePresolveRuleLog(true);
   switch (result) {
     case Result::kStopped:
     case Result::kOk:
