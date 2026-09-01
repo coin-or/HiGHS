@@ -295,7 +295,7 @@ class HighsPostsolveStack {
     reductions.emplace_back(type, position);
   }
 
-  std::string presolveTypeToString(const ReductionType& type) const {
+  std::string reductionTypeToString(const ReductionType& type) const {
     switch (type) {
       case ReductionType::kLinearTransform: {
         return "Linear transform";
@@ -351,6 +351,26 @@ class HighsPostsolveStack {
   }
 
  public:
+
+  HighsInt numReductionType() const {
+    return static_cast<HighsInt>(ReductionType::kZeroObjSingletonContinuousCol) + 1;
+  }
+
+  std::string reductionTypeToString(const HighsInt iType) const {
+    ReductionType reduction = static_cast<ReductionType>(iType);
+    return reductionTypeToString(reduction);
+  }
+
+  void getUndoCount(std::vector<HighsInt>& undo_count) const {
+    HighsInt num_reduction_type = numReductionType();
+    undo_count.assign(num_reduction_type, 0);
+    for (size_t i = reductions.size(); i > 0; --i) {
+      ReductionType reduction = reductions[i - 1].first;
+      HighsInt iReduction = static_cast<HighsInt>(reduction);
+      undo_count[iReduction]++;
+    }    
+  }
+
   const std::vector<HighsInt>& getOrigColIndex() const { return origColIndex; }
   HighsInt getOrigColIndex(HighsInt col) const { return origColIndex[col]; }
 
@@ -813,8 +833,10 @@ class HighsPostsolveStack {
 
   /// undo presolve steps for primal dual solution and basis
   void undo(const HighsOptions& options, HighsSolution& solution,
-            HighsBasis& basis, size_t numReductions = 0,
-            const HighsInt report_col = -1, const bool thread_safe = false) {
+            HighsBasis& basis,
+	    size_t numReductions = 0,
+            const HighsInt report_col = -1,
+	    const bool thread_safe = false) {
     HighsDataStack reductionValuesCopy;
     std::vector<Nonzero> colValuesCopy;
     std::vector<Nonzero> rowValuesCopy;
@@ -908,7 +930,7 @@ class HighsPostsolveStack {
         ReductionType type = reductions[reduction].first;
         if (report)
           printf("After reduction %9d (type %s):", int(reduction),
-                 presolveTypeToString(type).c_str());
+                 reductionTypeToString(type).c_str());
       } else if (reduction == -1) {
         report = true;
         printf("Before undo:                        ");

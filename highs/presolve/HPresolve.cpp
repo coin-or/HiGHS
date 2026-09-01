@@ -490,8 +490,9 @@ void HPresolve::chooseRules() {
   const bool silent = silentLog();
   this->allow_rule_.assign(kPresolveRuleCount, true);
   std::vector<HighsBool> presolve_light_rule_off(kPresolveRuleCount, false);
-  const bool presolve_light = options->presolve_light == kHighsOnString;
-  if (presolve_light) {
+  const bool presolve_light_on = options->presolve_light == kHighsOnString;
+  const bool presolve_light_off = options->presolve_light == kHighsOffString;
+  if (presolve_light_on) {
     // Define the rules not used in presolve_light mode
     presolve_light_rule_off[kPresolveRuleDependentEquations] = true;
     presolve_light_rule_off[kPresolveRuleDependentFreeCols] = true;
@@ -521,14 +522,12 @@ void HPresolve::chooseRules() {
       bit *= 2;
     }
   }
-  if (options->presolve_rule_off
-//|| presolve_light
-     ) {
+  if (options->presolve_rule_off || presolve_light_on) {
     // Some presolve rules are off or presolve_light mode is being used
     //
     // Transform options->presolve_rule_off into logical settings in
     // allow_rule_[*], commenting on the rules switched off
-    if (!presolve_light && !silent)
+    if (!presolve_light_on && !silent)
       highsLogUser(options->log_options, HighsLogType::kInfo,
                    "Presolve rules not allowed:\n");
     HighsInt bit = 1;
@@ -541,7 +540,7 @@ void HPresolve::chooseRules() {
         // This is a rule that can be switched off
         allow_rule_[rule_type] = !rule_off;
         // Possibly comment positively if it is off
-        if (rule_off && !presolve_light && !silent)
+        if (rule_off && !presolve_light_on && !silent)
           highsLogUser(options->log_options, HighsLogType::kInfo,
                        "   Rule %2d (set bit %2d = %6d): %s\n", int(rule_type),
                        int(rule_type), int(bit),
@@ -561,7 +560,7 @@ void HPresolve::chooseRules() {
       }
       bit *= 2;
     }
-  } else if (presolve_light) {
+  } else if (presolve_light_off) {
     highsLogUser(options->log_options, HighsLogType::kInfo,
 		 "Presolve light only allows initial sweep\n");
   }
@@ -6659,7 +6658,7 @@ HPresolve::Result HPresolve::presolve(HighsPostsolveStack& postsolve_stack) {
     this->in_initial_sweep_ = false;
     analysis_.presolveTimerStop(kPresolveClockInitialSweep);
   }
-  if (options->presolve_light == kHighsOnString) return Result::kOk;
+  if (options->presolve_light == kHighsOffString) return Result::kOk;
   if (!okSetupPresolveDataStructures()) {
     highsLogUser(options->log_options, HighsLogType::kError,
                  "Insufficient memory for presolve data structures\n");
