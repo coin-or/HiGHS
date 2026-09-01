@@ -521,7 +521,9 @@ void HPresolve::chooseRules() {
       bit *= 2;
     }
   }
-  if (options->presolve_rule_off || presolve_light) {
+  if (options->presolve_rule_off
+//|| presolve_light
+     ) {
     // Some presolve rules are off or presolve_light mode is being used
     //
     // Transform options->presolve_rule_off into logical settings in
@@ -559,6 +561,9 @@ void HPresolve::chooseRules() {
       }
       bit *= 2;
     }
+  } else if (presolve_light) {
+    highsLogUser(options->log_options, HighsLogType::kInfo,
+		 "Presolve light only allows initial sweep\n");
   }
 }
 
@@ -6635,13 +6640,15 @@ HPresolve::Result HPresolve::presolve(HighsPostsolveStack& postsolve_stack) {
                  time_str.c_str());
   }
 
-  if (options->presolve != kHighsOffString && mipsolver == nullptr) {
+  if (options->presolve != kHighsOffString && mipsolver == nullptr &&
+      this->allow_rule_[kPresolveRuleInitialSweep]) {
     // Zero numDeletedCols and numDeletedRows since they are used to
     // identify reductions due to this presovle rule
     numDeletedCols = 0;
     numDeletedRows = 0;
-    // Perform initial sweep to remove fixed columns before forming the
-    // dynamic constraint matrix data structure
+    // Perform initial sweep to remove empty/fixed columns, and
+    // empty/singleton/redundant rows before forming the dynamic
+    // constraint matrix data structure
     analysis_.presolveTimerStart(kPresolveClockInitialSweep);
     // Indicate that initial sweep is running, so that reductions
     // operate on the model rather than the dynamic data structure set
@@ -6652,7 +6659,7 @@ HPresolve::Result HPresolve::presolve(HighsPostsolveStack& postsolve_stack) {
     this->in_initial_sweep_ = false;
     analysis_.presolveTimerStop(kPresolveClockInitialSweep);
   }
-
+  if (options->presolve_light == kHighsOnString) return Result::kOk;
   if (!okSetupPresolveDataStructures()) {
     highsLogUser(options->log_options, HighsLogType::kError,
                  "Insufficient memory for presolve data structures\n");
