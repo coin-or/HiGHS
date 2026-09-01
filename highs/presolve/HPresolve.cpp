@@ -6658,7 +6658,8 @@ HPresolve::Result HPresolve::presolve(HighsPostsolveStack& postsolve_stack) {
     this->in_initial_sweep_ = false;
     analysis_.presolveTimerStop(kPresolveClockInitialSweep);
   }
-  if (options->presolve_light == kHighsOffString) return Result::kOk;
+  if (options->presolve_light == kHighsOffString) return presolveReturn();
+
   if (!okSetupPresolveDataStructures()) {
     highsLogUser(options->log_options, HighsLogType::kError,
                  "Insufficient memory for presolve data structures\n");
