@@ -5726,7 +5726,7 @@ HPresolve::Result HPresolve::zeroCostSingleton(
   analysis_.logging_on_ = logging_on;
   if (logging_on) analysis_.stopPresolveRuleLog(kPresolveRuleZeroCostSingleton);
 
-  return Result::kOk;
+  return checkLimits(postsolve_stack);
 }
 
 HPresolve::Result HPresolve::enumerateSolutions(
