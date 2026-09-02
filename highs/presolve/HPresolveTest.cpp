@@ -14,11 +14,15 @@ HPresolve::Result HPresolve::presolveRuleTest(
   assert(options->presolve_rule_test);
   if (options->presolve_rule_test == kPresolveRuleColStuffing) {
     return presolveRuleTestColStuffing(postsolve_stack);
+  } else if (options->presolve_rule_test ==
+             kPresolveRuleWeaklyDominatedColUpper) {
+    return presolveRuleTestWeaklyDominatedColUpper(postsolve_stack);
   } else if (options->presolve_rule_test == kPresolveRuleParallelRowsAndCols) {
     return presolveRuleTestParallelRowsAndCols(postsolve_stack);
   }
   return Result::kOk;
 }
+
 HPresolve::Result HPresolve::presolveRuleTestColStuffing(
     HighsPostsolveStack& postsolve_stack) {
   assert(options->presolve_rule_test == kPresolveRuleColStuffing);
@@ -38,6 +42,21 @@ HPresolve::Result HPresolve::presolveRuleTestColStuffing(
   // Possibly remove the row
   return rowPresolve(postsolve_stack, 0);
 }
+
+HPresolve::Result HPresolve::presolveRuleTestWeaklyDominatedColUpper(
+    HighsPostsolveStack& postsolve_stack) {
+  highsLogUser(options->log_options, HighsLogType::kInfo,
+               "HPresolve::presolveRuleTestWeaklyDominatedColUpper\n");
+  HighsInt col = 0;
+  assert(model->col_upper_[col] < kHighsInf);
+  HPresolve::Result result = fixColToUpper(postsolve_stack, col);
+  HighsInt row = 0;
+  //    result = rowPresolve(postsolve_stack, row);
+  col = 0;
+  //    result = emptyCol(postsolve_stack, col);
+  return result;
+}
+
 HPresolve::Result HPresolve::presolveRuleTestParallelRowsAndCols(
     HighsPostsolveStack& postsolve_stack) {
   assert(options->presolve_rule_test == kPresolveRuleParallelRowsAndCols);
@@ -45,4 +64,5 @@ HPresolve::Result HPresolve::presolveRuleTestParallelRowsAndCols(
                "HPresolve::presolveRuleTestParallelRowsAndCols\n");
   return detectParallelRowsAndCols(postsolve_stack);
 }
+
 }  // namespace presolve
