@@ -4002,9 +4002,9 @@ HighsPostsolveStatus Highs::runPostsolve() {
   const bool have_dual_solution =
       presolve_.data_.recovered_solution_.dual_valid;
   const HighsInt report_3040_col = -578;
-  presolve_.data_.postSolveStack.undo(options_, presolve_.data_.recovered_solution_,
-				      presolve_.data_.recovered_basis_, 
-				      0, report_3040_col);
+  presolve_.data_.postSolveStack.undo(
+      options_, presolve_.data_.recovered_solution_,
+      presolve_.data_.recovered_basis_, 0, report_3040_col);
   const bool log_undo_count = true;
   if (log_undo_count) {
     presolve::HighsPostsolveStack& stack = presolve_.data_.postSolveStack;

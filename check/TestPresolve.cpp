@@ -1158,14 +1158,15 @@ TEST_CASE("initial-sweep-primal-dual-postsolve", "[highs_test_presolve]") {
   Highs h;
   //  h.setOptionValue("output_flag", dev_run);
   std::string model_file =
-    std::string(HIGHS_DIR) + "/check/instances/25fv47.mps";
+      std::string(HIGHS_DIR) + "/check/instances/25fv47.mps";
   h.readModel(model_file);
 
   REQUIRE(h.setOptionValue("solver", kIpxString) == HighsStatus::kOk);
   REQUIRE(h.setOptionValue("run_crossover", kHighsOffString) ==
           HighsStatus::kOk);
 
-  REQUIRE(h.setOptionValue("presolve_light", kHighsOnString) == HighsStatus::kOk);
+  REQUIRE(h.setOptionValue("presolve_light", kHighsOnString) ==
+          HighsStatus::kOk);
   h.run();
 
   REQUIRE(h.getModelStatus() == HighsModelStatus::kOptimal);
