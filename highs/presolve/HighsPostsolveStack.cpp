@@ -1448,14 +1448,17 @@ void HighsPostsolveStack::ZeroObjSingletonContinuousCol::undo(
 
   // Find a suitable bound within the domain
   double col_value = kHighsInf;
+  // Define the row value, now just for debugging/logging, but maybe
+  // later they will me maintained
+  double row_value = kHighsInf;
   // Detemine whether the row was at its lower or upper bound by
   // virtue of basis status or value
   bool row_at_lower =
       (basis.valid && basis.row_status[row] == HighsBasisStatus::kLower) ||
-      static_cast<double>(act - primal_tol) <= new_row_lb;
+	      std::fabs(static_cast<double>(act - new_row_lb)) <= primal_tol;
   bool row_at_upper =
       (basis.valid && basis.row_status[row] == HighsBasisStatus::kUpper) ||
-      static_cast<double>(act + primal_tol) >= new_row_ub;
+		std::fabs(static_cast<double>(act - new_row_ub)) <= primal_tol;
   bool col_at_lower = false;
   bool col_at_upper = false;
   if (row_at_lower) {
@@ -1472,14 +1475,16 @@ void HighsPostsolveStack::ZeroObjSingletonContinuousCol::undo(
     }
   } else {
     // Determine whether the column can be at its lower or upper bound
-    // with the row between its bound basic
+    // with the row between its bound
     double act_with_col_at_lower = static_cast<double>(act + coef * lb);
     double act_with_col_at_upper = static_cast<double>(act + coef * ub);
     if (act_with_col_at_lower >= origRowLower - primal_tol &&
         act_with_col_at_lower <= origRowUpper + primal_tol) {
+      row_value = act_with_col_at_lower;
       col_at_lower = true;
     } else if (act_with_col_at_upper >= origRowLower - primal_tol &&
                act_with_col_at_upper <= origRowUpper + primal_tol) {
+      row_value = act_with_col_at_upper;
       col_at_upper = true;
     } else {
       // Otherwise, there will be a column value for which the row is at a bound
@@ -1489,7 +1494,6 @@ void HighsPostsolveStack::ZeroObjSingletonContinuousCol::undo(
           static_cast<double>((origRowUpper - act) / coef);
       if (col_value_for_lower >= lb - primal_tol &&
           col_value_for_lower <= ub + primal_tol) {
-        // Can set column basic at this value
         col_value = col_value_for_lower;
         row_at_lower = true;
       } else if (col_value_for_upper >= lb - primal_tol &&
@@ -1499,27 +1503,78 @@ void HighsPostsolveStack::ZeroObjSingletonContinuousCol::undo(
       }
     }
   }
+  if (row_at_lower) {
+    row_value = origRowLower;
+  } else if (row_at_upper) {
+    row_value = origRowUpper;
+  } else {
+    // Row value should have been assigned
+    printf("ZeroObjSingletonContinuousCol::undo "
+	   "Row %d [%g, %g, %g] and "
+	   "column %d [%g, %g, %g]: nonbasic row between bounds??\n",
+	   int(row), origRowLower, row_value, origRowUpper,
+	   int(col), lb, col_value, ub);
+  }
+  // Row dual cannot be changed, and that defines the column dual
+  if (solution.dual_valid)
+    solution.col_dual[col] = -coef * solution.row_dual[row];
   if (col_at_lower || col_at_upper) {
     col_value = col_at_lower ? lb : ub;
-    if (solution.dual_valid)
-      solution.col_dual[col] = -coef * solution.row_dual[row];
     if (basis.valid)
       basis.col_status[col] =
           col_at_lower ? HighsBasisStatus::kLower : HighsBasisStatus::kUpper;
   } else {
-    // Column takes value between its bounds and inherits any basic status from
-    // the row
-    if (solution.dual_valid) {
-      solution.col_dual[col] = 0;
-      solution.row_dual[row] = 0;
-    }
+    // Column takes the value between its bounds (computed above) and
+    // row will be at one of its bounds
     if (basis.valid) {
-      basis.row_status[row] =
+      if (basis.row_status[row] == HighsBasisStatus::kBasic) {
+	// Column can inherit row's basic status
+	basis.row_status[row] =
           row_at_lower ? HighsBasisStatus::kLower : HighsBasisStatus::kUpper;
-      basis.col_status[col] = HighsBasisStatus::kBasic;
+	basis.col_status[col] = HighsBasisStatus::kBasic;
+      } else {
+	// Strange case: column is "between" its bounds but must be nonbasic
+	double midpoint = (lb + ub) * 0.5;
+	double rsdu = 0;
+	if (lb == -kHighsInf && ub == kHighsInf) {
+	  // Free column!
+	  rsdu = std::fabs(col_value);
+	  basis.col_status[col] = HighsBasisStatus::kZero;
+	} else if (col_value < midpoint) {
+	  // Closer to LB
+	  rsdu = std::fabs(lb - col_value);
+	  basis.col_status[col] = HighsBasisStatus::kLower;
+	} else {
+	  // Close to UB
+	  rsdu = std::fabs(ub - col_value);
+	  basis.col_status[col] = HighsBasisStatus::kUpper;
+	}
+	if (rsdu > primal_tol) {
+	  printf("ZeroObjSingletonContinuousCol::undo "
+		 "Row %d [%g, %g, %g] is %s and "
+		 "column %d [%g, %g, %g] is %s with residual %g\n",
+		 int(row), origRowLower, row_value, origRowUpper,
+		 utilBasisStatusToString(basis.row_status[row]).s2_.c_str(),
+		 int(col), lb, col_value, ub,
+		 utilBasisStatusToString(basis.col_status[col]).s2_.c_str(),
+		 rsdu);
+	}		 
+      }
     }
   }
   solution.col_value[col] = col_value;
+  solution.row_value[row] = row_value;
+  printf("ZeroObjSingletonContinuousCol::undo\n");
+  printf("   Col %d [%11.4g, %11.4g, %11.4g] dual %11.4g%s%s\n",
+	 int(col), lb, col_value, ub,
+	 solution.dual_valid ? solution.col_dual[col] : 0.0,
+	 basis.valid ? "; status " : "",
+	 basis.valid ? utilBasisStatusToString(basis.col_status[col]).s2_.c_str() : "");
+  printf("   Row %d [%11.4g, %11.4g, %11.4g] dual %11.4g%s%s\n\n",
+	 int(row), origRowLower, row_value, origRowUpper,
+	 solution.dual_valid ? solution.row_dual[row] : 0.0,
+	 basis.valid ? "; status " : "",
+	 basis.valid ? utilBasisStatusToString(basis.row_status[row]).s2_.c_str() : "");
 }
 
 }  // namespace presolve
