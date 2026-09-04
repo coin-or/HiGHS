@@ -134,6 +134,9 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
 
   double& primal_dual_objective_error = highs_info.primal_dual_objective_error;
 
+  double& active_cost_norm = highs_info.active_cost_norm;
+  double& active_bound_norm = highs_info.active_bound_norm;
+
   const bool& have_primal_solution = solution.value_valid;
   const bool& have_dual_solution = solution.dual_valid;
   const bool have_integrality = (lp.integrality_.size() != 0);
@@ -235,13 +238,13 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
   // since they determine the RHS of the system solved for the values
   // of the basic variables values. That said, by computing the norm
   // as we do, we capture the active bounds of all the nonbasic variables
-  double highs_norm_bounds = 0.0;
+  active_bound_norm = 0.0;
   // Compute the infinity norm of all near-active column duals, since
   // they contribute to the magnitude of the row values, and dividing
   // their residual error by the norm gives a relative residual error:
   // don't consider large inactive bounds, since they don't affect the
   // model
-  double highs_norm_costs = 0.0;
+   active_cost_norm = 0.0;
 
   // Pass twice through this loop, once to determine the bound and
   // cost norms, and once to use them to assess relative
@@ -260,7 +263,7 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
         if (pass == 0) {
           if (dual * dual < dual_feasibility_tolerance) {
             // Dual close to zero
-            highs_norm_costs = std::max(std::fabs(cost), highs_norm_costs);
+            active_cost_norm = std::max(std::fabs(cost), active_cost_norm);
           }
           if (get_residuals && have_dual_solution) {
             // Subtract off the gradient value
@@ -285,7 +288,7 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
       // at_status: Indicates whether the variable is close to its
       // lower bound, upper bound or not at all. Use this as a proxy
       // for being non-basic, so the active bound contributes to
-      // highs_norm_bounds for calculating relative primal measures.
+      // active_bound_norm for calculating relative primal measures.
       //
       // mid_status: Indicates whether a variable with meaningful
       // bound interval length is below the midpoint of its bound
@@ -302,9 +305,9 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
         // If the primal value is close to a bound then include the bound
         // in the active bound norm
         if (at_status == kHighsSolutionLo) {
-          highs_norm_bounds = std::max(std::fabs(lower), highs_norm_bounds);
+          active_bound_norm = std::max(std::fabs(lower), active_bound_norm);
         } else if (at_status == kHighsSolutionUp) {
-          highs_norm_bounds = std::max(std::fabs(upper), highs_norm_bounds);
+          active_bound_norm = std::max(std::fabs(upper), active_bound_norm);
         }
       } else {
         if (primal_infeasibility > 0) {
@@ -316,12 +319,12 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
           sum_primal_infeasibility += primal_infeasibility;
           // Determine the denominator for the relative primal
           // infeasibility
-          double relative_bound_measure = highs_norm_bounds;
+          double relative_bound_measure = active_bound_norm;
           if (at_status == kHighsSolutionNo) {
             // Primal value is infeasible, but not close to a bound:
             // unusual, but possible if absolute primal infeasibilities
             // are not small. Bound has not been included in
-            // highs_norm_bounds, but should be used for local
+            // active_bound_norm, but should be used for local
             // relative infeasibility
             if (mid_status == kHighsSolutionNo ||
                 mid_status == kHighsSolutionLo) {
@@ -363,12 +366,12 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
 
             // Determine the denominator for the relative dual
             // infeasibility
-            double relative_cost_measure = highs_norm_costs;
+            double relative_cost_measure = active_cost_norm;
             if (is_col && cost && dual * dual >= dual_feasibility_tolerance) {
               // Dual value is infeasible, but not close to zero:
               // unusual, but possible if absolute dual infeasibilities
               // are not small. Hence the cost has not been included in
-              // highs_norm_costs, but should be used for local relative
+              // active_cost_norm, but should be used for local relative
               // infeasibility.
               //
               // updateRelativeMeasure(cost, relative_cost_measure);
@@ -390,7 +393,7 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
           double primal_residual_error =
               std::fabs(primal_activity[iRow] - solution.row_value[iRow]);
           double relative_primal_residual_error =
-              primal_residual_error / (1.0 + highs_norm_bounds);
+              primal_residual_error / (1.0 + active_bound_norm);
 
           if (primal_residual_error > primal_residual_tolerance)
             num_primal_residual_error++;
@@ -409,7 +412,7 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
           double dual_residual_error =
               std::fabs(dual_activity[iCol] + solution.col_dual[iCol]);
           double relative_dual_residual_error =
-              dual_residual_error / (1.0 + highs_norm_costs);
+              dual_residual_error / (1.0 + active_cost_norm);
 
           if (dual_residual_error > dual_residual_tolerance) {
             num_dual_residual_error++;
@@ -496,12 +499,10 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
     primal_dual_objective_error = primal_dual_objective_error / denominator;
   }
 
-  printf("getKktFailures:: cost norm = %8.3g; bound norm = %8.3g\n",
-	 highs_norm_costs, highs_norm_bounds);
   if (printf_kkt || options.log_dev_level > 0) {
     highsLogDev(options.log_options, HighsLogType::kInfo,
                 "getKktFailures:: cost norm = %8.3g; bound norm = %8.3g\n",
-                highs_norm_costs, highs_norm_bounds);
+                active_cost_norm, active_bound_norm);
     highsLogDev(options.log_options, HighsLogType::kInfo,
                 "getKktFailures:                      LP  (abs / rel)    "
                 "     Col (abs / rel)         Row (abs / rel)\n");
@@ -1312,6 +1313,8 @@ void lpKktCheck(HighsModelStatus& model_status, HighsInfo& info,
                    "Model status changed from \"Optimal\" to \"Unknown\""
                    " since relative violation of tolerances is %8.3g\n",
                    max_tolerance_relative_violation);
+      highsLogUser(log_options, HighsLogType::kInfo, "         Using active cost norm = %8.3g; active bound norm = %8.3g\n",
+               info.active_cost_norm, info.active_bound_norm);
     } else if (max_allowed_tolerance_relative_violation > 1 &&
                max_tolerance_relative_violation > 1) {
       highsLogUser(log_options, HighsLogType::kInfo,
@@ -2085,6 +2088,8 @@ bool reportKktFailures(const HighsLp& lp, const HighsOptions& options,
 
   highsLogUser(log_options, log_type, "Solution optimality conditions%s%s\n",
                message == "" ? "" : ": ", message == "" ? "" : message.c_str());
+  highsLogUser(log_options, HighsLogType::kInfo, "Using active cost norm = %8.3g; active bound norm = %8.3g\n",
+               info.active_cost_norm, info.active_bound_norm);
   if (solved_as_mip && info.max_integrality_violation >= 0)
     highsLogUser(log_options, HighsLogType::kInfo,
                  "    max      %8.3g                                  "
