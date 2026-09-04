@@ -3224,14 +3224,12 @@ void HPresolve::substitute(HighsInt row, HighsInt col, double rhs) {
     model->offset_ = static_cast<double>(model->offset_ - objscale * rhs);
     assert(std::isfinite(model->offset_));
     for (HighsInt rowiter : rowpositions) {
-      // printf("changing col cost to %g = %g + %g * %g\n",
-      // double(model->col_cost_[Acol[rowiter]] + objscale * Avalue[rowiter]),
-      // model->col_cost_[Acol[rowiter]], double(objscale), Avalue[rowiter]);
-      model->col_cost_[Acol[rowiter]] = static_cast<double>(
-          model->col_cost_[Acol[rowiter]] + objscale * Avalue[rowiter]);
-      if (std::abs(model->col_cost_[Acol[rowiter]]) <=
+      HighsInt iCol = Acol[rowiter];
+      model->col_cost_[iCol] = static_cast<double>(
+          model->col_cost_[iCol] + objscale * Avalue[rowiter]);
+      if (std::abs(model->col_cost_[iCol]) <=
           options->small_matrix_value)
-        model->col_cost_[Acol[rowiter]] = 0.0;
+        model->col_cost_[iCol] = 0.0;
     }
     assert(std::abs(model->col_cost_[col]) <=
            std::max(options->dual_feasibility_tolerance,
@@ -7983,11 +7981,6 @@ HPresolve::Result HPresolve::presolveChangedCols(
   changedCols.swap(changedColIndices);
   for (HighsInt col : changedCols) {
     if (colDeleted[col]) continue;
-    size_t num_reductions = postsolve_stack.numReductions();
-    if (num_reductions == 35044) {
-      printf("HPresolve::presolveChangedCols reductions = %d\n",
-             int(num_reductions));
-    }
     HPRESOLVE_CHECKED_CALL(colPresolve(postsolve_stack, col));
     changedColFlag[col] = colDeleted[col];
   }

@@ -496,6 +496,8 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
     primal_dual_objective_error = primal_dual_objective_error / denominator;
   }
 
+  printf("getKktFailures:: cost norm = %8.3g; bound norm = %8.3g\n",
+	 highs_norm_costs, highs_norm_bounds);
   if (printf_kkt || options.log_dev_level > 0) {
     highsLogDev(options.log_options, HighsLogType::kInfo,
                 "getKktFailures:: cost norm = %8.3g; bound norm = %8.3g\n",
