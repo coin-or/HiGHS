@@ -203,7 +203,6 @@ TEST_CASE("test-parallel-rows-cut-ordering", "[highs_test_presolve_rules]") {
   REQUIRE(!postsolve_stack.isCutRow(0));
 }
 
-
 TEST_CASE("test-effective-costs", "[highs_test_presolve]") {
   // Debugging ZeroObjSingletonContinuousCol for germanrr highlighted
   // the deficiency in computing the active_cost_norm when the
@@ -212,9 +211,8 @@ TEST_CASE("test-effective-costs", "[highs_test_presolve]") {
   // substitutes all free column singletons into the objective to get
   // the "effective costs".
   Highs h;
-  //  h.setOptionValue("output_flag", dev_run);
-  //
-  // LP is
+  h.setOptionValue("output_flag", dev_run);
+  // First LP is
   //
   // min 4z
   //
@@ -252,7 +250,7 @@ TEST_CASE("test-effective-costs", "[highs_test_presolve]") {
   lp.num_row_ = 2;
   lp.col_cost_ = {0, 0, 4};
   lp.col_lower_ = {0, -kHighsInf, -kHighsInf};
-  lp.col_upper_ = {1,  kHighsInf,  kHighsInf};
+  lp.col_upper_ = {1, kHighsInf, kHighsInf};
   lp.a_matrix_.format_ = MatrixFormat::kRowwise;
   lp.a_matrix_.start_ = {0, 3, 5};
   lp.a_matrix_.index_ = {0, 1, 2, 0, 1};
@@ -260,11 +258,9 @@ TEST_CASE("test-effective-costs", "[highs_test_presolve]") {
   lp.row_lower_ = {-1, -1};
   lp.row_upper_ = {1, 1};
   h.passModel(lp);
-  //  h.setOptionValue("presolve", kHighsOffString);
   h.setOptionValue("log_dev_level", 1);
   h.setOptionValue("presolve_rule_logging", kHighsOnString);
   h.run();
-  h.writeSolution("", 1);
   REQUIRE(h.getInfo().active_cost_norm == 0);
 
   // Here's a simpler example that reflects the behaviour observed
@@ -273,28 +269,26 @@ TEST_CASE("test-effective-costs", "[highs_test_presolve]") {
   // active_cost_norm but, after postsolve, the model had
   // active_cost_norm = 1.
 
-  lp.num_col_ = 4;
+  double cost = 1e5;
+  double eps = 1e-4;
+  lp.num_col_ = 3;
   lp.num_row_ = 2;
-  lp.col_cost_ = {0, 0, 0, 1};
-  lp.col_lower_ = {0, 0, 0, -kHighsInf};
-  lp.col_upper_ = {1, 1, 1,  kHighsInf};
+  lp.col_cost_ = {0, 0, 1};
+  lp.col_lower_ = {0, 0, -kHighsInf};
+  lp.col_upper_ = {1, 1, kHighsInf};
   lp.a_matrix_.format_ = MatrixFormat::kRowwise;
-  lp.a_matrix_.start_ = {0, 4, 7};
-  lp.a_matrix_.index_ = {0, 1, 2, 3, 0, 1, 2};
-  lp.a_matrix_.value_ = {1.1e5, 1.2e5, 1.3e5, 1, 1, 1, 1};
+  lp.a_matrix_.start_ = {0, 3, 5};
+  lp.a_matrix_.index_ = {0, 1, 2, 0, 1};
+  lp.a_matrix_.value_ = {cost, cost - eps, 1, 1, 1, 1};
   lp.row_lower_ = {0, 1};
   lp.row_upper_ = {0, 1};
   h.passModel(lp);
-  h.writeModel("test-effective-costs.mps");
 
   h.run();
-  h.writeSolution("", 1);
+  REQUIRE(h.getInfo().active_cost_norm == cost);
 
   h.resetGlobalScheduler(true);
-    
-  
 }
-
 
 void solveAndCheck(const std::string& message, const HighsLp& lp, Highs& h,
                    const std::string& solver, bool use_presolve,

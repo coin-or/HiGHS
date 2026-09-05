@@ -3225,10 +3225,9 @@ void HPresolve::substitute(HighsInt row, HighsInt col, double rhs) {
     assert(std::isfinite(model->offset_));
     for (HighsInt rowiter : rowpositions) {
       HighsInt iCol = Acol[rowiter];
-      model->col_cost_[iCol] = static_cast<double>(
-          model->col_cost_[iCol] + objscale * Avalue[rowiter]);
-      if (std::abs(model->col_cost_[iCol]) <=
-          options->small_matrix_value)
+      model->col_cost_[iCol] = static_cast<double>(model->col_cost_[iCol] +
+                                                   objscale * Avalue[rowiter]);
+      if (std::abs(model->col_cost_[iCol]) <= options->small_matrix_value)
         model->col_cost_[iCol] = 0.0;
     }
     assert(std::abs(model->col_cost_[col]) <=

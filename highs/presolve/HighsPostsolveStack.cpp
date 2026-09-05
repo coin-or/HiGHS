@@ -1454,18 +1454,18 @@ void HighsPostsolveStack::ZeroObjSingletonContinuousCol::undo(
   // Detemine whether the row was at its lower or upper bound by
   // virtue of basis status or value
   double row_residual_at_lower =
-    new_row_lb > -kHighsInf ?
-    std::fabs(static_cast<double>(act - new_row_lb)) : kHighsInf;
+      new_row_lb > -kHighsInf ? std::fabs(static_cast<double>(act - new_row_lb))
+                              : kHighsInf;
   double row_residual_at_upper =
-    new_row_ub <  kHighsInf ?
-    std::fabs(static_cast<double>(act - new_row_ub)) : kHighsInf;
+      new_row_ub < kHighsInf ? std::fabs(static_cast<double>(act - new_row_ub))
+                             : kHighsInf;
   double row_residual = std::min(row_residual_at_lower, row_residual_at_upper);
   bool row_at_lower =
-    (basis.valid && basis.row_status[row] == HighsBasisStatus::kLower) ||
-    row_residual_at_lower <= primal_tol;
+      (basis.valid && basis.row_status[row] == HighsBasisStatus::kLower) ||
+      row_residual_at_lower <= primal_tol;
   bool row_at_upper =
-    (basis.valid && basis.row_status[row] == HighsBasisStatus::kUpper) ||
-    row_residual_at_upper <= primal_tol;
+      (basis.valid && basis.row_status[row] == HighsBasisStatus::kUpper) ||
+      row_residual_at_upper <= primal_tol;
   bool col_at_lower = false;
   bool col_at_upper = false;
   if (row_at_lower) {
@@ -1485,10 +1485,12 @@ void HighsPostsolveStack::ZeroObjSingletonContinuousCol::undo(
     // with the row between its bound
     double abs_coef_lb = std::fabs(coef * lb);
     double abs_coef_ub = std::fabs(coef * ub);
-    double act_with_col_at_lower = abs_coef_lb < kHighsInf ?
-      static_cast<double>(act + coef * lb) : abs_coef_lb;
-    double act_with_col_at_upper = abs_coef_ub < kHighsInf ?
-      static_cast<double>(act + coef * ub) : abs_coef_ub;
+    double act_with_col_at_lower = abs_coef_lb < kHighsInf
+                                       ? static_cast<double>(act + coef * lb)
+                                       : abs_coef_lb;
+    double act_with_col_at_upper = abs_coef_ub < kHighsInf
+                                       ? static_cast<double>(act + coef * ub)
+                                       : abs_coef_ub;
     if (act_with_col_at_lower >= origRowLower - primal_tol &&
         act_with_col_at_lower <= origRowUpper + primal_tol) {
       row_value = act_with_col_at_lower;
@@ -1498,11 +1500,16 @@ void HighsPostsolveStack::ZeroObjSingletonContinuousCol::undo(
       row_value = act_with_col_at_upper;
       col_at_upper = true;
     } else {
-      // Otherwise, look for a feasible column value for which the row is at a bound
-      double col_value_for_lower = origRowLower > -kHighsInf ?
-	static_cast<double>((origRowLower - act) / coef) : (coef > 0 ? -kHighsInf : kHighsInf);
-      double col_value_for_upper = origRowUpper < kHighsInf ?
-	static_cast<double>((origRowUpper - act) / coef) : (coef > 0 ? kHighsInf : -kHighsInf);
+      // Otherwise, look for a feasible column value for which the row is at a
+      // bound
+      double col_value_for_lower =
+          origRowLower > -kHighsInf
+              ? static_cast<double>((origRowLower - act) / coef)
+              : (coef > 0 ? -kHighsInf : kHighsInf);
+      double col_value_for_upper =
+          origRowUpper < kHighsInf
+              ? static_cast<double>((origRowUpper - act) / coef)
+              : (coef > 0 ? kHighsInf : -kHighsInf);
       if (col_value_for_lower >= lb - primal_tol &&
           col_value_for_lower <= ub + primal_tol) {
         col_value = col_value_for_lower;
@@ -1512,75 +1519,84 @@ void HighsPostsolveStack::ZeroObjSingletonContinuousCol::undo(
         col_value = col_value_for_upper;
         row_at_upper = true;
       } else {
-	// Final case occurs when there is an infeasibility in the row
-	// activity - which can happen when IPM without crossover or
-	// PDLP is used to get a primal-dual solution using tolerances
-	// on relative feasibility. This means that it's not possible
-	// to have both the row on one of its new bounds and the
-	// column on one of its bounds. The infeasibility must be
-	// inherited by either the row or the column. As the following
-	// analysis shows, the choice depends on whether the
-	// coefficient is greater than or less than one in magnitude
-	//
-	// Suppose (wlog) the row and singleton column y are
-	//
-	// a^Tx + cy = b and y >= B with c > 0
-	//
-	// After removing the singleton column y, the row is
-	//
-	// a^Tx <= b-cB
-	//
-	// Then, after solving the LP, we have an infeasibility in the
-	// row activity
-	//
-	// act = b-cB + delta, where act = a^Tx* and delta > tol
-	//
-	// Now, either
-	//
-	// 1. We set y* = B, so the row infeasibility of delta is
-	// maintained
-	//
-	// act + cy* = b + delta
-	//
-	// 2. We set y* = B - delta/c so
-	//
-	// act + cy* = act + cB - delta = (b-cB + delta) + cB - delta = b
-	//
-	// The row activity is now feasible, and the infeasibility is
-	// inherited by y with a value of delta/c.
-	//
-	// Option 2 is to be avoided if |c| < 1 since infeasibility
-	// grows, but is preferable if |c| > 1 since infeasibility
-	// decreases. Indeed, if |c| > delta/tol, then y* is feasible
-	
-	
-	printf("ZeroObjSingletonContinuousCol::undo row_residual_at_lower = %g; row_residual_at_upper = %g\n",
-	       row_residual_at_lower, row_residual_at_upper);
-	printf("ZeroObjSingletonContinuousCol::undo act = %24.20g; act-32 = %11.4g: "
-	       "act_with_col_at_lower = %11.4g; act_with_col_at_upper = %11.4g\n",
-	       double(act), double(act-32.0),
-	       act_with_col_at_lower, act_with_col_at_upper);
-	printf("ZeroObjSingletonContinuousCol::undo row_residual = %11.4g; coef = %11.4g:"
-	       "col_value_for_lower = %11.4g; col_value_for_upper = %11.4g\n",
-	       row_residual, coef, col_value_for_lower, col_value_for_upper);
-	if (std::fabs(coef) <= 1.0) {
-	  // Option 1
-	  if (row_residual_at_lower < row_residual_at_upper) {
-	    col_value = coef > 0 ? ub : lb;
-	  } else {
-	    col_value = coef > 0 ? lb : ub;
-	  }
-	} else {
-	  // Option 2, noting that row_residual/coef takes the sign of
-	  // coef to set col_value outside its bounds
-	  if (row_residual_at_lower < row_residual_at_upper) {
-	    col_value = (coef > 0 ? ub : lb) + row_residual/coef;
-	  } else {
-	    col_value = (coef > 0 ? lb : ub) - row_residual/coef ;
-	  }
-	  assert(col_value < lb || col_value > ub);
-	}
-	row_value = static_cast<double>(act + coef * col_value);
+        // Final case occurs when there is an infeasibility in the row
+        // activity - which can happen when IPM without crossover or
+        // PDLP is used to get a primal-dual solution using tolerances
+        // on relative feasibility. This means that it's not possible
+        // to have both the row on one of its new bounds and the
+        // column on one of its bounds. The infeasibility must be
+        // inherited by either the row or the column. As the following
+        // analysis shows, the choice depends on whether the
+        // coefficient is greater than or less than one in magnitude
+        //
+        // Suppose (wlog) the row and singleton column y are
+        //
+        // a^Tx + cy = b and y >= B with c > 0
+        //
+        // After removing the singleton column y, the row is
+        //
+        // a^Tx <= b-cB
+        //
+        // Then, after solving the LP, we have an infeasibility in the
+        // row activity
+        //
+        // act = b-cB + delta, where act = a^Tx* and delta > tol
+        //
+        // Now, either
+        //
+        // 1. We set y* = B, so the row infeasibility of delta is
+        // maintained
+        //
+        // act + cy* = b + delta
+        //
+        // 2. We set y* = B - delta/c so
+        //
+        // act + cy* = act + cB - delta = (b-cB + delta) + cB - delta = b
+        //
+        // The row activity is now feasible, and the infeasibility is
+        // inherited by y with a value of delta/c.
+        //
+        // Option 2 is to be avoided if |c| < 1 since infeasibility
+        // grows, but is preferable if |c| > 1 since infeasibility
+        // decreases. Indeed, if |c| > delta/tol, then y* is feasible
+
+        if (options.output_flag) {
+          printf(
+              "ZeroObjSingletonContinuousCol::undo row_residual_at_lower = %g; "
+              "row_residual_at_upper = %g\n",
+              row_residual_at_lower, row_residual_at_upper);
+          printf(
+              "ZeroObjSingletonContinuousCol::undo act = %24.20g; act-32 = "
+              "%11.4g: "
+              "act_with_col_at_lower = %11.4g; act_with_col_at_upper = "
+              "%11.4g\n",
+              double(act), double(act - 32.0), act_with_col_at_lower,
+              act_with_col_at_upper);
+          printf(
+              "ZeroObjSingletonContinuousCol::undo row_residual = %11.4g; coef "
+              "= "
+              "%11.4g:"
+              "col_value_for_lower = %11.4g; col_value_for_upper = %11.4g\n",
+              row_residual, coef, col_value_for_lower, col_value_for_upper);
+        }
+        if (std::fabs(coef) <= 1.0) {
+          // Option 1
+          if (row_residual_at_lower < row_residual_at_upper) {
+            col_value = coef > 0 ? ub : lb;
+          } else {
+            col_value = coef > 0 ? lb : ub;
+          }
+        } else {
+          // Option 2, noting that row_residual/coef takes the sign of
+          // coef to set col_value outside its bounds
+          if (row_residual_at_lower < row_residual_at_upper) {
+            col_value = (coef > 0 ? ub : lb) + row_residual / coef;
+          } else {
+            col_value = (coef > 0 ? lb : ub) - row_residual / coef;
+          }
+          assert(col_value < lb || col_value > ub);
+        }
+        row_value = static_cast<double>(act + coef * col_value);
       }
     }
   }
@@ -1594,11 +1610,14 @@ void HighsPostsolveStack::ZeroObjSingletonContinuousCol::undo(
     if (col_at_lower || col_at_upper) {
       local_col_value = col_at_lower ? lb : ub;
     }
-    printf("ZeroObjSingletonContinuousCol::undo "
-	   "Row%7d [%11.4g, %11.4g, %11.4g] and "
-	   "column%7d [%11.4g, %11.4g, %11.4g]: nonbasic row between bounds??\n",
-	   int(row), origRowLower, row_value, origRowUpper,
-	   int(col), lb, local_col_value, ub);
+    if (options.output_flag) {
+      printf(
+          "ZeroObjSingletonContinuousCol::undo "
+          "Row%7d [%11.4g, %11.4g, %11.4g] and "
+          "column%7d [%11.4g, %11.4g, %11.4g]: nonbasic row between bounds??\n",
+          int(row), origRowLower, row_value, origRowUpper, int(col), lb,
+          local_col_value, ub);
+    }
   }
   // Row dual cannot be changed, and that defines the column dual
   if (solution.dual_valid)
@@ -1613,37 +1632,41 @@ void HighsPostsolveStack::ZeroObjSingletonContinuousCol::undo(
     // row will be at one of its bounds
     if (basis.valid) {
       if (basis.row_status[row] == HighsBasisStatus::kBasic) {
-	// Column can inherit row's basic status
-	basis.row_status[row] =
-          row_at_lower ? HighsBasisStatus::kLower : HighsBasisStatus::kUpper;
-	basis.col_status[col] = HighsBasisStatus::kBasic;
+        // Column can inherit row's basic status
+        basis.row_status[row] =
+            row_at_lower ? HighsBasisStatus::kLower : HighsBasisStatus::kUpper;
+        basis.col_status[col] = HighsBasisStatus::kBasic;
       } else {
-	// Strange case: column is "between" its bounds but must be nonbasic
-	double midpoint = (lb + ub) * 0.5;
-	double rsdu = 0;
-	if (lb == -kHighsInf && ub == kHighsInf) {
-	  // Free column!
-	  rsdu = std::fabs(col_value);
-	  basis.col_status[col] = HighsBasisStatus::kZero;
-	} else if (col_value < midpoint) {
-	  // Closer to LB
-	  rsdu = std::fabs(lb - col_value);
-	  basis.col_status[col] = HighsBasisStatus::kLower;
-	} else {
-	  // Close to UB
-	  rsdu = std::fabs(ub - col_value);
-	  basis.col_status[col] = HighsBasisStatus::kUpper;
-	}
-	if (rsdu > primal_tol) {
-	  printf("ZeroObjSingletonContinuousCol::undo "
-		 "Row%7d [%11.4g, %11.4g, %11.4g] is %s and "
-		 "column%7d [%11.4g, %11.4g, %11.4g] is %s with residual %11.4g\n",
-		 int(row), origRowLower, row_value, origRowUpper,
-		 utilBasisStatusToString(basis.row_status[row]).s2_.c_str(),
-		 int(col), lb, col_value, ub,
-		 utilBasisStatusToString(basis.col_status[col]).s2_.c_str(),
-		 rsdu);
-	}		 
+        // Strange case: column is "between" its bounds but must be nonbasic
+        double midpoint = (lb + ub) * 0.5;
+        double rsdu = 0;
+        if (lb == -kHighsInf && ub == kHighsInf) {
+          // Free column!
+          rsdu = std::fabs(col_value);
+          basis.col_status[col] = HighsBasisStatus::kZero;
+        } else if (col_value < midpoint) {
+          // Closer to LB
+          rsdu = std::fabs(lb - col_value);
+          basis.col_status[col] = HighsBasisStatus::kLower;
+        } else {
+          // Close to UB
+          rsdu = std::fabs(ub - col_value);
+          basis.col_status[col] = HighsBasisStatus::kUpper;
+        }
+        if (rsdu > primal_tol) {
+          if (options.output_flag) {
+            printf(
+                "ZeroObjSingletonContinuousCol::undo "
+                "Row%7d [%11.4g, %11.4g, %11.4g] is %s and "
+                "column%7d [%11.4g, %11.4g, %11.4g] is %s with residual "
+                "%11.4g\n",
+                int(row), origRowLower, row_value, origRowUpper,
+                utilBasisStatusToString(basis.row_status[row]).s2_.c_str(),
+                int(col), lb, col_value, ub,
+                utilBasisStatusToString(basis.col_status[col]).s2_.c_str(),
+                rsdu);
+          }
+        }
       }
     }
   }
@@ -1651,17 +1674,22 @@ void HighsPostsolveStack::ZeroObjSingletonContinuousCol::undo(
   assert(row_value != kHighsInf);
   solution.col_value[col] = col_value;
   solution.row_value[row] = row_value;
-  printf("ZeroObjSingletonContinuousCol::undo\n");
-  printf("   Col%7d [%11.4g, %11.4g, %11.4g] dual %11.4g%s%s\n",
-	 int(col), lb, col_value, ub,
-	 solution.dual_valid ? solution.col_dual[col] : 0.0,
-	 basis.valid ? "; status " : "",
-	 basis.valid ? utilBasisStatusToString(basis.col_status[col]).s2_.c_str() : "");
-  printf("   Row%7d [%11.4g, %11.4g, %11.4g] dual %11.4g%s%s\n\n",
-	 int(row), origRowLower, row_value, origRowUpper,
-	 solution.dual_valid ? solution.row_dual[row] : 0.0,
-	 basis.valid ? "; status " : "",
-	 basis.valid ? utilBasisStatusToString(basis.row_status[row]).s2_.c_str() : "");
+  if (options.output_flag) {
+    printf("ZeroObjSingletonContinuousCol::undo\n");
+    printf("   Col%7d [%11.4g, %11.4g, %11.4g] dual %11.4g%s%s\n", int(col), lb,
+           col_value, ub, solution.dual_valid ? solution.col_dual[col] : 0.0,
+           basis.valid ? "; status " : "",
+           basis.valid
+               ? utilBasisStatusToString(basis.col_status[col]).s2_.c_str()
+               : "");
+    printf("   Row%7d [%11.4g, %11.4g, %11.4g] dual %11.4g%s%s\n\n", int(row),
+           origRowLower, row_value, origRowUpper,
+           solution.dual_valid ? solution.row_dual[row] : 0.0,
+           basis.valid ? "; status " : "",
+           basis.valid
+               ? utilBasisStatusToString(basis.row_status[row]).s2_.c_str()
+               : "");
+  }
 }
 
 }  // namespace presolve

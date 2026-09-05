@@ -153,7 +153,7 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
   // Invalidate all the KKT measures
   highs_info.invalidateKkt();
 
-  std::vector<double> effective_costs = getEffectiveCosts(lp);
+  std::vector<double> effective_costs = getEffectiveCosts(lp, options);
 
   if (have_primal_solution) {
     // There's a primal solution, so check its size and initialise the
@@ -247,7 +247,7 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
   // their residual error by the norm gives a relative residual error:
   // don't consider large inactive bounds, since they don't affect the
   // model
-   active_cost_norm = 0.0;
+  active_cost_norm = 0.0;
 
   // Pass twice through this loop, once to determine the bound and
   // cost norms, and once to use them to assess relative
@@ -258,7 +258,7 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
       if (is_col) {
         HighsInt iCol = iVar;
         cost = gradient[iCol];
-	effective_cost = effective_costs[iCol];
+        effective_cost = effective_costs[iCol];
         lower = lp.col_lower_[iCol];
         upper = lp.col_upper_[iCol];
         value = solution.col_value[iCol];
@@ -267,7 +267,8 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
         if (pass == 0) {
           if (dual * dual < dual_feasibility_tolerance) {
             // Dual close to zero
-            active_cost_norm = std::max(std::fabs(effective_cost), active_cost_norm);
+            active_cost_norm =
+                std::max(std::fabs(effective_cost), active_cost_norm);
           }
           if (get_residuals && have_dual_solution) {
             // Subtract off the gradient value
@@ -420,8 +421,11 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
 
           if (dual_residual_error > dual_residual_tolerance) {
             num_dual_residual_error++;
-	    printf("getKktFailures Col %3d Dual residual error %2d = %g\n", int(iCol), int(num_dual_residual_error), dual_residual_error);
-	  }
+            if (options.output_flag)
+              printf("getKktFailures Col %3d Dual residual error %2d = %g\n",
+                     int(iCol), int(num_dual_residual_error),
+                     dual_residual_error);
+          }
           if (max_dual_residual_error < dual_residual_error)
             max_dual_residual_error = dual_residual_error;
 
@@ -669,55 +673,63 @@ void getVariableKktFailures(const double primal_feasibility_tolerance,
   }
 }
 
-std::vector<double> getEffectiveCosts(const HighsLp& lp) {
+std::vector<double> getEffectiveCosts(const HighsLp& lp,
+                                      const HighsOptions& options) {
   std::vector<double> effective_costs = lp.col_cost_;
-  std::vector<HighsInt>column_count;
-  std::vector<HighsBool>row_used(lp.num_row_, false);
+  std::vector<HighsInt> column_count;
+  std::vector<HighsBool> row_used(lp.num_row_, false);
   HighsInt num_free_column_singleton = 0;
   HighsInt prev_num_free_column_singleton = -kHighsIInf;
-  for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) 
-    column_count.push_back(lp.a_matrix_.start_[iCol+1] - lp.a_matrix_.start_[iCol]);
+  for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++)
+    column_count.push_back(lp.a_matrix_.start_[iCol + 1] -
+                           lp.a_matrix_.start_[iCol]);
   for (;;) {
     prev_num_free_column_singleton = num_free_column_singleton;
     for (HighsInt iFree = 0; iFree < lp.num_col_; iFree++) {
-      if (column_count[iFree] == 1 &&
-	  lp.col_lower_[iFree] == -kHighsInf &&
-	  lp.col_upper_[iFree] == kHighsInf &&
-	  effective_costs[iFree]) {
-	// Free column singleton
-	num_free_column_singleton++;
-	double free_c = 0;
-	double free_a = 0;
-	HighsInt iRow = -kHighsIInf;
-	for (HighsInt iFreeEl = lp.a_matrix_.start_[iFree];
-	     iFreeEl < lp.a_matrix_.start_[iFree+1]; iFreeEl++) {
-	  iRow = lp.a_matrix_.index_[iFreeEl];
-	  if (!row_used[iRow]) {
-	    free_c = effective_costs[iFree];
-	    free_a = lp.a_matrix_.value_[iFreeEl];
-	    break;
-	  }
-	}
-	printf("getEffectiveCosts: found free column singleton %d in row %d\n", int(iFree), int(iRow));
-	row_used[iRow] = true;
-	const double c_upon_a = free_c/free_a;
-	for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
-	  for (HighsInt iEl = lp.a_matrix_.start_[iCol]; iEl < lp.a_matrix_.start_[iCol+1]; iEl++) {
-	    if (lp.a_matrix_.index_[iEl] == iRow) {
-	      column_count[iCol]--;
-	      effective_costs[iCol] -= c_upon_a * lp.a_matrix_.value_[iEl];
-	      break;
-	    }
-	  }
-	}
-	assert(std::fabs(effective_costs[iFree]) < 1e-10);
-	break;
+      if (column_count[iFree] == 1 && lp.col_lower_[iFree] == -kHighsInf &&
+          lp.col_upper_[iFree] == kHighsInf && effective_costs[iFree]) {
+        // Free column singleton
+        num_free_column_singleton++;
+        double free_c = 0;
+        double free_a = 0;
+        HighsInt iRow = -kHighsIInf;
+        for (HighsInt iFreeEl = lp.a_matrix_.start_[iFree];
+             iFreeEl < lp.a_matrix_.start_[iFree + 1]; iFreeEl++) {
+          iRow = lp.a_matrix_.index_[iFreeEl];
+          if (!row_used[iRow]) {
+            free_c = effective_costs[iFree];
+            free_a = lp.a_matrix_.value_[iFreeEl];
+            break;
+          }
+        }
+        if (options.output_flag)
+          printf(
+              "getEffectiveCosts: found free column singleton %d in row %d\n",
+              int(iFree), int(iRow));
+        row_used[iRow] = true;
+        const double c_upon_a = free_c / free_a;
+        for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
+          for (HighsInt iEl = lp.a_matrix_.start_[iCol];
+               iEl < lp.a_matrix_.start_[iCol + 1]; iEl++) {
+            if (lp.a_matrix_.index_[iEl] == iRow) {
+              column_count[iCol]--;
+              effective_costs[iCol] -= c_upon_a * lp.a_matrix_.value_[iEl];
+              break;
+            }
+          }
+        }
+        assert(std::fabs(effective_costs[iFree]) < 1e-10);
+        break;
       }
     }
     // Stop when no more is found
     if (num_free_column_singleton == prev_num_free_column_singleton) break;
   }
-  printf("getEffectiveCosts added in %d row(s) corresponding to free column singleton(s) into the objective\n", int(num_free_column_singleton));
+  if (options.output_flag && num_free_column_singleton > 0)
+    printf(
+        "getEffectiveCosts added in %d row(s) corresponding to free column "
+        "singleton(s) into the objective\n",
+        int(num_free_column_singleton));
   return effective_costs;
 }
 
@@ -1369,8 +1381,10 @@ void lpKktCheck(HighsModelStatus& model_status, HighsInfo& info,
                    "Model status changed from \"Optimal\" to \"Unknown\""
                    " since relative violation of tolerances is %8.3g\n",
                    max_tolerance_relative_violation);
-      highsLogUser(log_options, HighsLogType::kInfo, "         Using active cost norm = %8.3g; active bound norm = %8.3g\n",
-               info.active_cost_norm, info.active_bound_norm);
+      highsLogUser(log_options, HighsLogType::kInfo,
+                   "         Using active cost norm = %8.3g; active bound norm "
+                   "= %8.3g\n",
+                   info.active_cost_norm, info.active_bound_norm);
     } else if (max_allowed_tolerance_relative_violation > 1 &&
                max_tolerance_relative_violation > 1) {
       highsLogUser(log_options, HighsLogType::kInfo,
@@ -2144,7 +2158,8 @@ bool reportKktFailures(const HighsLp& lp, const HighsOptions& options,
 
   highsLogUser(log_options, log_type, "Solution optimality conditions%s%s\n",
                message == "" ? "" : ": ", message == "" ? "" : message.c_str());
-  highsLogUser(log_options, HighsLogType::kInfo, "Using active cost norm = %8.3g; active bound norm = %8.3g\n",
+  highsLogUser(log_options, HighsLogType::kInfo,
+               "Using active cost norm = %8.3g; active bound norm = %8.3g\n",
                info.active_cost_norm, info.active_bound_norm);
   if (solved_as_mip && info.max_integrality_violation >= 0)
     highsLogUser(log_options, HighsLogType::kInfo,

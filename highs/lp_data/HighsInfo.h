@@ -389,14 +389,13 @@ class HighsInfo : public HighsInfoStruct {
                              advanced, &primal_dual_integral, 0);
     records.push_back(record_double);
 
-    record_double =
-        new InfoRecordDouble("active_cost_norm", "Active cost norm",
-                             advanced, &active_cost_norm, 0);
+    record_double = new InfoRecordDouble("active_cost_norm", "Active cost norm",
+                                         advanced, &active_cost_norm, 0);
     records.push_back(record_double);
 
     record_double =
-        new InfoRecordDouble("active_bound_norm", "Active bound norm",
-                             advanced, &active_bound_norm, 0);
+        new InfoRecordDouble("active_bound_norm", "Active bound norm", advanced,
+                             &active_bound_norm, 0);
     records.push_back(record_double);
   }
 
