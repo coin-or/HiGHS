@@ -153,6 +153,8 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
   // Invalidate all the KKT measures
   highs_info.invalidateKkt();
 
+  std::vector<double> effective_costs = getEffectiveCosts(lp);
+
   if (have_primal_solution) {
     // There's a primal solution, so check its size and initialise the
     // infeasibility counts
@@ -212,6 +214,7 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
   double dual_infeasibility;
   double semi_infeasibility;
   double cost = 0.0;
+  double effective_cost = 0.0;
   double lower;
   double upper;
   double value;
@@ -255,6 +258,7 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
       if (is_col) {
         HighsInt iCol = iVar;
         cost = gradient[iCol];
+	effective_cost = effective_costs[iCol];
         lower = lp.col_lower_[iCol];
         upper = lp.col_upper_[iCol];
         value = solution.col_value[iCol];
@@ -263,7 +267,7 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
         if (pass == 0) {
           if (dual * dual < dual_feasibility_tolerance) {
             // Dual close to zero
-            active_cost_norm = std::max(std::fabs(cost), active_cost_norm);
+            active_cost_norm = std::max(std::fabs(effective_cost), active_cost_norm);
           }
           if (get_residuals && have_dual_solution) {
             // Subtract off the gradient value
@@ -376,7 +380,7 @@ void getKktFailures(const HighsOptions& options, const bool is_qp,
               //
               // updateRelativeMeasure(cost, relative_cost_measure);
               relative_cost_measure =
-                  std::max(std::fabs(cost), relative_cost_measure);
+                  std::max(std::fabs(effective_cost), relative_cost_measure);
             }
             double relative_dual_infeasibility =
                 dual_infeasibility / (1.0 + relative_cost_measure);
@@ -663,6 +667,65 @@ void getVariableKktFailures(const double primal_feasibility_tolerance,
         semi_infeasibility = 0;
     }
   }
+}
+
+std::vector<double> getEffectiveCosts(const HighsLp& lp) {
+  std::vector<double> effective_costs = lp.col_cost_;
+  std::vector<HighsInt>column_count;
+  std::vector<HighsBool>row_used(lp.num_row_, false);
+  HighsInt num_free_column_singleton = 0;
+  HighsInt prev_num_free_column_singleton = -kHighsIInf;
+  for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) 
+    column_count.push_back(lp.a_matrix_.start_[iCol+1] - lp.a_matrix_.start_[iCol]);
+  for (;;) {
+    prev_num_free_column_singleton = num_free_column_singleton;
+    for (HighsInt iFree = 0; iFree < lp.num_col_; iFree++) {
+      if (column_count[iFree] == 1 &&
+	  lp.col_lower_[iFree] == -kHighsInf &&
+	  lp.col_upper_[iFree] == kHighsInf &&
+	  lp.col_cost_[iFree]) {
+	// Free column singleton
+	num_free_column_singleton++;
+	double free_c = 0;
+	double free_a = 0;
+	HighsInt iRow = -kHighsIInf;
+	for (HighsInt iFreeEl = lp.a_matrix_.start_[iFree];
+	     iFreeEl < lp.a_matrix_.start_[iFree+1]; iFreeEl++) {
+	  iRow = lp.a_matrix_.index_[iFreeEl];
+	  if (!row_used[iRow]) {
+	    free_c = lp.col_cost_[iFree];
+	    free_a = lp.a_matrix_.value_[iFreeEl];
+	    break;
+	  }
+	}
+	printf("getEffectiveCosts: found free column singleton %d in row %d\n", int(iFree), int(iRow));
+	row_used[iRow] = true;
+	const bool add = free_c * free_a < 0;
+	const double c_upon_a = free_c/free_a;
+	for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
+	  for (HighsInt iEl = lp.a_matrix_.start_[iCol]; iEl < lp.a_matrix_.start_[iCol+1]; iEl++) {
+	    if (lp.a_matrix_.index_[iEl] == iRow) {
+	      column_count[iCol]--;
+	      double cost_change = c_upon_a * lp.a_matrix_.value_[iEl];
+	      double was_cost = effective_costs[iCol];
+	      if (add) {
+		effective_costs[iCol] += cost_change;
+	      } else {
+		effective_costs[iCol] -= cost_change;
+	      }
+	      break;
+	    }
+	  }
+	}
+	
+	break;
+      }
+    }
+    // Stop when no more is found
+    if (num_free_column_singleton == prev_num_free_column_singleton) break;
+  }
+  printf("getEffectiveCosts added in %d row(s) corresponding to free column singleton(s) into the objective\n", int(num_free_column_singleton));
+  return effective_costs;
 }
 
 void getPrimalDualGlpsolErrors(const HighsOptions& options, const HighsLp& lp,

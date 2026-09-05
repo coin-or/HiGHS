@@ -102,6 +102,8 @@ void lpKktCheck(HighsModelStatus& model_status, HighsInfo& info,
                 const HighsBasis& basis, const HighsOptions& options,
                 const std::string& message);
 
+std::vector<double> getEffectiveCosts(const HighsLp& lp);
+
 void getPrimalDualGlpsolErrors(const HighsOptions& options, const HighsLp& lp,
                                const std::vector<double>& gradient,
                                const HighsSolution& solution,
