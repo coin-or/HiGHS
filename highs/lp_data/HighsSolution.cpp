@@ -683,7 +683,7 @@ std::vector<double> getEffectiveCosts(const HighsLp& lp) {
       if (column_count[iFree] == 1 &&
 	  lp.col_lower_[iFree] == -kHighsInf &&
 	  lp.col_upper_[iFree] == kHighsInf &&
-	  lp.col_cost_[iFree]) {
+	  effective_costs[iFree]) {
 	// Free column singleton
 	num_free_column_singleton++;
 	double free_c = 0;
@@ -693,31 +693,24 @@ std::vector<double> getEffectiveCosts(const HighsLp& lp) {
 	     iFreeEl < lp.a_matrix_.start_[iFree+1]; iFreeEl++) {
 	  iRow = lp.a_matrix_.index_[iFreeEl];
 	  if (!row_used[iRow]) {
-	    free_c = lp.col_cost_[iFree];
+	    free_c = effective_costs[iFree];
 	    free_a = lp.a_matrix_.value_[iFreeEl];
 	    break;
 	  }
 	}
 	printf("getEffectiveCosts: found free column singleton %d in row %d\n", int(iFree), int(iRow));
 	row_used[iRow] = true;
-	const bool add = free_c * free_a < 0;
 	const double c_upon_a = free_c/free_a;
 	for (HighsInt iCol = 0; iCol < lp.num_col_; iCol++) {
 	  for (HighsInt iEl = lp.a_matrix_.start_[iCol]; iEl < lp.a_matrix_.start_[iCol+1]; iEl++) {
 	    if (lp.a_matrix_.index_[iEl] == iRow) {
 	      column_count[iCol]--;
-	      double cost_change = c_upon_a * lp.a_matrix_.value_[iEl];
-	      double was_cost = effective_costs[iCol];
-	      if (add) {
-		effective_costs[iCol] += cost_change;
-	      } else {
-		effective_costs[iCol] -= cost_change;
-	      }
+	      effective_costs[iCol] -= c_upon_a * lp.a_matrix_.value_[iEl];
 	      break;
 	    }
 	  }
 	}
-	
+	assert(std::fabs(effective_costs[iFree]) < 1e-10);
 	break;
       }
     }

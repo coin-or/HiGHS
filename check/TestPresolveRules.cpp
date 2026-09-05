@@ -203,6 +203,99 @@ TEST_CASE("test-parallel-rows-cut-ordering", "[highs_test_presolve_rules]") {
   REQUIRE(!postsolve_stack.isCutRow(0));
 }
 
+
+TEST_CASE("test-effective-costs", "[highs_test_presolve]") {
+  // Debugging ZeroObjSingletonContinuousCol for germanrr highlighted
+  // the deficiency in computing the active_cost_norm when the
+  // objective is f = z, with z = c^Tx and z free. In
+  // HighsSolution.cpp is the method getEffectiveCosts that
+  // substitutes all free column singletons into the objective to get
+  // the "effective costs".
+  Highs h;
+  //  h.setOptionValue("output_flag", dev_run);
+  //
+  // LP is
+  //
+  // min 4z
+  //
+  // -1 <=    x + y - 2z <= 1
+  //
+  // -1 <= 201x + y      <= 1
+  //
+  // 0 <= x <= 1, y, z free
+  //
+  // where the bounds on the two constraints and non-unit coefficients
+  // of z in the objective and first contraint give code coverage
+  //
+  // Aiming to minimize 4z, and bound is given by 2z >= x + y - 1, so
+  // substitute z = (x+y-1)/2 into the objective to give
+  //
+  // min 2x + 2y - 2
+  //
+  // y is then minimized with bound is given by y >= -201x - 1, so
+  // substitute y = -201x - 1 into the objective to give
+  //
+  // min 2x +(-402x-2) - 2 = -400x - 4
+  //
+  // This function is minimized when x = 1 to give y = -202 and z =
+  // -101 with objective -404
+  //
+  // The optimal dual values are -400 for x, -2 for row 0 and 2 for
+  // row 1. However, although this example tests code coverage on
+  // identifying free column singletons and a double free column
+  // singleton identified in getEffectiveCosts, the dual of -400 for
+  // the only nonbasic column means that there are no active costs, so
+  // active_cost_norm is zero (hence absolute and relative dual
+  // infeasibility measures are identical).
+  HighsLp lp;
+  lp.num_col_ = 3;
+  lp.num_row_ = 2;
+  lp.col_cost_ = {0, 0, 4};
+  lp.col_lower_ = {0, -kHighsInf, -kHighsInf};
+  lp.col_upper_ = {1,  kHighsInf,  kHighsInf};
+  lp.a_matrix_.format_ = MatrixFormat::kRowwise;
+  lp.a_matrix_.start_ = {0, 3, 5};
+  lp.a_matrix_.index_ = {0, 1, 2, 0, 1};
+  lp.a_matrix_.value_ = {1, 1, -2, 201, 1};
+  lp.row_lower_ = {-1, -1};
+  lp.row_upper_ = {1, 1};
+  h.passModel(lp);
+  //  h.setOptionValue("presolve", kHighsOffString);
+  h.setOptionValue("log_dev_level", 1);
+  h.setOptionValue("presolve_rule_logging", kHighsOnString);
+  h.run();
+  h.writeSolution("", 1);
+  REQUIRE(h.getInfo().active_cost_norm == 0);
+
+  // Here's a simpler example that reflects the behaviour observed
+  // with germanrr, where the cost row of the matrix introduced many
+  // large costs. Hence the presolved model had a large value for
+  // active_cost_norm but, after postsolve, the model had
+  // active_cost_norm = 1.
+
+  lp.num_col_ = 4;
+  lp.num_row_ = 2;
+  lp.col_cost_ = {0, 0, 0, 1};
+  lp.col_lower_ = {0, 0, 0, -kHighsInf};
+  lp.col_upper_ = {1, 1, 1,  kHighsInf};
+  lp.a_matrix_.format_ = MatrixFormat::kRowwise;
+  lp.a_matrix_.start_ = {0, 4, 7};
+  lp.a_matrix_.index_ = {0, 1, 2, 3, 0, 1, 2};
+  lp.a_matrix_.value_ = {1.1e5, 1.2e5, 1.3e5, 1, 1, 1, 1};
+  lp.row_lower_ = {0, 1};
+  lp.row_upper_ = {0, 1};
+  h.passModel(lp);
+  h.writeModel("test-effective-costs.mps");
+
+  h.run();
+  h.writeSolution("", 1);
+
+  h.resetGlobalScheduler(true);
+    
+  
+}
+
+
 void solveAndCheck(const std::string& message, const HighsLp& lp, Highs& h,
                    const std::string& solver, bool use_presolve,
                    const HighsInt require_presolved_model_num_col,
