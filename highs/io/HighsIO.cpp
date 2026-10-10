@@ -319,6 +319,15 @@ const std::string highsIntToBe(const HighsInt i) {
   return (i == 1 ? "is" : "are");
 }
 
+const std::string highsIntToThirdPerson(const HighsInt i) {
+  return i == 1 ? "s" : "";
+}
+
+const std::string highsIntToIndefiniteArticle(const HighsInt i, const bool an) {
+  if (an) return i == 1 ? "an " : "";
+  return i == 1 ? "a " : "";
+}
+
 const std::string highsTimeToString(const double time) {
   return
 #ifndef NDEBUG

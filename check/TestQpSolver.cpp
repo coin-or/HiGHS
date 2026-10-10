@@ -1626,3 +1626,47 @@ TEST_CASE("test-qp-atwood", "[qpsolver]") {
   }
   h.resetGlobalScheduler(true);
 }
+
+TEST_CASE("test-miqp0", "[qpsolver]") {
+  // min (x-0.8)^2 + (y-0.6)^2 = x^2 + y^2 -1.6x -1.2y + 1
+  //
+  // x + y <= 2; x\in[0, 2], y\in{0, 1}
+  //
+  // For f = (1/2)[x, y]Q[x, y]^T + c^T[x, y]^T + d
+  //
+  // Q = [2, 0\\0, 2]; c = [-1.6, -1.2]; d = 1
+  //
+  // MIQP solution x = 0.8, y = 1; f = 0.16
+  //
+  // MILP solution x = 2.0, y = 0; f = -3.2
+  HighsModel model;
+  HighsLp& lp = model.lp_;
+  HighsHessian& hessian = model.hessian_;
+  lp.model_name_ = "miqp0";
+  lp.num_col_ = 2;
+  lp.num_row_ = 1;
+  lp.offset_ = 1;
+  lp.col_cost_ = {-1.6, -1.2};
+  lp.col_lower_ = {0, 0};
+  lp.col_upper_ = {2, 1};
+  lp.row_lower_ = {-inf};
+  lp.row_upper_ = {2};
+  lp.a_matrix_.start_ = {0, 1, 2};
+  lp.a_matrix_.index_ = {0, 0};
+  lp.a_matrix_.value_ = {1, 1};
+  lp.integrality_ = {HighsVarType::kContinuous, HighsVarType::kInteger};
+  lp.col_names_ = {"x", "y"};
+  lp.row_names_ = {"r"};
+  hessian.dim_ = 2;
+  hessian.start_ = {0, 1, 2};
+  hessian.index_ = {0, 1};
+  hessian.value_ = {2, 2};
+  Highs h;
+  //  h.setOptionValue("output_flag", dev_run);
+  REQUIRE(h.passModel(model) == HighsStatus::kOk);
+  REQUIRE(h.run() == HighsStatus::kError);
+  if (dev_run)
+    REQUIRE(h.writeSolution("", 1) == HighsStatus::kOk);
+
+  h.resetGlobalScheduler(true);
+}

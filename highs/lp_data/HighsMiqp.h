@@ -17,6 +17,7 @@
 #include "io/HighsIO.h"
 #include "model/HighsHessian.h"
 
-void logHessian(const HighsLogOptions log_options, const HighsHessian& hessian);
+void logHessian(const HighsLogOptions log_options, const HighsHessian& hessian,
+                const std::vector<HighsVarType>& integrality);
 
 #endif  // LP_DATA_HIGHSMIQP_H_
