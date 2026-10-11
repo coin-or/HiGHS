@@ -1638,7 +1638,7 @@ TEST_CASE("test-miqp0", "[qpsolver]") {
   //
   // MIQP solution x = 0.8, y = 1; f = 0.16
   //
-  // MILP solution x = 2.0, y = 0; f = -3.2
+  // MILP solution x = 2.0, y = 0; f = -2.2
   HighsModel model;
   HighsLp& lp = model.lp_;
   HighsHessian& hessian = model.hessian_;
@@ -1662,11 +1662,13 @@ TEST_CASE("test-miqp0", "[qpsolver]") {
   hessian.index_ = {0, 1};
   hessian.value_ = {2, 2};
   Highs h;
+  // Unit tests run silently, and this is achieved by setting
+  // output_flag to false
+  //
   //  h.setOptionValue("output_flag", dev_run);
   REQUIRE(h.passModel(model) == HighsStatus::kOk);
   REQUIRE(h.run() == HighsStatus::kError);
-  if (dev_run)
-    REQUIRE(h.writeSolution("", 1) == HighsStatus::kOk);
+  if (dev_run) REQUIRE(h.writeSolution("", 1) == HighsStatus::kOk);
 
   h.resetGlobalScheduler(true);
 }
